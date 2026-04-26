@@ -453,9 +453,11 @@ export async function submitInvoice(
     throw new Error(`Simulation failed: ${(sim as any).error}`);
   }
 
+  // Extract the predicted invoice ID from simulation retval
   let invoiceId = BigInt(0);
   try {
     const raw = scValToNative(sim.result!.retval);
+    // Contract returns Result<u64, Error> — unwrap Ok variant
     if (raw && typeof raw === "object" && "ok" in raw) {
       invoiceId = BigInt((raw as any).ok);
     } else if (raw && typeof raw === "object" && "Ok" in raw) {
@@ -463,16 +465,13 @@ export async function submitInvoice(
     } else {
       invoiceId = BigInt(raw as any);
     }
-  } catch {
-    // Proceed without ID — it will be confirmed after polling
+  } catch (_) {
+    // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as unknown as Transaction, invoiceId };
+  return { tx: finalTx as any, invoiceId };
 }
-
-// ─── Write: submit invoice (full sign-and-send, self-contained) ───────────────
-// Used when the caller provides a signTx callback (e.g. SDK-style integration).
 
 export async function submitInvoiceTransaction({
   freelancer,

@@ -40,7 +40,7 @@ export function useInvoice(id: bigint | null) {
 export function useFundInvoice() {
   const queryClient = useQueryClient();
   const { address, signTx } = useWallet();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async (invoiceId: bigint) => {
@@ -71,14 +71,21 @@ export function useFundInvoice() {
       if (context?.previousInvoices) {
         queryClient.setQueryData(["invoices"], context.previousInvoices);
       }
-      showToast("Funding failed: " + (err instanceof Error ? err.message : "Unknown error"), "error");
+      addToast({
+        type: "error",
+        title: "Funding failed",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
     },
     onSettled: () => {
       // Always refetch after error or success to ensure we're in sync with the chain
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
     onSuccess: () => {
-      showToast("Invoice funded successfully!", "success");
+      addToast({
+        type: "success",
+        title: "Invoice funded successfully!",
+      });
     },
   });
 }

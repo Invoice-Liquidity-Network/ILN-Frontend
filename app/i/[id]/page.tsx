@@ -1,5 +1,3 @@
-import InvoiceDetailPage from "@/src/pages/InvoiceDetail";
-
 "use client";
 
 import { use, useEffect, useState, useCallback } from "react";
@@ -10,6 +8,7 @@ import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME, CONTRACT_ID } from "../../../const
 import ActivityFeed from "../../../components/ActivityFeed";
 import { useWallet } from "../../../context/WalletContext";
 import { useToast } from "../../../context/ToastContext";
+import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
 import "../../../styles/print.css";
 
 interface InvoiceEvent {
@@ -205,6 +204,7 @@ function Spinner({ label = "Loading…" }: { label?: string }) {
 
 function CopyLinkButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
+  const { addToast } = useToast();
 
   const handleCopy = async () => {
     try {
@@ -212,7 +212,7 @@ function CopyLinkButton({ url }: { url: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2_500);
     } catch {
-      // Clipboard API unavailable — silently ignore
+      addToast({ type: "error", title: "Copy failed", message: "Unable to copy link. Please copy the URL manually." });
     }
   };
 
@@ -250,7 +250,7 @@ function CopyPayerLinkButton({ invoiceId }: { invoiceId: string }) {
       addToast({ type: "success", title: "Link copied!", message: "Direct settlement link ready to share with the payer." });
       setTimeout(() => setCopied(false), 2_500);
     } catch {
-      // ignore
+      addToast({ type: "error", title: "Copy failed", message: "Unable to copy link. Please copy the URL manually." });
     }
   };
 
@@ -407,6 +407,8 @@ export default function InvoiceStatusPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+
+  useDocumentTitle({ pageTitle: `Invoice #${id}` });
 
   // Parse & validate the invoice ID from the URL
   const invoiceId: bigint | null = (() => {
@@ -745,6 +747,4 @@ export default function InvoiceStatusPage({
       </main>
     </>
   );
-export default function InvoiceDetailRoute({ params }: { params: { id: string } }) {
-  return <InvoiceDetailPage id={params.id} />;
 }

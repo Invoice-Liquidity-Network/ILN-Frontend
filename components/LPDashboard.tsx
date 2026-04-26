@@ -5,6 +5,7 @@ import { useWallet } from "../context/WalletContext";
 import { useToast } from "../context/ToastContext";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import InvoiceFilterBar from "./InvoiceFilterBar";
+import { useRouter } from "next/navigation";
 import { useApprovedTokens } from "../hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "../hooks/useInvoiceFilters";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
@@ -25,6 +26,7 @@ import { ExportButton } from "./ExportButton";
 import { useInvoices } from "../hooks/useInvoices";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
+import { useTranslation } from "react-i18next";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist";
@@ -33,6 +35,8 @@ export default function LPDashboard() {
   const { address, connect, signTx } = useWallet();
   const { addToast } = useToast();
   const { tokenMap, defaultToken } = useApprovedTokens();
+  const { t, i18n } = useTranslation();
+  const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
   
   const { data: invoices = [], isLoading: loading, dataUpdatedAt } = useInvoices();
   
@@ -44,6 +48,8 @@ export default function LPDashboard() {
   const [sortKey, setSortKey] = useState<keyof Invoice | "risk" | "yield">("amount");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const router = useRouter();
 
   const {
     filters,
@@ -103,6 +109,28 @@ export default function LPDashboard() {
     if (!selectedInvoice || !address) return;
     void refreshAllowance(selectedInvoice, address);
   }, [address, refreshAllowance, selectedInvoice]);
+
+  const toggleInvoiceSelection = (id: string) => {
+    setSelectedInvoiceIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((i) => i !== id);
+      }
+      if (prev.length >= 3) {
+        addToast({
+          type: "error",
+          title: "Selection Limit",
+          message: "You can compare up to 3 invoices",
+        });
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleCompareInvoices = () => {
+    if (selectedInvoiceIds.length < 2) return;
+    router.push(`/lp/compare?ids=${selectedInvoiceIds.join(",")}`);
+  };
 
   const handleClaimDefault = async (invoice: Invoice) => {
     if (!address) {
@@ -195,8 +223,11 @@ export default function LPDashboard() {
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">monitoring</span>
-            LP Dashboard
+            {t("lpDashboard.title")}
           </h3>
+          <p className="text-sm text-on-surface-variant mt-1">
+            {t("lpDashboard.subtitle")}
+          </p>
           <p className="text-sm text-on-surface-variant mt-1">Browse and fund invoices to earn yield.</p>
         </div>
 
@@ -209,7 +240,7 @@ export default function LPDashboard() {
                 : "text-on-surface-variant hover:bg-surface-variant/30"
             }`}
           >
-            Discovery
+            {t("lpDashboard.tabs.discovery")}
           </button>
           <button
             onClick={() => setActiveTab("watchlist")}
@@ -219,7 +250,7 @@ export default function LPDashboard() {
                 : "text-on-surface-variant hover:bg-surface-variant/30"
             }`}
           >
-            Watchlist
+            {t("lpDashboard.tabs.watchlist")}
             {watchlist.length > 0 && (
               <span className="ml-2 bg-primary-container text-on-primary-container px-1.5 py-0.5 rounded-full text-[10px]">
                 {watchlist.length}
@@ -234,9 +265,19 @@ export default function LPDashboard() {
                 : "text-on-surface-variant hover:bg-surface-variant/30"
             }`}
           >
-            My Funded
+            {t("lpDashboard.tabs.myFunded")}
           </button>
         </div>
+
+        {selectedInvoiceIds.length >= 2 && (
+          <button
+            onClick={handleCompareInvoices}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-green-700 transition-all animate-in fade-in slide-in-from-right-4"
+          >
+            <span className="material-symbols-outlined text-[18px]">compare_arrows</span>
+            Compare {selectedInvoiceIds.length} Invoices
+          </button>
+        )}
       </div>
       <div className="px-6 pt-4 flex flex-col gap-3">
         <InvoiceFilterBar
@@ -260,26 +301,35 @@ export default function LPDashboard() {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-surface-container-low">
+            <thead className="bg-surface-container-low border-b border-surface-dim">
               <tr>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">ID</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">Freelancer</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
-                  Amount {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
+                <th className="px-6 py-4 w-10"></th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  ID
                 </th>
-                <th id="risk-badge" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("discount_rate")}>
-                  Discount {sortKey === "discount_rate" && (sortOrder === "asc" ? "↑" : "↓")}
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  Freelancer
+                </th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
+                  {t("lpDashboard.tableHeaders.amount")} {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("discount_rate")}>
+                  {t("lpDashboard.tableHeaders.discount")} {sortKey === "discount_rate" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
                 <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("due_date")}>
-                  Due Date {sortKey === "due_date" && (sortOrder === "asc" ? "↑" : "↓")}
+                  {t("lpDashboard.tableHeaders.dueDate")} {sortKey === "due_date" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">Est. Yield</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  Est. Yield
+                </th>
                 {activeTab === "watchlist" && (
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">Added</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                    Added
+                  </th>
                 )}
                 {activeTab === "discovery" && (
                   <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer" onClick={() => toggleSort("risk")}>
-                    Risk {sortKey === "risk" && (sortOrder === "asc" ? "↑" : "↓")}
+                    {t("lpDashboard.tableHeaders.risk")} {sortKey === "risk" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
                 )}
                 <th className="px-6 py-4"></th>
@@ -293,17 +343,31 @@ export default function LPDashboard() {
               ) : (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-on-surface-variant italic">
-                    No {activeTab === "discovery" ? "pending" : "saved"} invoices found.
+                    Loading invoices from Stellar...
+                  </td>
+                </tr>
+              ) : (activeTab === "discovery" ? discoveryInvoices : activeTab === "watchlist" ? watchlistInvoices : myFundedInvoices).length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-on-surface-variant italic">
+                    No {activeTab === "discovery" ? "pending" : activeTab === "watchlist" ? "saved" : "funded"} invoices found.
                   </td>
                 </tr>
               ) : (
                 (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => (
-                  <tr key={invoice.id.toString()} className="hover:bg-surface-variant/10 transition-colors">
+                  <tr key={invoice.id.toString()} className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''}`}>
+                    <td className="px-6 py-5">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoiceIds.includes(invoice.id.toString())}
+                        onChange={() => toggleInvoiceSelection(invoice.id.toString())}
+                        className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
+                      />
+                    </td>
                     <td className="px-6 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{formatAddress(invoice.freelancer)}</span>
-                        <span className="text-[10px] text-on-surface-variant">Payer: {formatAddress(invoice.payer)}</span>
+                        <span className="text-[10px] text-on-surface-variant">{t("lpDashboard.tableHeaders.payer")}: {formatAddress(invoice.payer)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-5 font-bold">
@@ -320,7 +384,7 @@ export default function LPDashboard() {
                     </td>
                     {activeTab === "watchlist" && (
                       <td className="px-6 py-5 text-xs text-on-surface-variant">
-                        {new Date(invoice.watchAddedAt).toLocaleDateString()}
+                        {new Date(invoice.watchAddedAt).toLocaleDateString(getLocale())}
                       </td>
                     )}
                     {activeTab === "discovery" && (
@@ -340,26 +404,29 @@ export default function LPDashboard() {
                               ? "text-red-500 hover:bg-red-50"
                               : "text-on-surface-variant hover:bg-surface-variant/50"
                           }`}
-                          title={isInWatchlist(invoice.id) ? "Remove from watchlist" : "Add to watchlist"}
+                          title={isInWatchlist(invoice.id) ? t("lpDashboard.watchlist.remove") : t("lpDashboard.watchlist.add")}
                         >
                           <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isInWatchlist(invoice.id) ? "'FILL' 1" : "'FILL' 0" }}>
                             bookmark
                           </span>
                         </button>
-                        <button
-                          id={index === 0 ? "fund-button" : undefined}
-                          onClick={() => handleFund(invoice)}
-                          className="bg-primary text-surface-container-lowest text-xs px-4 py-2 rounded-lg font-bold hover:bg-primary/90 shadow-sm active:scale-95 transition-all"
-                        >
-                          Fund
-                        </button>
-                        {activeTab === "watchlist" && invoice.status !== "Pending" && (
+                        {activeTab === "discovery" ? (
+                          <button
+                            id={index === 0 ? "fund-button" : undefined}
+                            onClick={() => handleFund(invoice)}
+                            className="bg-primary text-surface-container-lowest text-xs px-4 py-2 rounded-lg font-bold hover:bg-primary/90 shadow-sm active:scale-95 transition-all"
+                          >
+                            Fund
+                          </button>
+                        ) : (
                           <div className="flex flex-col items-end gap-1">
                             <InvoiceStatusBadge status={invoice.status} />
-                            <span className="text-[10px] bg-error-container text-on-error-container px-2 py-0.5 rounded flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[10px]">warning</span>
-                              Already funded
-                            </span>
+                            {invoice.status !== "Pending" && (
+                              <span className="text-[10px] bg-error-container text-on-error-container px-2 py-0.5 rounded flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[10px]">warning</span>
+                                {t("lpDashboard.alreadyFunded")}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

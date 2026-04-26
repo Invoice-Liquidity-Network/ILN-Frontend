@@ -13,6 +13,7 @@ import { useApprovedTokens } from "../../hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "../../hooks/useInvoiceFilters";
 import { formatAddress, formatDate, formatTokenAmount } from "../../utils/format";
 import { getAllInvoices, Invoice, markPaid } from "../../utils/soroban";
+import TokenSelector, { TokenAmount } from "../../components/TokenSelector";
 import InvoiceTable, { ColumnDefinition } from "../../components/InvoiceTable";
 
 const server = new rpc.Server(RPC_URL);
@@ -27,6 +28,19 @@ function daysRemaining(dueDateTimestamp: bigint): number {
 
 function isOverdue(dueDateTimestamp: bigint): boolean {
   return daysRemaining(dueDateTimestamp) < 0;
+}
+
+function DaysChip({ due_date }: { due_date: bigint }) {
+  const days = daysRemaining(due_date);
+  const overdue = days < 0;
+
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+      overdue ? "bg-red-100 text-red-700" : "bg-primary-container text-on-primary-container"
+    }`}>
+      {overdue ? `${Math.abs(days)}d overdue` : `${days}d remaining`}
+    </span>
+  );
 }
 
 // ─── Settle confirmation modal ────────────────────────────────────────────────
@@ -381,6 +395,8 @@ export default function PayerDashboard() {
     } finally {
       setIsSettling(false);
     }
+  };
+
   const columns: ColumnDefinition<Invoice>[] = [
     {
       id: "id",
