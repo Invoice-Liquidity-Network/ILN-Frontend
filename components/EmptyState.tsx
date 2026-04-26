@@ -1,30 +1,24 @@
-import React from "react";
+"use client";
 
-export interface EmptyStateProps {
-  title: string;
-  description: string;
-  illustration: React.ReactNode;
-  action?: React.ReactNode;
-}
-
-export function EmptyState({ title, description, illustration, action }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center p-12 text-center isolate">
-      {/* Container for illustration */}
-      <div className="w-48 h-48 mb-6 relative">
-        {illustration}
+export function EmptyState({ connected }: { connected: boolean }) {
+  if (!connected) {
+    return (
+      <div className="text-center py-24">
+        <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 block mb-4">
+          account_balance_wallet
+        </span>
+        <p className="text-on-surface-variant font-medium">
+          Connect your wallet to view your invoices
+        </p>
       </div>
-      
-      <h3 className="text-xl font-bold text-on-surface mb-2">{title}</h3>
-      <p className="text-sm text-on-surface-variant max-w-sm mb-6 leading-relaxed">
-        {description}
-      </p>
-      
-      {action && (
-        <div className="mt-2">
-          {action}
-        </div>
-      )}
+    );
+  }
+  return (
+    <div className="text-center py-24">
+      <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 block mb-4">
+        receipt_long
+      </span>
+      <p className="text-on-surface-variant font-medium">No invoices found</p>
     </div>
   );
 }

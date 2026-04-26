@@ -1,16 +1,21 @@
 "use client";
 
 import { rpc, TransactionBuilder } from "@stellar/stellar-sdk";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import InvoiceFilterBar from "../../components/InvoiceFilterBar";
 import Footer from "../../components/Footer";
 import Navbar from "../../components/Navbar";
-import { TokenAmount } from "../../components/TokenSelector";
+import DueDateCountdown from "../../components/DueDateCountdown";
 import { RPC_URL } from "../../constants";
 import { useToast } from "../../context/ToastContext";
 import { useWallet } from "../../context/WalletContext";
 import { useApprovedTokens } from "../../hooks/useApprovedTokens";
+import { applyInvoiceFilters, useInvoiceFilters } from "../../hooks/useInvoiceFilters";
 import { formatAddress, formatDate, formatTokenAmount } from "../../utils/format";
 import { getAllInvoices, Invoice, markPaid } from "../../utils/soroban";
+import TokenSelector, { TokenAmount } from "../../components/TokenSelector";
+import InvoiceTable, { ColumnDefinition } from "../../components/InvoiceTable";
 
 const server = new rpc.Server(RPC_URL);
 
@@ -29,33 +34,12 @@ function isOverdue(dueDateTimestamp: bigint): boolean {
 function DaysChip({ due_date }: { due_date: bigint }) {
   const days = daysRemaining(due_date);
   const overdue = days < 0;
-  const urgent = days >= 0 && days <= 3;
 
-  if (overdue) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 text-red-500 border border-red-500/30 text-xs font-semibold">
-        <span
-          className="material-symbols-outlined text-[12px]"
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          warning
-        </span>
-        {Math.abs(days)}d overdue
-      </span>
-    );
-  }
-  if (urgent) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-semibold">
-        <span className="material-symbols-outlined text-[12px]">schedule</span>
-        {days}d left
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/20 text-on-surface-variant text-xs font-medium">
-      <span className="material-symbols-outlined text-[12px]">event</span>
-      {days}d left
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+      overdue ? "bg-red-100 text-red-700" : "bg-primary-container text-on-primary-container"
+    }`}>
+      {overdue ? `${Math.abs(days)}d overdue` : `${days}d remaining`}
     </span>
   );
 }
@@ -265,6 +249,7 @@ function SortTh({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PayerDashboard() {
+  const router = useRouter();
   const { address, isConnected, connect, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
   const { tokenMap, defaultToken } = useApprovedTokens();
@@ -276,6 +261,12 @@ export default function PayerDashboard() {
   const [justPaid, setJustPaid] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<keyof Invoice>("due_date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const {
+    filters,
+    setFilters,
+    clearFilters,
+    activeFilterCount,
+  } = useInvoiceFilters({ namespace: "payerInvoices" });
 
   const fetchData = useCallback(async () => {
     if (!isConnected || !address) return;
@@ -305,9 +296,23 @@ export default function PayerDashboard() {
       (inv.status === "Funded" || justPaid.has(inv.id.toString()))
   );
 
-  const sortedInvoices = [...myInvoices].sort((a, b) => {
+  const filteredInvoices = useMemo(
+    () =>
+      applyInvoiceFilters(myInvoices, filters, {
+        resolveTokenSymbol: (invoice) => {
+          const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
+          return token?.symbol ?? "USDC";
+        },
+      }),
+    [defaultToken?.contractId, filters, myInvoices, tokenMap],
+  );
+
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     const av = a[sortKey] as string | number | bigint | undefined;
     const bv = b[sortKey] as string | number | bigint | undefined;
+    if (av === undefined && bv === undefined) return 0;
+    if (av === undefined) return 1;
+    if (bv === undefined) return -1;
     if (av < bv) return sortOrder === "asc" ? -1 : 1;
     if (av > bv) return sortOrder === "asc" ? 1 : -1;
     return 0;
@@ -330,6 +335,32 @@ export default function PayerDashboard() {
     } else {
       setSortKey(key);
       setSortOrder("asc");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: Invoice, index: number) => {
+    const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        (rowElements[index + 1] as HTMLElement)?.focus();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        (rowElements[index - 1] as HTMLElement)?.focus();
+        break;
+      case "Enter":
+        e.preventDefault();
+        router.push(`/i/${invoice.id.toString()}`);
+        break;
+      case "s":
+      case "S":
+        if (invoice.status === "Funded" && !justPaid.has(invoice.id.toString())) {
+          e.preventDefault();
+          setSelectedInvoice(invoice);
+        }
+        break;
     }
   };
 
@@ -393,6 +424,119 @@ export default function PayerDashboard() {
       setIsSettling(false);
     }
   };
+
+  const columns: ColumnDefinition<Invoice>[] = [
+    {
+      id: "id",
+      label: "ID",
+      isMandatory: true,
+      sortable: true,
+      renderCell: (inv) => {
+        const overdue = isOverdue(inv.due_date);
+        const paid = inv.status === "Paid" || justPaid.has(inv.id.toString());
+        return (
+          <span className={`font-bold text-sm ${overdue && !paid ? "text-red-500" : "text-primary"}`}>
+            #{inv.id.toString()}
+          </span>
+        );
+      },
+    },
+    {
+      id: "freelancer",
+      label: "Freelancer",
+      sortable: false,
+      renderCell: (inv) => (
+        <span className="text-sm font-mono text-on-surface-variant">
+          {formatAddress(inv.freelancer)}
+        </span>
+      ),
+    },
+    {
+      id: "amount",
+      label: "Amount Owed",
+      sortable: true,
+      renderCell: (inv) => {
+        const overdue = isOverdue(inv.due_date);
+        const paid = inv.status === "Paid" || justPaid.has(inv.id.toString());
+        return (
+          <span className={`font-bold text-sm ${overdue && !paid ? "text-red-500" : "text-on-surface"}`}>
+            <InvoiceAmount invoice={inv} amount={inv.amount} tokenMap={tokenMap} defaultToken={defaultToken} />
+          </span>
+        );
+      },
+    },
+    {
+      id: "due_date",
+      label: "Due Date",
+      sortable: true,
+      renderCell: (inv) => {
+        const paid = inv.status === "Paid" || justPaid.has(inv.id.toString());
+        return (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm text-on-surface">{formatDate(inv.due_date)}</span>
+            {!paid && <DaysChip due_date={inv.due_date} />}
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      label: "Status",
+      isMandatory: true,
+      sortable: false,
+      renderCell: (inv) => {
+        const overdue = isOverdue(inv.due_date);
+        const paid = inv.status === "Paid" || justPaid.has(inv.id.toString());
+        if (paid) {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-xs font-semibold">
+              <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                check_circle
+              </span>
+              Paid
+            </span>
+          );
+        }
+        if (overdue) {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 text-red-500 border border-red-500/30 text-xs font-semibold">
+              <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                error
+              </span>
+              Overdue
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 text-xs font-semibold">
+            <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              pending
+            </span>
+            Funded
+          </span>
+        );
+      },
+    },
+    {
+      id: "actions",
+      label: "Action",
+      sortable: false,
+      renderCell: (inv) => {
+        const paid = inv.status === "Paid" || justPaid.has(inv.id.toString());
+        if (paid) return null;
+        return (
+          <div className="text-right">
+            <button
+              onClick={() => setSelectedInvoice(inv)}
+              className="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface-variant text-xs font-bold hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+            >
+              Settle
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <main id="payer-settlement-page" className="min-h-screen">
@@ -501,6 +645,14 @@ export default function PayerDashboard() {
       <section className="py-8 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
+            <div className="p-6 pb-0">
+              <InvoiceFilterBar
+                filters={filters}
+                onFiltersChange={setFilters}
+                onClearFilters={clearFilters}
+                activeFilterCount={activeFilterCount}
+              />
+            </div>
 
             {/* Table */}
             <div className="overflow-x-auto">
@@ -508,7 +660,27 @@ export default function PayerDashboard() {
                 <thead className="bg-surface-container-low">
                   <tr>
                     <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
-                      ID
+                      <div className="flex items-center gap-1">
+                        ID
+                        <div className="group/tooltip relative inline-block ml-1">
+                          <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
+                            <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">Shortcuts</div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↑↓</kbd>
+                              <span>Navigate rows</span>
+                            </div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↵</kbd>
+                              <span>Open detail</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">S</kbd>
+                              <span>Settle invoice</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </th>
                     <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                       Freelancer
@@ -555,7 +727,7 @@ export default function PayerDashboard() {
                       </td>
                     </tr>
                   ) : (
-                    sortedInvoices.map((invoice) => {
+                    sortedInvoices.map((invoice, index) => {
                       const overdue = isOverdue(invoice.due_date);
                       const paid =
                         invoice.status === "Paid" ||
@@ -564,7 +736,10 @@ export default function PayerDashboard() {
                       return (
                         <tr
                           key={invoice.id.toString()}
-                          className={`transition-colors ${
+                          tabIndex={0}
+                          role="row"
+                          onKeyDown={(e) => handleKeyDown(e, invoice, index)}
+                          className={`transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5 ${
                             overdue && !paid
                               ? "bg-red-500/[0.03] hover:bg-red-500/[0.06]"
                               : "hover:bg-surface-container/50"
@@ -591,13 +766,22 @@ export default function PayerDashboard() {
                             </span>
                           </td>
 
-                          {/* Due date + days remaining */}
+                          {/* Due date + countdown */}
                           <td className="px-6 py-5">
                             <div className="flex flex-col gap-1.5">
                               <span className="text-sm text-on-surface">
                                 {formatDate(invoice.due_date)}
                               </span>
-                              {!paid && <DaysChip due_date={invoice.due_date} />}
+                              {!paid && (
+                                <DueDateCountdown
+                                  dueDate={invoice.due_date}
+                                  showClaimButton={true}
+                                  onClaimDefault={() => {
+                                    // TODO: Implement claim default logic
+                                    console.log("Claim default for invoice", invoice.id);
+                                  }}
+                                />
+                              )}
                             </div>
                           </td>
 

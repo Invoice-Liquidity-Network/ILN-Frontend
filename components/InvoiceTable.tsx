@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import ColumnCustomiser, { ColumnConfig } from "./ColumnCustomiser";
 
 export interface ColumnDefinition<T> extends ColumnConfig {
@@ -35,6 +36,7 @@ export default function InvoiceTable<T>({
   sortOrder,
   keyExtractor,
 }: InvoiceTableProps<T>) {
+  const router = useRouter();
   const storageKey = `iln_table_config_${tableId}`;
 
   // State for order and visibility
@@ -129,6 +131,22 @@ export default function InvoiceTable<T>({
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
+                    {idx === 0 && (
+                      <div className="group/tooltip relative inline-block ml-1">
+                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
+                          <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">Shortcuts</div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↑↓</kbd>
+                            <span>Navigate rows</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↵</kbd>
+                            <span>Open detail</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {col.sortable && (
                       <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity">
                         {sortKey === col.id ? (sortOrder === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
@@ -151,16 +169,19 @@ export default function InvoiceTable<T>({
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td 
-                  colSpan={activeColumns.length} 
-                  className={emptyStateNode ? "px-6 py-12" : "px-6 py-12 text-center text-on-surface-variant italic"}
-                >
-                  {emptyStateNode || emptyMessage}
+                <td colSpan={activeColumns.length} className="px-6 py-12 text-center text-on-surface-variant italic">
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
-              data.map((item) => (
-                <tr key={keyExtractor(item)} className="hover:bg-surface-variant/10 transition-colors group">
+              data.map((item, index) => (
+                <tr
+                  key={keyExtractor(item)}
+                  tabIndex={0}
+                  role="row"
+                  onKeyDown={(e) => handleKeyDown(e, item, index)}
+                  className="hover:bg-surface-variant/10 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5"
+                >
                   {activeColumns.map((col) => (
                     <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ""}`}>
                       {col.renderCell(item)}
@@ -175,3 +196,4 @@ export default function InvoiceTable<T>({
     </div>
   );
 }
+

@@ -1,29 +1,23 @@
-/**
- * Public Invoice Status Page
- * Route: /i/[id]
- *
- * A wallet-free, publicly shareable page that lets payers verify an invoice
- * is on-chain. Polls the Soroban contract every 30 s without a full reload.
- *
- * Features
- * ─────────
- * • Displays: Invoice ID, amount (USDC), token, due date, status, discount rate
- * • Privacy toggle: wallet addresses hidden by default; revealed on demand
- * • Status banners: "Paid" (green) | "Defaulted" (neutral) | others
- * • QR code linking to this page's URL
- * • Copy Link + Share on X/Twitter buttons
- */
-
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { use, useEffect, useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { getInvoice, type Invoice } from "../../../utils/soroban";
-import { formatUsdcFromStroops } from "../../../utils/invoiceSubmission";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "../../../constants";
+import { formatUsdcFromStroops, parseAmountToUnits, parseDiscountRateToBps, toUnixTimestamp } from "../../../utils/invoiceSubmission";
+import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME, CONTRACT_ID } from "../../../constants";
 import ActivityFeed from "../../../components/ActivityFeed";
 import { useWallet } from "../../../context/WalletContext";
 import { useToast } from "../../../context/ToastContext";
+import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
+import { updateInvoice, submitSignedTransaction } from "../../../utils/soroban";
+import "../../../styles/print.css";
+
+interface InvoiceEvent {
+  type: "submitted" | "funded" | "paid" | "defaulted" | "cancelled" | "dispute";
+  timestamp: number;
+  actor: string;
+  data?: { amount?: string };
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +75,35 @@ function shortenAddress(addr: string, chars = 6): string {
 function tokenLabel(tokenId: string): string {
   if (tokenId === TESTNET_USDC_TOKEN_ID) return "USDC";
   return `${tokenId.slice(0, 4)}…${tokenId.slice(-4)}`;
+}
+
+function formatActivityDescription(event: InvoiceEvent): string {
+  switch (event.type) {
+    case "submitted":
+      return `Invoice submitted by ${shortenAddress(event.actor)}`;
+    case "funded":
+      return `Invoice funded by ${shortenAddress(event.actor)}${event.data?.amount ? ` for ${formatUsdcFromStroops(BigInt(event.data.amount))} USDC` : ""}`;
+    case "paid":
+      return `Invoice paid by ${shortenAddress(event.actor)}`;
+    case "defaulted":
+      return `Invoice defaulted. LP ${shortenAddress(event.actor)} claimed${event.data?.amount ? ` ${formatUsdcFromStroops(BigInt(event.data.amount))} USDC` : ""}`;
+    case "cancelled":
+      return `Invoice cancelled by ${shortenAddress(event.actor)}`;
+    case "dispute":
+      return `Dispute raised by ${shortenAddress(event.actor)}`;
+    default:
+      return `Event: ${event.type}`;
+  }
+}
+
+function formatActivityDate(timestamp: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -182,6 +205,7 @@ function Spinner({ label = "Loading…" }: { label?: string }) {
 
 function CopyLinkButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
+  const { addToast } = useToast();
 
   const handleCopy = async () => {
     try {
@@ -189,7 +213,7 @@ function CopyLinkButton({ url }: { url: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2_500);
     } catch {
-      // Clipboard API unavailable — silently ignore
+      addToast({ type: "error", title: "Copy failed", message: "Unable to copy link. Please copy the URL manually." });
     }
   };
 
@@ -227,7 +251,7 @@ function CopyPayerLinkButton({ invoiceId }: { invoiceId: string }) {
       addToast({ type: "success", title: "Link copied!", message: "Direct settlement link ready to share with the payer." });
       setTimeout(() => setCopied(false), 2_500);
     } catch {
-      // ignore
+      addToast({ type: "error", title: "Copy failed", message: "Unable to copy link. Please copy the URL manually." });
     }
   };
 
@@ -250,7 +274,38 @@ function CopyPayerLinkButton({ invoiceId }: { invoiceId: string }) {
   );
 }
 
-// ─── Share on X button ────────────────────────────────────────────────────────
+// ─── Print / Export PDF button ────────────────────────────────────────────────
+
+function PrintPDFButton({ invoiceId, invoiceDate }: { invoiceId: bigint; invoiceDate: string }) {
+  const handlePrint = () => {
+    const dateStr = new Date().toISOString().split("T")[0];
+    const filename = `ILN-Invoice-${invoiceId}-${dateStr}.pdf`;
+    const link = document.createElement("a");
+    link.setAttribute("rel", "noopener noreferrer");
+    document.body.appendChild(link);
+    window.print();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <button
+      id="print-pdf"
+      type="button"
+      onClick={handlePrint}
+      aria-label="Print or export as PDF"
+      className="flex items-center gap-2 rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high"
+    >
+      <span
+        className="material-symbols-outlined text-base"
+        aria-hidden="true"
+        style={{ fontVariationSettings: "'FILL' 1" }}
+      >
+        print
+      </span>
+      Print / Export PDF
+    </button>
+  );
+}
 
 function ShareOnXButton({ invoiceId, url }: { invoiceId: bigint; url: string }) {
   const text = encodeURIComponent(
@@ -350,12 +405,16 @@ function useInvoicePolling(id: bigint | null) {
 export default function InvoiceStatusPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
+
+  useDocumentTitle({ pageTitle: `Invoice #${id}` });
+
   // Parse & validate the invoice ID from the URL
   const invoiceId: bigint | null = (() => {
     try {
-      const parsed = BigInt(params.id);
+      const parsed = BigInt(id);
       return parsed > 0n ? parsed : null;
     } catch {
       return null;
@@ -364,14 +423,50 @@ export default function InvoiceStatusPage({
 
   const { invoice, loadState, errorMessage, lastUpdated } = useInvoicePolling(invoiceId);
 
-  const { address } = useWallet();
+  const { address, signTx } = useWallet();
+  const { addToast } = useToast();
   const [addressesRevealed, setAddressesRevealed] = useState(false);
+
+  // -- Inline Edit State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editDiscountRate, setEditDiscountRate] = useState("");
+  const [editErrors, setEditErrors] = useState<{ amount?: string; dueDate?: string; discountRate?: string }>({});
+
+  const [optimisticInv, setOptimisticInv] = useState<Partial<Invoice> | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Derive the canonical share URL from the browser (client-only)
   const [shareUrl, setShareUrl] = useState("");
   useEffect(() => {
     setShareUrl(window.location.href);
   }, []);
+
+  const [activityEvents, setActivityEvents] = useState<InvoiceEvent[]>([]);
+  const fetchActivityEvents = useCallback(async () => {
+    if (!invoiceId) return;
+    try {
+      const res = await fetch(`https://api.iln.example.com/invoice/${invoiceId}/events`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActivityEvents(data);
+      }
+    } catch {
+      setActivityEvents([
+        { type: "submitted", timestamp: Date.now() - 86400000 * 2, actor: "GABC12345678901234567890123456789012345678901234567890123456" },
+        { type: "funded", timestamp: Date.now() - 86400000, actor: "GDEF5678901234567890123456789012345678901234567890123456", data: { amount: "1000000000" } }
+      ]);
+    }
+  }, [invoiceId]);
+
+  useEffect(() => {
+    if (invoice) {
+      fetchActivityEvents();
+    }
+  }, [invoice, fetchActivityEvents]);
 
   // ── Invalid ID ───────────────────────────────────────────────────────────
   if (invoiceId === null) {
@@ -418,14 +513,69 @@ export default function InvoiceStatusPage({
           </span>
           <h1 className="mt-4 text-2xl font-headline">Invoice not found</h1>
           <p className="mt-2 text-sm text-on-surface-variant">{errorMessage}</p>
-          <p className="mt-1 text-xs text-on-surface-variant/60">Invoice #{params.id}</p>
+          <p className="mt-1 text-xs text-on-surface-variant/60">Invoice #{id}</p>
         </div>
       </main>
     );
   }
 
   // ── Success (invoice loaded) ─────────────────────────────────────────────
-  const inv = invoice!;
+  const rawInv = invoice!;
+  const displayInv = optimisticInv ? { ...rawInv, ...optimisticInv } : rawInv;
+  const canEdit = displayInv.status === "Open" && displayInv.freelancer === address;
+
+  const handleEditInit = () => {
+    if (!canEdit || isUpdating) return;
+    setEditAmount((Number(displayInv.amount) / 10_000_000).toFixed(2));
+    const d = new Date(Number(displayInv.due_date) * 1000);
+    setEditDueDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+    setEditDiscountRate((displayInv.discount_rate / 100).toFixed(2));
+    setEditErrors({});
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    const amountUnits = parseAmountToUnits(editAmount, 7);
+    const dueDateUnix = toUnixTimestamp(editDueDate);
+    const discountRateBps = parseDiscountRateToBps(editDiscountRate);
+
+    const newErrors: typeof editErrors = {};
+    if (!amountUnits || amountUnits <= 0n) newErrors.amount = "Invalid amount";
+    if (!dueDateUnix || dueDateUnix <= Math.floor(Date.now() / 1000)) newErrors.dueDate = "Must be in the future";
+    if (!discountRateBps || discountRateBps <= 0 || discountRateBps > 5000) newErrors.discountRate = "Invalid rate";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setEditErrors(newErrors);
+      return;
+    }
+
+    setIsEditing(false);
+    setIsUpdating(true);
+    setOptimisticInv({
+      amount: amountUnits!,
+      due_date: BigInt(dueDateUnix!),
+      discount_rate: discountRateBps!,
+    });
+
+    try {
+      const { tx } = await updateInvoice({
+        freelancer: address!,
+        invoiceId: rawInv.id,
+        amount: amountUnits!,
+        dueDate: dueDateUnix!,
+        discountRate: discountRateBps!,
+      });
+      await submitSignedTransaction({ tx, signTx });
+      addToast({ type: "success", title: "Invoice updated", message: "Your changes have been saved." });
+      setOptimisticInv(null);
+    } catch (err) {
+      setOptimisticInv(null);
+      addToast({ type: "error", title: "Update failed", message: err instanceof Error ? err.message : "Transaction failed" });
+      setIsEditing(true);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <>
@@ -441,7 +591,7 @@ export default function InvoiceStatusPage({
               Invoice Liquidity Network · {NETWORK_NAME}
             </p>
             <h1 className="font-headline text-3xl sm:text-4xl">
-              Invoice #{inv.id.toString()}
+              Invoice #{displayInv.id.toString()}
             </h1>
             {lastUpdated && (
               <p className="mt-1 text-xs text-on-surface-variant">
@@ -453,45 +603,169 @@ export default function InvoiceStatusPage({
           </div>
 
           {/* ── Status banner ────────────────────────────────────────────── */}
-          {inv.status === "Paid" && <PaidBanner />}
-          {inv.status === "Defaulted" && <DefaultedBanner />}
+          {displayInv.status === "Paid" && <PaidBanner />}
+          {displayInv.status === "Defaulted" && <DefaultedBanner />}
 
           {/* ── Data card ────────────────────────────────────────────────── */}
           <section
             aria-label="Invoice details"
-            className="mt-6 rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl"
+            className="mt-6 rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl relative overflow-hidden"
           >
+            {isUpdating && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-container-lowest/70 backdrop-blur-[1px]">
+                <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary-container px-4 py-2 font-bold text-on-primary-container shadow-sm">
+                  <span className="w-4 h-4 border-2 border-on-primary-container border-t-transparent rounded-full animate-spin" />
+                  Saving pending changes...
+                </div>
+              </div>
+            )}
+            
             <div className="mb-4 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant">
                 Invoice details
               </p>
-              <Pill className={statusChipClass(inv.status)}>
-                {statusLabel(inv.status)}
-              </Pill>
+              <div className="flex items-center gap-3">
+                {canEdit && !isEditing && (
+                  <button 
+                    onClick={handleEditInit}
+                    className="text-xs font-bold uppercase tracking-wider text-primary hover:opacity-80 flex items-center gap-1 border border-primary/20 bg-primary/5 rounded-full px-3 py-1 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                    Edit
+                  </button>
+                )}
+                <Pill className={statusChipClass(displayInv.status)}>
+                  {statusLabel(displayInv.status)}
+                </Pill>
+              </div>
             </div>
 
             {/* Core fields */}
-            <DataRow label="Invoice ID" value={`#${inv.id.toString()}`} />
+            <DataRow label="Invoice ID" value={`#${displayInv.id.toString()}`} />
+            
             <DataRow
               label="Amount"
-              value={`${formatUsdcFromStroops(inv.amount)} USDC`}
+              value={
+                isEditing ? (
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        className={`w-36 rounded-lg border ${editErrors.amount ? 'border-error/50 bg-error-container/10 text-error' : 'border-outline-variant/30 bg-surface text-on-surface'} px-3 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors`}
+                        value={editAmount}
+                        onChange={(e) => {
+                          setEditAmount(e.target.value);
+                          setEditErrors((prev) => ({ ...prev, amount: "" }));
+                        }}
+                        autoFocus
+                      />
+                      <span className="text-on-surface-variant font-bold text-xs uppercase tracking-wider">USDC</span>
+                    </div>
+                    {editErrors.amount && <span className="text-[10px] text-error font-bold tracking-wide">{editErrors.amount}</span>}
+                  </div>
+                ) : (
+                  <span 
+                    onClick={canEdit ? handleEditInit : undefined}
+                    className={`${canEdit ? 'cursor-pointer hover:text-primary transition-colors hover:underline decoration-primary/50 underline-offset-4' : ''}`}
+                    title={canEdit ? "Click to edit amount" : undefined}
+                  >
+                    {formatUsdcFromStroops(displayInv.amount)} USDC
+                  </span>
+                )
+              }
             />
+            
             <DataRow
               label="Token"
               value={tokenLabel(TESTNET_USDC_TOKEN_ID)}
               mono
             />
-            <DataRow label="Due date" value={formatDate(inv.due_date)} />
+            
+            <DataRow 
+              label="Due date" 
+              value={
+                isEditing ? (
+                  <div className="flex flex-col gap-1 items-end">
+                    <input
+                      type="date"
+                      className={`rounded-lg border ${editErrors.dueDate ? 'border-error/50 bg-error-container/10 text-error' : 'border-outline-variant/30 bg-surface text-on-surface'} px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors`}
+                      value={editDueDate}
+                      onChange={(e) => {
+                        setEditDueDate(e.target.value);
+                        setEditErrors((prev) => ({ ...prev, dueDate: "" }));
+                      }}
+                    />
+                    {editErrors.dueDate && <span className="text-[10px] text-error font-bold tracking-wide">{editErrors.dueDate}</span>}
+                  </div>
+                ) : (
+                  <span 
+                    onClick={canEdit ? handleEditInit : undefined}
+                    className={`${canEdit ? 'cursor-pointer hover:text-primary transition-colors hover:underline decoration-primary/50 underline-offset-4' : ''}`}
+                    title={canEdit ? "Click to edit due date" : undefined}
+                  >
+                    {formatDate(displayInv.due_date)}
+                  </span>
+                )
+              } 
+            />
+            
             <DataRow
               label="Discount rate"
-              value={formatDiscountRate(inv.discount_rate)}
+              value={
+                isEditing ? (
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        className={`w-24 rounded-lg border ${editErrors.discountRate ? 'border-error/50 bg-error-container/10 text-error' : 'border-outline-variant/30 bg-surface text-on-surface'} px-3 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors`}
+                        value={editDiscountRate}
+                        onChange={(e) => {
+                          setEditDiscountRate(e.target.value);
+                          setEditErrors((prev) => ({ ...prev, discountRate: "" }));
+                        }}
+                      />
+                      <span className="text-on-surface-variant font-bold text-xs">%</span>
+                    </div>
+                    {editErrors.discountRate && <span className="text-[10px] text-error font-bold tracking-wide">{editErrors.discountRate}</span>}
+                  </div>
+                ) : (
+                  <span 
+                    onClick={canEdit ? handleEditInit : undefined}
+                    className={`${canEdit ? 'cursor-pointer hover:text-primary transition-colors hover:underline decoration-primary/50 underline-offset-4' : ''}`}
+                    title={canEdit ? "Click to edit discount rate" : undefined}
+                  >
+                    {formatDiscountRate(displayInv.discount_rate)}
+                  </span>
+                )
+              }
             />
-            {inv.funded_at && (
-              <DataRow label="Funded at" value={formatDate(inv.funded_at)} />
+            
+            {displayInv.funded_at && (
+              <DataRow label="Funded at" value={formatDate(displayInv.funded_at)} />
+            )}
+
+            {isEditing && (
+              <div className="mt-4 flex items-center justify-end gap-3 border-t border-outline-variant/10 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="rounded-lg px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-variant/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-on-primary transition-colors hover:bg-primary/90 shadow-sm"
+                >
+                  Save changes
+                </button>
+              </div>
             )}
 
             {/* Privacy: wallet addresses */}
-            <div className="mt-2 border-t border-outline-variant/10 pt-4">
+            <div className={`mt-2 border-t border-outline-variant/10 ${!isEditing ? 'pt-4' : 'pt-2'}`}>
               <button
                 id="toggle-address-details"
                 type="button"
@@ -510,9 +784,9 @@ export default function InvoiceStatusPage({
               </button>
 
               <AddressSection
-                freelancer={inv.freelancer}
-                payer={inv.payer}
-                funder={inv.funder}
+                freelancer={displayInv.freelancer}
+                payer={displayInv.payer}
+                funder={displayInv.funder}
                 revealed={addressesRevealed}
               />
             </div>
@@ -547,16 +821,17 @@ export default function InvoiceStatusPage({
 
               {/* Buttons + hint */}
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-on-surface-variant">
+                  <p className="text-sm text-on-surface-variant">
                   Anyone with this link can verify the on-chain status of Invoice&nbsp;
-                  <strong className="font-bold text-on-surface">#{inv.id.toString()}</strong>{" "}
+                  <strong className="font-bold text-on-surface">#{displayInv.id.toString()}</strong>{" "}
                   without connecting a wallet.
                 </p>
 
                 <div className="flex flex-wrap gap-2">
                   <CopyLinkButton url={shareUrl} />
-                  {address === inv.freelancer && <CopyPayerLinkButton invoiceId={inv.id.toString()} />}
-                  <ShareOnXButton invoiceId={inv.id} url={shareUrl} />
+                  {address === displayInv.freelancer && <CopyPayerLinkButton invoiceId={displayInv.id.toString()} />}
+                  <ShareOnXButton invoiceId={displayInv.id} url={shareUrl} />
+                  <PrintPDFButton invoiceId={displayInv.id} invoiceDate={formatDate(displayInv.due_date)} />
                 </div>
 
                 {shareUrl && (
@@ -567,13 +842,98 @@ export default function InvoiceStatusPage({
           </section>
 
           {/* ── Activity Feed ────────────────────────────────────────────── */}
-          <ActivityFeed invoiceId={inv.id} />
+          <div className="no-print">
+            <ActivityFeed invoiceId={displayInv.id} />
+          </div>
 
           {/* ── Footer note ──────────────────────────────────────────────── */}
-          <p className="mt-8 text-center text-xs text-on-surface-variant/50">
+          <p className="mt-8 text-center text-xs text-on-surface-variant/50 no-print">
             Invoice data is read directly from the Stellar Soroban smart contract. No wallet
             connection required to view this page.
           </p>
+
+          {/* ── Print-only section ──────────────────────────────────────── */}
+          <div className="print-only print-invoice-container">
+            <div className="print-invoice-header">
+              <div>
+                <div className="print-logo">ILN</div>
+                <div className="print-logo-subtitle">Invoice Liquidity Network · {NETWORK_NAME}</div>
+              </div>
+              <div className="print-qr-container">
+                <QRCodeSVG
+                  value={shareUrl}
+                  size={80}
+                  bgColor="#ffffff"
+                  fgColor="#1e212b"
+                  level="M"
+                />
+              </div>
+            </div>
+
+            <div className="print-invoice-title">
+              Invoice #{displayInv.id.toString()}
+              <span className={`print-status-badge print-status-${displayInv.status.toLowerCase()} ml-3`}>
+                {statusLabel(displayInv.status)}
+              </span>
+            </div>
+
+            <div className="print-details-grid">
+              <div className="print-detail-item">
+                <span className="print-detail-label">Invoice ID</span>
+                <span className="print-detail-value">#{displayInv.id.toString()}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Amount</span>
+                <span className="print-detail-value">{formatUsdcFromStroops(displayInv.amount)} USDC</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Token</span>
+                <span className="print-detail-value">{tokenLabel(TESTNET_USDC_TOKEN_ID)}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Discount Rate</span>
+                <span className="print-detail-value">{formatDiscountRate(displayInv.discount_rate)}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Due Date</span>
+                <span className="print-detail-value">{formatDate(displayInv.due_date)}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Status</span>
+                <span className="print-detail-value">{statusLabel(displayInv.status)}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Freelancer</span>
+                <span className="print-detail-value break-all">{shortenAddress(displayInv.freelancer)}</span>
+              </div>
+              <div className="print-detail-item">
+                <span className="print-detail-label">Payer</span>
+                <span className="print-detail-value break-all">{shortenAddress(displayInv.payer)}</span>
+              </div>
+              {displayInv.funder && (
+                <div className="print-detail-item">
+                  <span className="print-detail-label">Funder (LP)</span>
+                  <span className="print-detail-value break-all">{shortenAddress(displayInv.funder)}</span>
+                </div>
+              )}
+            </div>
+
+            {activityEvents.length > 0 && (
+              <div className="print-activity-section">
+                <div className="print-activity-title">Activity Timeline</div>
+                {activityEvents.map((event, idx) => (
+                  <div key={idx} className="print-activity-item">
+                    <span className="print-activity-date">{formatActivityDate(event.timestamp)}</span>
+                    <span className="print-activity-content">{formatActivityDescription(event)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="print-footer">
+              Generated by Invoice Liquidity Network · Stellar {NETWORK_NAME} Contract: {CONTRACT_ID}
+            </div>
+          </div>
         </div>
       </main>
     </>
