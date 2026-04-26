@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useWallet } from "../context/WalletContext";
 import { useToast } from "../context/ToastContext";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
@@ -33,6 +34,7 @@ type FundingStep = "approve" | "fund";
 
 
 export default function LPDashboard() {
+  const router = useRouter();
   const { address, connect, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
   const { tokens, tokenMap, defaultToken } = useApprovedTokens();
@@ -280,6 +282,32 @@ export default function LPDashboard() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: any, index: number) => {
+    const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        (rowElements[index + 1] as HTMLElement)?.focus();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        (rowElements[index - 1] as HTMLElement)?.focus();
+        break;
+      case "Enter":
+        e.preventDefault();
+        router.push(`/i/${invoice.id.toString()}`);
+        break;
+      case "f":
+      case "F":
+        if (activeTab === "discovery" || (activeTab === "watchlist" && invoice.status === "Pending")) {
+          e.preventDefault();
+          handleFund(invoice);
+        }
+        break;
+    }
+  };
+
   const commonColumns: ColumnDefinition<any>[] = [
     {
       id: "id",
@@ -509,7 +537,29 @@ export default function LPDashboard() {
           <table className="w-full text-left">
             <thead className="bg-surface-container-low">
               <tr>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">ID</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  <div className="flex items-center gap-1">
+                    ID
+                    <div className="group/tooltip relative inline-block ml-1">
+                      <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
+                        <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">Shortcuts</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↑↓</kbd>
+                          <span>Navigate rows</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↵</kbd>
+                          <span>Open detail</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">F</kbd>
+                          <span>Fund invoice</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">Freelancer</th>
                 <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
                   Amount {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
@@ -545,7 +595,13 @@ export default function LPDashboard() {
                 </tr>
               ) : (
                 (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => (
-                  <tr key={invoice.id.toString()} className="hover:bg-surface-variant/10 transition-colors">
+                  <tr
+                    key={invoice.id.toString()}
+                    tabIndex={0}
+                    role="row"
+                    onKeyDown={(e) => handleKeyDown(e, invoice, index)}
+                    className="hover:bg-surface-variant/10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5"
+                  >
                     <td className="px-6 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "../../components/Footer";
 import Navbar from "../../components/Navbar";
 import InvoiceQRModal from "../../components/InvoiceQRModal";
 import { CONTRACT_ID, NETWORK_NAME } from "../../constants";
 import { useWallet } from "../../context/WalletContext";
+import { useToast } from "../../context/ToastContext";
 import { formatAddress, formatDate, formatUSDC } from "../../utils/format";
 import { getAllInvoices, type Invoice } from "../../utils/soroban";
 
@@ -64,6 +66,8 @@ export function InvoiceStatusBadge({ status }: { status: string }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { addToast } = useToast();
   const { address, connect, isConnected } = useWallet();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,6 +114,36 @@ export default function DashboardPage() {
     }
     setSortKey(nextSortKey);
     setSortOrder("asc");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: Invoice, index: number) => {
+    const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        (rowElements[index + 1] as HTMLElement)?.focus();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        (rowElements[index - 1] as HTMLElement)?.focus();
+        break;
+      case "Enter":
+        e.preventDefault();
+        router.push(`/i/${invoice.id.toString()}`);
+        break;
+      case "c":
+      case "C":
+        if (invoice.status === "Pending") {
+          e.preventDefault();
+          addToast({
+            type: "info",
+            title: "Cancel Action",
+            message: `Cancellation for invoice #${invoice.id.toString()} triggered via shortcut. Contract implementation pending.`,
+          });
+        }
+        break;
+    }
   };
 
   const copyPayerAddress = async (payer: string) => {
@@ -183,7 +217,29 @@ export default function DashboardPage() {
             <table className="w-full text-left">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-4 md:px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">ID</th>
+                  <th className="px-4 md:px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    <div className="flex items-center gap-1">
+                      ID
+                      <div className="group/tooltip relative inline-block ml-1">
+                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
+                          <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">Shortcuts</div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↑↓</kbd>
+                            <span>Navigate rows</span>
+                          </div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↵</kbd>
+                            <span>Open detail</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">C</kbd>
+                            <span>Cancel invoice</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-4 md:px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Payer</th>
                   <th
                     className="px-4 md:px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant cursor-pointer"
@@ -222,8 +278,14 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  displayedInvoices.map((invoice) => (
-                    <tr key={invoice.id.toString()} className="hover:bg-surface-container-low">
+                  displayedInvoices.map((invoice, index) => (
+                    <tr
+                      key={invoice.id.toString()}
+                      tabIndex={0}
+                      role="row"
+                      onKeyDown={(e) => handleKeyDown(e, invoice, index)}
+                      className="hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5 transition-colors"
+                    >
                       <td className="px-4 md:px-6 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                       <td className="px-4 md:px-6 py-5">
                         <div className="inline-flex items-center gap-2">
