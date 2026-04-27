@@ -17,6 +17,7 @@ interface InvoiceTableProps<T> {
   columns: ColumnDefinition<T>[];
   isLoading?: boolean;
   emptyMessage?: string;
+  emptyStateNode?: React.ReactNode;
   onSort?: (key: keyof T | string) => void;
   sortKey?: string;
   sortOrder?: "asc" | "desc";
@@ -29,6 +30,7 @@ export default function InvoiceTable<T>({
   columns,
   isLoading,
   emptyMessage = "No data found.",
+  emptyStateNode,
   onSort,
   sortKey,
   sortOrder,
@@ -100,29 +102,6 @@ export default function InvoiceTable<T>({
       .filter((c): c is ColumnDefinition<T> => !!c && visibleColumns.includes(c.id));
   }, [columnOrder, visibleColumns, columns]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, item: T, index: number) => {
-    const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        (rowElements[index + 1] as HTMLElement)?.focus();
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        (rowElements[index - 1] as HTMLElement)?.focus();
-        break;
-      case "Enter":
-        e.preventDefault();
-        // Assuming item has an id property that can be used for navigation
-        const itemId = (item as any).id?.toString();
-        if (itemId) {
-          router.push(`/i/${itemId}`);
-        }
-        break;
-    }
-  };
-
   if (!isInitialised) return null; // Avoid layout shift
 
   return (
@@ -142,7 +121,7 @@ export default function InvoiceTable<T>({
         <table className="w-full text-left">
           <thead className="bg-surface-container-low">
             <tr>
-              {activeColumns.map((col, idx) => (
+              {activeColumns.map((col) => (
                 <th
                   key={col.id}
                   onClick={() => col.sortable && onSort?.(col.id)}

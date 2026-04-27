@@ -3,6 +3,8 @@
 import { formatAddress, formatDate, formatUSDC, calculateYield } from "../utils/format";
 import type { Invoice } from "../utils/soroban";
 import InvoiceTable, { ColumnDefinition } from "./InvoiceTable";
+import { EmptyState } from "./EmptyState";
+import { LPPortfolioEmptyIllustration } from "./illustrations/EmptyIllustrations";
 
 interface LPPortfolioProps {
   invoices: Invoice[];
@@ -120,7 +122,13 @@ export default function LPPortfolio({
         data={invoices}
         columns={columns}
         isLoading={isLoading}
-        emptyMessage="No funded invoices found for this wallet."
+        emptyStateNode={
+          <EmptyState
+            title="Portfolio Empty"
+            description="You haven't funded any invoices yet."
+            illustration={<LPPortfolioEmptyIllustration />}
+          />
+        }
         keyExtractor={(inv) => inv.id.toString()}
       />
     </div>

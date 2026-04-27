@@ -9,14 +9,17 @@ import InvoiceFilterBar from "./InvoiceFilterBar";
 import { useApprovedTokens } from "../hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "../hooks/useInvoiceFilters";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
-import FundConfirmModal from "./FundConfirmModal";
-import InvoiceTable, { ColumnDefinition } from "./InvoiceTable";
+import { EmptyState } from "./EmptyState";
+import { LPDiscoveryEmptyIllustration, NotificationsEmptyIllustration } from "./illustrations/EmptyIllustrations";
 import {
+  buildApproveTokenTransaction,
   claimDefault,
+  getAllInvoices,
   getTokenAllowance,
   Invoice,
   submitSignedTransaction,
 } from "../utils/soroban";
+import { formatUSDC, formatAddress, formatDate, calculateYield } from "../utils/format";
 import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "../utils/format";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { usePayerScores } from "../hooks/usePayerScores";
@@ -24,13 +27,11 @@ import RiskBadge from "./RiskBadge";
 import LPPortfolio from "./LPPortfolio";
 import { RISK_SORT_ORDER } from "../utils/risk";
 import { ExportButton } from "./ExportButton";
-import { useInvoices } from "../hooks/useInvoices";
-import LastUpdated from "./LastUpdated";
-import InvoiceStatusBadge from "./InvoiceStatusBadge";
-import { useTranslation } from "react-i18next";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist";
+
+
 
 export default function LPDashboard() {
   const router = useRouter();
@@ -75,6 +76,27 @@ export default function LPDashboard() {
     }
   };
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const all = await getAllInvoices();
+      setInvoices(all);
+    } catch (error) {
+      console.error("Failed to fetch invoices", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchData]);
+
+  const discoveryInvoicesList = invoices.filter(i => i.status === "Pending");
   const discoveryInvoicesList = useMemo(() => invoices.filter(i => i.status === "Pending"), [invoices]);
   const { scores: payerScores, risks: payerRisks } = usePayerScores(discoveryInvoicesList);
 
@@ -161,7 +183,18 @@ export default function LPDashboard() {
       setClaimingInvoiceId(null);
     }
   };
+  const filteredInvoices = useMemo(
+    () =>
+      applyInvoiceFilters(invoices, filters, {
+        resolveTokenSymbol: (invoice) => {
+          const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
+          return token?.symbol ?? "USDC";
+        },
+      }),
+    [defaultToken?.contractId, filters, invoices, tokenMap],
+  );
 
+  const sortedInvoices = [...filteredInvoices].sort((a: any, b: any) => {
   const filteredInvoices = useMemo(
     () =>
       applyInvoiceFilters(invoices, filters, {
@@ -250,6 +283,7 @@ export default function LPDashboard() {
       id: "freelancer",
       label: "Freelancer",
       sortable: false,
+      renderCell: (inv) => (
       renderCell: (inv: Invoice) => (
         <div className="flex flex-col">
           <span className="text-sm font-medium">{formatAddress(inv.freelancer)}</span>
@@ -269,7 +303,7 @@ export default function LPDashboard() {
       id: "discount_rate",
       label: "Discount",
       sortable: true,
-      renderCell: (inv: Invoice) => (
+      renderCell: (inv) => (
         <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
           {(inv.discount_rate / 100).toFixed(2)}%
         </span>
@@ -279,13 +313,13 @@ export default function LPDashboard() {
       id: "due_date",
       label: "Due Date",
       sortable: true,
-      renderCell: (inv: Invoice) => <span className="text-sm">{formatDate(inv.due_date)}</span>,
+      renderCell: (inv) => <span className="text-sm">{formatDate(inv.due_date)}</span>,
     },
     {
       id: "yield",
       label: "Est. Yield",
       sortable: false,
-      renderCell: (inv: Invoice) => (
+      renderCell: (inv) => (
         <span className="font-bold text-green-600">
           <TokenAwareAmount
             amount={calculateYield(inv.amount, inv.discount_rate)}
@@ -304,7 +338,7 @@ export default function LPDashboard() {
       id: "risk",
       label: "Risk",
       sortable: true,
-      renderCell: (inv: Invoice) => (
+      renderCell: (inv) => (
         <RiskBadge
           risk={payerRisks.get(inv.payer) ?? "Unknown"}
           score={payerScores.get(inv.payer) ?? null}
@@ -315,7 +349,7 @@ export default function LPDashboard() {
       id: "actions",
       label: "",
       sortable: false,
-      renderCell: (inv: Invoice) => (
+      renderCell: (inv) => (
         <div className="flex items-center justify-end gap-2 text-right">
           <button
             onClick={(e) => handleWatchlistToggle(inv.id, e)}
@@ -348,9 +382,9 @@ export default function LPDashboard() {
       id: "watchAddedAt",
       label: "Added",
       sortable: true,
-      renderCell: (inv: any) => (
+      renderCell: (inv) => (
         <span className="text-xs text-on-surface-variant">
-          {new Date(inv.watchAddedAt).toLocaleDateString(getLocale())}
+          {new Date(inv.watchAddedAt).toLocaleDateString()}
         </span>
       ),
     },
@@ -469,6 +503,15 @@ export default function LPDashboard() {
           <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
         </div>
       </div>
+      <div className="px-6 pt-4 flex flex-col gap-3">
+        <InvoiceFilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClearFilters={clearFilters}
+          activeFilterCount={activeFilterCount}
+        />
+        <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
+      </div>
 
       {activeTab === "my-funded" ? (
         <LPPortfolio
@@ -521,14 +564,20 @@ export default function LPDashboard() {
                 ))
               ) : (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-on-surface-variant italic">
-                    Loading invoices from Stellar...
-                  </td>
-                </tr>
-              ) : (activeTab === "discovery" ? discoveryInvoices : activeTab === "watchlist" ? watchlistInvoices : myFundedInvoices).length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-on-surface-variant italic">
-                    No {activeTab === "discovery" ? "pending" : activeTab === "watchlist" ? "saved" : "funded"} invoices found.
+                  <td colSpan={8} className="px-6 py-12">
+                    <EmptyState
+                      title={activeTab === "discovery" ? "No Pending Invoices" : "Watchlist Empty"}
+                      description={
+                        activeTab === "discovery"
+                          ? "There are currently no active invoices waiting to be funded."
+                          : "You haven't added any invoices to your watchlist yet."
+                      }
+                      illustration={
+                        activeTab === "discovery" 
+                          ? <LPDiscoveryEmptyIllustration /> 
+                          : <NotificationsEmptyIllustration />
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -563,7 +612,7 @@ export default function LPDashboard() {
                     </td>
                     {activeTab === "watchlist" && (
                       <td className="px-6 py-5 text-xs text-on-surface-variant">
-                        {new Date(invoice.watchAddedAt).toLocaleDateString(getLocale())}
+                        {new Date(invoice.watchAddedAt).toLocaleDateString()}
                       </td>
                     )}
                     {activeTab === "discovery" && (
@@ -583,7 +632,7 @@ export default function LPDashboard() {
                               ? "text-red-500 hover:bg-red-50"
                               : "text-on-surface-variant hover:bg-surface-variant/50"
                           }`}
-                          title={isInWatchlist(invoice.id) ? t("lpDashboard.watchlist.remove") : t("lpDashboard.watchlist.add")}
+                          title={isInWatchlist(invoice.id) ? "Remove from watchlist" : "Add to watchlist"}
                         >
                           <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isInWatchlist(invoice.id) ? "'FILL' 1" : "'FILL' 0" }}>
                             bookmark
@@ -652,4 +701,28 @@ function TokenAwareAmount({
   }
 
   return <TokenAmount amount={formatTokenAmount(amount, token)} token={token} />;
+}
+
+function StepPill({
+  active,
+  complete,
+  children,
+}: {
+  active: boolean;
+  complete?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+        complete
+          ? "bg-primary text-surface-container-lowest"
+          : active
+            ? "bg-primary-container text-on-primary-container"
+            : "bg-surface-container-high text-on-surface-variant"
+      }`}
+    >
+      {children}
+    </div>
+  );
 }
