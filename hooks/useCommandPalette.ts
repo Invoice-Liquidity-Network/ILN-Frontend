@@ -25,7 +25,7 @@ function fuzzyMatch(text: string, query: string): boolean {
   return queryIndex === lowerQuery.length;
 }
 
-export function useCommandPalette() {
+export function useCommandPalette(onOpenShortcuts?: () => void) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
@@ -44,7 +44,8 @@ export function useCommandPalette() {
     { id: "notifications", label: "Open notification settings", action: () => alert("Notification settings coming soon"), category: "settings" },
     { id: "addressbook", label: "Open address book", action: () => alert("Address book coming soon"), category: "settings" },
     { id: "darkmode", label: "Toggle dark mode", action: () => document.documentElement.classList.toggle("dark"), category: "settings" },
-  ], [router]);
+    { id: "shortcuts", label: "Keyboard shortcuts", action: () => onOpenShortcuts?.(), category: "settings" },
+  ], [router, onOpenShortcuts]);
 
   useEffect(() => {
     const stored = localStorage.getItem(RECENT_COMMANDS_KEY);

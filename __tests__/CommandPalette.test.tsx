@@ -219,6 +219,27 @@ describe("CommandPalette", () => {
     expect(screen.getByText("No recent commands")).toBeInTheDocument();
   });
 
+  it("opens shortcuts modal with ? outside input", () => {
+    render(<CommandPalette />);
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
+  });
+
+  it("does not open shortcuts modal from input fields", () => {
+    render(
+      <div>
+        <input aria-label="test-input" />
+        <CommandPalette />
+      </div>
+    );
+
+    const input = screen.getByLabelText("test-input");
+    input.focus();
+    fireEvent.keyDown(input, { key: "?" });
+
+    expect(screen.queryByText("Keyboard shortcuts")).not.toBeInTheDocument();
+  });
+
   it("resets selection when query changes", () => {
     render(<CommandPalette />);
     fireEvent.keyDown(window, { key: "k", metaKey: true });
