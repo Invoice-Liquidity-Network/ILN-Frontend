@@ -31,9 +31,10 @@ import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import type { DataTableColumn } from "./DataTable";
+import LPEarningsHistory from "./LPEarningsHistory";
 
 
-type Tab = "discovery" | "my-funded" | "watchlist";
+type Tab = "discovery" | "my-funded" | "watchlist" | "history";
 
 
 
@@ -452,6 +453,16 @@ export default function LPDashboard() {
           >
             {t("lpDashboard.tabs.myFunded")}
           </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "history"
+                ? "bg-primary text-surface-container-lowest shadow-md"
+                : "text-on-surface-variant hover:bg-surface-variant/30"
+            }`}
+          >
+            {t("lpDashboard.tabs.history")}
+          </button>
         </div>
 
         {selectedInvoiceIds.length >= 2 && (
@@ -485,7 +496,15 @@ export default function LPDashboard() {
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
       </div>
 
-      {activeTab === "my-funded" ? (
+      {activeTab === "history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
+          isLoading={loading}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+          address={address || null}
+        />
+      ) : activeTab === "my-funded" ? (
         <LPPortfolio
           invoices={myFundedInvoices}
           isLoading={loading}

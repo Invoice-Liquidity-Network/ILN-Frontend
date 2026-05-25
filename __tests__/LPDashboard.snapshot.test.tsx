@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import LPDashboard from "../components/LPDashboard";
+import LPDashboard from "../src/components/LPDashboard";
 import { FIXTURE_ADDRESSES, allInvoiceFixtures, invoiceFixtures } from "./fixtures/invoices";
 
 const approvedTokens = [

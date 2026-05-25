@@ -186,7 +186,8 @@
     "tabs": {
       "discovery": "Descubrir",
       "watchlist": "Lista de Seguimiento",
-      "myFunded": "Mis Financiadas"
+      "myFunded": "Mis Financiadas",
+      "history": "Historial de Ganancias"
     },
     "tableHeaders": {
       "id": "ID",

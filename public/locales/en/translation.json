@@ -186,7 +186,8 @@
     "tabs": {
       "discovery": "Discovery",
       "watchlist": "Watchlist",
-      "myFunded": "My Funded"
+      "myFunded": "My Funded",
+      "history": "Earnings History"
     },
     "tableHeaders": {
       "id": "ID",
