@@ -303,6 +303,16 @@ export async function getPayerScoresBatch(
   return map;
 }
 
+export async function getContractStats(): Promise<unknown> {
+  const callResult = await server.simulateTransaction(
+    buildReadTransaction(CONTRACT_ID, "get_contract_stats", [])
+  );
+  if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+    throw new Error("Failed to fetch contract stats.");
+  }
+  return scValToNative(callResult.result.retval);
+}
+
 // ─── Write: fund invoice ──────────────────────────────────────────────────────
 
 export async function fundInvoice(funder: string, invoice_id: bigint) {

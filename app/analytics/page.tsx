@@ -18,12 +18,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import type { Metadata } from "next";
 import { NETWORK_NAME } from "@/constants";
 import { getAllInvoices, Invoice } from "@/utils/soroban";
 import AmountHistogram from "@/components/charts/AmountHistogram";
 import FundingChart from "@/components/charts/FundingChart";
 import DefaultRateChart from "@/components/charts/DefaultRateChart";
+import PerTokenVolumeChart from "@/components/charts/PerTokenVolumeChart";
 import { ExportButton } from "@/components/ExportButton";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -187,7 +187,8 @@ function useAnalyticsPolling(): UseAnalyticsReturn {
 
   // Initial fetch
   useEffect(() => {
-    fetch_();
+    const timeout = window.setTimeout(fetch_, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetch_]);
 
   // Polling every 5 minutes
@@ -375,7 +376,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { summary, daily, indexed_at } = data!;
+  const { summary, indexed_at } = data!;
 
   const defaultRate = formatPercent(
     summary.total_defaulted,
@@ -543,6 +544,18 @@ export default function AnalyticsPage() {
             </SectionHeading>
 
             <FundingChart />
+          </section>
+
+          {/* ── Per-token Volume Breakdown ───────────────────────────────── */}
+          <section
+            aria-labelledby="token-volume-heading"
+            className="mt-14"
+          >
+            <SectionHeading>
+              <span id="token-volume-heading">Token Volume</span>
+            </SectionHeading>
+
+            <PerTokenVolumeChart />
           </section>
 
           {/* ── Default Rate Trend ──────────────────────────────────────────────── */}
