@@ -12,9 +12,10 @@
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SubmitInvoiceForm from "../SubmitInvoiceForm";
+import { clearTokenPriceCacheForTests } from "../../hooks/useTokenPrice";
 
 // ─── Stable mock handles ────────────────────────────────────────────────────
 
@@ -45,24 +46,24 @@ vi.mock("@stellar/freighter-api", () => ({
   getNetwork: vi.fn().mockResolvedValue({ network: "TESTNET" }),
 }));
 
-vi.mock("../../context/ToastContext", () => ({
+vi.mock("@/context/ToastContext", () => ({
   useToast: () => ({ addToast, updateToast }),
 }));
 
-vi.mock("../../context/WalletContext", () => ({
+vi.mock("@/context/WalletContext", () => ({
   useWallet: () => ({ ...walletState }),
 }));
 
-vi.mock("../../utils/soroban", () => ({
+vi.mock("@/utils/soroban", () => ({
   submitInvoiceTransaction: (...args: unknown[]) => submitInvoiceTransaction(...args),
 }));
 
-vi.mock("../../hooks/useApprovedTokens", () => ({
+vi.mock("@/hooks/useApprovedTokens", () => ({
   useApprovedTokens: () => ({
-    tokens: [{ symbol: "USDC", decimals: 7, contractId: "TOKEN_ID" }],
-    tokenMap: new Map([["TOKEN_ID", { symbol: "USDC", decimals: 7, contractId: "TOKEN_ID" }]]),
-    defaultToken: { symbol: "USDC", decimals: 7, contractId: "TOKEN_ID" },
-    loading: false,
+    tokens: [{ symbol: "USDC", decimals: 7, contractId: "TOKEN_ID", iconLabel: "US", name: "USD Coin" }],
+    tokenMap: new Map([["TOKEN_ID", { symbol: "USDC", decimals: 7, contractId: "TOKEN_ID", iconLabel: "US", name: "USD Coin" }]]),
+    defaultToken: { symbol: "USDC", decimals: 7, contractId: "TOKEN_ID", iconLabel: "US", name: "USD Coin" },
+    isLoading: false,
     error: null,
   }),
 }));
@@ -75,6 +76,13 @@ const VALID_STELLAR_FREELANCER = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 function connectWallet(address = VALID_STELLAR_FREELANCER) {
   walletState.address = address;
   walletState.isConnected = true;
+}
+
+function setDueDate(value: string) {
+  const input = document.querySelector<HTMLInputElement>('input[type="date"]');
+
+  expect(input).not.toBeNull();
+  fireEvent.change(input as HTMLInputElement, { target: { value } });
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -91,6 +99,7 @@ describe("SubmitInvoiceForm", () => {
     addToast.mockClear();
     updateToast.mockClear();
     submitInvoiceTransaction.mockReset();
+    clearTokenPriceCacheForTests();
   });
 
   // ── Disconnected state ────────────────────────────────────────────────────
@@ -238,6 +247,35 @@ describe("SubmitInvoiceForm", () => {
     expect(screen.getAllByText("0 USDC").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("shows a debounced approximate USD equivalent below the amount input", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ "usd-coin": { usd: 1 } }),
+    } as Response);
+
+    render(<SubmitInvoiceForm />);
+
+    fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "1234.56" } });
+
+    expect(await screen.findByText("~ $1,234.56 USD")).toBeInTheDocument();
+    expect(screen.getByText("Price is approximate")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=usd",
+    );
+  });
+
+  it("hides the approximate USD equivalent when the token price fetch fails", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("price feed down"));
+
+    render(<SubmitInvoiceForm />);
+
+    fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "100" } });
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(screen.queryByText(/price is approximate/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/~ \$100\.00 USD/i)).not.toBeInTheDocument();
+  });
+
   // ── Successful submission ─────────────────────────────────────────────────
 
   it("submits a fully valid invoice and displays the returned invoice ID and tx hash", async () => {
@@ -251,7 +289,7 @@ describe("SubmitInvoiceForm", () => {
     });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "2000" } });
     fireEvent.change(screen.getByDisplayValue("3.00"), { target: { value: "3.5" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-06-15" } });
+    setDueDate("2099-06-15");
     fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
 
     // Contract call is made with correctly parsed values
@@ -281,7 +319,7 @@ describe("SubmitInvoiceForm", () => {
 
     fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "500" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-01-01" } });
+    setDueDate("2099-01-01");
 
     fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
 
@@ -300,7 +338,7 @@ describe("SubmitInvoiceForm", () => {
 
     fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "1000" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-03-01" } });
+    setDueDate("2099-03-01");
 
     fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
 
@@ -319,14 +357,14 @@ describe("SubmitInvoiceForm", () => {
 
     fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "1200" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-09-09" } });
+    setDueDate("2099-09-09");
 
     fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
 
     await waitFor(() => expect(updateToast).toHaveBeenCalled());
 
     expect(addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "pending", title: /submitting invoice/i }),
+      expect.objectContaining({ type: "pending", title: expect.stringMatching(/submitting invoice/i) }),
     );
     expect(updateToast).toHaveBeenCalledWith(
       "toast-id-1",
