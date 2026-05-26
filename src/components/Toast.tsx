@@ -9,7 +9,7 @@ interface ToastProps {
 }
 
 export default function Toast({ toast, onClose }: ToastProps) {
-  const { type, title, message, txHash } = toast;
+  const { type, title, message, txHash, actionLabel, onAction } = toast;
 
   const isPending = type === "pending";
   const isSuccess = type === "success";
@@ -59,6 +59,15 @@ export default function Toast({ toast, onClose }: ToastProps) {
             </span>
           </a>
         )}
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="mt-3 rounded-md border border-current/25 px-3 py-1 text-[11px] font-bold uppercase tracking-wider hover:bg-current/10"
+          >
+            {actionLabel}
+          </button>
+        ) : null}
       </div>
 
       <button

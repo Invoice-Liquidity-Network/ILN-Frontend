@@ -4,8 +4,9 @@ import { use, useEffect, useState, useCallback } from "react";
 import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import TransactionModal from "@/components/TransactionModal";
+import { useTransaction } from "@/hooks/useTransaction";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 
 type LoadState = "loading" | "success" | "error";
@@ -13,7 +14,7 @@ type LoadState = "loading" | "success" | "error";
 export default function PayInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { address, connect, signTx } = useWallet();
-  const { addToast, updateToast } = useToast();
+  const transaction = useTransaction();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -35,40 +36,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
     if (!address || !invoice) return;
 
     setIsPaying(true);
-    const toastId = addToast({ type: "pending", title: "Preparing payment...", message: "Please sign the transaction in Freighter." });
-
-    try {
+    await transaction.execute(async ({ setSigning }) => {
       const tx = await markPaid(address, invoiceId);
-      updateToast(toastId, { message: "Transaction prepared. Signing..." });
-      
-      const { txHash } = await submitSignedTransaction({ tx, signTx });
-      
-      updateToast(toastId, { 
-        type: "success", 
-        title: "Invoice Paid", 
-        message: "The invoice has been successfully settled on-chain.",
-        txHash 
-      });
-      
-      // Refresh invoice state
-      fetchInvoice();
-    } catch (err: any) {
-      console.error(err);
-      updateToast(toastId, { 
-        type: "error", 
-        title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
-      });
-    } finally {
-      setIsPaying(false);
-    }
+      setSigning();
+      return submitSignedTransaction({ tx, signTx });
+    }, {
+      pendingTitle: "Preparing payment...",
+      successTitle: "Invoice Paid",
+      successMessage: "The invoice has been successfully settled on-chain.",
+      errorTitle: "Payment Failed",
+      refresh: fetchInvoice,
+    });
+
+    setIsPaying(false);
   };
 
   if (loadState === "loading") {
@@ -96,6 +83,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen px-4 py-12 sm:py-16">
+      <TransactionModal phase={transaction.state.phase} error={transaction.state.error} />
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex flex-col gap-1">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">

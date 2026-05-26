@@ -11,6 +11,8 @@ export interface ToastMessage {
   title: string;
   message?: string;
   txHash?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 interface ToastContextType {

@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import TokenSelector, { TokenAmount } from "./TokenSelector";
+import { TokenAmount } from "./TokenSelector";
+import TransactionModal from "./TransactionModal";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useTransaction } from "@/hooks/useTransaction";
 import {
   buildApproveTokenTransaction,
+  fundInvoice,
   getTokenAllowance,
   Invoice,
   submitSignedTransaction,
 } from "@/utils/soroban";
-import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
-import { useFundInvoice } from "@/hooks/useInvoices";
+import { formatTokenAmount, calculateYield } from "@/utils/format";
 
 type FundingStep = "approve" | "fund";
 
@@ -22,11 +24,11 @@ interface FundConfirmModalProps {
 
 export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundConfirmModalProps) {
   const { address, signTx } = useWallet();
-  const { addToast, updateToast } = useToast();
-  const { tokens, tokenMap, defaultToken } = useApprovedTokens();
-  
-  const { mutate: fund, isPending: isFunding } = useFundInvoice();
+  const queryClient = useQueryClient();
+  const transaction = useTransaction();
+  const { tokenMap, defaultToken } = useApprovedTokens();
   const [isApproving, setIsApproving] = useState(false);
+  const [isFunding, setIsFunding] = useState(false);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(true);
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
 
   useEffect(() => {
     if (!invoice || !address) return;
-    void refreshAllowance(invoice, address);
+    void Promise.resolve().then(() => refreshAllowance(invoice, address));
   }, [address, refreshAllowance, invoice]);
 
   if (!invoice) return null;
@@ -70,52 +72,62 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
     setIsApproving(true);
     setFundingError(null);
 
-    const toastId = addToast({ type: "pending", title: `Approving ${selectedInvoiceToken.symbol}...` });
-    try {
+    await transaction.execute(async ({ setSigning }) => {
       const tx = await buildApproveTokenTransaction({
         owner: address,
         amount: invoice.amount,
         tokenId: selectedInvoiceToken.contractId,
       });
-      const result = await submitSignedTransaction({ tx, signTx });
-
-      updateToast(toastId, {
-        type: "success",
-        title: `${selectedInvoiceToken.symbol} approved`,
-        message: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedInvoiceToken)}.`,
-        txHash: result.txHash,
-      });
-
-      setAllowance(invoice.amount);
-    } catch (error) {
+      setSigning();
+      return submitSignedTransaction({ tx, signTx });
+    }, {
+      pendingTitle: `Approving ${selectedInvoiceToken.symbol}...`,
+      successTitle: `${selectedInvoiceToken.symbol} approved`,
+      successMessage: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedInvoiceToken)}.`,
+      errorTitle: "Approval failed",
+      onSuccess: () => {
+        setAllowance(invoice.amount);
+      },
+      onError: (error) => {
       const message = error instanceof Error ? error.message : "Approval failed.";
       setFundingError(message);
-      updateToast(toastId, {
-        type: "error",
-        title: "Approval failed",
-        message,
-      });
-    } finally {
-      setIsApproving(false);
-    }
+      },
+    });
+
+    setIsApproving(false);
   };
 
   const confirmFunding = async () => {
     if (!address) return;
-    fund(invoice.id, {
-      onSuccess: () => {
+    setIsFunding(true);
+    setFundingError(null);
+
+    await transaction.execute(async ({ setSigning }) => {
+      const tx = await fundInvoice(address, invoice.id);
+      setSigning();
+      return submitSignedTransaction({ tx, signTx });
+    }, {
+      pendingTitle: "Funding invoice...",
+      successTitle: "Invoice funded successfully!",
+      successMessage: "The invoice state will refresh with the latest on-chain data.",
+      errorTitle: "Funding failed",
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ["invoices"] });
         onSuccess();
       },
       onError: (err) => {
         setFundingError(err instanceof Error ? err.message : "An unknown error occurred");
-      }
+      },
     });
+
+    setIsFunding(false);
   };
 
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
+      <TransactionModal phase={transaction.state.phase} error={transaction.state.error} />
       {/* Header with Step Tracker */}
       <div className="sticky top-0 bg-surface-container-low border-b border-surface-dim z-10 px-6 py-4 flex items-center justify-between">
         <h4 className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>

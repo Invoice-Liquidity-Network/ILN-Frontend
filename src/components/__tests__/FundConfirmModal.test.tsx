@@ -34,14 +34,12 @@ const submitSignedTransaction = vi.fn();
 vi.mock("../../hooks/useInvoices", () => ({
   useInvoices: vi.fn(),
   useFundInvoice: vi.fn(() => ({
-    mutate: vi.fn((id, { onSuccess, onError }) => {
-      // Manual trigger for testing
-    }),
+    mutate: vi.fn(),
     isPending: false,
   })),
 }));
 
-import { useInvoices, useFundInvoice } from "@/hooks/useInvoices";
+import { useInvoices } from "@/hooks/useInvoices";
 
 vi.mock("@stellar/freighter-api", () => ({
   isConnected: vi.fn().mockResolvedValue(false),
@@ -115,11 +113,11 @@ describe("FundConfirmModal (via LPDashboard)", () => {
   beforeEach(() => {
     addToast.mockClear();
     updateToast.mockClear();
-    (useInvoices as any).mockReturnValue({
+    vi.mocked(useInvoices).mockReturnValue({
       data: [mockInvoice],
       isLoading: false,
       dataUpdatedAt: Date.now(),
-    });
+    } as ReturnType<typeof useInvoices>);
     getTokenAllowance.mockReset();
     buildApproveTokenTransaction.mockReset();
     fundInvoice.mockReset();
@@ -192,39 +190,41 @@ describe("FundConfirmModal (via LPDashboard)", () => {
     });
 
     it("calls fundInvoice and submitSignedTransaction when 'Fund Invoice' is clicked", async () => {
-      const mutate = vi.fn();
-      (useFundInvoice as any).mockReturnValue({ mutate, isPending: false });
+      fundInvoice.mockResolvedValue("fund-tx-xdr");
+      submitSignedTransaction.mockResolvedValue({ txHash: "fund-hash" });
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
       fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
 
-      await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
-      expect(mutate).toHaveBeenCalledWith(
+      await waitFor(() => expect(fundInvoice).toHaveBeenCalledTimes(1));
+      expect(fundInvoice).toHaveBeenCalledWith(
+        "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6",
         mockInvoice.id,
-        expect.any(Object)
+      );
+      expect(submitSignedTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ tx: "fund-tx-xdr" }),
       );
     });
 
     it("fires a success toast after a successful fund call", async () => {
-      (useFundInvoice as any).mockReturnValue({
-        mutate: vi.fn((id, { onSuccess }) => onSuccess()),
-        isPending: false
-      });
+      fundInvoice.mockResolvedValue("fund-tx-xdr");
+      submitSignedTransaction.mockResolvedValue({ txHash: "fund-hash" });
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
       fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
 
-      // Note: useFundInvoice internal logic handles showToast now
-      // but the component might still have its own onsuccess logic
+      await waitFor(() =>
+        expect(updateToast).toHaveBeenCalledWith(
+          "toast-id",
+          expect.objectContaining({ type: "success", title: "Invoice funded successfully!" }),
+        ),
+      );
     });
 
     it("shows an error message in the modal when fundInvoice rejects", async () => {
-      (useFundInvoice as any).mockReturnValue({
-        mutate: vi.fn((id, { onError }) => onError(new Error("Contract revert: insufficient balance"))),
-        isPending: false
-      });
+      fundInvoice.mockRejectedValue(new Error("Contract revert: insufficient balance"));
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));

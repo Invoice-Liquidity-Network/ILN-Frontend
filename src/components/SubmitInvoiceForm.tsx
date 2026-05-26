@@ -5,10 +5,12 @@ import { useTranslation } from "react-i18next";
 import { NETWORK_NAME } from "@/constants";
 import TokenSelector, { TokenAmount } from "../components/TokenSelector";
 import FieldTooltip from "./FieldTooltip";
+import TransactionModal from "./TransactionModal";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import useAddressBook from "@/hooks/useAddressBook";
+import { useTransaction } from "@/hooks/useTransaction";
 import {
   getMinimumDueDate,
   getYieldPreview,
@@ -35,9 +37,10 @@ interface SubmitInvoiceFormProps {
 
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
-  const { addToast, updateToast } = useToast();
+  const { addToast } = useToast();
   const { address, isConnected, connect, disconnect, networkMismatch, error: walletError, signTx } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
+  const transaction = useTransaction();
   
   const [showBanner, setShowBanner] = useState(!!prefillId);
   const [form, setForm] = useState<InvoiceFormValues>({
@@ -54,7 +57,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
   const preview = getYieldPreview(form.amount, form.discountRate, selectedToken?.decimals ?? 7);
   
-  const { addressBook, searchAddresses } = useAddressBook();
+  const { searchAddresses } = useAddressBook();
   const [addressBookOpen, setAddressBookOpen] = useState(false);
   const [addressBookQuery, setAddressBookQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -141,10 +144,9 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     setErrors({});
     setSubmittedInvoiceId(null);
 
-    const toastId = addToast({ type: "pending", title: "Submitting invoice to Stellar testnet..." });
-
-    try {
-      const result = await submitInvoiceTransaction({
+    await transaction.execute(async ({ setSigning }) => {
+      setSigning();
+      return submitInvoiceTransaction({
         freelancer: address,
         payer: form.payer.trim(),
         amount,
@@ -153,32 +155,29 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
         signTx,
         token: selectedToken.contractId,
       });
-
+    }, {
+      pendingTitle: "Submitting invoice to Stellar testnet...",
+      successTitle: "Invoice submitted",
+      errorTitle: "Submission failed",
+      onSuccess: (result) => {
       const invoiceId = result.invoiceId.toString();
       setSubmittedInvoiceId(invoiceId);
       setLastTxHash(result.txHash);
-      updateToast(toastId, {
-        type: "success",
-        title: "Invoice submitted",
-        message: `Invoice #${invoiceId} is now live on ${NETWORK_NAME}.`,
-        txHash: result.txHash,
-      });
-    } catch (error) {
+      },
+      successMessage: `Invoice is now live on ${NETWORK_NAME}.`,
+      onError: (error) => {
       const message =
         error instanceof Error ? error.message : "The transaction did not complete successfully.";
       setErrors({ submit: message });
-      updateToast(toastId, {
-        type: "error",
-        title: "Submission failed",
-        message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+    });
+
+    setIsSubmitting(false);
   };
 
   return (
     <div id="submit-invoice-form" className="bg-surface-container-lowest p-6 sm:p-8 rounded-[28px] shadow-xl border border-outline-variant/15">
+      <TransactionModal phase={transaction.state.phase} error={transaction.state.error} />
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -413,10 +412,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || transaction.isLoading}
               className="w-full rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
-              {isSubmitting ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
+              {isSubmitting || transaction.isLoading ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
             </button>
           </div>
 
