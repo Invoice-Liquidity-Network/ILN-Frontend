@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, formatUSDC } from "@/utils/format";
 import { getTopPayers, TopPayer } from "@/utils/soroban";
@@ -180,14 +181,22 @@ export default function LeaderboardPage() {
                     <td className="px-5 py-4">{row.invoices_defaulted.toLocaleString()}</td>
                     <td className="px-5 py-4">{formatUSDC(row.total_volume)}</td>
                     <td className="px-5 py-4">
-                      <a
-                        href={getStellarExpertProfileUrl(row.address)}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="text-sm font-semibold text-primary hover:underline"
-                      >
-                        View Profile
-                      </a>
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href={`/profile/${row.address}`}
+                          className="text-sm font-semibold text-primary hover:underline"
+                        >
+                          View Profile
+                        </Link>
+                        <a
+                          href={getStellarExpertProfileUrl(row.address)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-xs text-on-surface-variant hover:underline"
+                        >
+                          Stellar Expert
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 );
