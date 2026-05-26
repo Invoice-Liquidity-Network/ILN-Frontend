@@ -12,6 +12,7 @@ import {
   type TooltipProps,
 } from "recharts";
 import { Invoice } from "@/utils/soroban";
+import { tokenAmountToNumber } from "@/utils/format";
 
 /** Buckets: $0–$100, $101–$500, $501–$1k, $1k–$5k, $5k–$10k, $10k+ */
 export const BUCKET_LABELS = [
@@ -66,8 +67,7 @@ export function aggregateHistogramData(invoices: Invoice[]): HistogramBucket[] {
   }));
 
   invoices.forEach((inv) => {
-    // Convert BigInt to number (USDC usually has 7 decimals in this project's constants)
-    const amountUsdc = Number(inv.amount) / 10_000_000;
+    const amountUsdc = tokenAmountToNumber(inv.amount);
     const idx = getBucketIndex(amountUsdc);
     
     result[idx].count += 1;
@@ -96,7 +96,7 @@ export function aggregateHistogramData(invoices: Invoice[]): HistogramBucket[] {
 export function calculateMedian(invoices: Invoice[]): number {
   if (invoices.length === 0) return 0;
   const amounts = invoices
-    .map((inv) => Number(inv.amount) / 10_000_000)
+    .map((inv) => tokenAmountToNumber(inv.amount))
     .sort((a, b) => a - b);
   
   const mid = Math.floor(amounts.length / 2);
