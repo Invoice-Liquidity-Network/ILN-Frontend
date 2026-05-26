@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useWallet } from "@/context/WalletContext";
@@ -258,8 +259,14 @@ export default function LPDashboard() {
       sortable: false,
       renderCell: (inv: Invoice) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium">{formatAddress(inv.freelancer)}</span>
-          <span className="text-[10px] text-on-surface-variant">Payer: {formatAddress(inv.payer)}</span>
+          <Link href={`/profile/${inv.freelancer}`} className="text-sm font-medium text-primary hover:underline">
+            {formatAddress(inv.freelancer)}
+          </Link>
+          <span className="text-[10px] text-on-surface-variant">
+            Payer: <Link href={`/profile/${inv.payer}`} className="font-mono text-on-surface hover:underline">
+              {formatAddress(inv.payer)}
+            </Link>
+          </span>
         </div>
       ),
     },
@@ -568,8 +575,15 @@ export default function LPDashboard() {
                     <td className="px-6 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{formatAddress(invoice.freelancer)}</span>
-                        <span className="text-[10px] text-on-surface-variant">{t("lpDashboard.tableHeaders.payer")}: {formatAddress(invoice.payer)}</span>
+                        <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-medium text-primary hover:underline">
+                          {formatAddress(invoice.freelancer)}
+                        </Link>
+                        <span className="text-[10px] text-on-surface-variant">
+                          {t("lpDashboard.tableHeaders.payer")}:{" "}
+                          <Link href={`/profile/${invoice.payer}`} className="font-mono text-on-surface hover:underline">
+                            {formatAddress(invoice.payer)}
+                          </Link>
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-5 font-bold">
