@@ -7,8 +7,9 @@ import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -37,7 +38,10 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(() => {
+      void fetchInvoice();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
@@ -60,13 +64,13 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       });
       
       // Refresh invoice state
-      fetchInvoice();
-    } catch (err: any) {
+      void fetchInvoice();
+    } catch (err) {
       console.error(err);
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message: err instanceof Error ? err.message : "An unexpected error occurred during payment."
       });
     } finally {
       setIsPaying(false);
@@ -94,7 +98,9 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }
 
   const isPayer = address === invoice.payer;
+  const isSubmitter = address === invoice.freelancer;
   const isPaid = invoice.status === "Paid";
+  const isCancelled = invoice.status === "Cancelled";
 
   return (
     <main className="min-h-screen px-4 py-12 sm:py-16">
@@ -119,12 +125,22 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {address && !isPayer && !isPaid && (
+        {address && !isPayer && !isPaid && !isCancelled && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-5 py-4 text-amber-400">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
             <div>
               <p className="text-sm font-bold">Address Mismatch</p>
               <p className="mt-0.5 text-xs opacity-80">This invoice is not assigned to your current wallet address.</p>
+            </div>
+          </div>
+        )}
+
+        {isCancelled && (
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-error/25 bg-error-container px-5 py-4 text-on-error-container">
+            <span className="material-symbols-outlined text-2xl">block</span>
+            <div>
+              <p className="text-sm font-bold">Invoice cancelled</p>
+              <p className="mt-0.5 text-xs opacity-80">This invoice was cancelled by the submitter and can no longer be funded or settled.</p>
             </div>
           </div>
         )}
@@ -186,6 +202,10 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
             <div className="w-full text-center py-4 bg-surface-container rounded-2xl border border-outline-variant/20">
               <p className="text-emerald-400 font-bold">Settlement Complete</p>
             </div>
+          ) : isCancelled ? (
+            <div className="w-full text-center py-4 bg-surface-container rounded-2xl border border-outline-variant/20">
+              <p className="font-bold text-on-surface-variant">Invoice Cancelled</p>
+            </div>
           ) : isPayer ? (
             <button
               onClick={handlePay}
@@ -197,6 +217,18 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           ) : (
             <div className="w-full text-center py-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-400 font-bold">
               Restricted to Registered Payer
+            </div>
+          )}
+
+          {isSubmitter && invoice.status === "Pending" && (
+            <div className="mt-3">
+              <CancelInvoiceButton
+                invoiceId={invoice.id}
+                freelancer={invoice.freelancer}
+                status={invoice.status}
+                onCancelled={() => setInvoice((current) => current ? { ...current, status: "Cancelled" } : current)}
+                className="w-full rounded-2xl py-4 text-base"
+              />
             </div>
           )}
         </section>

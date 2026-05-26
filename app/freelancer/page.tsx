@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } fr
 import { useTranslation } from "react-i18next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 import InvoiceFilterBar from "@/components/InvoiceFilterBar";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
@@ -21,12 +22,18 @@ import {
 } from "@/utils/format";
 import { rpc, TransactionBuilder } from "@stellar/stellar-sdk";
 import { RPC_URL, NETWORK_PASSPHRASE } from "@/constants";
-import SkeletonRow, { FREELANCER_COLUMNS } from "@/components/SkeletonRow";
 import { ExportButton } from "@/components/ExportButton";
-import { EmptyState } from "@/components/EmptyState";
-import { FreelancerEmptyIllustration } from "@/components/illustrations/EmptyIllustrations";
 
 const server = new rpc.Server(RPC_URL);
+
+interface SendTransactionResult {
+  status?: string;
+  hash?: string;
+}
+
+interface TransactionStatusResult {
+  status?: string;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +62,8 @@ function StatusBadge({ status }: { status: string }) {
     Funded:
       "bg-[#dbeafe] text-[#1d4ed8] dark:bg-[#1e3a8a]/30 dark:text-[#93c5fd]",
     Paid: "bg-[#dcfce7] text-[#15803d] dark:bg-[#14532d]/30 dark:text-[#86efac]",
+    Cancelled:
+      "bg-surface-container text-on-surface-variant",
     Defaulted:
       "bg-error-container text-on-error-container",
   };
@@ -95,7 +104,7 @@ function FreelancerPageContent() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
-  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const refreshIntervalRef = useRef<number | null>(null);
   const {
     filters,
     setFilters,
@@ -119,15 +128,27 @@ function FreelancerPageContent() {
 
   useEffect(() => {
     if (screen === "my-invoices") {
-      fetchMyInvoices();
-      refreshIntervalRef.current = setInterval(fetchMyInvoices, 30_000);
+      const timeout = window.setTimeout(() => {
+        void fetchMyInvoices();
+      }, 0);
+      refreshIntervalRef.current = window.setInterval(() => {
+        void fetchMyInvoices();
+      }, 30_000);
+      return () => {
+        window.clearTimeout(timeout);
+        if (refreshIntervalRef.current) {
+          window.clearInterval(refreshIntervalRef.current);
+        }
+      };
     }
     return () => {
       if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+        window.clearInterval(refreshIntervalRef.current);
       }
     };
   }, [screen, fetchMyInvoices]);
+
+  const [minDueDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
 
   const filteredInvoices = useMemo(
     () =>
@@ -193,12 +214,14 @@ function FreelancerPageContent() {
         TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
       );
 
-      if ((sendResult as any).status === "PENDING") {
-        let txStatus = await server.getTransaction((sendResult as any).hash);
+      const sent = sendResult as SendTransactionResult;
+
+      if (sent.status === "PENDING" && sent.hash) {
+        let txStatus = await server.getTransaction(sent.hash) as TransactionStatusResult;
         let tries = 0;
-        while ((txStatus as any).status === "NOT_FOUND" && tries < 20) {
+        while (txStatus.status === "NOT_FOUND" && tries < 20) {
           await new Promise((r) => setTimeout(r, 1500));
-          txStatus = await server.getTransaction((sendResult as any).hash);
+          txStatus = await server.getTransaction(sent.hash) as TransactionStatusResult;
           tries++;
         }
 
@@ -208,16 +231,16 @@ function FreelancerPageContent() {
         updateToast(toastId, {
           type: "success",
           title: t("freelancer.toast.submitted"),
-          txHash: (sendResult as any).hash,
+          txHash: sent.hash,
         });
       } else {
-        throw new Error(`Transaction rejected: ${(sendResult as any).status}`);
+        throw new Error(`Transaction rejected: ${sent.status ?? "unknown"}`);
       }
-    } catch (err: any) {
+    } catch (err) {
       updateToast(toastId, {
         type: "error",
         title: t("freelancer.toast.submissionFailed"),
-        message: err?.message ?? t("freelancer.toast.unknownError"),
+        message: err instanceof Error ? err.message : t("freelancer.toast.unknownError"),
       });
     } finally {
       setIsSubmitting(false);
@@ -232,7 +255,16 @@ function FreelancerPageContent() {
     t("freelancer.invoices.headers.discount"),
     t("freelancer.invoices.headers.dueDate"),
     t("freelancer.invoices.headers.status"),
+    "Actions",
   ];
+
+  const markInvoiceCancelled = (invoiceId: bigint) => {
+    setInvoices((current) =>
+      current.map((invoice) =>
+        invoice.id === invoiceId ? { ...invoice, status: "Cancelled" } : invoice,
+      ),
+    );
+  };
 
   return (
     <>
@@ -431,9 +463,7 @@ function FreelancerPageContent() {
                         id="field-due-date"
                         type="date"
                         value={form.dueDate}
-                        min={new Date(Date.now() + 86_400_000)
-                          .toISOString()
-                          .slice(0, 10)}
+                        min={minDueDate}
                         onChange={(e) =>
                           setForm({ ...form, dueDate: e.target.value })
                         }
@@ -647,7 +677,7 @@ function FreelancerPageContent() {
                       {loadingInvoices ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="px-6 py-14 text-center text-on-surface-variant italic"
                           >
                             <span className="flex items-center justify-center gap-2">
@@ -659,7 +689,7 @@ function FreelancerPageContent() {
                       ) : invoices.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="px-6 py-14 text-center"
                           >
                             <div className="flex flex-col items-center gap-3">
@@ -705,6 +735,14 @@ function FreelancerPageContent() {
                             </td>
                             <td className="px-6 py-5 whitespace-nowrap">
                               <StatusBadge status={inv.status} />
+                            </td>
+                            <td className="px-6 py-5 whitespace-nowrap">
+                              <CancelInvoiceButton
+                                invoiceId={inv.id}
+                                freelancer={inv.freelancer}
+                                status={inv.status}
+                                onCancelled={() => markInvoiceCancelled(inv.id)}
+                              />
                             </td>
                           </tr>
                         ))
