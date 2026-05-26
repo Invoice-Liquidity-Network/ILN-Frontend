@@ -5,8 +5,9 @@ import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/u
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import InvoicePdfDownloadButton from "@/components/InvoicePdfDownloadButton";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -35,7 +36,8 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(fetchInvoice, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
@@ -59,12 +61,13 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       
       // Refresh invoice state
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred during payment.";
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message,
       });
     } finally {
       setIsPaying(false);
@@ -130,7 +133,10 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
         {/* ── Invoice Summary Card ───────────────────────────────────────── */}
         <section className="rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
           <div className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant mb-4">Invoice Summary</p>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant">Invoice Summary</p>
+              <InvoicePdfDownloadButton invoice={invoice} />
+            </div>
             
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
