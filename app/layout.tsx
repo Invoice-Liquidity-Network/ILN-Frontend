@@ -8,6 +8,7 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import FABProvider from "@/components/FABProvider";
 import CommandPalette from "@/components/CommandPalette";
+import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 import Providers from "./Providers";
 
 
@@ -54,6 +55,7 @@ export default function RootLayout({
             <ToastProvider>
               <WalletProvider>
                 <NotificationProvider>
+                  <NetworkMismatchBanner />
                   <FABProvider />
                   <div className="min-h-screen flex flex-col">
                     <div className="flex-1">
