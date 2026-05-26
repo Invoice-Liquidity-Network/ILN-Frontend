@@ -1,12 +1,20 @@
 "use client";
 
 import { use, useEffect, useState, useCallback } from "react";
-import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
+import {
+  getInvoice,
+  markPaid,
+  submitSignedTransaction,
+  transferLpPosition,
+  type Invoice,
+} from "@/utils/soroban";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import TransferPositionModal from "@/components/TransferPositionModal";
+import { useTransaction } from "@/hooks/useTransaction";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -18,6 +26,15 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const transferTransaction = useTransaction({
+    pendingTitle: "Transferring LP position...",
+    pendingMessage: "Please sign the transfer in Freighter.",
+    successTitle: "LP position transferred",
+    successMessage: "Future payouts will go to the new LP address.",
+    errorTitle: "Transfer failed",
+  });
 
   const invoiceId = BigInt(id);
 
@@ -35,7 +52,8 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(fetchInvoice, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
@@ -58,16 +76,32 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       });
       
       // Refresh invoice state
-      fetchInvoice();
-    } catch (err: any) {
+      void fetchInvoice();
+    } catch (err) {
       console.error(err);
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message: err instanceof Error ? err.message : "An unexpected error occurred during payment."
       });
     } finally {
       setIsPaying(false);
+    }
+  };
+
+  const handleTransferPosition = async (newLpAddress: string) => {
+    if (!address || !invoice) return;
+
+    setTransferError(null);
+    try {
+      await transferTransaction.runTransaction(async () => {
+        const tx = await transferLpPosition(address, invoice.id, newLpAddress);
+        return submitSignedTransaction({ tx, signTx });
+      });
+      setInvoice({ ...invoice, funder: newLpAddress });
+      setIsTransferModalOpen(false);
+    } catch (err) {
+      setTransferError(err instanceof Error ? err.message : "Failed to transfer LP position.");
     }
   };
 
@@ -92,6 +126,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }
 
   const isPayer = address === invoice.payer;
+  const isCurrentLp = Boolean(address && invoice.funder && address === invoice.funder);
   const isPaid = invoice.status === "Paid";
 
   return (
@@ -117,7 +152,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {address && !isPayer && !isPaid && (
+        {address && !isPayer && !isCurrentLp && !isPaid && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-5 py-4 text-amber-400">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
             <div>
@@ -174,6 +209,17 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
             >
               {isPaying ? "Processing..." : "Settle Invoice Now"}
             </button>
+          ) : isCurrentLp && invoice.status === "Funded" ? (
+            <button
+              onClick={() => {
+                setTransferError(null);
+                setIsTransferModalOpen(true);
+              }}
+              disabled={transferTransaction.isPending}
+              className="w-full rounded-2xl bg-primary px-6 py-4 text-lg font-bold text-on-primary shadow-lg transition-all hover:bg-primary/90 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+            >
+              {transferTransaction.isPending ? "Transferring..." : "Transfer Position"}
+            </button>
           ) : (
             <div className="w-full text-center py-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-400 font-bold">
               Restricted to Registered Payer
@@ -187,6 +233,19 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           This is a direct settlement page. Verify all details before proceeding.
         </p>
       </div>
+      <TransferPositionModal
+        invoice={isTransferModalOpen ? invoice : null}
+        currentLpAddress={invoice.funder ?? null}
+        isTransferring={transferTransaction.isPending}
+        error={transferError}
+        onClose={() => {
+          if (!transferTransaction.isPending) {
+            setIsTransferModalOpen(false);
+            setTransferError(null);
+          }
+        }}
+        onTransfer={handleTransferPosition}
+      />
     </main>
   );
 }

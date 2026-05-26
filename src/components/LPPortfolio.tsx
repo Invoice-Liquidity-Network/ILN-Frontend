@@ -11,11 +11,15 @@ import LPPortfolioAllocationChart from "./LPPortfolioAllocationChart";
 import WeeklyYieldChart from "./WeeklyYieldChart";
 import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
 
+const INITIAL_NOW_MS = Date.now();
+
 interface LPPortfolioProps {
   invoices: Invoice[];
   isLoading: boolean;
   onClaimDefault: (invoice: Invoice) => Promise<void>;
   claimingInvoiceId: string | null;
+  onTransferPosition?: (invoice: Invoice) => void;
+  transferringInvoiceId?: string | null;
   tokenMap?: Map<string, ApprovedToken>;
   defaultToken?: ApprovedToken | null;
 }
@@ -25,11 +29,13 @@ export default function LPPortfolio({
   isLoading,
   onClaimDefault,
   claimingInvoiceId,
+  onTransferPosition,
+  transferringInvoiceId = null,
   tokenMap = new Map(),
   defaultToken = null,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
-  const now = Date.now();
+  const now = INITIAL_NOW_MS;
 
   // Calculate per-token metrics
   const perTokenMetrics = useMemo(
@@ -109,18 +115,31 @@ export default function LPPortfolio({
         const isPastDue = Number(inv.due_date) * 1000 < now;
         const isClaimEligible = inv.status === "Funded" && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
+        const isFundedPosition = inv.status === "Funded";
+        const isTransferring = transferringInvoiceId === inv.id.toString();
         
-        if (!isClaimEligible) return null;
+        if (!isClaimEligible && !isFundedPosition) return null;
 
         return (
-          <div className="text-right">
-            <button
-              onClick={() => onClaimDefault(inv)}
-              disabled={isClaiming}
-              className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
-            >
-              {isClaiming ? "Claiming..." : "Claim Default"}
-            </button>
+          <div className="flex flex-col items-end gap-2 text-right sm:flex-row sm:justify-end">
+            {isFundedPosition && onTransferPosition && (
+              <button
+                onClick={() => onTransferPosition(inv)}
+                disabled={isTransferring}
+                className="rounded-lg border border-primary/30 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10 disabled:opacity-60"
+              >
+                {isTransferring ? "Transferring..." : "Transfer Position"}
+              </button>
+            )}
+            {isClaimEligible && (
+              <button
+                onClick={() => onClaimDefault(inv)}
+                disabled={isClaiming}
+                className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
+              >
+                {isClaiming ? "Claiming..." : "Claim Default"}
+              </button>
+            )}
           </div>
         );
       },
