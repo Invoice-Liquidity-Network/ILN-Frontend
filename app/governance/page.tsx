@@ -4,14 +4,18 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import VotingPowerCard from "@/components/VotingPowerCard";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import { useWallet } from "@/context/WalletContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
     Proposal,
     ProposalStatus,
     fetchProposals,
+    getVotingPowerBreakdown,
     timeRemaining,
     totalVotes,
+    type VotingPowerBreakdown,
 } from "@/utils/governance";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -160,10 +164,13 @@ function FilterTabs({
 
 export default function GovernancePage() {
   useDocumentTitle({ pageTitle: "Governance" });
+  const { address, isConnected, connect } = useWallet();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ProposalStatus | "All">("All");
+  const [votingPower, setVotingPower] = useState<VotingPowerBreakdown | null>(null);
+  const [isLoadingVotingPower, setIsLoadingVotingPower] = useState(false);
 
   const load = useCallback(async () => {
     const data = await fetchProposals();
@@ -172,11 +179,38 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
     // Refresh every 30 s for real-time vote counts
     const interval = setInterval(load, 30_000);
     return () => clearInterval(interval);
   }, [load]);
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      void Promise.resolve().then(() => {
+        setVotingPower(null);
+        setIsLoadingVotingPower(false);
+      });
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setIsLoadingVotingPower(true);
+    });
+
+    void getVotingPowerBreakdown(address)
+      .then((breakdown) => {
+        if (!cancelled) setVotingPower(breakdown);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingVotingPower(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, isConnected]);
 
   const filtered =
     filter === "All" ? proposals : proposals.filter((p) => p.status === filter);
@@ -221,6 +255,15 @@ export default function GovernancePage() {
       {/* Main content */}
       <section className="py-12 px-8">
         <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <VotingPowerCard
+              isConnected={isConnected}
+              breakdown={votingPower}
+              isLoading={isLoadingVotingPower}
+              onConnect={connect}
+            />
+          </div>
+
           {/* Filter tabs */}
           <div className="mb-8">
             <FilterTabs active={filter} onChange={setFilter} counts={counts} />

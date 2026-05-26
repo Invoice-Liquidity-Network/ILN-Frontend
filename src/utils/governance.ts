@@ -185,6 +185,16 @@ export function formatVotingPower(power: number): string {
   return power.toFixed(0) + " ILN";
 }
 
+export interface VotingPowerBreakdown {
+  ownBalance: number;
+  incomingDelegated: number;
+  delegatedTo?: string;
+}
+
+export function effectiveVotingPower(breakdown: VotingPowerBreakdown): number {
+  return breakdown.delegatedTo ? 0 : breakdown.ownBalance + breakdown.incomingDelegated;
+}
+
 // ─── Mock voting state (per-session in-memory store) ──────────────────────────
 
 const userVotes: Map<number, VoteChoice> = new Map();
@@ -250,10 +260,27 @@ export async function executeProposal(
   return Math.random().toString(16).substring(2, 18);
 }
 
-export async function getVotingPower(_address: string): Promise<number> {
-  // TODO: Fetch from ILN token contract once deployed
+export async function getVotingPowerBreakdown(address: string): Promise<VotingPowerBreakdown> {
+  // TODO: Fetch ILN balance and delegation state from governance contracts once deployed.
   await new Promise((r) => setTimeout(r, 200));
-  return 1250; // mock: 1,250 ILN tokens
+
+  if (address.endsWith("DELEGATED")) {
+    return {
+      ownBalance: 1250,
+      incomingDelegated: 350,
+      delegatedTo: "GDELEGATE7ZDJVQV6VMB4EJQ5X2YJH5R7GQCMQX2HBJFW42VMMOCKADDR",
+    };
+  }
+
+  return {
+    ownBalance: 1250,
+    incomingDelegated: 350,
+  };
+}
+
+export async function getVotingPower(address: string): Promise<number> {
+  const breakdown = await getVotingPowerBreakdown(address);
+  return effectiveVotingPower(breakdown);
 }
 
 // ─── Proposal creation ────────────────────────────────────────────────────────
