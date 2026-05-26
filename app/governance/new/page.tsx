@@ -18,6 +18,7 @@ import {
     getVotingPower,
     isValidStellarAddress,
     lookupToken,
+    mapGovernanceErrorMessage,
 } from "@/utils/governance";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -311,8 +312,14 @@ function TokenAddressField({
         </div>
       )}
       <p className="mt-1.5 text-xs text-on-surface-variant">
-        The token's contract address on Stellar testnet. Must be a valid Soroban token contract.
+        The token&apos;s contract address on Stellar testnet. Must be a valid Soroban token contract.
       </p>
+      <div className="mt-2 flex items-start gap-2 rounded-lg border border-outline-variant/20 bg-surface-container px-3 py-2 text-xs text-on-surface-variant">
+        <span className="material-symbols-outlined text-primary text-[15px]" aria-hidden="true">
+          info
+        </span>
+        <span>ILN does not support fee-on-transfer tokens</span>
+      </div>
     </InputWrapper>
   );
 }
@@ -509,11 +516,15 @@ export default function NewProposalPage() {
 
       router.push(`/governance/${proposalId}`);
     } catch (err) {
+      const message = mapGovernanceErrorMessage(err);
       updateToast(toastId, {
         type: "error",
         title: "Submission failed",
-        message: err instanceof Error ? err.message : "Transaction rejected",
+        message,
       });
+      if (selectedType === "AddToken" && message.includes("fee-on-transfer")) {
+        setErrors((current) => ({ ...current, tokenAddress: message }));
+      }
       setIsSubmitting(false);
     }
   }
