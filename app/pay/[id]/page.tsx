@@ -7,8 +7,9 @@ import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import ShareInvoiceButton from "@/components/ShareInvoiceButton";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -37,7 +38,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
@@ -61,12 +62,12 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       
       // Refresh invoice state
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message: err instanceof Error ? err.message : "An unexpected error occurred during payment."
       });
     } finally {
       setIsPaying(false);
@@ -93,6 +94,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const isSubmitter = address === invoice.freelancer;
   const isPayer = address === invoice.payer;
   const isPaid = invoice.status === "Paid";
 
@@ -106,6 +108,11 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           <h1 className="font-headline text-3xl sm:text-4xl">
             Settle Invoice #{invoice.id.toString()}
           </h1>
+          {isSubmitter && (
+            <div className="mt-4">
+              <ShareInvoiceButton invoiceId={invoice.id} />
+            </div>
+          )}
         </div>
 
         {/* ── Status Banners ────────────────────────────────────────────── */}
