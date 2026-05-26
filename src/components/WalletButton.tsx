@@ -7,6 +7,7 @@ import { TokenAmount } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
 import { getTokenBalance } from "@/utils/soroban";
+import FaucetButton from "./FaucetButton";
 
 interface WalletBalance {
   contractId: string;
@@ -99,6 +100,7 @@ export default function WalletButton() {
         >
           Disconnect
         </button>
+        <FaucetButton />
       </div>
     );
   }

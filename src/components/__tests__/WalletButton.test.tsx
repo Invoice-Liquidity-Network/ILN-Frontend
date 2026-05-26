@@ -47,6 +47,10 @@ vi.mock("../../context/WalletContext", () => ({
   useWallet: () => walletState,
 }));
 
+vi.mock("../FaucetButton", () => ({
+  default: () => <div data-testid="faucet-button" />,
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const FULL_ADDRESS = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6";
