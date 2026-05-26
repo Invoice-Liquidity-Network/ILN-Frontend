@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import WalletButton from "../WalletButton";
 
@@ -43,8 +43,36 @@ const walletState = {
   signTx: vi.fn(),
 };
 
-vi.mock("../../context/WalletContext", () => ({
+const approvedTokens = [
+  { contractId: "USDC_TOKEN", decimals: 7, iconLabel: "US", name: "USD Coin", symbol: "USDC" },
+  { contractId: "EURC_TOKEN", decimals: 7, iconLabel: "EU", name: "Euro Coin", symbol: "EURC" },
+  { contractId: "native", decimals: 7, iconLabel: "XL", name: "Stellar Lumens", symbol: "XLM" },
+];
+
+const balancesState = {
+  balances: approvedTokens.map((token, index) => ({
+    amount: [12_500_000n, 3_000_000n, 252_500_000n][index],
+    contractId: token.contractId,
+    hasTrustline: true,
+    isLoading: false,
+    token,
+  })),
+  isLoading: false,
+  refresh: vi.fn(),
+};
+
+vi.mock("@/context/WalletContext", () => ({
   useWallet: () => walletState,
+}));
+
+vi.mock("@/hooks/useApprovedTokens", () => ({
+  useApprovedTokens: () => ({
+    tokens: approvedTokens,
+  }),
+}));
+
+vi.mock("@/hooks/useBalances", () => ({
+  useBalances: () => balancesState,
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -64,6 +92,14 @@ describe("WalletButton", () => {
     walletState.connect.mockReset();
     walletState.disconnect.mockReset();
     walletState.signTx.mockReset();
+    balancesState.isLoading = false;
+    balancesState.balances = approvedTokens.map((token, index) => ({
+      amount: [12_500_000n, 3_000_000n, 252_500_000n][index],
+      contractId: token.contractId,
+      hasTrustline: true,
+      isLoading: false,
+      token,
+    }));
   });
 
   // ── State 1: Disconnected ─────────────────────────────────────────────────
@@ -157,6 +193,42 @@ describe("WalletButton", () => {
     it("does NOT render the Connect Wallet button", () => {
       render(<WalletButton />);
       expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
+    });
+
+    it("renders USDC, EURC, and XLM balances in the wallet balance section", async () => {
+      render(<WalletButton />);
+
+      const balances = screen.getByLabelText("Wallet token balances");
+
+      expect(await within(balances).findByText("1.25 USDC")).toBeInTheDocument();
+      expect(within(balances).getByText("0.3 EURC")).toBeInTheDocument();
+      expect(within(balances).getByText("25.25 XLM")).toBeInTheDocument();
+    });
+
+    it("shows zero and an Add Trustline prompt when a token balance cannot be loaded", async () => {
+      balancesState.balances[1] = {
+        ...balancesState.balances[1],
+        amount: 0n,
+        hasTrustline: false,
+      };
+
+      render(<WalletButton />);
+
+      const balances = screen.getByLabelText("Wallet token balances");
+
+      expect(await within(balances).findByText("0 EURC")).toBeInTheDocument();
+      expect(within(balances).getByText("Add Trustline")).toBeInTheDocument();
+    });
+
+    it("shows balance loading skeletons while the initial balance request is pending", async () => {
+      balancesState.isLoading = true;
+      balancesState.balances = balancesState.balances.map((balance) => ({ ...balance, isLoading: true }));
+
+      render(<WalletButton />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("USDC balance loading")).toBeInTheDocument();
+      });
     });
   });
 

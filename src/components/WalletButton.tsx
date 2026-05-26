@@ -1,62 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useBalances } from "@/hooks/useBalances";
+import type { ApprovedToken } from "@/hooks/useApprovedTokens";
 import { useWallet } from "@/context/WalletContext";
-import { TokenAmount } from "./TokenSelector";
+import { TokenIcon } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
-import { NETWORK_NAME } from "@/constants";
-import { getTokenBalance } from "@/utils/soroban";
+import { NETWORK_NAME, TESTNET_EURC_TOKEN_ID, TESTNET_USDC_TOKEN_ID } from "@/constants";
 
-interface WalletBalance {
-  contractId: string;
-  amount: bigint;
-}
+const FALLBACK_BALANCE_TOKENS: ApprovedToken[] = [
+  {
+    contractId: TESTNET_USDC_TOKEN_ID,
+    decimals: 7,
+    iconLabel: "US",
+    name: "USD Coin",
+    symbol: "USDC",
+  },
+  {
+    contractId: TESTNET_EURC_TOKEN_ID,
+    decimals: 7,
+    iconLabel: "EU",
+    name: "Euro Coin",
+    symbol: "EURC",
+  },
+  {
+    contractId: "native",
+    decimals: 7,
+    iconLabel: "XL",
+    name: "Stellar Lumens",
+    symbol: "XLM",
+  },
+];
 
 export default function WalletButton() {
   const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
-  const [balances, setBalances] = useState<WalletBalance[]>([]);
-  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const balanceTokens = useMemo(() => {
+    const approvedBySymbol = new Map(tokens.map((token) => [token.symbol.toUpperCase(), token]));
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadBalances() {
-      if (!address || !isConnected || networkMismatch || tokens.length === 0) {
-        setBalances([]);
-        return;
-      }
-
-      setIsLoadingBalances(true);
-      try {
-        const nextBalances = await Promise.all(
-          tokens.map(async (token) => ({
-            contractId: token.contractId,
-            amount: await getTokenBalance(address, token.contractId),
-          })),
-        );
-
-        if (!cancelled) {
-          setBalances(nextBalances.filter((entry) => entry.amount > 0n));
-        }
-      } catch {
-        if (!cancelled) {
-          setBalances([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingBalances(false);
-        }
-      }
-    }
-
-    loadBalances();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, isConnected, networkMismatch, tokens]);
+    return FALLBACK_BALANCE_TOKENS.map((fallback) => approvedBySymbol.get(fallback.symbol) ?? fallback);
+  }, [tokens]);
+  const { balances, isLoading: isLoadingBalances } = useBalances({
+    address,
+    enabled: isConnected && !networkMismatch,
+    tokens: balanceTokens,
+  });
 
   if (isConnected) {
     return (
@@ -69,26 +58,38 @@ export default function WalletButton() {
             </span>
           </div>
           {!networkMismatch ? (
-            <div className="flex flex-wrap justify-end gap-2">
-              {isLoadingBalances ? (
-                <span className="rounded-full border border-outline-variant/15 bg-surface-container-low px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
-                  Loading balances...
-                </span>
-              ) : balances.length > 0 ? (
-                balances.map((balance) => {
-                  const token = tokens.find((item) => item.contractId === balance.contractId);
-                  if (!token) return null;
-
-                  return (
+            <div
+              className="grid min-w-[230px] gap-1.5 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-2 shadow-sm"
+              aria-label="Wallet token balances"
+            >
+              {balances.map((balance) => (
+                <div
+                  key={balance.contractId}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-surface-container-lowest px-2.5 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <TokenIcon token={balance.token} className="h-6 w-6 text-[9px]" />
+                    <span className="text-xs font-bold text-on-surface">{balance.token.symbol}</span>
+                  </span>
+                  {isLoadingBalances && balance.isLoading ? (
                     <span
-                      key={balance.contractId}
-                      className="rounded-full border border-outline-variant/15 bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface"
-                    >
-                      <TokenAmount amount={formatTokenAmount(balance.amount, token)} token={token} />
+                      className="h-3 w-20 animate-pulse rounded-full bg-outline-variant/25"
+                      aria-label={`${balance.token.symbol} balance loading`}
+                    />
+                  ) : (
+                    <span className="flex flex-col items-end">
+                      <span className="text-xs font-bold text-on-surface">
+                        {formatTokenAmount(balance.amount, balance.token)}
+                      </span>
+                      {!balance.hasTrustline ? (
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+                          Add Trustline
+                        </span>
+                      ) : null}
                     </span>
-                  );
-                })
-              ) : null}
+                  )}
+                </div>
+              ))}
             </div>
           ) : null}
           <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
