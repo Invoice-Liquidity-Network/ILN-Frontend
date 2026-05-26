@@ -13,6 +13,7 @@ type InvoiceFilterBarProps = {
   onClearFilters: () => void;
   activeFilterCount: number;
   className?: string;
+  showReputationFilter?: boolean;
 };
 
 const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
@@ -23,6 +24,7 @@ export default function InvoiceFilterBar({
   onClearFilters,
   activeFilterCount,
   className,
+  showReputationFilter = false,
 }: InvoiceFilterBarProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -190,6 +192,38 @@ export default function InvoiceFilterBar({
                 />
               </div>
             </div>
+
+            {showReputationFilter ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                    Min Payer Reputation
+                  </p>
+                  <span className="rounded-full bg-primary-container px-2 py-0.5 text-xs font-bold text-on-primary-container">
+                    {filters.minPayerReputation || "0"}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={filters.minPayerReputation || "0"}
+                  onChange={(event) =>
+                    onFiltersChange((current) => ({
+                      ...current,
+                      minPayerReputation: event.target.value === "0" ? "" : event.target.value,
+                    }))
+                  }
+                  className="w-full accent-primary"
+                  aria-label="Min Payer Reputation"
+                />
+                <div className="flex justify-between text-[10px] font-medium uppercase tracking-wide text-on-surface-variant">
+                  <span>Show all</span>
+                  <span>100</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

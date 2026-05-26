@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyInvoiceFilters, countActiveInvoiceFilters, EMPTY_INVOICE_FILTERS } from "../hooks/useInvoiceFilters";
-import type { Invoice } from "../utils/soroban";
+import { applyInvoiceFilters, countActiveInvoiceFilters, EMPTY_INVOICE_FILTERS } from "../src/hooks/useInvoiceFilters";
+import type { Invoice } from "../src/utils/soroban";
 
 function makeInvoice(
   id: bigint,
@@ -9,11 +9,12 @@ function makeInvoice(
   dueDate: bigint,
   discountRate: number,
   token?: string,
+  payer = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
 ): Invoice {
   return {
     id,
     freelancer: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-    payer: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
+    payer,
     amount,
     due_date: dueDate,
     discount_rate: discountRate,
@@ -26,9 +27,9 @@ function makeInvoice(
 
 describe("invoice filter logic", () => {
   const invoices: Invoice[] = [
-    makeInvoice(101n, "Pending", 100n * 10_000_000n, 1_760_000_000n, 300, "token-usdc"),
-    makeInvoice(202n, "Funded", 500n * 10_000_000n, 1_770_000_000n, 900, "token-eurc"),
-    makeInvoice(303n, "Paid", 900n * 10_000_000n, 1_780_000_000n, 1200, "token-xlm"),
+    makeInvoice(101n, "Pending", 100n * 10_000_000n, 1_760_000_000n, 300, "token-usdc", "PAYER_LOW"),
+    makeInvoice(202n, "Funded", 500n * 10_000_000n, 1_770_000_000n, 900, "token-eurc", "PAYER_HIGH"),
+    makeInvoice(303n, "Paid", 900n * 10_000_000n, 1_780_000_000n, 1200, "token-xlm", "PAYER_UNKNOWN"),
   ];
 
   it("searches by id and address fragments", () => {
@@ -68,6 +69,25 @@ describe("invoice filter logic", () => {
     expect(filtered.map((invoice) => invoice.id)).toEqual([202n]);
   });
 
+  it("filters by minimum payer reputation score", () => {
+    const filtered = applyInvoiceFilters(
+      invoices,
+      {
+        ...EMPTY_INVOICE_FILTERS,
+        minPayerReputation: "75",
+      },
+      {
+        resolvePayerReputation: (invoice) => {
+          if (invoice.payer === "PAYER_LOW") return 40;
+          if (invoice.payer === "PAYER_HIGH") return 90;
+          return null;
+        },
+      },
+    );
+
+    expect(filtered.map((invoice) => invoice.id)).toEqual([202n]);
+  });
+
   it("counts active filter groups correctly", () => {
     expect(
       countActiveInvoiceFilters({
@@ -76,7 +96,8 @@ describe("invoice filter logic", () => {
         statuses: ["Pending"],
         minAmount: "10",
         token: "USDC",
+        minPayerReputation: "80",
       }),
-    ).toBe(4);
+    ).toBe(5);
   });
 });

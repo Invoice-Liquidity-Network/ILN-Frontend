@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Invoice } from "@/utils/soroban";
 
@@ -17,6 +17,7 @@ export type InvoiceFilters = {
   token: string;
   minDiscountBps: string;
   maxDiscountBps: string;
+  minPayerReputation: string;
 };
 
 export const EMPTY_INVOICE_FILTERS: InvoiceFilters = {
@@ -29,6 +30,7 @@ export const EMPTY_INVOICE_FILTERS: InvoiceFilters = {
   token: "",
   minDiscountBps: "",
   maxDiscountBps: "",
+  minPayerReputation: "",
 };
 
 type UseInvoiceFiltersOptions = {
@@ -78,12 +80,18 @@ function buildFilterQuery(searchParams: URLSearchParams, namespace: string, filt
   setOrDelete("token", filters.token);
   setOrDelete("minDiscountBps", filters.minDiscountBps);
   setOrDelete("maxDiscountBps", filters.maxDiscountBps);
+  setOrDelete("minPayerReputation", filters.minPayerReputation);
 
   return next;
 }
 
 function readFiltersFromParams(searchParams: URLSearchParams, namespace: string): InvoiceFilters {
   const prefix = `${namespace}_`;
+  const persistedReputation =
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem(`${prefix}minPayerReputation`) ?? "";
+
   return {
     search: searchParams.get(`${prefix}search`) ?? "",
     statuses: cleanStatusList((searchParams.get(`${prefix}statuses`) ?? "").split(",").filter(Boolean)),
@@ -94,6 +102,7 @@ function readFiltersFromParams(searchParams: URLSearchParams, namespace: string)
     token: searchParams.get(`${prefix}token`) ?? "",
     minDiscountBps: searchParams.get(`${prefix}minDiscountBps`) ?? "",
     maxDiscountBps: searchParams.get(`${prefix}maxDiscountBps`) ?? "",
+    minPayerReputation: searchParams.get(`${prefix}minPayerReputation`) ?? persistedReputation,
   };
 }
 
@@ -105,13 +114,17 @@ export function countActiveInvoiceFilters(filters: InvoiceFilters): number {
     Boolean(filters.startDate.trim() || filters.endDate.trim()),
     Boolean(filters.token.trim()),
     Boolean(filters.minDiscountBps.trim() || filters.maxDiscountBps.trim()),
+    Boolean(filters.minPayerReputation.trim() && filters.minPayerReputation !== "0"),
   ].filter(Boolean).length;
 }
 
 export function applyInvoiceFilters(
   invoices: Invoice[],
   filters: InvoiceFilters,
-  options?: { resolveTokenSymbol?: (invoice: Invoice) => string },
+  options?: {
+    resolveTokenSymbol?: (invoice: Invoice) => string;
+    resolvePayerReputation?: (invoice: Invoice) => number | null | undefined;
+  },
 ): Invoice[] {
   const search = filters.search.trim().toLowerCase();
   const minAmount = parseNumeric(filters.minAmount);
@@ -122,6 +135,7 @@ export function applyInvoiceFilters(
   const start = filters.startDate ? new Date(`${filters.startDate}T00:00:00.000Z`) : null;
   const end = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : null;
   const selectedToken = filters.token.trim().toUpperCase();
+  const minPayerReputation = parseNumeric(filters.minPayerReputation);
 
   return invoices.filter((invoice) => {
     if (search) {
@@ -152,6 +166,13 @@ export function applyInvoiceFilters(
 
     if (minDiscount !== null && invoice.discount_rate < minDiscount) return false;
     if (maxDiscount !== null && invoice.discount_rate > maxDiscount) return false;
+
+    if (minPayerReputation !== null && minPayerReputation > 0) {
+      const payerReputation = options?.resolvePayerReputation?.(invoice);
+      if (payerReputation === null || payerReputation === undefined || payerReputation < minPayerReputation) {
+        return false;
+      }
+    }
 
     return true;
   });
@@ -189,6 +210,15 @@ export function useInvoiceFilters({ namespace }: UseInvoiceFiltersOptions) {
   }, [updateFilters]);
 
   const activeFilterCount = useMemo(() => countActiveInvoiceFilters(filters), [filters]);
+
+  useEffect(() => {
+    const key = `${namespace}_minPayerReputation`;
+    if (filters.minPayerReputation.trim()) {
+      window.localStorage.setItem(key, filters.minPayerReputation.trim());
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  }, [filters.minPayerReputation, namespace]);
 
   return {
     filters,

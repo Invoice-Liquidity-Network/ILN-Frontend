@@ -174,8 +174,9 @@ export default function LPDashboard() {
           const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
           return token?.symbol ?? "USDC";
         },
+        resolvePayerReputation: (invoice) => payerScores.get(invoice.payer)?.score ?? null,
       }),
-    [defaultToken?.contractId, filters, invoices, tokenMap],
+    [defaultToken?.contractId, filters, invoices, payerScores, tokenMap],
   );
 
 
@@ -481,6 +482,7 @@ export default function LPDashboard() {
           onFiltersChange={setFilters}
           onClearFilters={clearFilters}
           activeFilterCount={activeFilterCount}
+          showReputationFilter
         />
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
       </div>
@@ -595,6 +597,11 @@ export default function LPDashboard() {
                           risk={payerRisks.get(invoice.payer) ?? "Unknown"}
                           score={payerScores.get(invoice.payer) ?? null}
                         />
+                        {payerScores.get(invoice.payer) ? (
+                          <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                            Score {payerScores.get(invoice.payer)?.score}/100
+                          </span>
+                        ) : null}
                       </td>
                     )}
                     <td className="px-6 py-5 text-right">
