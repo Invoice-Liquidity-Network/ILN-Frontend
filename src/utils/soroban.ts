@@ -47,6 +47,14 @@ export interface SubmittedInvoiceResult {
   txHash: string;
 }
 
+export interface BatchInvoiceSubmissionInput {
+  payer: string;
+  amount: bigint;
+  token: string;
+  discountRate: number;
+  dueDate: number;
+}
+
 export interface TokenMetadata {
   contractId: string;
   name: string;
@@ -118,6 +126,39 @@ function extractInvoiceIdFromTransaction(result: unknown): bigint | null {
   }
 
   return null;
+}
+
+function getSimulationError(simulated: unknown, fallback = "Unable to simulate transaction."): string {
+  if (simulated && typeof simulated === "object" && "error" in simulated) {
+    const { error } = simulated as { error?: unknown };
+    return typeof error === "string" ? error : fallback;
+  }
+  return fallback;
+}
+
+function batchInvoiceInputToScVal(invoice: BatchInvoiceSubmissionInput): xdr.ScVal {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("payer"),
+      val: Address.fromString(invoice.payer).toScVal(),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("amount"),
+      val: nativeToScVal(invoice.amount, { type: "i128" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("token"),
+      val: Address.fromString(invoice.token).toScVal(),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("discount_rate"),
+      val: nativeToScVal(invoice.discountRate, { type: "u32" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("due_date"),
+      val: nativeToScVal(invoice.dueDate, { type: "u64" }),
+    }),
+  ]);
 }
 
 async function readTokenContractValue(tokenId: string, method: string): Promise<unknown> {
@@ -524,7 +565,7 @@ export async function submitInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   // Extract the predicted invoice ID from simulation retval
@@ -533,18 +574,77 @@ export async function submitInvoice(
     const raw = scValToNative(sim.result!.retval);
     // Contract returns Result<u64, Error> — unwrap Ok variant
     if (raw && typeof raw === "object" && "ok" in raw) {
-      invoiceId = BigInt((raw as any).ok);
+      invoiceId = BigInt(String((raw as { ok: unknown }).ok));
     } else if (raw && typeof raw === "object" && "Ok" in raw) {
-      invoiceId = BigInt((raw as any).Ok);
+      invoiceId = BigInt(String((raw as { Ok: unknown }).Ok));
     } else {
-      invoiceId = BigInt(raw as any);
+      invoiceId = BigInt(String(raw));
     }
-  } catch (_) {
+  } catch {
     // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any, invoiceId };
+  return { tx: finalTx, invoiceId };
+}
+
+export async function submitBatchInvoicesTransaction({
+  freelancer,
+  invoices,
+  signTx,
+}: {
+  freelancer: string;
+  invoices: BatchInvoiceSubmissionInput[];
+  signTx: (txXdr: string) => Promise<string>;
+}): Promise<{ txHash: string }> {
+  if (invoices.length === 0) {
+    throw new Error("At least one invoice is required.");
+  }
+  if (invoices.length > 50) {
+    throw new Error("Batch invoice submission is limited to 50 rows.");
+  }
+
+  const sourceAccount = await server.getAccount(freelancer);
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeContractFunction({
+        contract: CONTRACT_ID,
+        function: "submit_invoices_batch",
+        args: [
+          Address.fromString(freelancer).toScVal(),
+          xdr.ScVal.scvVec(invoices.map(batchInvoiceInputToScVal)),
+        ],
+      })
+    )
+    .setTimeout(60)
+    .build();
+
+  const simulated = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(simulated)) {
+    throw new Error(`Simulation failed: ${getSimulationError(simulated, "Unable to simulate batch invoice submission.")}`);
+  }
+
+  const prepared = await server.prepareTransaction(tx);
+  const signedXdr = await signTx(prepared.toXDR());
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
+  const sent = await server.sendTransaction(signedTx);
+
+  if (!sent.hash || !sent.status) {
+    throw new Error("RPC server returned an invalid response for batch invoice submission.");
+  }
+  if (!ACCEPTED_SEND_STATUSES.has(sent.status)) {
+    throw new Error(`Transaction submission failed with status ${sent.status}.`);
+  }
+
+  const finalResult = await server.pollTransaction(sent.hash, { attempts: POLL_ATTEMPTS });
+  if (finalResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction failed with status ${String(finalResult.status)}.`);
+  }
+
+  return { txHash: sent.hash };
 }
 
 export interface UpdateInvoiceArgs {
@@ -588,17 +688,17 @@ export async function updateInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function cancelInvoice(
   freelancer: string,
   invoiceId: bigint
-): Promise<{ tx: any }> {
+): Promise<{ tx: Transaction }> {
   // Use a default sequence number / account for preparing or real one if needed
   let account: Account;
   try {
@@ -621,11 +721,11 @@ export async function cancelInvoice(
 
   const sim = await server.simulateTransaction(txUrl);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(txUrl, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function submitInvoiceTransaction({
