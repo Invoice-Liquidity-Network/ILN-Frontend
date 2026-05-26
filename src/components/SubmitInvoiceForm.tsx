@@ -26,14 +26,16 @@ const INITIAL_FORM: InvoiceFormValues = {
   dueDate: "",
   discountRate: "3.00",
   tokenId: "",
+  referralCode: "",
 };
 
 interface SubmitInvoiceFormProps {
   initialValues?: Partial<InvoiceFormValues>;
   prefillId?: string;
+  onSubmitted?: (invoiceId: string) => void;
 }
 
-export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
+export default function SubmitInvoiceForm({ initialValues, prefillId, onSubmitted }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
   const { addToast, updateToast } = useToast();
   const { address, isConnected, connect, disconnect, networkMismatch, error: walletError, signTx } = useWallet();
@@ -115,6 +117,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       isConnected,
       selectedToken?.decimals ?? 7,
       selectedToken?.symbol ?? "token",
+      undefined,
+      address,
     );
     if (networkMismatch) {
       nextErrors.wallet = t("submitForm.walletError", { network: NETWORK_NAME });
@@ -163,6 +167,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
         message: `Invoice #${invoiceId} is now live on ${NETWORK_NAME}.`,
         txHash: result.txHash,
       });
+      onSubmitted?.(invoiceId);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "The transaction did not complete successfully.";
@@ -382,6 +387,21 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                   You&apos;ll receive <span className="font-bold">{preview.payoutFormatted} {selectedToken.symbol}</span> instantly if funded at this rate
                 </p>
               )}
+            </Field>
+
+            <Field
+              label="Referral code (optional)"
+              tooltip="Optional campaign, partner, or referral identifier for your records. It is not submitted to the current contract."
+              hint="Leave blank if this invoice has no referral source."
+            >
+              <input
+                aria-label="Referral code"
+                value={form.referralCode}
+                onChange={(event) => setField("referralCode", event.target.value)}
+                className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                placeholder="REF-2026"
+                autoComplete="off"
+              />
             </Field>
 
             {errors.submit ? (

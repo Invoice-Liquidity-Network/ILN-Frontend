@@ -9,6 +9,7 @@ export interface InvoiceFormValues {
   dueDate: string;
   discountRate: string;
   tokenId: string;
+  referralCode: string;
 }
 
 export interface YieldPreview {
@@ -122,6 +123,7 @@ export function validateInvoiceForm(
   decimals = 7,
   tokenSymbol = "USDC",
   nowInSeconds = Math.floor(Date.now() / 1000),
+  freelancerAddress?: string | null,
 ): Partial<Record<keyof InvoiceFormValues | "wallet", string>> {
   const errors: Partial<Record<keyof InvoiceFormValues | "wallet", string>> = {};
 
@@ -133,6 +135,8 @@ export function validateInvoiceForm(
     errors.payer = "Payer Stellar address is required.";
   } else if (!isValidStellarAccount(values.payer)) {
     errors.payer = "Enter a valid Stellar public key for the payer.";
+  } else if (freelancerAddress && values.payer.trim() === freelancerAddress) {
+    errors.payer = "Payer address must be different from your wallet address.";
   }
 
   const amountUnits = parseAmountToUnits(values.amount, decimals);
