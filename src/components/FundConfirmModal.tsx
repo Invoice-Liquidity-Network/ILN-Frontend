@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import TokenSelector, { TokenAmount } from "./TokenSelector";
+import { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import {
   buildApproveTokenTransaction,
@@ -9,21 +9,22 @@ import {
   Invoice,
   submitSignedTransaction,
 } from "@/utils/soroban";
-import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
+import { formatTokenAmount, calculateYield } from "@/utils/format";
 import { useFundInvoice } from "@/hooks/useInvoices";
 
 type FundingStep = "approve" | "fund";
 
 interface FundConfirmModalProps {
   invoice: Invoice | null;
+  payerScore?: number | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundConfirmModalProps) {
+export default function FundConfirmModal({ invoice, payerScore = null, onClose, onSuccess }: FundConfirmModalProps) {
   const { address, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
-  const { tokens, tokenMap, defaultToken } = useApprovedTokens();
+  const { tokenMap, defaultToken } = useApprovedTokens();
   
   const { mutate: fund, isPending: isFunding } = useFundInvoice();
   const [isApproving, setIsApproving] = useState(false);
@@ -31,6 +32,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
+  const [referenceTimeMs] = useState(Date.now);
 
   const selectedInvoiceToken = invoice
     ? tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "") ?? defaultToken ?? null
@@ -56,7 +58,8 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
 
   useEffect(() => {
     if (!invoice || !address) return;
-    void refreshAllowance(invoice, address);
+    const timeout = window.setTimeout(() => void refreshAllowance(invoice, address), 0);
+    return () => window.clearTimeout(timeout);
   }, [address, refreshAllowance, invoice]);
 
   if (!invoice) return null;
@@ -113,6 +116,11 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
   };
 
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
+  const yieldAmount = calculateYield(invoice.amount, invoice.discount_rate);
+  const daysToDue = Math.max(
+    0,
+    Math.ceil((Number(invoice.due_date) * 1000 - referenceTimeMs) / (24 * 60 * 60 * 1000)),
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
@@ -255,14 +263,28 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
                 </div>
                 
                 <div className="flex justify-between text-sm border-t border-surface-dim pt-4">
-                  <span className="text-on-surface-variant">Your yield (discount):</span>
+                  <span className="text-on-surface-variant">Gross yield:</span>
                   <span className="font-bold text-green-600 text-base">
                     {selectedInvoiceToken ? (
                       <div className="flex items-center gap-2">
-                        <span>{formatTokenAmount(calculateYield(invoice.amount, invoice.discount_rate), selectedInvoiceToken)} {selectedInvoiceToken.symbol}</span>
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{(invoice.discount_rate / 100).toFixed(2)}%</span>
+                        <span>{formatTokenAmount(yieldAmount, selectedInvoiceToken)}</span>
+                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                          {invoice.discount_rate} bps / {(invoice.discount_rate / 100).toFixed(2)}%
+                        </span>
                       </div>
                     ) : null}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-on-surface-variant">Days to due date:</span>
+                  <span className="text-base font-bold">{daysToDue} days</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-on-surface-variant">Payer reputation score:</span>
+                  <span className="text-base font-bold">
+                    {payerScore === null || payerScore === undefined ? "Unknown" : `${payerScore}/100`}
                   </span>
                 </div>
               </div>
@@ -279,7 +301,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
                       Funding invoice...
                     </>
                   ) : (
-                    "Fund Invoice"
+                    "Fund Now"
                   )}
                 </button>
                 <button
