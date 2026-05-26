@@ -24,6 +24,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
   };
   const { color, icon } = config[status];
   return (
@@ -133,7 +134,7 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
 
 // ─── Filter tab ───────────────────────────────────────────────────────────────
 
-const FILTERS: Array<ProposalStatus | "All"> = ["All", "Active", "Passed", "Failed", "Executed", "Pending"];
+const FILTERS: Array<ProposalStatus | "All"> = ["All", "Active", "Passed", "Failed", "Executed", "Pending", "Vetoed"];
 
 function FilterTabs({
   active,
@@ -184,10 +185,17 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(load);
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
     // Refresh every 30 s for real-time vote counts
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(() => {
+      void load();
+    }, 30_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [load]);
 
   const filtered =
