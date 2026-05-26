@@ -214,3 +214,38 @@ export function getTotalFundedInUSD(
     return sum + usdFunded;
   }, 0n);
 }
+
+export interface TokenAllocationSlice {
+  token: ApprovedToken;
+  name: string;
+  totalFunded: bigint;
+  usdEquivalent: bigint;
+  usdAmount: number;
+  percentage: number;
+}
+
+export function calculateTokenAllocations(
+  metrics: TokenYieldMetrics[],
+): TokenAllocationSlice[] {
+  const totalUsd = metrics.reduce(
+    (sum, metric) => sum + convertToUSD(metric.totalFunded, metric.token),
+    0n,
+  );
+
+  return metrics
+    .map((metric) => {
+      const usdEquivalent = convertToUSD(metric.totalFunded, metric.token);
+      return {
+        token: metric.token,
+        name: metric.token.symbol,
+        totalFunded: metric.totalFunded,
+        usdEquivalent,
+        usdAmount: Number(usdEquivalent) / 10 ** metric.token.decimals,
+        percentage:
+          totalUsd > 0n
+            ? (Number(usdEquivalent) / Number(totalUsd)) * 100
+            : 0,
+      };
+    })
+    .sort((a, b) => b.usdAmount - a.usdAmount);
+}

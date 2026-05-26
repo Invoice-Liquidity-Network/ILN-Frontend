@@ -290,6 +290,14 @@ export async function getPayerScore(payerAddress: string): Promise<PayerScoreRes
   }
 }
 
+export interface TopPayer {
+  address: string;
+  score: number;
+  invoices_paid: number;
+  invoices_defaulted: number;
+  total_volume: bigint;
+}
+
 export async function getPayerScoresBatch(
   addresses: string[]
 ): Promise<Map<string, PayerScoreResult | null>> {
@@ -301,6 +309,35 @@ export async function getPayerScoresBatch(
     map.set(addr, result.status === "fulfilled" ? result.value : null);
   });
   return map;
+}
+
+export async function getTopPayers(limit = 50): Promise<TopPayer[]> {
+  try {
+    const params = [nativeToScVal(limit, { type: "u32" })];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_top_payers", params)
+    );
+
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return [];
+    }
+
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) {
+      return [];
+    }
+
+    return native.map((entry) => ({
+      address: String(entry.address ?? entry.payer ?? entry.account ?? ""),
+      score: Number(entry.score ?? 0),
+      invoices_paid: Number(entry.invoices_paid ?? entry.paid ?? 0),
+      invoices_defaulted: Number(entry.invoices_defaulted ?? entry.defaults ?? 0),
+      total_volume: BigInt(entry.total_volume ?? entry.volume_paid ?? 0),
+    }));
+  } catch (error) {
+    console.error("Failed to fetch top payers", error);
+    return [];
+  }
 }
 
 // ─── Write: fund invoice ──────────────────────────────────────────────────────
