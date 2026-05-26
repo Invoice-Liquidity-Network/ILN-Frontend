@@ -7,6 +7,8 @@ import { TokenAmount } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
 import { getTokenBalance } from "@/utils/soroban";
+import WalletSelectionModal from "./WalletSelectionModal";
+import { isWalletConnectConfigured } from "@/utils/walletConnect";
 
 interface WalletBalance {
   contractId: string;
@@ -14,10 +16,11 @@ interface WalletBalance {
 }
 
 export default function WalletButton() {
-  const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, connectProvider, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const [balances, setBalances] = useState<WalletBalance[]>([]);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +109,7 @@ export default function WalletButton() {
   return (
     <div className="relative group">
       <button
-        onClick={connect}
+        onClick={() => setIsSelectionOpen(true)}
         className="bg-primary text-surface-container-lowest px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 duration-150 flex items-center gap-2"
       >
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
@@ -121,6 +124,15 @@ export default function WalletButton() {
           <p className="mt-1 opacity-90">{error}</p>
         </div>
       )}
+      <WalletSelectionModal
+        isOpen={isSelectionOpen}
+        walletConnectConfigured={isWalletConnectConfigured()}
+        onClose={() => setIsSelectionOpen(false)}
+        onSelect={(provider) => {
+          setIsSelectionOpen(false);
+          void connectProvider(provider);
+        }}
+      />
     </div>
   );
 }
