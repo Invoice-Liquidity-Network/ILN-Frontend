@@ -7,7 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getAllInvoices, Invoice, getPayerScoresBatch, PayerScoreResult, fundInvoice, submitSignedTransaction } from "@/utils/soroban";
-import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
+import { formatAddress, formatDate, formatTokenAmount, calculateYield, tokenAmountToNumber } from "@/utils/format";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { usePayerScores } from "@/hooks/usePayerScores";
 import RiskBadge from "@/components/RiskBadge";
@@ -64,7 +64,7 @@ export default function CompareInvoicesScreen() {
 
       return {
         id: inv.id.toString(),
-        amount: Number(inv.amount) / Math.pow(10, token?.decimals ?? 7),
+        amount: tokenAmountToNumber(inv.amount, token ?? undefined),
         amountRaw: inv.amount,
         yield: Number(estYield) / Math.pow(10, token?.decimals ?? 7),
         yieldRaw: estYield,
