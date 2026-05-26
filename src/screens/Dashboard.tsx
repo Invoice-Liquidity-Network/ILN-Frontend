@@ -10,7 +10,7 @@ import InvoiceTimeline from "@/components/InvoiceTimeline";
 import { CONTRACT_ID, NETWORK_NAME } from "@/constants";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
+import { formatAddress, formatDate, formatUSDC, tokenAmountToNumber } from "@/utils/format";
 import { type Invoice } from "@/utils/soroban";
 import { useInvoices } from "@/hooks/useInvoices";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                                     query: {
                                       prefill_id: invoice.id.toString(),
                                       payer: invoice.payer,
-                                      amount: (Number(invoice.amount) / 10_000_000).toString(),
+                                      amount: tokenAmountToNumber(invoice.amount).toString(),
                                       discount: (invoice.discount_rate / 100).toString(),
                                       token: invoice.token || "",
                                     }

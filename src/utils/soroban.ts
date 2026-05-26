@@ -63,7 +63,7 @@ export interface PayerScoreResult {
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 const KNOWN_TOKEN_METADATA: Record<string, Omit<TokenMetadata, "contractId">> = {
-  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 7 },
+  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 6 },
   [TESTNET_EURC_TOKEN_ID]: { name: "Euro Coin", symbol: "EURC", decimals: 7 },
 };
 
@@ -483,7 +483,7 @@ export async function claimDefault(funder: string, invoice_id: bigint) {
 export interface SubmitInvoiceArgs {
   freelancer: string;
   payer: string;
-  /** Amount in stroops (1 USDC = 10_000_000) */
+  /** Amount in token base units (1 USDC = 1_000_000) */
   amount: bigint;
   /** Unix timestamp (seconds) */
   dueDate: number;

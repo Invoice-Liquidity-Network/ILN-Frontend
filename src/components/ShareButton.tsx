@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Invoice } from "@/utils/soroban";
-import { formatAddress } from "@/utils/format";
+import { formatAddress, tokenAmountToNumber } from "@/utils/format";
 
 const TWEET_MAX_CHARS = 280;
 
@@ -13,7 +13,7 @@ interface ShareButtonProps {
 }
 
 function buildFreelancerTweet(invoice: Invoice, shareUrl: string): string {
-  const amount = (Number(invoice.amount) / 10_000_000).toFixed(2);
+  const amount = tokenAmountToNumber(invoice.amount).toFixed(2);
   return (
     `Just got paid on-chain via @ILNProtocol on @stellar ` +
     `Invoice #${invoice.id.toString()} — ${amount} USDC settled in seconds. ` +
@@ -25,7 +25,7 @@ function buildLPTweet(invoice: Invoice, shareUrl: string): string {
   const yieldAmount = (
     (Number(invoice.amount) * invoice.discount_rate) /
     10_000 /
-    10_000_000
+    1_000_000
   ).toFixed(2);
   const rate = (invoice.discount_rate / 100).toFixed(2);
   const now = Math.floor(Date.now() / 1000);
