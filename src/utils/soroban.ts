@@ -60,6 +60,19 @@ export interface PayerScoreResult {
   defaults: number;
 }
 
+export interface ReputationScore {
+  score: number;
+  invoices_submitted: number;
+  invoices_paid: number;
+  invoices_defaulted: number;
+}
+
+export interface ReputationEvent {
+  type: "submitted" | "paid" | "defaulted" | "score_updated";
+  timestamp: number;
+  score?: number;
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 const KNOWN_TOKEN_METADATA: Record<string, Omit<TokenMetadata, "contractId">> = {
@@ -290,6 +303,57 @@ export async function getPayerScore(payerAddress: string): Promise<PayerScoreRes
   }
 }
 
+export async function getReputation(address: string): Promise<ReputationScore | null> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return null;
+    const native = scValToNative(callResult.result.retval);
+    if (native === null || native === undefined) return null;
+
+    return {
+      score: Number(native.score ?? native.reputation_score ?? 0),
+      invoices_submitted: Number(native.invoices_submitted ?? native.submitted ?? 0),
+      invoices_paid: Number(native.invoices_paid ?? native.paid ?? native.settled_on_time ?? 0),
+      invoices_defaulted: Number(native.invoices_defaulted ?? native.defaulted ?? native.defaults ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getReputationEvents(address: string): Promise<ReputationEvent[]> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation_events", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return [];
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) return [];
+
+    return native
+      .map((event) => ({
+        type: String(event.type ?? event.event ?? "score_updated") as ReputationEvent["type"],
+        timestamp: Number(event.timestamp ?? event.ledger_time ?? 0),
+        score: event.score === undefined ? undefined : Number(event.score),
+      }))
+      .filter((event) => Number.isFinite(event.timestamp) && event.timestamp > 0);
+  } catch {
+    return [];
+  }
+}
+
+export interface TopPayer {
+  address: string;
+  score: number;
+  invoices_paid: number;
+  invoices_defaulted: number;
+  total_volume: bigint;
+}
+
 export async function getPayerScoresBatch(
   addresses: string[]
 ): Promise<Map<string, PayerScoreResult | null>> {
@@ -301,6 +365,35 @@ export async function getPayerScoresBatch(
     map.set(addr, result.status === "fulfilled" ? result.value : null);
   });
   return map;
+}
+
+export async function getTopPayers(limit = 50): Promise<TopPayer[]> {
+  try {
+    const params = [nativeToScVal(limit, { type: "u32" })];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_top_payers", params)
+    );
+
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return [];
+    }
+
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) {
+      return [];
+    }
+
+    return native.map((entry) => ({
+      address: String(entry.address ?? entry.payer ?? entry.account ?? ""),
+      score: Number(entry.score ?? 0),
+      invoices_paid: Number(entry.invoices_paid ?? entry.paid ?? 0),
+      invoices_defaulted: Number(entry.invoices_defaulted ?? entry.defaults ?? 0),
+      total_volume: BigInt(entry.total_volume ?? entry.volume_paid ?? 0),
+    }));
+  } catch (error) {
+    console.error("Failed to fetch top payers", error);
+    return [];
+  }
 }
 
 // ─── Write: fund invoice ──────────────────────────────────────────────────────
@@ -354,6 +447,42 @@ export async function markPaid(payer: string, invoice_id: bigint) {
           new xdr.InvokeContractArgs({
             contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
             functionName: "mark_paid",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
+export async function appealDefault(
+  payer: string,
+  invoice_id: bigint,
+  evidence_hash: string
+) {
+  const params: xdr.ScVal[] = [
+    nativeToScVal(invoice_id, { type: "u64" }),
+    nativeToScVal(evidence_hash),
+  ];
+  const account = await server.getAccount(payer);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "appeal_default",
             args: params,
           })
         ),

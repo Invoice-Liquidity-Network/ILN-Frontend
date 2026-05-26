@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
@@ -147,8 +148,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
 
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Freelancer</span>
-                <WalletAddress address={invoice.freelancer} className="text-sm text-on-surface" />
+                <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-mono text-primary hover:underline">
+                  <WalletAddress address={invoice.freelancer} showCopy={false} />
+                </Link>
               </div>
+
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                <span className="text-sm text-on-surface-variant font-medium">Payer</span>
+                <Link href={`/profile/${invoice.payer}`} className="text-sm font-mono text-primary hover:underline">
+                  <WalletAddress address={invoice.payer} showCopy={false} />
+                </Link>
+              </div>
+
+              {invoice.funder && (
+                <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                  <span className="text-sm text-on-surface-variant font-medium">Liquidity Provider</span>
+                  <Link href={`/profile/${invoice.funder}`} className="text-sm font-mono text-primary hover:underline">
+                    <WalletAddress address={invoice.funder} showCopy={false} />
+                  </Link>
+                </div>
+              )}
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-on-surface-variant font-medium">Your Role</span>
