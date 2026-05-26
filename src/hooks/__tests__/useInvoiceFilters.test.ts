@@ -7,7 +7,7 @@ function invoice(overrides: Partial<Invoice>): Invoice {
     id: 1n,
     freelancer: "GFREELANCER1111111111111111111111111111111111111111",
     payer: "GPAYER11111111111111111111111111111111111111111111",
-    amount: 100_0000000n,
+    amount: 100_000000n,
     due_date: 1_767_225_600n,
     discount_rate: 300,
     status: "Pending",
@@ -38,9 +38,9 @@ describe("applyInvoiceFilters", () => {
 
   it("filters by amount range, status, due date, and discount bps", () => {
     const invoices = [
-      invoice({ id: 1n, amount: 50_0000000n, status: "Pending", due_date: unixDate(2026, 1, 15), discount_rate: 200 }),
-      invoice({ id: 2n, amount: 150_0000000n, status: "Paid", due_date: unixDate(2026, 2, 15), discount_rate: 500 }),
-      invoice({ id: 3n, amount: 250_0000000n, status: "Defaulted", due_date: unixDate(2026, 3, 1), discount_rate: 800 }),
+      invoice({ id: 1n, amount: 50_000000n, status: "Pending", due_date: unixDate(2026, 1, 15), discount_rate: 200 }),
+      invoice({ id: 2n, amount: 150_000000n, status: "Paid", due_date: unixDate(2026, 2, 15), discount_rate: 500 }),
+      invoice({ id: 3n, amount: 250_000000n, status: "Defaulted", due_date: unixDate(2026, 3, 1), discount_rate: 800 }),
     ];
 
     const result = applyInvoiceFilters(

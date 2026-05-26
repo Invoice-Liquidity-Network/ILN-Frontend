@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Invoice } from "@/utils/soroban";
+import { tokenAmountToNumber } from "@/utils/format";
 
 export const INVOICE_STATUSES = ["Pending", "Funded", "Paid", "Disputed", "Defaulted", "Expired", "Appealed", "Cancelled"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
@@ -142,7 +143,7 @@ export function applyInvoiceFilters(
       return false;
     }
 
-    const amountUsdc = Number(invoice.amount) / 10_000_000;
+    const amountUsdc = tokenAmountToNumber(invoice.amount);
     if (minAmount !== null && amountUsdc < minAmount) return false;
     if (maxAmount !== null && amountUsdc > maxAmount) return false;
 
