@@ -12,8 +12,10 @@ import {
 } from "@/utils/soroban";
 import { resolveFederatedAddress } from "@/utils/federation";
 import { formatDate } from "@/utils/format";
+import { isOracleVerifiedAddress } from "@/utils/oracleVerification";
 import ProfileActivityChart from "@/components/ProfileActivityChart";
 import ProfileRecentInvoices from "@/components/ProfileRecentInvoices";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface ScoreHistoryPoint {
   period: string;
@@ -151,7 +153,10 @@ export default function ProfilePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
                 Public reputation profile
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-on-surface">{resolvedAddress}</h1>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-semibold text-on-surface">{resolvedAddress}</h1>
+                <VerificationBadge verified={isOracleVerifiedAddress(address)} />
+              </div>
               <p className="mt-2 break-all font-mono text-sm text-on-surface-variant">{address}</p>
               <p className="mt-2 text-sm text-on-surface-variant">
                 {resolvedAddress !== address

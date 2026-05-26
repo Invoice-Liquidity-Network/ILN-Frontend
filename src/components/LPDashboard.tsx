@@ -32,9 +32,11 @@ import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import type { DataTableColumn } from "./DataTable";
+import PayerIdentity from "./PayerIdentity";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist";
+type DisplayInvoice = Invoice & { watchAddedAt?: number };
 
 
 
@@ -76,8 +78,9 @@ export default function LPDashboard() {
       } else {
         addToast({ type: "success", title: "Removed from Watchlist" });
       }
-    } catch (error: any) {
-      addToast({ type: "error", title: "Watchlist Error", message: error.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update watchlist.";
+      addToast({ type: "error", title: "Watchlist Error", message });
     }
   };
 
@@ -114,7 +117,7 @@ export default function LPDashboard() {
 
   useEffect(() => {
     if (!selectedInvoice || !address) return;
-    void refreshAllowance(selectedInvoice, address);
+    void Promise.resolve().then(() => refreshAllowance(selectedInvoice, address));
   }, [address, refreshAllowance, selectedInvoice]);
 
   const toggleInvoiceSelection = (id: string) => {
@@ -180,7 +183,7 @@ export default function LPDashboard() {
   );
 
 
-  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a: any, b: any) => {
+  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a, b) => {
     if (sortKey === "risk") {
       const ra = RISK_SORT_ORDER[payerRisks.get(a.payer) ?? "Unknown"];
       const rb = RISK_SORT_ORDER[payerRisks.get(b.payer) ?? "Unknown"];
@@ -195,6 +198,9 @@ export default function LPDashboard() {
     }
     const aVal = a[sortKey];
     const bVal = b[sortKey];
+    if (aVal == null && bVal == null) return 0;
+    if (aVal == null) return sortOrder === "asc" ? -1 : 1;
+    if (bVal == null) return sortOrder === "asc" ? 1 : -1;
     if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
     if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
     return 0;
@@ -219,7 +225,7 @@ export default function LPDashboard() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: any, index: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: DisplayInvoice, index: number) => {
     const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
 
     switch (e.key) {
@@ -245,7 +251,7 @@ export default function LPDashboard() {
     }
   };
 
-  const commonColumns: DataTableColumn<any>[] = [
+  const commonColumns: DataTableColumn<DisplayInvoice>[] = [
     {
       id: "id",
       label: "ID",
@@ -262,10 +268,8 @@ export default function LPDashboard() {
           <Link href={`/profile/${inv.freelancer}`} className="text-sm font-medium text-primary hover:underline">
             {formatAddress(inv.freelancer)}
           </Link>
-          <span className="text-[10px] text-on-surface-variant">
-            Payer: <Link href={`/profile/${inv.payer}`} className="font-mono text-on-surface hover:underline">
-              {formatAddress(inv.payer)}
-            </Link>
+          <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant">
+            Payer: <PayerIdentity address={inv.payer} />
           </span>
         </div>
       ),
@@ -311,7 +315,7 @@ export default function LPDashboard() {
     },
   ];
 
-  const discoveryColumns: DataTableColumn<any>[] = [
+  const discoveryColumns: DataTableColumn<DisplayInvoice>[] = [
     ...commonColumns,
     {
       id: "risk",
@@ -355,7 +359,7 @@ export default function LPDashboard() {
     },
   ];
 
-  const watchlistColumns: DataTableColumn<any>[] = [
+  const watchlistColumns: DataTableColumn<DisplayInvoice>[] = [
     ...commonColumns,
     {
       id: "watchAddedAt",
@@ -363,7 +367,7 @@ export default function LPDashboard() {
       sortable: true,
       renderCell: (inv) => (
         <span className="text-xs text-on-surface-variant">
-          {new Date(inv.watchAddedAt).toLocaleDateString()}
+          {new Date(inv.watchAddedAt ?? 0).toLocaleDateString()}
         </span>
       ),
     },
@@ -562,7 +566,7 @@ export default function LPDashboard() {
                   </td>
                 </tr>
               ) : (
-                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => (
+                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: DisplayInvoice, index: number) => (
                   <tr key={invoice.id.toString()} className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''}`}>
                     <td className="px-6 py-5">
                       <input
@@ -578,11 +582,9 @@ export default function LPDashboard() {
                         <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-medium text-primary hover:underline">
                           {formatAddress(invoice.freelancer)}
                         </Link>
-                        <span className="text-[10px] text-on-surface-variant">
+                        <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant">
                           {t("lpDashboard.tableHeaders.payer")}:{" "}
-                          <Link href={`/profile/${invoice.payer}`} className="font-mono text-on-surface hover:underline">
-                            {formatAddress(invoice.payer)}
-                          </Link>
+                          <PayerIdentity address={invoice.payer} />
                         </span>
                       </div>
                     </td>
@@ -600,7 +602,7 @@ export default function LPDashboard() {
                     </td>
                     {activeTab === "watchlist" && (
                       <td className="px-6 py-5 text-xs text-on-surface-variant">
-                        {new Date(invoice.watchAddedAt).toLocaleDateString()}
+                        {new Date(invoice.watchAddedAt ?? 0).toLocaleDateString()}
                       </td>
                     )}
                     {activeTab === "discovery" && (
