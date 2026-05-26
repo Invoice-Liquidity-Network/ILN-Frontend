@@ -31,6 +31,7 @@ import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import type { DataTableColumn } from "./DataTable";
+import AuctionRateTicker from "./AuctionRateTicker";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist";
@@ -276,9 +277,7 @@ export default function LPDashboard() {
       label: "Discount",
       sortable: true,
       renderCell: (inv) => (
-        <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
-          {(inv.discount_rate / 100).toFixed(2)}%
-        </span>
+        <AuctionRateTicker invoice={inv} />
       ),
     },
     {
@@ -576,9 +575,7 @@ export default function LPDashboard() {
                       <TokenAwareAmount amount={invoice.amount} invoice={invoice} tokenMap={tokenMap} defaultToken={defaultToken} />
                     </td>
                     <td className="px-6 py-5">
-                      <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
-                        {(invoice.discount_rate / 100).toFixed(2)}%
-                      </span>
+                      <AuctionRateTicker invoice={invoice} />
                     </td>
                     <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
                     <td className="px-6 py-5 font-bold text-green-600">

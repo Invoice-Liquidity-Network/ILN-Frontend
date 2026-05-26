@@ -40,6 +40,14 @@ export interface Invoice {
   funder?: string;
   funded_at?: bigint;
   token?: string;
+  auction_mode?: boolean;
+  auctionMode?: boolean;
+  rate_mode?: string;
+  mode?: string;
+  start_rate?: number;
+  min_rate?: number;
+  auction_started_at?: bigint;
+  auction_ends_at?: bigint;
 }
 
 export interface SubmittedInvoiceResult {
@@ -162,6 +170,14 @@ export async function getInvoice(id: bigint): Promise<Invoice> {
       funder: native.funder,
       funded_at: native.funded_at,
       token: native.token,
+      auction_mode: native.auction_mode,
+      auctionMode: native.auctionMode,
+      rate_mode: native.rate_mode,
+      mode: native.mode,
+      start_rate: native.start_rate,
+      min_rate: native.min_rate,
+      auction_started_at: native.auction_started_at,
+      auction_ends_at: native.auction_ends_at,
     };
   }
   throw new Error(`Failed to get invoice ${id}`);
