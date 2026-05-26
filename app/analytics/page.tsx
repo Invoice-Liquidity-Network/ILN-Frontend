@@ -18,12 +18,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import type { Metadata } from "next";
 import { NETWORK_NAME } from "@/constants";
-import { getAllInvoices, Invoice } from "@/utils/soroban";
+import { getAllInvoices, getContractStats, Invoice, type ProtocolContractStats } from "@/utils/soroban";
 import AmountHistogram from "@/components/charts/AmountHistogram";
 import FundingChart from "@/components/charts/FundingChart";
 import DefaultRateChart from "@/components/charts/DefaultRateChart";
+import PerTokenVolumeChart from "@/components/charts/PerTokenVolumeChart";
 import { ExportButton } from "@/components/ExportButton";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -82,6 +82,8 @@ export interface AnalyticsPayload {
   daily: DailyBucket[];
   /** Full list of invoices for distribution analysis */
   invoices: Invoice[];
+  /** Raw get_contract_stats() result for contract-native protocol metrics */
+  contractStats: ProtocolContractStats | null;
   /** ISO-8601 timestamp of when this data was last indexed */
   indexed_at: string;
 }
@@ -122,6 +124,7 @@ function generateMockPayload(): AnalyticsPayload {
     },
     daily,
     invoices: [], // Real invoices will be fetched in the hook
+    contractStats: null,
     indexed_at: new Date().toISOString(),
   };
 }
@@ -167,11 +170,13 @@ function useAnalyticsPolling(): UseAnalyticsReturn {
 
   const fetch_ = useCallback(async () => {
     try {
-      const [payload, invoices] = await Promise.all([
+      const [payload, invoices, contractStats] = await Promise.all([
         fetchAnalytics(),
         getAllInvoices(),
+        getContractStats(),
       ]);
       payload.invoices = invoices;
+      payload.contractStats = contractStats;
       setData(payload);
       setLoadState("success");
       setLastUpdated(new Date());
@@ -187,7 +192,7 @@ function useAnalyticsPolling(): UseAnalyticsReturn {
 
   // Initial fetch
   useEffect(() => {
-    fetch_();
+    void Promise.resolve().then(fetch_);
   }, [fetch_]);
 
   // Polling every 5 minutes
@@ -375,7 +380,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { summary, daily, indexed_at } = data!;
+  const { summary, indexed_at } = data!;
 
   const defaultRate = formatPercent(
     summary.total_defaulted,
@@ -523,6 +528,21 @@ export default function AnalyticsPage() {
                 sub={`${summary.total_defaulted} defaulted / ${summary.total_invoices_funded} funded`}
               />
             </div>
+          </section>
+
+          {/* ── Per-token protocol volume ────────────────────────────────── */}
+          <section
+            aria-labelledby="token-volume-heading"
+            className="mt-14"
+          >
+            <SectionHeading>
+              <span id="token-volume-heading">Token Volume</span>
+            </SectionHeading>
+
+            <PerTokenVolumeChart
+              stats={data?.contractStats}
+              invoices={data?.invoices || []}
+            />
           </section>
 
           {/* ── Time-series charts ────────────────────────────────────────── */}
