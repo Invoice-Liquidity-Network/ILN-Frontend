@@ -6,7 +6,7 @@ export async function hashEvidence(text: string): Promise<string> {
 
   if (typeof crypto !== "undefined" && crypto.subtle) {
     const encoded = new TextEncoder().encode(normalized);
-    const digest = await crypto.subtle.digest("SHA-256", encoded);
+    const digest = await crypto.subtle.digest("SHA-256", encoded.slice().buffer);
     return Array.from(new Uint8Array(digest))
       .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
