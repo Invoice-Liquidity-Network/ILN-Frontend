@@ -40,6 +40,18 @@ export function formatUSDC(amount: bigint): string {
   return formatTokenAmount(amount, { symbol: "USDC", decimals: 7 });
 }
 
+export function formatUSD(amount: bigint, decimals = 7): string {
+  const negative = amount < 0n;
+  const absolute = negative ? amount * -1n : amount;
+  const divisor = 10n ** BigInt(decimals);
+  const whole = absolute / divisor;
+  const fraction = absolute % divisor;
+  const cents = Number((fraction * 100n + divisor / 2n) / divisor);
+  const formattedWhole = new Intl.NumberFormat("en-US").format(Number(whole));
+
+  return `${negative ? "-" : ""}$${formattedWhole}.${cents.toString().padStart(2, "0")}`;
+}
+
 export function formatAddress(address: string): string {
   if (!address) return "";
   return address.substring(0, 6) + "..." + address.substring(address.length - 4);

@@ -7,13 +7,20 @@ import type { ApprovedToken } from "@/hooks/useApprovedTokens";
 import { useWallet } from "@/context/WalletContext";
 import { TokenIcon } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
-import { NETWORK_NAME, TESTNET_EURC_TOKEN_ID, TESTNET_USDC_TOKEN_ID } from "@/constants";
+import {
+  NETWORK_NAME,
+  TESTNET_EURC_TOKEN_ID,
+  TESTNET_USDC_TOKEN_ID,
+  TESTNET_XLM_TOKEN_ID,
+} from "@/constants";
 
 const FALLBACK_BALANCE_TOKENS: ApprovedToken[] = [
   {
     contractId: TESTNET_USDC_TOKEN_ID,
     decimals: 7,
     iconLabel: "US",
+    isAllowed: true,
+    logo: "/tokens/usdc.svg",
     name: "USD Coin",
     symbol: "USDC",
   },
@@ -21,13 +28,17 @@ const FALLBACK_BALANCE_TOKENS: ApprovedToken[] = [
     contractId: TESTNET_EURC_TOKEN_ID,
     decimals: 7,
     iconLabel: "EU",
+    isAllowed: true,
+    logo: "/tokens/eurc.svg",
     name: "Euro Coin",
     symbol: "EURC",
   },
   {
-    contractId: "native",
+    contractId: TESTNET_XLM_TOKEN_ID,
     decimals: 7,
     iconLabel: "XL",
+    isAllowed: true,
+    logo: "/tokens/xlm.svg",
     name: "Stellar Lumens",
     symbol: "XLM",
   },

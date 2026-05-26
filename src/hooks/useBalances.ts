@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HORIZON_URL } from "@/constants";
+import { useWallet } from "@/context/WalletContext";
 import type { ApprovedToken } from "@/hooks/useApprovedTokens";
+import { getTokenBalance } from "@/utils/soroban";
 import { WALLET_BALANCES_REFRESH_EVENT } from "@/utils/balanceRefresh";
 
 const BALANCE_REFRESH_INTERVAL_MS = 30_000;
+
+export type TokenBalanceMap = Map<string, bigint>;
 
 export interface WalletBalance {
   contractId: string;
@@ -23,22 +27,55 @@ interface HorizonAccountResponse {
   }>;
 }
 
-export function useBalances({
-  address,
-  enabled,
-  tokens,
-}: {
+interface WalletBalanceArgs {
   address: string | null;
   enabled: boolean;
   tokens: ApprovedToken[];
-}) {
-  const [amounts, setAmounts] = useState<Map<string, bigint>>(new Map());
+}
+
+export function useBalances(tokens: ApprovedToken[], enabled?: boolean): {
+  balances: TokenBalanceMap;
+  isLoading: boolean;
+};
+export function useBalances(args: WalletBalanceArgs): {
+  balances: WalletBalance[];
+  isLoading: boolean;
+  refresh: () => void;
+};
+export function useBalances(
+  input: ApprovedToken[] | WalletBalanceArgs,
+  enabled = true,
+):
+  | { balances: TokenBalanceMap; isLoading: boolean }
+  | { balances: WalletBalance[]; isLoading: boolean; refresh: () => void } {
+  let wallet: ReturnType<typeof useWallet> | null = null;
+  try {
+    // The object overload can be used outside WalletProvider; the array overload uses wallet state when available.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    wallet = useWallet();
+  } catch {
+    wallet = null;
+  }
+  const isWalletMode = !Array.isArray(input);
+  const tokens = isWalletMode ? input.tokens : input;
+  const effectiveAddress = isWalletMode ? input.address : wallet?.address ?? null;
+  const effectiveEnabled = isWalletMode
+    ? input.enabled
+    : enabled && Boolean(wallet?.isConnected) && !wallet?.networkMismatch;
+
+  const [contractBalances, setContractBalances] = useState<TokenBalanceMap>(new Map());
+  const [walletAmounts, setWalletAmounts] = useState<Map<string, bigint>>(new Map());
   const [missingTrustlines, setMissingTrustlines] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
+  const balanceTokenIds = useMemo(
+    () => tokens.filter((token) => token.isAllowed).map((token) => token.contractId),
+    [tokens],
+  );
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!isWalletMode || !effectiveEnabled) return;
 
     const intervalId = window.setInterval(() => {
       setRefreshNonce((current) => current + 1);
@@ -51,14 +88,15 @@ export function useBalances({
       window.clearInterval(intervalId);
       window.removeEventListener(WALLET_BALANCES_REFRESH_EVENT, handleRefresh);
     };
-  }, [enabled]);
+  }, [effectiveEnabled, isWalletMode]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadBalances() {
-      if (!address || !enabled || tokens.length === 0) {
-        setAmounts(new Map());
+      if (!effectiveEnabled || !effectiveAddress || tokens.length === 0) {
+        setContractBalances(new Map());
+        setWalletAmounts(new Map());
         setMissingTrustlines(new Set());
         setIsLoading(false);
         return;
@@ -66,39 +104,68 @@ export function useBalances({
 
       setIsLoading(true);
 
-      const { nextAmounts, nextMissingTrustlines } = await getHorizonBalances(address, tokens);
+      if (isWalletMode) {
+        const { nextAmounts, nextMissingTrustlines } = await getHorizonBalances(effectiveAddress, tokens);
 
-      if (!cancelled) {
-        setAmounts(nextAmounts);
-        setMissingTrustlines(nextMissingTrustlines);
-        setIsLoading(false);
+        if (!cancelled) {
+          setWalletAmounts(nextAmounts);
+          setMissingTrustlines(nextMissingTrustlines);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const results = await Promise.allSettled(
+          balanceTokenIds.map(async (contractId) => ({
+            contractId,
+            amount: await getTokenBalance(effectiveAddress, contractId),
+          })),
+        );
+
+        if (cancelled) return;
+        const next = new Map<string, bigint>();
+        results.forEach((result) => {
+          if (result.status === "fulfilled") {
+            next.set(result.value.contractId, result.value.amount);
+          }
+        });
+        setContractBalances(next);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
-    loadBalances();
+    void loadBalances();
 
     return () => {
       cancelled = true;
     };
-  }, [address, enabled, refreshNonce, tokens]);
+  }, [balanceTokenIds, effectiveAddress, effectiveEnabled, isWalletMode, refreshNonce, tokens]);
 
-  const balances = useMemo<WalletBalance[]>(
+  const walletBalances = useMemo<WalletBalance[]>(
     () =>
       tokens.map((token) => ({
-        amount: amounts.get(token.contractId) ?? 0n,
+        amount: walletAmounts.get(token.contractId) ?? 0n,
         contractId: token.contractId,
         hasTrustline: !missingTrustlines.has(token.contractId),
         isLoading,
         token,
       })),
-    [amounts, isLoading, missingTrustlines, tokens],
+    [isLoading, missingTrustlines, tokens, walletAmounts],
   );
 
-  return {
-    balances,
-    isLoading,
-    refresh: () => setRefreshNonce((current) => current + 1),
-  };
+  if (isWalletMode) {
+    return {
+      balances: walletBalances,
+      isLoading,
+      refresh: () => setRefreshNonce((current) => current + 1),
+    };
+  }
+
+  return { balances: contractBalances, isLoading };
 }
 
 export function isNativeToken(token: Pick<ApprovedToken, "contractId" | "symbol">) {
