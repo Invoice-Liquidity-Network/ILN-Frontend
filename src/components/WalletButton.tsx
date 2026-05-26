@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { useWallet } from "@/context/WalletContext";
 import { TokenAmount } from "./TokenSelector";
-import { formatAddress, formatTokenAmount } from "@/utils/format";
+import { formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
 import { getTokenBalance } from "@/utils/soroban";
+import WalletAddress from "./WalletAddress";
 
 interface WalletBalance {
   contractId: string;
@@ -91,7 +92,7 @@ export default function WalletButton() {
               ) : null}
             </div>
           ) : null}
-          <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
+          <WalletAddress address={address!} className="text-xs text-on-surface-variant" />
         </div>
         <button
           onClick={disconnect}

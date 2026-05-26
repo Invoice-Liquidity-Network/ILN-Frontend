@@ -5,8 +5,9 @@ import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/u
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import WalletAddress from "@/components/WalletAddress";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -35,7 +36,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePay = async () => {
@@ -59,12 +60,13 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       
       // Refresh invoice state
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred during payment.";
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message,
       });
     } finally {
       setIsPaying(false);
@@ -145,7 +147,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
 
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Freelancer</span>
-                <span className="text-sm font-mono text-on-surface">{invoice.freelancer.substring(0, 6)}...{invoice.freelancer.substring(invoice.freelancer.length - 6)}</span>
+                <WalletAddress address={invoice.freelancer} className="text-sm text-on-surface" />
               </div>
 
               <div className="flex justify-between items-center">

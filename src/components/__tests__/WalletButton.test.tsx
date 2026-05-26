@@ -31,6 +31,10 @@ vi.mock("@stellar/freighter-api", () => ({
   getNetwork:      vi.fn().mockResolvedValue({ network: "TESTNET" }),
 }));
 
+vi.mock("../../utils/federation", () => ({
+  resolveFederationAddress: vi.fn().mockResolvedValue(null),
+}));
+
 /** Mutable wallet state – reset before each test. */
 const walletState = {
   address: null as string | null,
@@ -120,9 +124,9 @@ describe("WalletButton", () => {
       walletState.networkMismatch = false;
     });
 
-    it("renders the truncated wallet address", () => {
+    it("renders the truncated wallet address", async () => {
       render(<WalletButton />);
-      expect(screen.getByText(SHORT_ADDRESS)).toBeInTheDocument();
+      expect(await screen.findByText(SHORT_ADDRESS)).toBeInTheDocument();
     });
 
     it("renders the network name 'TESTNET'", () => {

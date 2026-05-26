@@ -31,6 +31,7 @@ import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import type { DataTableColumn } from "./DataTable";
+import WalletAddress from "./WalletAddress";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist";
@@ -258,8 +259,10 @@ export default function LPDashboard() {
       sortable: false,
       renderCell: (inv: Invoice) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium">{formatAddress(inv.freelancer)}</span>
-          <span className="text-[10px] text-on-surface-variant">Payer: {formatAddress(inv.payer)}</span>
+          <WalletAddress address={inv.freelancer} className="text-sm font-medium" />
+          <span className="text-[10px] text-on-surface-variant">
+            Payer: <WalletAddress address={inv.payer} showCopy={false} />
+          </span>
         </div>
       ),
     },
@@ -568,8 +571,10 @@ export default function LPDashboard() {
                     <td className="px-6 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{formatAddress(invoice.freelancer)}</span>
-                        <span className="text-[10px] text-on-surface-variant">{t("lpDashboard.tableHeaders.payer")}: {formatAddress(invoice.payer)}</span>
+                        <WalletAddress address={invoice.freelancer} className="text-sm font-medium" />
+                        <span className="text-[10px] text-on-surface-variant">
+                          {t("lpDashboard.tableHeaders.payer")}: <WalletAddress address={invoice.payer} showCopy={false} />
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-5 font-bold">
