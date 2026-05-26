@@ -27,6 +27,7 @@ export default function InvoiceFilterBar({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const containerClass = className ? `space-y-3 ${className}` : "space-y-3";
+  const selectedTokens = new Set(filters.token.split(",").filter(Boolean));
 
   return (
     <div className={containerClass}>
@@ -149,18 +150,28 @@ export default function InvoiceFilterBar({
 
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
-              <select
-                value={filters.token}
-                onChange={(event) => onFiltersChange((current) => ({ ...current, token: event.target.value }))}
-                className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
-              >
-                <option value="">All</option>
+              <div className="grid grid-cols-3 gap-2">
                 {TOKEN_OPTIONS.map((token) => (
-                  <option key={token} value={token}>
-                    {token}
-                  </option>
+                  <label key={token} className="inline-flex items-center gap-2 text-xs text-on-surface">
+                    <input
+                      type="checkbox"
+                      checked={selectedTokens.has(token)}
+                      onChange={(event) =>
+                        onFiltersChange((current) => {
+                          const tokens = new Set(current.token.split(",").filter(Boolean));
+                          if (event.target.checked) {
+                            tokens.add(token);
+                          } else {
+                            tokens.delete(token);
+                          }
+                          return { ...current, token: Array.from(tokens).join(",") };
+                        })
+                      }
+                    />
+                    <span>{token}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Invoice } from "@/utils/soroban";
 
-export const INVOICE_STATUSES = ["Pending", "Funded", "Paid", "Defaulted", "Cancelled"] as const;
+export const INVOICE_STATUSES = ["Pending", "Funded", "Paid", "Disputed", "Defaulted", "Expired", "Appealed", "Cancelled"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
 export type InvoiceFilters = {
@@ -121,7 +121,12 @@ export function applyInvoiceFilters(
   const statuses = new Set(filters.statuses);
   const start = filters.startDate ? new Date(`${filters.startDate}T00:00:00.000Z`) : null;
   const end = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : null;
-  const selectedToken = filters.token.trim().toUpperCase();
+  const selectedTokens = new Set(
+    filters.token
+      .split(",")
+      .map((token) => token.trim().toUpperCase())
+      .filter(Boolean),
+  );
 
   return invoices.filter((invoice) => {
     if (search) {
@@ -145,9 +150,9 @@ export function applyInvoiceFilters(
     if (start && invoiceDate < start) return false;
     if (end && invoiceDate > end) return false;
 
-    if (selectedToken) {
+    if (selectedTokens.size > 0) {
       const tokenSymbol = options?.resolveTokenSymbol?.(invoice).toUpperCase() ?? "USDC";
-      if (tokenSymbol !== selectedToken) return false;
+      if (!selectedTokens.has(tokenSymbol)) return false;
     }
 
     if (minDiscount !== null && invoice.discount_rate < minDiscount) return false;
