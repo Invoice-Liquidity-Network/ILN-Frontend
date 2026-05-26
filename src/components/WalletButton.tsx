@@ -44,6 +44,12 @@ const FALLBACK_BALANCE_TOKENS: ApprovedToken[] = [
   },
 ];
 
+function formatWalletBalance(amount: bigint, token: ApprovedToken) {
+  return formatTokenAmount(amount, token)
+    .replace(/(\.\d*?[1-9])0+(\s+\S+)$/, "$1$2")
+    .replace(/\.0+(\s+\S+)$/, "$1");
+}
+
 export default function WalletButton() {
   const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
@@ -90,7 +96,7 @@ export default function WalletButton() {
                   ) : (
                     <span className="flex flex-col items-end">
                       <span className="text-xs font-bold text-on-surface">
-                        {formatTokenAmount(balance.amount, balance.token)}
+                        {formatWalletBalance(balance.amount, balance.token)}
                       </span>
                       {!balance.hasTrustline ? (
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
