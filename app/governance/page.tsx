@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
     Proposal,
@@ -249,6 +250,8 @@ export default function GovernancePage() {
               ))}
             </div>
           )}
+
+          <TokenAllowlistPanel />
         </div>
       </section>
 
