@@ -14,7 +14,7 @@ interface WalletBalance {
 }
 
 export default function WalletButton() {
-  const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, isReconnecting, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const [balances, setBalances] = useState<WalletBalance[]>([]);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
@@ -107,10 +107,13 @@ export default function WalletButton() {
     <div className="relative group">
       <button
         onClick={connect}
+        disabled={isReconnecting}
         className="bg-primary text-surface-container-lowest px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 duration-150 flex items-center gap-2"
       >
-        <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
-        Connect Wallet
+        <span className={`material-symbols-outlined text-sm ${isReconnecting ? "animate-spin" : ""}`}>
+          {isReconnecting ? "progress_activity" : "account_balance_wallet"}
+        </span>
+        {isReconnecting ? "Reconnecting..." : "Connect Wallet"}
       </button>
       {error && (
         <div className="absolute top-full right-0 mt-2 p-3 bg-error-container text-on-error-container text-xs rounded-lg shadow-xl border border-error/10 w-64 z-[60] animate-in slide-in-from-top-1 duration-200">

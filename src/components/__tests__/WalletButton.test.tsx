@@ -36,6 +36,7 @@ const walletState = {
   address: null as string | null,
   isConnected: false,
   isInstalled: true,
+  isReconnecting: false,
   error: null as string | null,
   networkMismatch: false,
   connect: vi.fn(),
@@ -59,6 +60,7 @@ describe("WalletButton", () => {
   beforeEach(() => {
     walletState.address = null;
     walletState.isConnected = false;
+    walletState.isReconnecting = false;
     walletState.error = null;
     walletState.networkMismatch = false;
     walletState.connect.mockReset();
@@ -108,6 +110,15 @@ describe("WalletButton", () => {
     it("does not render the error tooltip when there is no error", () => {
       render(<WalletButton />);
       expect(screen.queryByText("Connection Error")).not.toBeInTheDocument();
+    });
+
+    it("shows a disabled reconnecting indicator during silent reconnect", () => {
+      walletState.isReconnecting = true;
+      render(<WalletButton />);
+
+      const button = screen.getByRole("button", { name: /reconnecting/i });
+      expect(button).toBeDisabled();
+      expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
     });
   });
 
