@@ -7,6 +7,7 @@ import type { ApprovedToken } from "@/hooks/useApprovedTokens";
 import InvoiceTable, { ColumnDefinition } from "./InvoiceTable";
 
 import LPTokenMetricsCards from "./LPTokenMetricsCards";
+import LPPortfolioAllocationChart from "./LPPortfolioAllocationChart";
 import WeeklyYieldChart from "./WeeklyYieldChart";
 import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
 
@@ -141,6 +142,11 @@ export default function LPPortfolio({
           showUSDEquivalent={showUSDEquivalent}
           onToggleUSD={() => setShowUSDEquivalent(!showUSDEquivalent)}
         />
+      )}
+
+      {/* Portfolio Allocation Donut */}
+      {perTokenMetrics.length > 0 && (
+        <LPPortfolioAllocationChart metrics={perTokenMetrics} />
       )}
 
       {/* Weekly Yield Chart */}

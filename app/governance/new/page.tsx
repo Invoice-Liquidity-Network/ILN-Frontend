@@ -311,7 +311,7 @@ function TokenAddressField({
         </div>
       )}
       <p className="mt-1.5 text-xs text-on-surface-variant">
-        The token's contract address on Stellar testnet. Must be a valid Soroban token contract.
+        The token&apos;s contract address on Stellar testnet. Must be a valid Soroban token contract.
       </p>
     </InputWrapper>
   );
