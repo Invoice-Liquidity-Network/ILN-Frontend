@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import VoteProgressBar from "@/components/VoteProgressBar";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
@@ -57,6 +58,8 @@ function TypeBadge({ type }: { type: Proposal["type"] }) {
 function ProposalCard({ proposal }: { proposal: Proposal }) {
   const total = totalVotes(proposal);
   const remaining = timeRemaining(proposal);
+  const quorumBps = 1000;
+  const totalSupply = proposal.quorumRequired * (10_000 / quorumBps);
 
   return (
     <Link
@@ -85,6 +88,15 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         quorumRequired={proposal.quorumRequired}
         compact
       />
+
+      <div className="mt-3">
+        <QuorumProgressBar
+          totalVotes={total}
+          totalSupply={totalSupply}
+          quorumBps={quorumBps}
+          compact
+        />
+      </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-outline-variant/10">
         <span className="text-xs text-on-surface-variant">
@@ -172,7 +184,7 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
     // Refresh every 30 s for real-time vote counts
     const interval = setInterval(load, 30_000);
     return () => clearInterval(interval);

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import VoteProgressBar from "@/components/VoteProgressBar";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
@@ -159,6 +160,7 @@ export default function ProposalDetailPage() {
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const { signTx } = useWallet();
 
@@ -173,10 +175,18 @@ export default function ProposalDetailPage() {
   }, [proposalId, router]);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
     const interval = setInterval(load, 30_000);
     return () => clearInterval(interval);
   }, [load]);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => setCurrentTime(Math.floor(Date.now() / 1000)));
+    const interval = setInterval(() => {
+      setCurrentTime(Math.floor(Date.now() / 1000));
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -245,6 +255,7 @@ export default function ProposalDetailPage() {
   const remaining = proposal ? timeRemaining(proposal) : "";
   const total = proposal ? totalVotes(proposal) : 0;
   const quorum = proposal ? quorumReached(proposal) : false;
+  const quorumBps = 1000;
 
   // ─── Loading skeleton ───────────────────────────────────────────────────────
 
@@ -263,6 +274,8 @@ export default function ProposalDetailPage() {
   }
 
   if (!proposal) return null;
+
+  const totalSupply = proposal.quorumRequired * (10_000 / quorumBps);
 
   return (
     <main className="min-h-screen">
@@ -339,13 +352,13 @@ export default function ProposalDetailPage() {
                     {
                       label: "Voting opened",
                       ts: proposal.votingStartsAt,
-                      done: Date.now() / 1000 >= proposal.votingStartsAt,
+                      done: currentTime >= proposal.votingStartsAt,
                       icon: "how_to_vote",
                     },
                     {
                       label: "Voting closes",
                       ts: proposal.votingEndsAt,
-                      done: Date.now() / 1000 >= proposal.votingEndsAt,
+                      done: currentTime >= proposal.votingEndsAt,
                       icon: "lock_clock",
                     },
                     ...(proposal.executableAfter
@@ -353,7 +366,7 @@ export default function ProposalDetailPage() {
                           {
                             label: "Timelock expires — executable",
                             ts: proposal.executableAfter,
-                            done: Date.now() / 1000 >= proposal.executableAfter,
+                            done: currentTime >= proposal.executableAfter,
                             icon: "rocket_launch",
                           },
                         ]
@@ -405,6 +418,13 @@ export default function ProposalDetailPage() {
                   votesAbstain={proposal.votesAbstain}
                   quorumRequired={proposal.quorumRequired}
                 />
+                <div className="mt-5 border-t border-outline-variant/20 pt-4">
+                  <QuorumProgressBar
+                    totalVotes={total}
+                    totalSupply={totalSupply}
+                    quorumBps={quorumBps}
+                  />
+                </div>
               </div>
 
               {/* Time remaining */}
@@ -529,7 +549,7 @@ export default function ProposalDetailPage() {
                   {isConnected ? (
                     <button
                       onClick={handleExecute}
-                      disabled={isExecuting}
+                      disabled={isExecuting || !canExecute}
                       className="w-full py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all shadow-md disabled:opacity-50"
                     >
                       {isExecuting ? (
