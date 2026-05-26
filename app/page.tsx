@@ -11,6 +11,7 @@ import BuiltOnStellar from "@/components/BuiltOnStellar";
 import OpenSource from "@/components/OpenSource";
 import Footer from "@/components/Footer";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import RoleDashboardHighlights from "@/components/RoleDashboardHighlights";
 
 export default function Home() {
   useDocumentTitle({ pageTitle: "ILN Turn unpaid invoices into instant liquidity" });
@@ -19,6 +20,7 @@ export default function Home() {
     <main className="min-h-screen">
       <Navbar />
       <Hero />
+      <RoleDashboardHighlights />
       <Stats />
       <HowItWorks />
       <ForFreelancers />

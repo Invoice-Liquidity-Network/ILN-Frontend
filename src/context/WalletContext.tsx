@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
 import { useToast } from "./ToastContext";
+import { getAllInvoices } from "@/utils/soroban";
+import { deriveWalletRoles, type WalletRole, type WalletRoleSummary } from "@/utils/walletRoles";
 
 interface WalletContextType {
   address: string | null;
@@ -11,6 +13,9 @@ interface WalletContextType {
   isInstalled: boolean;
   error: string | null;
   networkMismatch: boolean;
+  roles: WalletRole[];
+  rolesLoading: boolean;
+  roleSummary: WalletRoleSummary;
   connect: () => Promise<void>;
   disconnect: () => void;
   signTx: (txXdr: string) => Promise<string>;
@@ -19,6 +24,12 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 const STORAGE_KEY = "iln_wallet_address";
+const EMPTY_ROLE_SUMMARY: WalletRoleSummary = {
+  roles: [],
+  submittedCount: 0,
+  payerCount: 0,
+  fundedCount: 0,
+};
 
 function extractConnectionState(result: unknown): boolean {
   if (typeof result === "boolean") {
@@ -63,6 +74,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isInstalled, setIsInstalled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [roleSummary, setRoleSummary] = useState<WalletRoleSummary>(EMPTY_ROLE_SUMMARY);
 
   const checkNetwork = useCallback(async () => {
     try {
@@ -102,8 +115,42 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [checkNetwork]);
 
   useEffect(() => {
-    checkConnection();
+    void Promise.resolve().then(checkConnection);
   }, [checkConnection]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!address) {
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        setRoleSummary(EMPTY_ROLE_SUMMARY);
+        setRolesLoading(false);
+      });
+      return;
+    }
+
+    void Promise.resolve().then(() => {
+      if (!cancelled) setRolesLoading(true);
+    });
+
+    void getAllInvoices()
+      .then((invoices) => {
+        if (cancelled) return;
+        setRoleSummary(deriveWalletRoles(address, invoices));
+      })
+      .catch((e) => {
+        console.error("Role detection failed", e);
+        if (!cancelled) setRoleSummary(EMPTY_ROLE_SUMMARY);
+      })
+      .finally(() => {
+        if (!cancelled) setRolesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -154,9 +201,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setError(msg);
         updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Connection error:", e);
-      const msg = e.message || "Connection failed";
+      const msg = e instanceof Error ? e.message : "Connection failed";
       setError(msg);
       updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
     }
@@ -166,6 +213,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAddress(null);
     setNetworkMismatch(false);
     setError(null);
+    setRoleSummary(EMPTY_ROLE_SUMMARY);
+    setRolesLoading(false);
     localStorage.removeItem(STORAGE_KEY);
     addToast({ type: "success", title: "Disconnected" });
   };
@@ -204,6 +253,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isInstalled,
         error,
         networkMismatch,
+        roles: roleSummary.roles,
+        rolesLoading,
+        roleSummary,
         connect, 
         disconnect, 
         signTx 
