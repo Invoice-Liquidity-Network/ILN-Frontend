@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SubmitInvoiceForm from "../SubmitInvoiceForm";
 
@@ -77,6 +77,43 @@ function connectWallet(address = VALID_STELLAR_FREELANCER) {
   walletState.isConnected = true;
 }
 
+function clickNext() {
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+}
+
+function fillInvoiceDetails({
+  payer = VALID_STELLAR_PAYER,
+  amount = "2000",
+  dueDate = "2099-06-15",
+} = {}) {
+  fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: payer } });
+  fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: amount } });
+  fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: dueDate } });
+}
+
+function goToTokenAndRate() {
+  clickNext();
+  expect(screen.getByRole("region", { name: "Token & Rate" })).toBeInTheDocument();
+}
+
+function goToReviewAndSubmit(discountRate = "3.5") {
+  fireEvent.change(screen.getByPlaceholderText("3.00"), { target: { value: discountRate } });
+  clickNext();
+  expect(screen.getByRole("region", { name: "Review & Submit" })).toBeInTheDocument();
+}
+
+function completeStepperAndSubmit({
+  payer = VALID_STELLAR_PAYER,
+  amount = "2000",
+  dueDate = "2099-06-15",
+  discountRate = "3.5",
+} = {}) {
+  fillInvoiceDetails({ payer, amount, dueDate });
+  goToTokenAndRate();
+  goToReviewAndSubmit(discountRate);
+  fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("SubmitInvoiceForm", () => {
@@ -102,7 +139,7 @@ describe("SubmitInvoiceForm", () => {
 
   it("shows the wallet error banner when submitting without a connected wallet", async () => {
     render(<SubmitInvoiceForm />);
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    completeStepperAndSubmit();
 
     expect(
       await screen.findByText(/connect your freighter wallet to submit an invoice/i),
@@ -117,7 +154,7 @@ describe("SubmitInvoiceForm", () => {
     render(<SubmitInvoiceForm />);
 
     // Amount and dueDate are also empty so multiple errors fire – we only care about payer
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
     expect(await screen.findByText(/payer stellar address is required/i)).toBeInTheDocument();
   });
 
@@ -128,7 +165,7 @@ describe("SubmitInvoiceForm", () => {
     fireEvent.change(screen.getByPlaceholderText("G..."), {
       target: { value: "not-a-stellar-key" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
 
     expect(
       await screen.findByText(/enter a valid stellar public key for the payer/i),
@@ -142,7 +179,7 @@ describe("SubmitInvoiceForm", () => {
     fireEvent.change(screen.getByPlaceholderText("5000.00"), {
       target: { value: "not-a-number" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
 
     expect(await screen.findByText(/enter a valid invoice amount in usdc/i)).toBeInTheDocument();
   });
@@ -152,7 +189,7 @@ describe("SubmitInvoiceForm", () => {
     render(<SubmitInvoiceForm />);
 
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
 
     expect(await screen.findByText(/enter a valid invoice amount in usdc/i)).toBeInTheDocument();
   });
@@ -162,7 +199,7 @@ describe("SubmitInvoiceForm", () => {
     render(<SubmitInvoiceForm />);
 
     // Leave dueDate empty
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
     expect(await screen.findByText(/select a valid due date/i)).toBeInTheDocument();
   });
 
@@ -170,8 +207,10 @@ describe("SubmitInvoiceForm", () => {
     connectWallet();
     render(<SubmitInvoiceForm />);
 
+    fillInvoiceDetails();
+    goToTokenAndRate();
     fireEvent.change(screen.getByPlaceholderText("3.00"), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
 
     expect(
       await screen.findByText(/discount rate must be between 0\.01% and 50%/i),
@@ -182,8 +221,10 @@ describe("SubmitInvoiceForm", () => {
     connectWallet();
     render(<SubmitInvoiceForm />);
 
+    fillInvoiceDetails();
+    goToTokenAndRate();
     fireEvent.change(screen.getByPlaceholderText("3.00"), { target: { value: "51" } });
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    clickNext();
 
     expect(
       await screen.findByText(/discount rate must be between 0\.01% and 50%/i),
@@ -197,7 +238,7 @@ describe("SubmitInvoiceForm", () => {
     walletState.networkMismatch = true;
     render(<SubmitInvoiceForm />);
 
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    completeStepperAndSubmit();
 
     expect(
       await screen.findByText(/freighter must be connected to testnet/i),
@@ -218,7 +259,10 @@ describe("SubmitInvoiceForm", () => {
   it("updates the live yield preview as the user types amount and discount rate", () => {
     render(<SubmitInvoiceForm />);
 
+    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "10000" } });
+    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-06-15" } });
+    goToTokenAndRate();
     fireEvent.change(screen.getByPlaceholderText("3.00"), { target: { value: "5" } });
 
     // Face value
@@ -238,6 +282,27 @@ describe("SubmitInvoiceForm", () => {
     expect(screen.getAllByText("0 USDC").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("moves through steps, supports Back, and keeps entered details", () => {
+    connectWallet();
+    render(<SubmitInvoiceForm />);
+
+    fillInvoiceDetails({ amount: "2500", dueDate: "2099-08-20" });
+    goToTokenAndRate();
+    fireEvent.change(screen.getByDisplayValue("3.00"), { target: { value: "4.25" } });
+    goToReviewAndSubmit("4.25");
+
+    expect(screen.getByText("You will receive")).toBeInTheDocument();
+    expect(screen.getAllByText(/4\.25%/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/LP yield is/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(screen.getByDisplayValue("4.25")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(screen.getByDisplayValue(VALID_STELLAR_PAYER)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2500")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2099-08-20")).toBeInTheDocument();
+  });
+
   // ── Successful submission ─────────────────────────────────────────────────
 
   it("submits a fully valid invoice and displays the returned invoice ID and tx hash", async () => {
@@ -250,8 +315,9 @@ describe("SubmitInvoiceForm", () => {
       target: { value: VALID_STELLAR_PAYER },
     });
     fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "2000" } });
-    fireEvent.change(screen.getByDisplayValue("3.00"), { target: { value: "3.5" } });
     fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-06-15" } });
+    goToTokenAndRate();
+    goToReviewAndSubmit("3.5");
     fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
 
     // Contract call is made with correctly parsed values
@@ -279,11 +345,7 @@ describe("SubmitInvoiceForm", () => {
 
     render(<SubmitInvoiceForm />);
 
-    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
-    fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "500" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-01-01" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    completeStepperAndSubmit({ amount: "500", dueDate: "2099-01-01" });
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /submitting invoice/i })).toBeDisabled(),
@@ -298,11 +360,7 @@ describe("SubmitInvoiceForm", () => {
 
     render(<SubmitInvoiceForm />);
 
-    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
-    fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "1000" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-03-01" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    completeStepperAndSubmit({ amount: "1000", dueDate: "2099-03-01" });
 
     expect(await screen.findByText("contract: insufficient gas")).toBeInTheDocument();
     expect(updateToast).toHaveBeenCalledWith(
@@ -317,16 +375,12 @@ describe("SubmitInvoiceForm", () => {
 
     render(<SubmitInvoiceForm />);
 
-    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_STELLAR_PAYER } });
-    fireEvent.change(screen.getByPlaceholderText("5000.00"), { target: { value: "1200" } });
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2099-09-09" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+    completeStepperAndSubmit({ amount: "1200", dueDate: "2099-09-09" });
 
     await waitFor(() => expect(updateToast).toHaveBeenCalled());
 
     expect(addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "pending", title: /submitting invoice/i }),
+      expect.objectContaining({ type: "pending", title: expect.stringMatching(/submitting invoice/i) }),
     );
     expect(updateToast).toHaveBeenCalledWith(
       "toast-id-1",
