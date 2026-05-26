@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
 import { useToast } from "./ToastContext";
 
@@ -19,6 +21,28 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 const STORAGE_KEY = "iln_wallet_address";
+const WALLET_SCOPED_STORAGE_PREFIXES = [
+  "watchlist_",
+  "iln-address-book-",
+  "iln_onboarding_completed_",
+];
+const WALLET_SCOPED_STORAGE_KEYS = [
+  STORAGE_KEY,
+  "freelancer_view_mode",
+];
+
+function clearWalletScopedStorage() {
+  const keysToRemove = new Set(WALLET_SCOPED_STORAGE_KEYS);
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key && WALLET_SCOPED_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      keysToRemove.add(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+}
 
 function extractConnectionState(result: unknown): boolean {
   if (typeof result === "boolean") {
@@ -59,6 +83,8 @@ function extractAllowedState(result: unknown): boolean {
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast, updateToast } = useToast();
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +128,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [checkNetwork]);
 
   useEffect(() => {
-    checkConnection();
+    const checkTimer = window.setTimeout(() => {
+      void checkConnection();
+    }, 0);
+    return () => window.clearTimeout(checkTimer);
   }, [checkConnection]);
 
   useEffect(() => {
@@ -154,9 +183,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setError(msg);
         updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Connection error:", e);
-      const msg = e.message || "Connection failed";
+      const msg = e instanceof Error ? e.message : "Connection failed";
       setError(msg);
       updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
     }
@@ -166,8 +195,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAddress(null);
     setNetworkMismatch(false);
     setError(null);
-    localStorage.removeItem(STORAGE_KEY);
-    addToast({ type: "success", title: "Disconnected" });
+    clearWalletScopedStorage();
+    queryClient.clear();
+    router.push("/");
+    addToast({ type: "success", title: "Disconnected", message: "Wallet session data has been cleared." });
   };
 
   const signTx = async (txXdr: string) => {

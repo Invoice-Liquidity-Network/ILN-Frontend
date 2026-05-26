@@ -34,6 +34,7 @@ vi.mock('@tanstack/react-query', () => ({
     cancelQueries: vi.fn(),
     setQueryData: vi.fn(),
     getQueryData: vi.fn(),
+    clear: vi.fn(),
   })),
   QueryClient: vi.fn(),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -78,12 +79,12 @@ Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
 // Mock react 'use' hook for Next.js params
 vi.mock('react', async () => {
-  const actual = await vi.importActual('react') as any;
+  const actual = await vi.importActual<typeof import('react')>('react');
   return {
     ...actual,
-    use: vi.fn((input) => {
-      if (input && typeof input.then === 'function') {
-        if (input._resolvedValue) return input._resolvedValue;
+    use: vi.fn((input: unknown) => {
+      if (input && typeof input === 'object' && 'then' in input && typeof input.then === 'function') {
+        if ('_resolvedValue' in input) return input._resolvedValue;
         return input; 
       }
       return input;
