@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { useWallet } from "@/context/WalletContext";
 import { TokenAmount } from "./TokenSelector";
@@ -18,6 +18,7 @@ interface WalletBalance {
 export default function WalletButton() {
   const { address, isConnected, connectProvider, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
+  const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
   const [balances, setBalances] = useState<WalletBalance[]>([]);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
@@ -26,7 +27,7 @@ export default function WalletButton() {
     let cancelled = false;
 
     async function loadBalances() {
-      if (!address || !isConnected || networkMismatch || tokens.length === 0) {
+      if (!address || !isConnected || networkMismatch || allowedTokens.length === 0) {
         setBalances([]);
         return;
       }
@@ -34,7 +35,7 @@ export default function WalletButton() {
       setIsLoadingBalances(true);
       try {
         const nextBalances = await Promise.all(
-          tokens.map(async (token) => ({
+          allowedTokens.map(async (token) => ({
             contractId: token.contractId,
             amount: await getTokenBalance(address, token.contractId),
           })),
@@ -59,7 +60,7 @@ export default function WalletButton() {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected, networkMismatch, tokens]);
+  }, [address, allowedTokens, isConnected, networkMismatch]);
 
   if (isConnected) {
     return (
@@ -79,7 +80,7 @@ export default function WalletButton() {
                 </span>
               ) : balances.length > 0 ? (
                 balances.map((balance) => {
-                  const token = tokens.find((item) => item.contractId === balance.contractId);
+                  const token = allowedTokens.find((item) => item.contractId === balance.contractId);
                   if (!token) return null;
 
                   return (

@@ -87,7 +87,7 @@ export function getMonthlyYieldData(invoices: Invoice[], address: string) {
 
   return Object.entries(months).map(([name, yieldVal]) => ({
     name,
-    yield: Number(yieldVal) / 10_000_000, // Convert to whole USDC (assuming 7 decimals, check constants)
+    yield: Number(yieldVal) / 1_000_000,
   }));
 }
 
@@ -105,8 +105,8 @@ export function getCapitalVsYieldData(invoices: Invoice[], address: string) {
     }
     return {
       time: new Date(Number(i.funded_at!) * 1000).toLocaleDateString(),
-      capital: Number(cumulativeCapital) / 10_000_000,
-      yield: Number(cumulativeYield) / 10_000_000,
+      capital: Number(cumulativeCapital) / 1_000_000,
+      yield: Number(cumulativeYield) / 1_000_000,
     };
   });
 }
