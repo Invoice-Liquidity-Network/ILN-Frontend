@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { formatAddress, formatDate, formatUSDC, calculateYield } from "@/utils/format";
 import type { Invoice } from "@/utils/soroban";
 import type { ApprovedToken } from "@/hooks/useApprovedTokens";
@@ -9,6 +9,7 @@ import InvoiceTable, { ColumnDefinition } from "./InvoiceTable";
 import LPTokenMetricsCards from "./LPTokenMetricsCards";
 import WeeklyYieldChart from "./WeeklyYieldChart";
 import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
+import LPEarningsTable from "./LPEarningsTable";
 
 interface LPPortfolioProps {
   invoices: Invoice[];
@@ -28,7 +29,12 @@ export default function LPPortfolio({
   defaultToken = null,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
-  const now = Date.now();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Calculate per-token metrics
   const perTokenMetrics = useMemo(
@@ -151,6 +157,12 @@ export default function LPPortfolio({
           showUSDEquivalent={showUSDEquivalent}
         />
       )}
+
+      <LPEarningsTable
+        invoices={invoices}
+        tokenMap={tokenMap}
+        defaultToken={defaultToken}
+      />
 
       {/* Portfolio Table */}
       <InvoiceTable
