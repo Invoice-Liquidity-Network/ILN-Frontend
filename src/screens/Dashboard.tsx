@@ -10,7 +10,7 @@ import InvoiceTimeline from "@/components/InvoiceTimeline";
 import { CONTRACT_ID, NETWORK_NAME } from "@/constants";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
+import { formatAddress, formatDate, formatUSDC, tokenAmountToNumber } from "@/utils/format";
 import { type Invoice } from "@/utils/soroban";
 import { useInvoices } from "@/hooks/useInvoices";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
@@ -344,7 +344,9 @@ export default function DashboardPage() {
                         <td className="px-2 md:px-4 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                         <td className="px-4 md:px-6 py-5">
                           <div className="inline-flex items-center gap-2">
-                            <span className="font-mono text-sm">{formatAddress(invoice.payer)}</span>
+                            <Link href={`/profile/${invoice.payer}`} className="font-mono text-sm text-primary hover:underline">
+                              {formatAddress(invoice.payer)}
+                            </Link>
                             <button
                               onClick={() => void copyPayerAddress(invoice.payer)}
                               className="rounded border border-outline-variant/30 px-2 py-1 text-[10px] font-bold uppercase text-on-surface-variant"
@@ -390,7 +392,7 @@ export default function DashboardPage() {
                                     query: {
                                       prefill_id: invoice.id.toString(),
                                       payer: invoice.payer,
-                                      amount: (Number(invoice.amount) / 10_000_000).toString(),
+                                      amount: tokenAmountToNumber(invoice.amount).toString(),
                                       discount: (invoice.discount_rate / 100).toString(),
                                       token: invoice.token || "",
                                     }
