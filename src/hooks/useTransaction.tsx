@@ -126,7 +126,7 @@ export function useTransaction(): UseTransactionResult {
           title: isRejected ? "Transaction cancelled" : "Transaction failed",
           message: isRejected
             ? "Transaction cancelled"
-            : `${message}. Please try again or contact support if the issue persists.",
+            : `${message}. Please try again or contact support if the issue persists.`,
           action: isRejected
             ? undefined
             : {
