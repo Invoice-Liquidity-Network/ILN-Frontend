@@ -68,7 +68,15 @@ export default function NewGovernanceProposalPage() {
       const token = await lookupToken(tokenAddr);
       setForm(prev => ({ ...prev, tokenName: token.symbol }));
     } catch (e: any) {
-      setErrors(prev => ({ ...prev, tokenAddress: e.message }));
+      const msg: string = e?.message ?? String(e);
+      const isFeeOnTransfer =
+        msg.includes("FeeOnTransferToken") || msg.includes("fee_on_transfer");
+      setErrors(prev => ({
+        ...prev,
+        tokenAddress: isFeeOnTransfer
+          ? "This token implements fee-on-transfer and cannot be added to the ILN allowlist. Tokens must transfer the exact amount specified."
+          : msg,
+      }));
     } finally {
       setResolvingToken(false);
     }
@@ -222,9 +230,18 @@ export default function NewGovernanceProposalPage() {
 
         {form.formType === "AddToken" && (
           <div>
-            <label htmlFor="tokenAddress" className="block text-sm font-semibold text-gray-700 mb-1">
-              Token Address (G...)
-            </label>
+            <div className="flex items-center gap-2 mb-1">
+              <label htmlFor="tokenAddress" className="block text-sm font-semibold text-gray-700">
+                Token Address (G...)
+              </label>
+              <span
+                title="ILN does not support fee-on-transfer tokens"
+                className="flex items-center cursor-help text-amber-500"
+                aria-label="ILN does not support fee-on-transfer tokens"
+              >
+                <Info className="w-4 h-4" />
+              </span>
+            </div>
             <div className="relative">
               <input
                 type="text"
