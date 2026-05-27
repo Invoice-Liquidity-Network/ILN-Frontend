@@ -18,6 +18,11 @@ import {
   TESTNET_EURC_TOKEN_ID,
   TESTNET_USDC_TOKEN_ID,
 } from "@/constants";
+import {
+  parseAmountToUnits,
+  parseDiscountRateToBps,
+  toUnixTimestamp,
+} from "./invoiceSubmission";
 
 // ─── RPC & constants ──────────────────────────────────────────────────────────
 
@@ -823,6 +828,87 @@ export async function submitInvoiceTransaction({
     invoiceId: extractInvoiceIdFromTransaction(finalResult) ?? simulatedInvoiceId,
     txHash: sent.hash,
   };
+}
+
+// ─── Write: batch invoice submission ──────────────────────────────────────────
+
+export async function submitInvoicesBatch(
+  freelancer: string,
+  invoices: Array<{
+    payer: string;
+    amount: string;
+    dueDate: string;
+    discountRate: string;
+    tokenId: string;
+  }>,
+  signTx: (txXdr: string) => Promise<string>
+): Promise<Array<{ id: string; success: boolean; error?: string }>> {
+  const results: Array<{ id: string; success: boolean; error?: string }> = [];
+
+  // Process invoices in parallel batches of 5 to avoid overwhelming the network
+  const batchSize = 5;
+  for (let i = 0; i < invoices.length; i += batchSize) {
+    const batch = invoices.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (invoice, batchIndex) => {
+      const invoiceIndex = i + batchIndex;
+      try {
+        // Parse and validate invoice data
+        const amount = parseAmountToUnits(invoice.amount, 7);
+        const dueDate = toUnixTimestamp(invoice.dueDate);
+        const discountRate = parseDiscountRateToBps(invoice.discountRate);
+
+        if (!amount || !dueDate || !discountRate) {
+          throw new Error("Invalid invoice data");
+        }
+
+        // Submit individual invoice
+        const result = await submitInvoiceTransaction({
+          freelancer,
+          payer: invoice.payer,
+          amount,
+          dueDate,
+          discountRate,
+          signTx,
+          token: invoice.tokenId,
+        });
+
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: true,
+          invoiceId: result.invoiceId,
+          txHash: result.txHash,
+        };
+      } catch (error) {
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result) => {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+      } else {
+        results.push({
+          id: `invoice-${results.length + 1}`,
+          success: false,
+          error: result.reason?.message || "Batch processing failed",
+        });
+      }
+    });
+
+    // Add a small delay between batches to be respectful to the network
+    if (i + batchSize < invoices.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  return results;
 }
 
 // ─── Write: token approve ─────────────────────────────────────────────────────

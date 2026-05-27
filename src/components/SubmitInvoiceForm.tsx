@@ -1,6 +1,7 @@
 "use client";
 
-import { useReducer, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { NETWORK_NAME } from "@/constants";
 import TokenSelector, { TokenAmount } from "../components/TokenSelector";
@@ -241,6 +242,15 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
             <p className="text-sm text-on-surface-variant mt-2 max-w-xl">
               {t("submitForm.subtitle")}
             </p>
+            <div className="mt-4">
+              <Link
+                href="/invoices/batch"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+              >
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                Submit multiple invoices (CSV/Batch)
+              </Link>
+            </div>
           </div>
 
           <div className="sm:min-w-[220px]">
