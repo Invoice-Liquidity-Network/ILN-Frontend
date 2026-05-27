@@ -60,10 +60,23 @@ export interface PayerScoreResult {
   defaults: number;
 }
 
+export interface ReputationScore {
+  score: number;
+  invoices_submitted: number;
+  invoices_paid: number;
+  invoices_defaulted: number;
+}
+
+export interface ReputationEvent {
+  type: "submitted" | "paid" | "defaulted" | "score_updated";
+  timestamp: number;
+  score?: number;
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 const KNOWN_TOKEN_METADATA: Record<string, Omit<TokenMetadata, "contractId">> = {
-  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 7 },
+  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 6 },
   [TESTNET_EURC_TOKEN_ID]: { name: "Euro Coin", symbol: "EURC", decimals: 7 },
 };
 
@@ -290,6 +303,49 @@ export async function getPayerScore(payerAddress: string): Promise<PayerScoreRes
   }
 }
 
+export async function getReputation(address: string): Promise<ReputationScore | null> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return null;
+    const native = scValToNative(callResult.result.retval);
+    if (native === null || native === undefined) return null;
+
+    return {
+      score: Number(native.score ?? native.reputation_score ?? 0),
+      invoices_submitted: Number(native.invoices_submitted ?? native.submitted ?? 0),
+      invoices_paid: Number(native.invoices_paid ?? native.paid ?? native.settled_on_time ?? 0),
+      invoices_defaulted: Number(native.invoices_defaulted ?? native.defaulted ?? native.defaults ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getReputationEvents(address: string): Promise<ReputationEvent[]> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation_events", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return [];
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) return [];
+
+    return native
+      .map((event) => ({
+        type: String(event.type ?? event.event ?? "score_updated") as ReputationEvent["type"],
+        timestamp: Number(event.timestamp ?? event.ledger_time ?? 0),
+        score: event.score === undefined ? undefined : Number(event.score),
+      }))
+      .filter((event) => Number.isFinite(event.timestamp) && event.timestamp > 0);
+  } catch {
+    return [];
+  }
+}
+
 export interface TopPayer {
   address: string;
   score: number;
@@ -483,7 +539,7 @@ export async function claimDefault(funder: string, invoice_id: bigint) {
 export interface SubmitInvoiceArgs {
   freelancer: string;
   payer: string;
-  /** Amount in stroops (1 USDC = 10_000_000) */
+  /** Amount in token base units (1 USDC = 1_000_000) */
   amount: bigint;
   /** Unix timestamp (seconds) */
   dueDate: number;
