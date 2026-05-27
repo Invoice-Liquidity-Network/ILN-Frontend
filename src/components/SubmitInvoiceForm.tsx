@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { NETWORK_NAME } from "@/constants";
 import TokenSelector, { TokenAmount } from "../components/TokenSelector";
 import FieldTooltip from "./FieldTooltip";
-import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import useAddressBook from "@/hooks/useAddressBook";
 import {
@@ -35,8 +35,8 @@ interface SubmitInvoiceFormProps {
 
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
-  const { addToast, updateToast } = useToast();
-  const { address, isConnected, connect, disconnect, networkMismatch, error: walletError, signTx } = useWallet();
+  const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
+  const { address, isConnected, connect, disconnect, networkMismatch, error: walletError } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
   
   const [showBanner, setShowBanner] = useState(!!prefillId);
@@ -46,7 +46,6 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     dueDate: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormValues | "wallet" | "submit", string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
@@ -137,48 +136,41 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       return;
     }
 
-    setIsSubmitting(true);
     setErrors({});
     setSubmittedInvoiceId(null);
 
-    const toastId = addToast({ type: "pending", title: "Submitting invoice to Stellar testnet..." });
+    const result = await execute(
+      async (signTx) =>
+        submitInvoiceTransaction({
+          freelancer: address,
+          payer: form.payer.trim(),
+          amount,
+          dueDate,
+          discountRate,
+          signTx,
+          token: selectedToken.contractId,
+        }),
+      {
+        title: "Submitting invoice to Stellar testnet...",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Invoice submitted",
+        successMessage: `Invoice is now live on ${NETWORK_NAME}.`,
+      }
+    );
 
-    try {
-      const result = await submitInvoiceTransaction({
-        freelancer: address,
-        payer: form.payer.trim(),
-        amount,
-        dueDate,
-        discountRate,
-        signTx,
-        token: selectedToken.contractId,
-      });
-
-      const invoiceId = result.invoiceId.toString();
-      setSubmittedInvoiceId(invoiceId);
-      setLastTxHash(result.txHash);
-      updateToast(toastId, {
-        type: "success",
-        title: "Invoice submitted",
-        message: `Invoice #${invoiceId} is now live on ${NETWORK_NAME}.`,
-        txHash: result.txHash,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "The transaction did not complete successfully.";
-      setErrors({ submit: message });
-      updateToast(toastId, {
-        type: "error",
-        title: "Submission failed",
-        message,
-      });
-    } finally {
-      setIsSubmitting(false);
+    if (!result) {
+      setErrors({ submit: txError ?? "The transaction did not complete successfully." });
+      return;
     }
+
+    const invoiceId = result.invoiceId.toString();
+    setSubmittedInvoiceId(invoiceId);
+    setLastTxHash(result.txHash);
   };
 
   return (
     <div id="submit-invoice-form" className="bg-surface-container-lowest p-6 sm:p-8 rounded-[28px] shadow-xl border border-outline-variant/15">
+      {signingModal}
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -313,7 +305,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
               tokens={tokens}
               showBalances
               error={errors.tokenId}
-              disabled={tokensLoading || isSubmitting}
+              disabled={tokensLoading || txLoading}
               onChange={(value) => setField("tokenId", value)}
               hint={
                 tokensError
@@ -414,10 +406,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={txLoading}
               className="w-full rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
-              {isSubmitting ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
+              {txLoading ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
             </button>
           </div>
 
