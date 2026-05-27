@@ -1,7 +1,9 @@
 "use client";
 
 import { use, useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
+import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
@@ -145,8 +147,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
 
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Freelancer</span>
-                <span className="text-sm font-mono text-on-surface">{invoice.freelancer.substring(0, 6)}...{invoice.freelancer.substring(invoice.freelancer.length - 6)}</span>
+                <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-mono text-primary hover:underline">
+                  {formatAddress(invoice.freelancer)}
+                </Link>
               </div>
+
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                <span className="text-sm text-on-surface-variant font-medium">Payer</span>
+                <Link href={`/profile/${invoice.payer}`} className="text-sm font-mono text-primary hover:underline">
+                  {formatAddress(invoice.payer)}
+                </Link>
+              </div>
+
+              {invoice.funder && (
+                <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                  <span className="text-sm text-on-surface-variant font-medium">Liquidity Provider</span>
+                  <Link href={`/profile/${invoice.funder}`} className="text-sm font-mono text-primary hover:underline">
+                    {formatAddress(invoice.funder)}
+                  </Link>
+                </div>
+              )}
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-on-surface-variant font-medium">Your Role</span>

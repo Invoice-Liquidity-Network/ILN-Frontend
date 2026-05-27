@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Invoice, cancelInvoice, submitSignedTransaction } from "@/utils/soroban";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { tokenAmountToNumber } from "@/utils/format";
 
 interface BulkActionBarProps {
   selectedInvoices: Invoice[];
@@ -27,7 +28,7 @@ export default function BulkActionBar({
       const headers = ["Invoice ID", "Amount (USDC)", "Discount Rate (%)", "Due Date", "Status", "Payer", "Token"];
       const rows = selectedInvoices.map((inv) => {
         const dDate = new Date(Number(inv.due_date) * 1000).toISOString().split("T")[0];
-        const amt = (Number(inv.amount) / 10_000_000).toFixed(2);
+        const amt = tokenAmountToNumber(inv.amount).toFixed(2);
         const rate = (inv.discount_rate / 100).toFixed(2);
         return [
           inv.id.toString(),
