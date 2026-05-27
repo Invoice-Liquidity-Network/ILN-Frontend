@@ -32,6 +32,8 @@ import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import DisputeInvoiceModal from "./DisputeInvoiceModal";
+import LPTransferModal from "./LPTransferModal";
+import YieldAnalyticsChart from "./YieldAnalyticsChart";
 import type { DataTableColumn } from "./DataTable";
 
 
@@ -59,6 +61,7 @@ export default function LPDashboard() {
   const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
+  const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
 
   const {
     filters,
@@ -495,14 +498,24 @@ export default function LPDashboard() {
       </div>
 
       {activeTab === "my-funded" ? (
-        <LPPortfolio
-          invoices={myFundedInvoices}
-          isLoading={loading}
-          onClaimDefault={handleClaimDefault}
-          claimingInvoiceId={claimingInvoiceId}
-          tokenMap={tokenMap}
-          defaultToken={defaultToken}
-        />
+        <>
+          <div className="px-6 pt-4">
+            <YieldAnalyticsChart
+              invoices={invoices}
+              lpAddress={address ?? ""}
+              isLoading={loading}
+            />
+          </div>
+          <LPPortfolio
+            invoices={myFundedInvoices}
+            isLoading={loading}
+            onClaimDefault={handleClaimDefault}
+            claimingInvoiceId={claimingInvoiceId}
+            tokenMap={tokenMap}
+            defaultToken={defaultToken}
+            onTransfer={(inv) => setTransferInvoice(inv)}
+          />
+        </>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -685,9 +698,16 @@ export default function LPDashboard() {
         <DisputeInvoiceModal
           invoice={disputeInvoice}
           onClose={() => setDisputeInvoice(null)}
-          onSuccess={() => {
-            setDisputeInvoice(null);
-          }}
+          onSuccess={() => setDisputeInvoice(null)}
+        />
+      )}
+
+      {/* LP Transfer Modal */}
+      {transferInvoice && (
+        <LPTransferModal
+          invoice={transferInvoice}
+          onClose={() => setTransferInvoice(null)}
+          onSuccess={() => setTransferInvoice(null)}
         />
       )}
     </div>

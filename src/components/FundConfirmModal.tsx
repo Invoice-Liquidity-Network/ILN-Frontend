@@ -11,6 +11,7 @@ import {
 } from "@/utils/soroban";
 import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
 import { useFundInvoice } from "@/hooks/useInvoices";
+import { getPayerScore, PayerScoreResult } from "@/utils/soroban";
 
 type FundingStep = "approve" | "fund";
 
@@ -18,9 +19,10 @@ interface FundConfirmModalProps {
   invoice: Invoice | null;
   onClose: () => void;
   onSuccess: () => void;
+  payerScore?: PayerScoreResult | null;
 }
 
-export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundConfirmModalProps) {
+export default function FundConfirmModal({ invoice, onClose, onSuccess, payerScore }: FundConfirmModalProps) {
   const { address, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
   const { tokens, tokenMap, defaultToken } = useApprovedTokens();
@@ -276,6 +278,20 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
                     ) : null}
                   </span>
                 </div>
+
+                <div className="flex justify-between text-sm border-t border-surface-dim pt-4">
+                  <span className="text-on-surface-variant">Days until due:</span>
+                  <span className="font-bold text-on-surface">
+                    {Math.max(0, Math.ceil((Number(invoice.due_date) - Date.now() / 1000) / 86400))} days
+                  </span>
+                </div>
+
+                {payerScore !== undefined && payerScore !== null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-on-surface-variant">Payer reputation:</span>
+                    <span className="font-bold text-on-surface">{payerScore.score} / 100</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
