@@ -12,6 +12,7 @@ import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "@/hooks/useInvoiceFilters";
 import { useInvoices } from "@/hooks/useInvoices";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
+import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 
 import {
   claimDefault,
@@ -62,6 +63,7 @@ export default function LPDashboard() {
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
   const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
+  const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
 
   const {
     filters,
@@ -173,6 +175,10 @@ export default function LPDashboard() {
     }
   };
 
+  const handleRiskFilter = (filterType: "at-risk" | "disputed" | "all") => {
+    setRiskFilter(filterType);
+  };
+
   const filteredInvoices = useMemo(
     () =>
       applyInvoiceFilters(invoices, filters, {
@@ -180,8 +186,9 @@ export default function LPDashboard() {
           const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
           return token?.symbol ?? "USDC";
         },
+        payerScores,
       }),
-    [defaultToken?.contractId, filters, invoices, tokenMap],
+    [defaultToken?.contractId, filters, invoices, tokenMap, payerScores],
   );
 
 
@@ -206,7 +213,31 @@ export default function LPDashboard() {
   }), [filteredInvoices, sortKey, sortOrder, payerRisks]);
 
   const discoveryInvoices = sortedInvoices.filter(i => i.status === "Pending");
-  const myFundedInvoices = sortedInvoices.filter(i => i.funder === address);
+  
+  const myFundedInvoicesBase = sortedInvoices.filter(i => i.funder === address);
+  const myFundedInvoices = useMemo(() => {
+    if (riskFilter === "all") return myFundedInvoicesBase;
+    
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + (24 * 60 * 60 * 1000);
+    
+    return myFundedInvoicesBase.filter(invoice => {
+      if (riskFilter === "disputed") {
+        return invoice.status === "Disputed";
+      }
+      
+      if (riskFilter === "at-risk") {
+        const dueDate = Number(invoice.due_date) * 1000;
+        const isNearExpiry = dueDate <= twentyFourHoursFromNow && dueDate > now;
+        const isOverdue = dueDate <= now;
+        const isDisputed = invoice.status === "Disputed";
+        
+        return isDisputed || isNearExpiry || isOverdue;
+      }
+      
+      return true;
+    });
+  }, [myFundedInvoicesBase, riskFilter]);
   
   const watchlistInvoices = sortedInvoices
     .filter(i => watchlist.some(w => w.id === i.id.toString()))
@@ -505,6 +536,28 @@ export default function LPDashboard() {
               lpAddress={address ?? ""}
               isLoading={loading}
             />
+          </div>
+          <div className="px-6">
+            <LPRiskSummaryPanel 
+              invoices={myFundedInvoicesBase}
+              onFilterByRisk={handleRiskFilter}
+            />
+            {riskFilter !== "all" && (
+              <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">filter_alt</span>
+                  <span className="font-medium">
+                    Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
+                  </span>
+                </div>
+                <button
+                  onClick={() => setRiskFilter("all")}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
           </div>
           <LPPortfolio
             invoices={myFundedInvoices}
