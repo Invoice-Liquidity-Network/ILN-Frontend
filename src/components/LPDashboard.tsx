@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
@@ -40,8 +41,9 @@ type Tab = "discovery" | "my-funded" | "watchlist";
 
 export default function LPDashboard() {
   const router = useRouter();
-  const { address, connect, signTx } = useWallet();
+  const { address, connect } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const { t, i18n } = useTranslation();
   const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
@@ -146,25 +148,24 @@ export default function LPDashboard() {
     }
 
     setClaimingInvoiceId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: `Claiming default for #${invoice.id.toString()}...` });
-    try {
-      const tx = await claimDefault(address, invoice.id);
-      const result = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, {
-        type: "success",
-        title: "Default claimed",
-        txHash: result.txHash,
-      });
-      // useInvoices will auto-poll or we could invalidate here
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to claim default.";
-      updateToast(toastId, {
-        type: "error",
-        title: "Claim failed",
-        message,
-      });
-    } finally {
-      setClaimingInvoiceId(null);
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await claimDefault(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Claiming default for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Default claimed",
+        successMessage: `Default claim for invoice #${invoice.id.toString()} succeeded.`,
+      }
+    );
+
+    setClaimingInvoiceId(null);
+    if (!result) {
+      // ensure claim button resets even when user rejects or transaction fails
+      return;
     }
   };
 
@@ -411,6 +412,7 @@ export default function LPDashboard() {
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant/10 min-h-[500px]">
+      {signingModal}
       <div data-testid="lp-dashboard-header" className="p-6 border-b border-surface-dim flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
