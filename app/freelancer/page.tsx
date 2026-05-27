@@ -21,12 +21,16 @@ import {
 } from "@/utils/format";
 import { rpc, TransactionBuilder } from "@stellar/stellar-sdk";
 import { RPC_URL, NETWORK_PASSPHRASE } from "@/constants";
+import { paginate, pageCountFor } from "@/utils/pagination";
 import SkeletonRow, { FREELANCER_COLUMNS } from "@/components/SkeletonRow";
 import { ExportButton } from "@/components/ExportButton";
 import { EmptyState } from "@/components/EmptyState";
 import { FreelancerEmptyIllustration } from "@/components/illustrations/EmptyIllustrations";
 
 const server = new rpc.Server(RPC_URL);
+
+/** Maximum invoice rows shown per page on the freelancer dashboard (#13). */
+const INVOICES_PER_PAGE = 20;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,6 +142,22 @@ function FreelancerPageContent() {
         },
       }),
     [defaultToken?.contractId, filters, invoices, tokenMap],
+  );
+
+  // ── Pagination (max 20 rows per page, per issue #13) ────────────────────────
+  const [page, setPage] = useState(0);
+  const pageCount = pageCountFor(filteredInvoices.length, INVOICES_PER_PAGE);
+  // Keep the page in range as filters shrink the result set.
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount - 1));
+  }, [pageCount]);
+  // Reset to the first page whenever the active filters change.
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
+  const pagedInvoices = useMemo(
+    () => paginate(filteredInvoices, page, INVOICES_PER_PAGE),
+    [filteredInvoices, page],
   );
 
   // ── Form validation ──────────────────────────────────────────────────────────
@@ -681,7 +701,7 @@ function FreelancerPageContent() {
                           </td>
                         </tr>
                       ) : (
-                        filteredInvoices.map((inv) => (
+                        pagedInvoices.map((inv) => (
                           <tr
                             key={inv.id.toString()}
                             className="hover:bg-surface-variant/10 transition-colors"
@@ -713,6 +733,39 @@ function FreelancerPageContent() {
                       )}
                     </tbody>
                   </table>
+                  {!loadingInvoices && filteredInvoices.length > INVOICES_PER_PAGE ? (
+                    <nav
+                      className="flex items-center justify-between gap-3 border-t border-surface-dim px-6 py-4"
+                      aria-label="Invoice pagination"
+                    >
+                      <span className="text-xs text-on-surface-variant">
+                        Showing {page * INVOICES_PER_PAGE + 1}–
+                        {Math.min((page + 1) * INVOICES_PER_PAGE, filteredInvoices.length)} of{" "}
+                        {filteredInvoices.length}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.max(0, p - 1))}
+                          disabled={page === 0}
+                          className="rounded-lg border border-outline-variant/20 px-3 py-1.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-40"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs font-bold text-on-surface-variant">
+                          Page {page + 1} of {pageCount}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                          disabled={page >= pageCount - 1}
+                          className="rounded-lg border border-outline-variant/20 px-3 py-1.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-40"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </nav>
+                  ) : null}
                 </div>
               )}
             </div>
