@@ -14,6 +14,7 @@ import { resolveFederatedAddress } from "@/utils/federation";
 import { formatDate } from "@/utils/format";
 import ProfileActivityChart from "@/components/ProfileActivityChart";
 import ProfileRecentInvoices from "@/components/ProfileRecentInvoices";
+import { ScoreSimulator } from "@/components/profile/ScoreSimulator";
 
 interface ScoreHistoryPoint {
   period: string;
@@ -218,17 +219,23 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6">
-            <div>
-              <h2 className="text-xl font-semibold text-on-surface">Recent invoice activity</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Most recent invoice activity as submitter or payer.
-              </p>
-            </div>
-            <div className="mt-6">
-              <ProfileRecentInvoices invoices={recentInvoices} address={address} />
-            </div>
-          </section>
+            <ScoreSimulator 
+              currentPaid={reputationSummary.invoices_paid}
+              currentSubmitted={reputationSummary.invoices_submitted}
+              currentDefaulted={reputationSummary.invoices_defaulted}
+            />
+
+            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6">
+              <div>
+                <h2 className="text-xl font-semibold text-on-surface">Recent invoice activity</h2>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Most recent invoice activity as submitter or payer.
+                </p>
+              </div>
+              <div className="mt-6">
+                <ProfileRecentInvoices invoices={recentInvoices} address={address} />
+              </div>
+            </section>
         </div>
       </div>
     </main>
