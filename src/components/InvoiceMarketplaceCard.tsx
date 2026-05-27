@@ -6,6 +6,7 @@ import { formatAddress, formatTokenAmount, calculateYield } from "@/utils/format
 import { RiskLevel, PayerScore } from "@/utils/risk";
 import DueDateCountdown from "./DueDateCountdown";
 import RiskBadge from "./RiskBadge";
+import OracleBadge from "./OracleBadge";
 
 interface InvoiceMarketplaceCardProps {
   invoice: Invoice;
@@ -15,6 +16,7 @@ interface InvoiceMarketplaceCardProps {
   payerRisk: RiskLevel;
   onFund: (invoice: Invoice) => void;
   isWalletConnected: boolean;
+  payerOracleVerified?: boolean;
 }
 
 function yieldPercent(amount: bigint, discountRate: number): string {
@@ -31,6 +33,7 @@ export default function InvoiceMarketplaceCard({
   payerRisk,
   onFund,
   isWalletConnected,
+  payerOracleVerified = false,
 }: InvoiceMarketplaceCardProps) {
   const token = tokenMap.get(invoice.token ?? "") ?? defaultToken;
   const tokenSymbol = token?.symbol ?? "USDC";
@@ -74,6 +77,7 @@ export default function InvoiceMarketplaceCard({
         {payerScore !== null && (
           <span>Reputation: <span className="font-bold text-on-surface">{payerScore.score}</span></span>
         )}
+        <OracleBadge verified={payerOracleVerified} />
       </div>
 
       {isWalletConnected ? (
