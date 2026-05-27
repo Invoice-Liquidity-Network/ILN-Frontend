@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { useTransaction } from "@/hooks/useTransaction";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getAllInvoices, Invoice, getPayerScoresBatch, PayerScoreResult, fundInvoice, submitSignedTransaction } from "@/utils/soroban";
@@ -15,8 +16,9 @@ import RiskBadge from "@/components/RiskBadge";
 export default function CompareInvoicesScreen() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { address, signTx, connect } = useWallet();
+  const { address, connect } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokens, tokenMap, defaultToken } = useApprovedTokens();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,17 +103,25 @@ export default function CompareInvoicesScreen() {
       await connect();
       return;
     }
+
     setFundingInvoiceId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: "Funding Invoice..." });
-    try {
-      const tx = await fundInvoice(address, invoice.id);
-      const result = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, { type: "success", title: "Funded Successfully", txHash: result.txHash });
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await fundInvoice(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: "Funding Invoice...",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Funded Successfully",
+        successMessage: "Invoice funded successfully.",
+      }
+    );
+
+    setFundingInvoiceId(null);
+    if (result) {
       router.push("/lp");
-    } catch (error: any) {
-      updateToast(toastId, { type: "error", title: "Funding Failed", message: error.message || "An unknown error occurred" });
-    } finally {
-      setFundingInvoiceId(null);
     }
   };
 
@@ -139,6 +149,7 @@ export default function CompareInvoicesScreen() {
     return (
       <main className="min-h-screen bg-background">
         <Navbar />
+        {signingModal}
         <div className="pt-32 flex justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -150,6 +161,7 @@ export default function CompareInvoicesScreen() {
     return (
       <main className="min-h-screen bg-background">
         <Navbar />
+        {signingModal}
         <div className="pt-32 px-8 max-w-7xl mx-auto text-center">
           <h1 className="text-3xl font-bold serif mb-4">Comparison View</h1>
           <p className="text-on-surface-variant mb-8">No invoices selected for comparison.</p>
@@ -177,6 +189,7 @@ export default function CompareInvoicesScreen() {
   return (
     <main className="min-h-screen bg-background mb-20">
       <Navbar />
+      {signingModal}
       <div className="pt-32 px-8 max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -237,7 +250,7 @@ export default function CompareInvoicesScreen() {
                     <td key={s.id} className="p-8 text-center">
                       <button
                         onClick={() => handleFund(s.invoice)}
-                        disabled={fundingInvoiceId === s.id}
+                        disabled={fundingInvoiceId === s.id || txLoading}
                         className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-md hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95"
                       >
                         {fundingInvoiceId === s.id ? "Processing..." : `Fund #${s.id}`}
