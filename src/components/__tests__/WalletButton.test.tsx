@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import WalletButton from "../WalletButton";
 
@@ -65,15 +65,29 @@ vi.mock("@/context/WalletContext", () => ({
   useWallet: () => walletState,
 }));
 
-vi.mock("@/hooks/useApprovedTokens", () => ({
-  useApprovedTokens: () => ({
-    tokens: approvedTokens,
-  }),
+// TestnetFaucetButton (rendered in the connected state) needs a toast context.
+vi.mock("../../context/ToastContext", () => ({
+  useToast: () => ({ addToast: vi.fn(() => "t"), updateToast: vi.fn() }),
 }));
 
-vi.mock("@/hooks/useBalances", () => ({
-  useBalances: () => balancesState,
+// Keep balance fetching offline for these UI-state tests (and avoid pulling the
+// heavy stellar-sdk import chain via soroban / useBalances).
+// Stable references so the component's useMemo/useEffect deps don't churn
+// (a fresh array each render would loop the inline balance effect).
+const EMPTY_TOKENS: never[] = [];
+const EMPTY_TOKEN_MAP = new Map();
+vi.mock("../../hooks/useApprovedTokens", () => ({
+  useApprovedTokens: () => ({ tokens: EMPTY_TOKENS, tokenMap: EMPTY_TOKEN_MAP, defaultToken: null, isLoading: false, error: null }),
 }));
+vi.mock("../../utils/soroban", () => ({
+  getTokenBalance: vi.fn().mockResolvedValue(0n),
+  getNativeXlmBalance: vi.fn().mockResolvedValue(0),
+}));
+vi.mock("../../hooks/useBalances", () => ({
+  useBalances: () => ({ balances: new Map(), isLoading: false }),
+}));
+// Not under test here; its balance-polling effect is unrelated to wallet UI.
+vi.mock("../TestnetFaucetButton", () => ({ default: () => null }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,6 +101,7 @@ describe("WalletButton", () => {
   beforeEach(() => {
     walletState.address = null;
     walletState.isConnected = false;
+    walletState.isInstalled = true;
     walletState.error = null;
     walletState.networkMismatch = false;
     walletState.connect.mockReset();
@@ -108,6 +123,13 @@ describe("WalletButton", () => {
     it("renders the Connect Wallet button", () => {
       render(<WalletButton />);
       expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
+    });
+
+    it("shows an install prompt when Freighter is not installed (#1)", () => {
+      walletState.isInstalled = false;
+      render(<WalletButton />);
+      const link = screen.getByRole("link", { name: /install/i });
+      expect(link).toHaveAttribute("href", "https://www.freighter.app/");
     });
 
     it("does not render a Disconnect button", () => {
@@ -159,6 +181,14 @@ describe("WalletButton", () => {
     it("renders the truncated wallet address", () => {
       render(<WalletButton />);
       expect(screen.getByText(SHORT_ADDRESS)).toBeInTheDocument();
+    });
+
+    it("copies the full address to the clipboard (#1)", async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+      render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: /copy wallet address/i }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(FULL_ADDRESS));
     });
 
     it("renders the network name 'TESTNET'", () => {

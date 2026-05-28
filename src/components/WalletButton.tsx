@@ -7,12 +7,9 @@ import type { ApprovedToken } from "@/hooks/useApprovedTokens";
 import { useWallet } from "@/context/WalletContext";
 import { TokenIcon } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
-import {
-  NETWORK_NAME,
-  TESTNET_EURC_TOKEN_ID,
-  TESTNET_USDC_TOKEN_ID,
-  TESTNET_XLM_TOKEN_ID,
-} from "@/constants";
+import { NETWORK_NAME } from "@/constants";
+import { getTokenBalance } from "@/utils/soroban";
+import TestnetFaucetButton from "./TestnetFaucetButton";
 
 const FALLBACK_BALANCE_TOKENS: ApprovedToken[] = [
   {
@@ -51,10 +48,23 @@ function formatWalletBalance(amount: bigint, token: ApprovedToken) {
 }
 
 export default function WalletButton() {
-  const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, isInstalled, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
-  const balanceTokens = useMemo(() => {
-    const approvedBySymbol = new Map(tokens.map((token) => [token.symbol.toUpperCase(), token]));
+  const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
+  const [balances, setBalances] = useState<WalletBalance[]>([]);
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAddress = async () => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — nothing actionable to surface.
+    }
+  };
 
     return FALLBACK_BALANCE_TOKENS.map((fallback) => approvedBySymbol.get(fallback.symbol) ?? fallback);
   }, [tokens]);
@@ -109,7 +119,21 @@ export default function WalletButton() {
               ))}
             </div>
           ) : null}
-          <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
+            <button
+              type="button"
+              onClick={() => void handleCopyAddress()}
+              aria-label="Copy wallet address"
+              title={copied ? "Copied!" : "Copy address"}
+              className="flex h-5 w-5 items-center justify-center rounded text-on-surface-variant hover:bg-surface-variant/50"
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {copied ? "check" : "content_copy"}
+              </span>
+            </button>
+          </div>
+          <TestnetFaucetButton />
         </div>
         <button
           onClick={disconnect}
@@ -130,6 +154,16 @@ export default function WalletButton() {
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
         Connect Wallet
       </button>
+      {!isInstalled && (
+        <a
+          href="https://www.freighter.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block text-right text-[11px] font-medium text-primary hover:underline"
+        >
+          Don&apos;t have Freighter? Install it →
+        </a>
+      )}
       {error && (
         <div className="absolute top-full right-0 mt-2 p-3 bg-error-container text-on-error-container text-xs rounded-lg shadow-xl border border-error/10 w-64 z-[60] animate-in slide-in-from-top-1 duration-200">
           <p className="font-bold flex items-center gap-1">

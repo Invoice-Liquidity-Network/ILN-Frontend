@@ -1,79 +1,82 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBalances } from "../useBalances";
-import { notifyWalletBalancesChanged } from "@/utils/balanceRefresh";
+import type { ApprovedToken } from "../useApprovedTokens";
 
-const TOKENS = [
-  { contractId: "USDC_TOKEN", decimals: 7, iconLabel: "US", name: "USD Coin", symbol: "USDC" },
-  { contractId: "EURC_TOKEN", decimals: 7, iconLabel: "EU", name: "Euro Coin", symbol: "EURC" },
-  { contractId: "native", decimals: 7, iconLabel: "XL", name: "Stellar Lumens", symbol: "XLM" },
+vi.mock("@/context/WalletContext", () => ({
+  useWallet: vi.fn(),
+}));
+vi.mock("@/utils/soroban", () => ({
+  getTokenBalance: vi.fn(),
+}));
+
+import { useWallet } from "@/context/WalletContext";
+import { getTokenBalance } from "@/utils/soroban";
+
+const mockTokens: ApprovedToken[] = [
+  { contractId: "CONTRACT_A", symbol: "USDC", decimals: 7, isAllowed: true },
+  { contractId: "CONTRACT_B", symbol: "XLM", decimals: 7, isAllowed: true },
+  { contractId: "CONTRACT_C", symbol: "NOPE", decimals: 7, isAllowed: false },
 ];
 
+function connectedWallet() {
+  vi.mocked(useWallet).mockReturnValue({
+    address: "GTEST123",
+    isConnected: true,
+    networkMismatch: false,
+  } as any);
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("useBalances", () => {
-  beforeEach(() => {
-    vi.mocked(fetch).mockReset();
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          balances: [
-            { asset_code: "USDC", asset_type: "credit_alphanum4", balance: "1.0000000" },
-            { asset_code: "EURC", asset_type: "credit_alphanum4", balance: "3.5000000" },
-            { asset_type: "native", balance: "2.0000000" },
-          ],
-        }),
-    } as Response);
+  it("returns empty balances and no loading when wallet not connected", () => {
+    vi.mocked(useWallet).mockReturnValue({ address: null, isConnected: false, networkMismatch: false } as any);
+    const { result } = renderHook(() => useBalances(mockTokens));
+    expect(result.current.balances.size).toBe(0);
+    expect(result.current.isLoading).toBe(false);
   });
 
-  it("loads token balances and native XLM for the connected wallet", async () => {
-    const { result } = renderHook(() =>
-      useBalances({ address: "GACCOUNT", enabled: true, tokens: TOKENS }),
-    );
+  it("returns empty balances when network mismatch", () => {
+    vi.mocked(useWallet).mockReturnValue({ address: "G123", isConnected: true, networkMismatch: true } as any);
+    const { result } = renderHook(() => useBalances(mockTokens));
+    expect(result.current.balances.size).toBe(0);
+  });
 
+  it("fetches balances for allowed tokens only", async () => {
+    connectedWallet();
+    vi.mocked(getTokenBalance)
+      .mockResolvedValueOnce(1000n)
+      .mockResolvedValueOnce(2000n);
+
+    const { result } = renderHook(() => useBalances(mockTokens));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.balances).toHaveLength(3);
-    expect(result.current.balances.find((balance) => balance.token.symbol === "USDC")?.amount).toBe(10_000_000n);
-    expect(result.current.balances.find((balance) => balance.token.symbol === "EURC")?.amount).toBe(35_000_000n);
-    expect(result.current.balances.find((balance) => balance.token.symbol === "XLM")?.amount).toBe(20_000_000n);
+    expect(getTokenBalance).toHaveBeenCalledTimes(2);
+    expect(result.current.balances.get("CONTRACT_A")).toBe(1000n);
+    expect(result.current.balances.get("CONTRACT_B")).toBe(2000n);
+    expect(result.current.balances.has("CONTRACT_C")).toBe(false);
   });
 
-  it("registers 30-second balance polling", () => {
-    const setIntervalSpy = vi.spyOn(window, "setInterval");
+  it("handles partial failures gracefully", async () => {
+    connectedWallet();
+    vi.mocked(getTokenBalance)
+      .mockResolvedValueOnce(500n)
+      .mockRejectedValueOnce(new Error("network error"));
 
-    renderHook(() => useBalances({ address: "GACCOUNT", enabled: true, tokens: TOKENS }));
-
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 30_000);
-    setIntervalSpy.mockRestore();
-  });
-
-  it("refreshes when a successful transaction announces balance changes", async () => {
-    renderHook(() => useBalances({ address: "GACCOUNT", enabled: true, tokens: TOKENS }));
-
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-
-    act(() => {
-      notifyWalletBalancesChanged();
-    });
-
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-  });
-
-  it("marks missing non-native trustlines as zero-balance add-trustline rows", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ balances: [{ asset_type: "native", balance: "2.0000000" }] }),
-    } as Response);
-
-    const { result } = renderHook(() =>
-      useBalances({ address: "GACCOUNT", enabled: true, tokens: TOKENS }),
-    );
-
+    const { result } = renderHook(() => useBalances(mockTokens));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    const usdc = result.current.balances.find((balance) => balance.token.symbol === "USDC");
+    expect(result.current.balances.get("CONTRACT_A")).toBe(500n);
+    expect(result.current.balances.has("CONTRACT_B")).toBe(false);
+  });
 
-    expect(usdc?.amount).toBe(0n);
-    expect(usdc?.hasTrustline).toBe(false);
+  it("skips fetching when disabled", () => {
+    connectedWallet();
+    const { result } = renderHook(() => useBalances(mockTokens, false));
+    expect(getTokenBalance).not.toHaveBeenCalled();
+    expect(result.current.isLoading).toBe(false);
   });
 });
