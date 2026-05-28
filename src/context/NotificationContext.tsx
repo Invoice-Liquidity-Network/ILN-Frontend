@@ -46,7 +46,11 @@ export interface NotificationItem {
 interface NotificationContextType {
   notifications: NotificationItem[];
   unreadCount: number;
-  setNotifications: (notifications: NotificationItem[]) => void;
+  setNotifications: (
+    notifications:
+      | NotificationItem[]
+      | ((previous: NotificationItem[]) => NotificationItem[]),
+  ) => void;
   addNotification: (
     notification: Omit<NotificationItem, "createdAt" | "read"> & {
       id?: string;
@@ -133,13 +137,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const setNotifications = useCallback(
-    (items: NotificationItem[]) => {
-      const withRead = applyReadState(
-        items.slice(0, MAX_NOTIFICATIONS),
-        readMap,
-      );
-      setNotificationsState(withRead);
-      persistNotifications(withRead);
+    (
+      items:
+        | NotificationItem[]
+        | ((previous: NotificationItem[]) => NotificationItem[]),
+    ) => {
+      setNotificationsState((previous) => {
+        const resolved =
+          typeof items === "function" ? items(previous) : items;
+        const withRead = applyReadState(
+          resolved.slice(0, MAX_NOTIFICATIONS),
+          readMap,
+        );
+        persistNotifications(withRead);
+        return withRead;
+      });
     },
     [readMap, persistNotifications],
   );
