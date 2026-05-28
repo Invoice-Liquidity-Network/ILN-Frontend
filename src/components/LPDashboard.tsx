@@ -15,6 +15,7 @@ import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "@/hooks/useInvoiceFilters";
 import { useInvoices } from "@/hooks/useInvoices";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
+import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 
 import {
   claimDefault,
@@ -35,6 +36,9 @@ import LPEarningsHistory from "./LPEarningsHistory";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
+import DisputeInvoiceModal from "./DisputeInvoiceModal";
+import LPTransferModal from "./LPTransferModal";
+import YieldAnalyticsChart from "./YieldAnalyticsChart";
 import type { DataTableColumn } from "./DataTable";
 
 
@@ -71,6 +75,9 @@ export default function LPDashboard() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
+  const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
+  const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
 
   const {
     filters,
@@ -181,6 +188,10 @@ export default function LPDashboard() {
     }
   };
 
+  const handleRiskFilter = (filterType: "at-risk" | "disputed" | "all") => {
+    setRiskFilter(filterType);
+  };
+
   const filteredInvoices = useMemo(
     () =>
       applyInvoiceFilters(invoices, filters, {
@@ -188,8 +199,9 @@ export default function LPDashboard() {
           const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
           return token?.symbol ?? "USDC";
         },
+        payerScores,
       }),
-    [defaultToken?.contractId, filters, invoices, tokenMap],
+    [defaultToken?.contractId, filters, invoices, tokenMap, payerScores],
   );
 
 
@@ -214,7 +226,31 @@ export default function LPDashboard() {
   }), [filteredInvoices, sortKey, sortOrder, payerRisks]);
 
   const discoveryInvoices = sortedInvoices.filter(i => i.status === "Pending");
-  const myFundedInvoices = sortedInvoices.filter(i => i.funder === address);
+  
+  const myFundedInvoicesBase = sortedInvoices.filter(i => i.funder === address);
+  const myFundedInvoices = useMemo(() => {
+    if (riskFilter === "all") return myFundedInvoicesBase;
+    
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + (24 * 60 * 60 * 1000);
+    
+    return myFundedInvoicesBase.filter(invoice => {
+      if (riskFilter === "disputed") {
+        return invoice.status === "Disputed";
+      }
+      
+      if (riskFilter === "at-risk") {
+        const dueDate = Number(invoice.due_date) * 1000;
+        const isNearExpiry = dueDate <= twentyFourHoursFromNow && dueDate > now;
+        const isOverdue = dueDate <= now;
+        const isDisputed = invoice.status === "Disputed";
+        
+        return isDisputed || isNearExpiry || isOverdue;
+      }
+      
+      return true;
+    });
+  }, [myFundedInvoicesBase, riskFilter]);
   
   const watchlistInvoices = sortedInvoices
     .filter(i => watchlist.some(w => w.id === i.id.toString()))
@@ -532,6 +568,46 @@ export default function LPDashboard() {
           defaultToken={defaultToken}
           walletAddress={address || null}
         />
+        <>
+          <div className="px-6 pt-4">
+            <YieldAnalyticsChart
+              invoices={invoices}
+              lpAddress={address ?? ""}
+              isLoading={loading}
+            />
+          </div>
+          <div className="px-6">
+            <LPRiskSummaryPanel 
+              invoices={myFundedInvoicesBase}
+              onFilterByRisk={handleRiskFilter}
+            />
+            {riskFilter !== "all" && (
+              <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">filter_alt</span>
+                  <span className="font-medium">
+                    Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
+                  </span>
+                </div>
+                <button
+                  onClick={() => setRiskFilter("all")}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
+          </div>
+          <LPPortfolio
+            invoices={myFundedInvoices}
+            isLoading={loading}
+            onClaimDefault={handleClaimDefault}
+            claimingInvoiceId={claimingInvoiceId}
+            tokenMap={tokenMap}
+            defaultToken={defaultToken}
+            onTransfer={(inv) => setTransferInvoice(inv)}
+          />
+        </>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -666,6 +742,15 @@ export default function LPDashboard() {
                             Fund
                           </button>
                         ) : (
+                          <>
+                            {invoice.status === "Funded" && address && invoice.payer === address && (
+                              <button
+                                onClick={() => setDisputeInvoice(invoice)}
+                                className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                Raise Dispute
+                              </button>
+                            )}
                           <div className="flex flex-col items-end gap-1">
                             <InvoiceStatusBadge status={invoice.status} />
                             {invoice.status !== "Pending" && (
@@ -675,6 +760,7 @@ export default function LPDashboard() {
                               </span>
                             )}
                           </div>
+                          </>
                         )}
                       </div>
                     </td>
@@ -698,6 +784,24 @@ export default function LPDashboard() {
           setSelectedInvoice(null);
         }}
       />
+
+      {/* Dispute Modal */}
+      {disputeInvoice && (
+        <DisputeInvoiceModal
+          invoice={disputeInvoice}
+          onClose={() => setDisputeInvoice(null)}
+          onSuccess={() => setDisputeInvoice(null)}
+        />
+      )}
+
+      {/* LP Transfer Modal */}
+      {transferInvoice && (
+        <LPTransferModal
+          invoice={transferInvoice}
+          onClose={() => setTransferInvoice(null)}
+          onSuccess={() => setTransferInvoice(null)}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { TokenAmount } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
 import { getTokenBalance } from "@/utils/soroban";
+import TestnetFaucetButton from "./TestnetFaucetButton";
 
 interface WalletBalance {
   contractId: string;
@@ -14,11 +15,23 @@ interface WalletBalance {
 }
 
 export default function WalletButton() {
-  const { address, isConnected, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, isInstalled, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
   const [balances, setBalances] = useState<WalletBalance[]>([]);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAddress = async () => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — nothing actionable to surface.
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -92,7 +105,21 @@ export default function WalletButton() {
               ) : null}
             </div>
           ) : null}
-          <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
+            <button
+              type="button"
+              onClick={() => void handleCopyAddress()}
+              aria-label="Copy wallet address"
+              title={copied ? "Copied!" : "Copy address"}
+              className="flex h-5 w-5 items-center justify-center rounded text-on-surface-variant hover:bg-surface-variant/50"
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {copied ? "check" : "content_copy"}
+              </span>
+            </button>
+          </div>
+          <TestnetFaucetButton />
         </div>
         <button
           onClick={disconnect}
@@ -113,6 +140,16 @@ export default function WalletButton() {
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
         Connect Wallet
       </button>
+      {!isInstalled && (
+        <a
+          href="https://www.freighter.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block text-right text-[11px] font-medium text-primary hover:underline"
+        >
+          Don&apos;t have Freighter? Install it →
+        </a>
+      )}
       {error && (
         <div className="absolute top-full right-0 mt-2 p-3 bg-error-container text-on-error-container text-xs rounded-lg shadow-xl border border-error/10 w-64 z-[60] animate-in slide-in-from-top-1 duration-200">
           <p className="font-bold flex items-center gap-1">

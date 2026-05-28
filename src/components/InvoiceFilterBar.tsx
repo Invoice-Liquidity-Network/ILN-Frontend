@@ -190,6 +190,37 @@ export default function InvoiceFilterBar({
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Min Payer Reputation
+              </p>
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={filters.minPayerReputation || "0"}
+                  onChange={(event) =>
+                    onFiltersChange((current) => ({ ...current, minPayerReputation: event.target.value }))
+                  }
+                  className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-xs text-on-surface-variant">
+                  <span>0</span>
+                  <span className="font-semibold text-on-surface">
+                    {filters.minPayerReputation || "0"}
+                  </span>
+                  <span>100</span>
+                </div>
+                {filters.minPayerReputation && Number(filters.minPayerReputation) > 0 && (
+                  <p className="text-xs text-on-surface-variant">
+                    Only showing invoices from payers with reputation ≥ {filters.minPayerReputation}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

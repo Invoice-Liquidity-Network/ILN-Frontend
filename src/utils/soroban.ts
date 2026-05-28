@@ -18,6 +18,11 @@ import {
   TESTNET_EURC_TOKEN_ID,
   TESTNET_USDC_TOKEN_ID,
 } from "@/constants";
+import {
+  parseAmountToUnits,
+  parseDiscountRateToBps,
+  toUnixTimestamp,
+} from "./invoiceSubmission";
 
 // ─── RPC & constants ──────────────────────────────────────────────────────────
 
@@ -72,6 +77,8 @@ export interface ReputationEvent {
   timestamp: number;
   score?: number;
 }
+
+export type WalletRole = "freelancer" | "payer" | "lp";
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
@@ -196,6 +203,37 @@ export async function getAllInvoices(): Promise<Invoice[]> {
     if (i > BigInt(1000)) break;
   }
   return invoices;
+}
+
+export async function getWalletRoles(address: string): Promise<WalletRole[]> {
+  const normalized = address.toLowerCase();
+  const invoices = await getAllInvoices();
+  const roles = new Set<WalletRole>();
+
+  for (const invoice of invoices) {
+    if (invoice.freelancer?.toLowerCase() === normalized) roles.add("freelancer");
+    if (invoice.payer?.toLowerCase() === normalized) roles.add("payer");
+    if (invoice.funder?.toLowerCase() === normalized) roles.add("lp");
+  }
+
+  return Array.from(roles);
+}
+
+export async function getNativeXlmBalance(address: string): Promise<number> {
+  const horizonUrl =
+    NETWORK_PASSPHRASE === "Public Global Stellar Network ; September 2015"
+      ? `https://horizon.stellar.org/accounts/${address}`
+      : `https://horizon-testnet.stellar.org/accounts/${address}`;
+
+  const response = await fetch(horizonUrl);
+  if (!response.ok) {
+    if (response.status === 404) return 0;
+    throw new Error("Failed to fetch XLM balance.");
+  }
+
+  const account = await response.json();
+  const nativeBalance = account.balances?.find((balance: { asset_type?: string }) => balance.asset_type === "native");
+  return Number(nativeBalance?.balance ?? 0);
 }
 
 export async function getApprovedTokenIds(): Promise<string[]> {
@@ -499,6 +537,44 @@ export async function appealDefault(
   return rpc.assembleTransaction(tx, sim).build();
 }
 
+// ─── Write: dispute invoice ───────────────────────────────────────────────────
+
+export async function disputeInvoice(
+  payer: string,
+  invoice_id: bigint,
+  reason_hash: string
+) {
+  const params: xdr.ScVal[] = [
+    nativeToScVal(invoice_id, { type: "u64" }),
+    nativeToScVal(reason_hash),
+  ];
+  const account = await server.getAccount(payer);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "dispute_invoice",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
 // ─── Write: claim default ─────────────────────────────────────────────────────
 
 export async function claimDefault(funder: string, invoice_id: bigint) {
@@ -752,6 +828,87 @@ export async function submitInvoiceTransaction({
     invoiceId: extractInvoiceIdFromTransaction(finalResult) ?? simulatedInvoiceId,
     txHash: sent.hash,
   };
+}
+
+// ─── Write: batch invoice submission ──────────────────────────────────────────
+
+export async function submitInvoicesBatch(
+  freelancer: string,
+  invoices: Array<{
+    payer: string;
+    amount: string;
+    dueDate: string;
+    discountRate: string;
+    tokenId: string;
+  }>,
+  signTx: (txXdr: string) => Promise<string>
+): Promise<Array<{ id: string; success: boolean; error?: string }>> {
+  const results: Array<{ id: string; success: boolean; error?: string }> = [];
+
+  // Process invoices in parallel batches of 5 to avoid overwhelming the network
+  const batchSize = 5;
+  for (let i = 0; i < invoices.length; i += batchSize) {
+    const batch = invoices.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (invoice, batchIndex) => {
+      const invoiceIndex = i + batchIndex;
+      try {
+        // Parse and validate invoice data
+        const amount = parseAmountToUnits(invoice.amount, 7);
+        const dueDate = toUnixTimestamp(invoice.dueDate);
+        const discountRate = parseDiscountRateToBps(invoice.discountRate);
+
+        if (!amount || !dueDate || !discountRate) {
+          throw new Error("Invalid invoice data");
+        }
+
+        // Submit individual invoice
+        const result = await submitInvoiceTransaction({
+          freelancer,
+          payer: invoice.payer,
+          amount,
+          dueDate,
+          discountRate,
+          signTx,
+          token: invoice.tokenId,
+        });
+
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: true,
+          invoiceId: result.invoiceId,
+          txHash: result.txHash,
+        };
+      } catch (error) {
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result) => {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+      } else {
+        results.push({
+          id: `invoice-${results.length + 1}`,
+          success: false,
+          error: result.reason?.message || "Batch processing failed",
+        });
+      }
+    });
+
+    // Add a small delay between batches to be respectful to the network
+    if (i + batchSize < invoices.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  return results;
 }
 
 // ─── Write: token approve ─────────────────────────────────────────────────────

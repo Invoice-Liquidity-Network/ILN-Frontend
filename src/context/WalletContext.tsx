@@ -1,8 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
+import { getWalletRoles, type WalletRole } from "@/utils/soroban";
+import { trackEvent } from "@/lib/analytics";
+import { clearWalletStorage, WALLET_ADDRESS_STORAGE_KEY } from "@/utils/walletStorage";
+import WalletSelectionModal from "@/components/WalletSelectionModal";
 import { useToast } from "./ToastContext";
 
 interface WalletContextType {
@@ -11,6 +16,8 @@ interface WalletContextType {
   isInstalled: boolean;
   error: string | null;
   networkMismatch: boolean;
+  roles: WalletRole[];
+  rolesLoading: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   signTx: (txXdr: string) => Promise<string>;
@@ -18,7 +25,7 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-const STORAGE_KEY = "iln_wallet_address";
+const STORAGE_KEY = WALLET_ADDRESS_STORAGE_KEY;
 
 function extractConnectionState(result: unknown): boolean {
   if (typeof result === "boolean") {
@@ -59,10 +66,15 @@ function extractAllowedState(result: unknown): boolean {
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast, updateToast } = useToast();
+  const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
+  const [roles, setRoles] = useState<WalletRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  // Which provider to connect with is chosen in the selection modal (#2).
+  const [isSelectingProvider, setIsSelectingProvider] = useState(false);
 
   const checkNetwork = useCallback(async () => {
     try {
@@ -106,16 +118,53 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [checkConnection]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function detectRoles(walletAddress: string) {
+      setRolesLoading(true);
+      try {
+        const nextRoles = await getWalletRoles(walletAddress);
+        if (!cancelled) setRoles(nextRoles);
+      } catch (roleError) {
+        console.error("Failed to detect wallet roles", roleError);
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setRolesLoading(false);
+      }
+    }
+
+    if (!address || networkMismatch) {
+      setRoles([]);
+      setRolesLoading(false);
+      return;
+    }
+
+    void detectRoles(address);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, networkMismatch]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       if (address) checkNetwork();
     }, 5000);
     return () => clearInterval(interval);
   }, [address, checkNetwork]);
 
+  // Opening the wallet picker is what "Connect Wallet" now triggers (#2); the
+  // actual per-provider connect runs once the user chooses.
   const connect = async () => {
     setError(null);
+    setIsSelectingProvider(true);
+  };
+
+  const connectFreighter = async () => {
+    setIsSelectingProvider(false);
+    setError(null);
     const toastId = addToast({ type: "pending", title: "Connecting to Freighter..." });
-    
+
     try {
       const installed = extractConnectionState(await isConnected());
       if (!installed) {
@@ -147,6 +196,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             updateToast(toastId, { type: "error", title: "Network Mismatch", message: networkMsg });
           } else {
             updateToast(toastId, { type: "success", title: "Connected", message: `Connected as ${address.substring(0, 6)}...` });
+            trackEvent("wallet_connected", { provider: "freighter", network: NETWORK_NAME });
           }
         }
       } else {
@@ -163,11 +213,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const disconnect = () => {
+    // Clear all in-memory wallet state...
     setAddress(null);
     setNetworkMismatch(false);
     setError(null);
-    localStorage.removeItem(STORAGE_KEY);
+    setRoles([]);
+    setRolesLoading(false);
+    setIsSelectingProvider(false);
+    // ...and every persisted/cached trace of the session (#4).
+    clearWalletStorage();
+    trackEvent("wallet_disconnected");
     addToast({ type: "success", title: "Disconnected" });
+    // Leave any wallet-gated view for the public home page.
+    router.push("/");
   };
 
   const signTx = async (txXdr: string) => {
@@ -204,12 +262,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isInstalled,
         error,
         networkMismatch,
-        connect, 
-        disconnect, 
-        signTx 
+        roles,
+        rolesLoading,
+        connect,
+        disconnect,
+        signTx
       }}
     >
       {children}
+      {isSelectingProvider ? (
+        <WalletSelectionModal
+          onClose={() => setIsSelectingProvider(false)}
+          onSelectFreighter={() => void connectFreighter()}
+        />
+      ) : null}
     </WalletContext.Provider>
   );
 };
