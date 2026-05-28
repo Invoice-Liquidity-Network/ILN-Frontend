@@ -113,4 +113,17 @@ describe("LPDashboard snapshots", () => {
     expect(screen.queryByText(`#${invoiceFixtures.pending.id.toString()}`)).not.toBeInTheDocument();
     expect(asFragment()).toMatchSnapshot();
   });
+
+  it("renders the earnings history tab with export controls", async () => {
+    render(<LPDashboard />);
+
+    fireEvent.click(await screen.findByText("Earnings History"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Earnings History")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Export CSV/i })).toBeInTheDocument();
+      expect(screen.getByText("Settlement Date")).toBeInTheDocument();
+      expect(screen.getByText("#4")).toBeInTheDocument();
+    });
+  });
 });

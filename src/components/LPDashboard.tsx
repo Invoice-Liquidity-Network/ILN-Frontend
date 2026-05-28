@@ -29,13 +29,14 @@ import LPPortfolio from "./LPPortfolio";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
+import LPEarningsHistory from "./LPEarningsHistory";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import type { DataTableColumn } from "./DataTable";
 
 
-type Tab = "discovery" | "my-funded" | "watchlist";
+type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
 
 
 
@@ -461,6 +462,16 @@ export default function LPDashboard() {
           >
             {t("lpDashboard.tabs.myFunded")}
           </button>
+          <button
+            onClick={() => setActiveTab("earnings-history")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "earnings-history"
+                ? "bg-primary text-surface-container-lowest shadow-md"
+                : "text-on-surface-variant hover:bg-surface-variant/30"
+            }`}
+          >
+            Earnings History
+          </button>
         </div>
 
         {selectedInvoiceIds.length >= 2 && (
@@ -502,6 +513,13 @@ export default function LPDashboard() {
           claimingInvoiceId={claimingInvoiceId}
           tokenMap={tokenMap}
           defaultToken={defaultToken}
+        />
+      ) : activeTab === "earnings-history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+          walletAddress={address || null}
         />
       ) : (
         <div className="overflow-x-auto">
