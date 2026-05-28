@@ -15,7 +15,10 @@ import { formatDate } from "@/utils/format";
 import { isOracleVerifiedAddress } from "@/utils/oracleVerification";
 import ProfileActivityChart from "@/components/ProfileActivityChart";
 import ProfileRecentInvoices from "@/components/ProfileRecentInvoices";
-import VerificationBadge from "@/components/VerificationBadge";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
+import { ScoreSimulator } from "@/components/profile/ScoreSimulator";
+import OracleBadge from "@/components/OracleBadge";
+import { DecayWarningBanner } from "@/components/DecayWarningBanner";
 
 interface ScoreHistoryPoint {
   period: string;
@@ -104,7 +107,10 @@ export default function ProfilePage() {
 
   const lastActiveInvoice = useMemo(() => {
     const relevant = invoices.filter(
-      (invoice) => invoice.freelancer === address || invoice.payer === address || invoice.funder === address,
+      (invoice) =>
+        invoice.freelancer === address ||
+        invoice.payer === address ||
+        invoice.funder === address,
     );
     if (relevant.length === 0) return null;
     return relevant.reduce((latest, invoice) => {
@@ -120,7 +126,8 @@ export default function ProfilePage() {
       invoices_submitted: reputation?.invoices_submitted ?? submittedInvoices.length,
       invoices_paid: reputation?.invoices_paid ?? payerInvoices.filter((invoice) => invoice.status === "Paid").length,
       invoices_defaulted:
-        reputation?.invoices_defaulted ?? payerInvoices.filter((invoice) => invoice.status === "Defaulted").length,
+        reputation?.invoices_defaulted ??
+        payerInvoices.filter((invoice) => invoice.status === "Defaulted").length,
     };
   }, [payerInvoices, reputation, submittedInvoices.length]);
 
@@ -130,7 +137,10 @@ export default function ProfilePage() {
       .map((event) => {
         const timestamp = eventTimestampMs(event);
         return {
-          period: new Date(timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          period: new Date(timestamp).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
           score: event.score ?? 0,
           timestamp,
         };
@@ -155,7 +165,7 @@ export default function ProfilePage() {
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-semibold text-on-surface">{resolvedAddress}</h1>
-                <VerificationBadge verified={isOracleVerifiedAddress(address)} />
+                <OracleBadge verified={false} />
               </div>
               <p className="mt-2 break-all font-mono text-sm text-on-surface-variant">{address}</p>
               <p className="mt-2 text-sm text-on-surface-variant">
@@ -168,6 +178,9 @@ export default function ProfilePage() {
               <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Last active</p>
               <p className="mt-1 text-lg font-semibold text-on-surface">{lastActiveLabel}</p>
             </div>
+          </div>
+          <div className="mt-4">
+            <DecayWarningBanner address={address} />
           </div>
 
           {error && (
@@ -211,6 +224,8 @@ export default function ProfilePage() {
               </div>
             </section>
 
+            {!loading && <ActivityHeatmap address={address} invoices={invoices} />}
+
             {scoreHistory.length > 1 ? (
               <ProfileActivityChart data={scoreHistory} />
             ) : (
@@ -223,17 +238,25 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6">
-            <div>
-              <h2 className="text-xl font-semibold text-on-surface">Recent invoice activity</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Most recent invoice activity as submitter or payer.
-              </p>
-            </div>
-            <div className="mt-6">
-              <ProfileRecentInvoices invoices={recentInvoices} address={address} />
-            </div>
-          </section>
+          <div className="space-y-4">
+            <ScoreSimulator
+              currentPaid={reputationSummary.invoices_paid}
+              currentSubmitted={reputationSummary.invoices_submitted}
+              currentDefaulted={reputationSummary.invoices_defaulted}
+            />
+
+            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6">
+              <div>
+                <h2 className="text-xl font-semibold text-on-surface">Recent invoice activity</h2>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Most recent invoice activity as submitter or payer.
+                </p>
+              </div>
+              <div className="mt-6">
+                <ProfileRecentInvoices invoices={recentInvoices} address={address} />
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </main>
