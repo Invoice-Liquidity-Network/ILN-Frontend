@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ActivityFeed from "@/components/ActivityFeed";
 import CancelInvoiceButton from "@/components/CancelInvoiceButton";
-import InvoicePdfButton from "@/components/InvoicePdfButton";
+import DynamicInvoicePdfButton from "@/components/DynamicInvoicePdfButton";
 import ShareInvoiceButton from "@/components/ShareInvoiceButton";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import { useWallet } from "@/context/WalletContext";
@@ -78,7 +78,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {/* PDF export is available for every invoice state (#21). */}
-              <InvoicePdfButton
+              <DynamicInvoicePdfButton
                 invoice={invoice}
                 data={{
                   tokenSymbol,

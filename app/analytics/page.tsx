@@ -21,9 +21,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import type { Metadata } from "next";
 import { NETWORK_NAME } from "@/constants";
 import { getAllInvoices, Invoice } from "@/utils/soroban";
-import AmountHistogram from "@/components/charts/AmountHistogram";
-import FundingChart from "@/components/charts/FundingChart";
-import DefaultRateChart from "@/components/charts/DefaultRateChart";
+import DynamicAmountHistogram from "@/components/charts/DynamicAmountHistogram";
+import DynamicFundingChart from "@/components/charts/DynamicFundingChart";
+import DynamicDefaultRateChart from "@/components/charts/DynamicDefaultRateChart";
 import { ExportButton } from "@/components/ExportButton";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -542,7 +542,7 @@ export default function AnalyticsPage() {
               </span>
             </SectionHeading>
 
-            <FundingChart />
+            <DynamicFundingChart />
           </section>
 
           {/* ── Default Rate Trend ──────────────────────────────────────────────── */}
@@ -554,7 +554,7 @@ export default function AnalyticsPage() {
               <span id="default-rate-heading">Protocol Health</span>
             </SectionHeading>
 
-            <DefaultRateChart />
+            <DynamicDefaultRateChart />
           </section>
 
           {/* ── Invoice Size Distribution ───────────────────────────────── */}
@@ -566,7 +566,7 @@ export default function AnalyticsPage() {
               <span id="histogram-heading">Amount Distribution</span>
             </SectionHeading>
 
-            <AmountHistogram invoices={data?.invoices || []} />
+            <DynamicAmountHistogram invoices={data?.invoices || []} />
           </section>
 
           {/* ── Footer note ───────────────────────────────────────────────── */}
