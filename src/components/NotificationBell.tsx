@@ -2,29 +2,45 @@
 
 import { useEffect, useState } from "react";
 import { useWallet } from "@/context/WalletContext";
-import { useNotification, type NotificationItem } from "@/context/NotificationContext";
+import {
+  useNotification,
+  type NotificationItem,
+} from "@/context/NotificationContext";
+import { MAX_NOTIFICATIONS } from "@/utils/notificationHelpers";
 import NotificationDrawer from "./NotificationDrawer";
 
 interface ExternalNotification {
   id: string;
+  category?: NotificationItem["category"];
   type: string;
   title: string;
   message: string;
+  href?: string;
   createdAt: string;
   read: boolean;
 }
 
 function mergeNotifications(
-  existing: ExternalNotification[],
+  existing: NotificationItem[],
   incoming: ExternalNotification[],
-): ExternalNotification[] {
+  isRead: (id: string) => boolean,
+): NotificationItem[] {
   const map = new Map(existing.map((notification) => [notification.id, notification]));
 
   incoming.forEach((notification) => {
-    const existingNotification = map.get(notification.id);
+    const category =
+      notification.category ??
+      (notification.type === "proposal" ? "governance" : "invoice");
+    const href = notification.href ?? "/dashboard";
     map.set(notification.id, {
-      ...notification,
-      read: existingNotification?.read ?? notification.read,
+      id: notification.id,
+      category,
+      type: notification.type as NotificationItem["type"],
+      title: notification.title,
+      message: notification.message,
+      href,
+      createdAt: notification.createdAt,
+      read: isRead(notification.id) || notification.read,
     });
   });
 
@@ -33,63 +49,58 @@ function mergeNotifications(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-    .slice(0, 20);
+    .slice(0, MAX_NOTIFICATIONS);
 }
 
 export default function NotificationBell() {
-  const { address } = useWallet();
-  const {
-    notifications,
-    setNotifications,
-    unreadCount,
-    markAllAsRead,
-  } = useNotification();
+  const { address, isConnected } = useWallet();
+  const { setNotifications, unreadCount, isRead } = useNotification();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (!address) return;
+
     let active = true;
 
     const fetchNotifications = async () => {
-      if (!address) return;
-
       const res = await fetch(`/api/notifications/${address}`);
       if (!active || !res.ok) return;
 
       const data = (await res.json()) as ExternalNotification[];
-      const merged = mergeNotifications(notifications as unknown as ExternalNotification[], data);
-      setNotifications(merged as unknown as NotificationItem[]);
+      setNotifications((current) => mergeNotifications(current, data, isRead));
     };
 
     fetchNotifications();
+    const interval = window.setInterval(fetchNotifications, 60_000);
 
-    const interval = window.setInterval(fetchNotifications, 60000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [address, setNotifications]);
+  }, [address, isRead, setNotifications]);
+
+  if (!isConnected) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" data-tour="notifications-bell">
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((value) => !value)}
         aria-label="Open notifications"
-        className="relative rounded-full p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+        aria-expanded={open}
+        className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
-        🔔
+        <span className="material-symbols-outlined text-on-surface-variant">
+          notifications
+        </span>
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
-            {unreadCount}
+          <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error">
+            {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
-      {open && (
-        <NotificationDrawer
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && <NotificationDrawer onClose={() => setOpen(false)} />}
     </div>
   );
 }
