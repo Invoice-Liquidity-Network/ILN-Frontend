@@ -141,6 +141,38 @@ function extractInvoiceIdFromTransaction(result: unknown): bigint | null {
   return null;
 }
 
+function getSimulationError(result: unknown): string {
+  if (result && typeof result === "object" && "error" in result) {
+    return String((result as { error?: unknown }).error);
+  }
+  return "Unknown simulation error.";
+}
+
+function toBigIntValue(value: unknown): bigint {
+  if (
+    typeof value === "bigint" ||
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  ) {
+    return BigInt(value);
+  }
+
+  return BigInt(String(value));
+}
+
+function unwrapResultBigInt(value: unknown): bigint {
+  if (value && typeof value === "object" && "ok" in value) {
+    return toBigIntValue((value as { ok: unknown }).ok);
+  }
+
+  if (value && typeof value === "object" && "Ok" in value) {
+    return toBigIntValue((value as { Ok: unknown }).Ok);
+  }
+
+  return toBigIntValue(value);
+}
+
 async function readTokenContractValue(tokenId: string, method: string): Promise<unknown> {
   const callResult = await server.simulateTransaction(buildReadTransaction(tokenId, method, []));
   if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
@@ -707,7 +739,7 @@ export async function submitInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   // Extract the predicted invoice ID from simulation retval
@@ -715,19 +747,13 @@ export async function submitInvoice(
   try {
     const raw = scValToNative(sim.result!.retval);
     // Contract returns Result<u64, Error> — unwrap Ok variant
-    if (raw && typeof raw === "object" && "ok" in raw) {
-      invoiceId = BigInt((raw as any).ok);
-    } else if (raw && typeof raw === "object" && "Ok" in raw) {
-      invoiceId = BigInt((raw as any).Ok);
-    } else {
-      invoiceId = BigInt(raw as any);
-    }
-  } catch (_) {
+    invoiceId = unwrapResultBigInt(raw);
+  } catch {
     // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any, invoiceId };
+  return { tx: finalTx, invoiceId };
 }
 
 export interface UpdateInvoiceArgs {
@@ -771,17 +797,17 @@ export async function updateInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function cancelInvoice(
   freelancer: string,
   invoiceId: bigint
-): Promise<{ tx: any }> {
+): Promise<{ tx: Transaction }> {
   // Use a default sequence number / account for preparing or real one if needed
   let account: Account;
   try {
@@ -804,11 +830,11 @@ export async function cancelInvoice(
 
   const sim = await server.simulateTransaction(txUrl);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(txUrl, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function submitInvoiceTransaction({
@@ -874,6 +900,8 @@ export async function submitInvoiceTransaction({
   if (finalResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
     throw new Error(`Transaction failed with status ${String(finalResult.status)}.`);
   }
+
+  notifyWalletBalancesChanged();
 
   return {
     invoiceId: extractInvoiceIdFromTransaction(finalResult) ?? simulatedInvoiceId,
@@ -1041,5 +1069,6 @@ export async function submitSignedTransaction({
   if (finalResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
     throw new Error(`Transaction failed with status ${String(finalResult.status)}.`);
   }
+  notifyWalletBalancesChanged();
   return { txHash: sent.hash };
 }
