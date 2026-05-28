@@ -54,12 +54,7 @@ function mergeNotifications(
 
 export default function NotificationBell() {
   const { address, isConnected } = useWallet();
-  const {
-    notifications,
-    setNotifications,
-    unreadCount,
-    isRead,
-  } = useNotification();
+  const { setNotifications, unreadCount, isRead } = useNotification();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -72,8 +67,7 @@ export default function NotificationBell() {
       if (!active || !res.ok) return;
 
       const data = (await res.json()) as ExternalNotification[];
-      const merged = mergeNotifications(notifications, data, isRead);
-      setNotifications(merged);
+      setNotifications((current) => mergeNotifications(current, data, isRead));
     };
 
     fetchNotifications();
@@ -83,7 +77,7 @@ export default function NotificationBell() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [address, isRead, notifications, setNotifications]);
+  }, [address, isRead, setNotifications]);
 
   if (!isConnected) return null;
 
