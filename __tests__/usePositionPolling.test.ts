@@ -9,7 +9,7 @@ describe("usePositionPolling", () => {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 
-  const mockNotification = jest.fn<NotificationItem, [Omit<NotificationItem, "id" | "createdAt" | "read">]>((notification) => {
+  const mockNotification = jest.fn<NotificationItem, [Omit<NotificationItem, "createdAt" | "read">]>((notification) => {
     return {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
