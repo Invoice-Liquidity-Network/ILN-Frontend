@@ -1,60 +1,98 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { Invoice } from "@/utils/soroban";
-import {
-  calculateDutchAuctionState,
-  formatAuctionCountdown,
-  getDutchAuctionTerms,
-} from "@/utils/dutchAuction";
+import { useState, useEffect, useRef } from "react";
 
-export default function AuctionRateTicker({ invoice }: { invoice: Invoice }) {
-  const terms = useMemo(() => getDutchAuctionTerms(invoice), [invoice]);
-  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
+export interface AuctionRateProps {
+  startRate: number;
+  minRate: number;
+  auctionStartTime: number;
+  auctionDurationSeconds: number;
+}
+
+/**
+ * Returns the current auction rate in bps based on elapsed time.
+ * Rate decreases linearly from startRate to minRate over the auction duration.
+ */
+export function calculateCurrentRate(
+  startRate: number,
+  minRate: number,
+  auctionStartTime: number,
+  auctionDurationSeconds: number,
+  nowMs: number = Date.now(),
+): number {
+  const elapsed = (nowMs / 1000 - auctionStartTime);
+  if (elapsed <= 0) return startRate;
+  if (elapsed >= auctionDurationSeconds) return minRate;
+  const progress = elapsed / auctionDurationSeconds;
+  return Math.round(startRate - (startRate - minRate) * progress);
+}
+
+export default function AuctionRateTicker({
+  startRate,
+  minRate,
+  auctionStartTime,
+  auctionDurationSeconds,
+}: AuctionRateProps) {
+  const [currentRate, setCurrentRate] = useState(() =>
+    calculateCurrentRate(startRate, minRate, auctionStartTime, auctionDurationSeconds),
+  );
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!terms) return;
-    const interval = window.setInterval(() => {
-      setNowSeconds(Math.floor(Date.now() / 1000));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [terms]);
+    function tick() {
+      const now = Date.now();
+      setCurrentRate(calculateCurrentRate(startRate, minRate, auctionStartTime, auctionDurationSeconds, now));
+      const endTime = (auctionStartTime + auctionDurationSeconds) * 1000;
+      setSecondsLeft(Math.max(0, Math.round((endTime - now) / 1000)));
+    }
 
-  if (!terms) {
-    return (
-      <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
-        {(invoice.discount_rate / 100).toFixed(2)}%
-      </span>
-    );
-  }
+    tick();
+    rafRef.current = setInterval(tick, 1000);
+    return () => {
+      if (rafRef.current) clearInterval(rafRef.current);
+    };
+  }, [startRate, minRate, auctionStartTime, auctionDurationSeconds]);
 
-  const state = calculateDutchAuctionState(terms, nowSeconds);
-  const endTime = new Date(terms.endsAt * 1000).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const progress = startRate === minRate
+    ? 1
+    : (startRate - currentRate) / (startRate - minRate);
+
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  const isExpired = secondsLeft === 0;
 
   return (
-    <div className="min-w-[180px] max-w-[240px]" aria-label="Dutch auction rate">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 shadow-sm">
-        <div className="text-xs font-bold">
-          Current Rate: {state.currentRateBps} bps
-        </div>
-        <div className="mt-0.5 text-[11px] leading-4">
-          decreasing to {state.minRateBps} bps by {endTime}
-        </div>
-        <div className="mt-2 h-1.5 rounded-full bg-amber-200" aria-hidden="true">
-          <div
-            className="h-full rounded-full bg-amber-600 transition-all duration-500"
-            style={{ width: `${state.progressPercent}%` }}
-          />
-        </div>
-        <div className="mt-2 text-[11px] font-semibold">
-          {state.isComplete
-            ? "Minimum rate reached"
-            : `Act now - rate decreases in ${formatAuctionCountdown(state.secondsUntilNextDecrease)}`}
-        </div>
+    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2" data-testid="auction-rate-ticker">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-amber-800 font-semibold">Current Rate</span>
+        <span className="text-amber-900 font-bold tabular-nums" data-testid="current-rate">
+          {currentRate} bps
+          <span className="text-xs font-normal text-amber-600 ml-1">
+            (decreasing to {minRate} bps)
+          </span>
+        </span>
       </div>
+
+      <div className="w-full bg-amber-200 rounded-full h-1.5" role="progressbar" aria-valuenow={currentRate} aria-valuemin={minRate} aria-valuemax={startRate} aria-label="Auction rate progress">
+        <div
+          className="bg-amber-500 h-1.5 rounded-full transition-all duration-1000"
+          style={{ width: `${(1 - progress) * 100}%` }}
+        />
+      </div>
+
+      {!isExpired ? (
+        <p className="text-xs text-amber-700 font-medium" data-testid="urgency-label">
+          Act now — rate decreases in{" "}
+          <span className="font-bold tabular-nums">
+            {minutes}m {seconds.toString().padStart(2, "0")}s
+          </span>
+        </p>
+      ) : (
+        <p className="text-xs text-amber-700 font-medium" data-testid="urgency-label">
+          Auction at minimum rate ({minRate} bps)
+        </p>
+      )}
     </div>
   );
 }
