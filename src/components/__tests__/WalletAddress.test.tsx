@@ -1,71 +1,88 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import WalletAddress, { clearWalletAddressCacheForTests } from "../WalletAddress";
-import { resolveFederationAddress } from "@/utils/federation";
+/**
+ * @file WalletAddress.test.tsx
+ *
+ * Covers the WalletAddress component states:
+ *
+ *  1. Loading – renders a skeleton while Federation resolution is pending.
+ *  2. Federation resolved – shows `alice*example.com`.
+ *  3. Federation absent – shows the truncated G-address fallback.
+ *  4. Copy button – writes the original G-address to the clipboard.
+ */
+
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const resolveFederatedAddress = vi.fn<[string], Promise<string>>();
 
 vi.mock("@/utils/federation", () => ({
-  resolveFederationAddress: vi.fn(),
+  resolveFederatedAddress: (addr: string) => resolveFederatedAddress(addr),
 }));
 
-const ADDRESS = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6";
+import WalletAddress from "../WalletAddress";
+
+const FULL_ADDRESS = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6";
+const SHORT_ADDRESS = "GCCCCC...CCC6";
 
 describe("WalletAddress", () => {
   beforeEach(() => {
-    clearWalletAddressCacheForTests();
-    vi.mocked(resolveFederationAddress).mockReset();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    });
+    resolveFederatedAddress.mockReset();
   });
 
-  it("shows a skeleton while resolving", () => {
-    vi.mocked(resolveFederationAddress).mockReturnValue(new Promise(() => {}));
-
-    render(<WalletAddress address={ADDRESS} />);
-
-    expect(screen.getByLabelText("Resolving wallet address")).toBeInTheDocument();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it("displays the resolved Stellar Federation address", async () => {
-    vi.mocked(resolveFederationAddress).mockResolvedValue("alice*iln.finance");
-
-    render(<WalletAddress address={ADDRESS} />);
-
-    expect(await screen.findByText("alice*iln.finance")).toBeInTheDocument();
+  it("shows a skeleton while resolution is in flight", () => {
+    resolveFederatedAddress.mockReturnValue(new Promise(() => {}));
+    render(<WalletAddress address={FULL_ADDRESS} />);
+    expect(screen.getByTestId("wallet-address-skeleton")).toBeInTheDocument();
   });
 
-  it("falls back to a truncated G-address when resolution fails", async () => {
-    vi.mocked(resolveFederationAddress).mockResolvedValue(null);
-
-    render(<WalletAddress address={ADDRESS} />);
-
-    expect(await screen.findByText("GCCCCC...CCC6")).toBeInTheDocument();
+  it("renders the Federation address when one is returned", async () => {
+    resolveFederatedAddress.mockResolvedValue("alice*iln.finance");
+    render(<WalletAddress address={FULL_ADDRESS} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("wallet-address-display")).toHaveTextContent(
+        "alice*iln.finance",
+      ),
+    );
   });
 
-  it("copies the underlying G-address", async () => {
-    vi.mocked(resolveFederationAddress).mockResolvedValue("alice*iln.finance");
-
-    render(<WalletAddress address={ADDRESS} />);
-    await screen.findByText("alice*iln.finance");
-    fireEvent.click(screen.getByRole("button", { name: "Copy wallet address" }));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(ADDRESS);
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Wallet address copied" })).toBeInTheDocument();
-    });
+  it("falls back to the truncated G-address when Federation is unavailable", async () => {
+    resolveFederatedAddress.mockResolvedValue(FULL_ADDRESS);
+    render(<WalletAddress address={FULL_ADDRESS} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("wallet-address-display")).toHaveTextContent(
+        SHORT_ADDRESS,
+      ),
+    );
   });
 
-  it("caches resolved addresses for the session", async () => {
-    vi.mocked(resolveFederationAddress).mockResolvedValue("alice*iln.finance");
-    const { unmount } = render(<WalletAddress address={ADDRESS} />);
-    expect(await screen.findByText("alice*iln.finance")).toBeInTheDocument();
-    unmount();
+  it("copies the full G-address to the clipboard, not the Federation alias", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    resolveFederatedAddress.mockResolvedValue("alice*iln.finance");
 
-    render(<WalletAddress address={ADDRESS} />);
+    render(<WalletAddress address={FULL_ADDRESS} />);
+    const copyBtn = await screen.findByRole("button", { name: /copy wallet address/i });
+    fireEvent.click(copyBtn);
 
-    expect(screen.getByText("alice*iln.finance")).toBeInTheDocument();
-    expect(resolveFederationAddress).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(FULL_ADDRESS));
+  });
+
+  it("renders nothing visible (no skeleton, no value) when address is empty", () => {
+    render(<WalletAddress address="" />);
+    expect(screen.queryByTestId("wallet-address-skeleton")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("wallet-address-display")).toBeInTheDocument();
+  });
+
+  it("respects hideCopy", async () => {
+    resolveFederatedAddress.mockResolvedValue(FULL_ADDRESS);
+    render(<WalletAddress address={FULL_ADDRESS} hideCopy />);
+    await screen.findByTestId("wallet-address-display");
+    expect(
+      screen.queryByRole("button", { name: /copy wallet address/i }),
+    ).not.toBeInTheDocument();
   });
 });

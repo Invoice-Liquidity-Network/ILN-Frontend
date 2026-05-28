@@ -1,123 +1,100 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Copy, Check } from "lucide-react";
+import { resolveFederatedAddress } from "@/utils/federation";
 import { formatAddress } from "@/utils/format";
-import { resolveFederationAddress } from "@/utils/federation";
 
-interface WalletAddressProps {
+export interface WalletAddressProps {
   address: string;
+  /** When true, show only the resolved/truncated text without the copy icon. */
+  hideCopy?: boolean;
+  /** Optional className applied to the outer span. */
   className?: string;
-  showCopy?: boolean;
+  /** Override the truncation/formatting of the fallback G-address. */
+  truncate?: (address: string) => string;
 }
 
-type ResolutionState = "loading" | "resolved" | "fallback";
-
-const federationCache = new Map<string, string | null>();
-
-export function clearWalletAddressCacheForTests() {
-  federationCache.clear();
-}
-
+/**
+ * WalletAddress renders a Stellar G-address as a human-readable identifier when
+ * a Federation address is discoverable, falling back to a truncated G-address.
+ *
+ * Resolution is cached at the module level (see resolveFederatedAddress), so
+ * repeated renders for the same address never re-hit Horizon within a session.
+ */
 export default function WalletAddress({
   address,
+  hideCopy = false,
   className = "",
-  showCopy = true,
+  truncate = formatAddress,
 }: WalletAddressProps) {
-  const [state, setState] = useState<ResolutionState>(() =>
-    federationCache.has(address) ? "resolved" : "loading",
-  );
-  const [federationAddress, setFederationAddress] = useState<string | null>(() =>
-    federationCache.get(address) ?? null,
-  );
+  const [resolved, setResolved] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(Boolean(address));
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!address) return;
     let cancelled = false;
-
-    if (!address) {
-      void Promise.resolve().then(() => {
-        if (cancelled) return;
-        setState("fallback");
-        setFederationAddress(null);
-      });
-      return;
-    }
-
-    if (federationCache.has(address)) {
-      const cached = federationCache.get(address) ?? null;
-      void Promise.resolve().then(() => {
-        if (cancelled) return;
-        setFederationAddress(cached);
-        setState(cached ? "resolved" : "fallback");
-      });
-      return;
-    }
-
-    void Promise.resolve().then(() => {
-      if (cancelled) return;
-      setState("loading");
-      setFederationAddress(null);
-    });
-
-    void resolveFederationAddress(address)
-      .then((resolved) => {
-        if (cancelled) return;
-        federationCache.set(address, resolved);
-        setFederationAddress(resolved);
-        setState(resolved ? "resolved" : "fallback");
+    resolveFederatedAddress(address)
+      .then((value) => {
+        if (!cancelled) {
+          setResolved(value);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        if (cancelled) return;
-        federationCache.set(address, null);
-        setFederationAddress(null);
-        setState("fallback");
+        if (!cancelled) {
+          setResolved(address);
+          setLoading(false);
+        }
       });
-
     return () => {
       cancelled = true;
     };
   }, [address]);
 
-  const displayValue = useMemo(
-    () => federationAddress ?? formatAddress(address),
-    [address, federationAddress],
-  );
+  if (!address) {
+    return <span className={className} data-testid="wallet-address-display" />;
+  }
 
-  const copyAddress = async () => {
+  if (loading) {
+    return (
+      <span
+        className={`skeleton-cell inline-block h-4 w-32 align-middle ${className}`}
+        aria-busy="true"
+        aria-label="Resolving wallet address"
+        data-testid="wallet-address-skeleton"
+      />
+    );
+  }
+
+  const isFederated =
+    typeof resolved === "string" && resolved.includes("*") && resolved !== address;
+  const displayValue = isFederated ? resolved! : truncate(address);
+
+  const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      setCopied(false);
+      // Silent failure — clipboard may be unavailable (e.g. insecure context).
     }
   };
 
-  if (state === "loading") {
-    return (
-      <span
-        aria-label="Resolving wallet address"
-        className={`inline-flex h-5 w-28 animate-pulse rounded bg-surface-dim ${className}`}
-      />
-    );
-  }
-
   return (
-    <span className={`inline-flex items-center gap-1.5 ${className}`}>
-      <span className="font-mono" title={address}>
+    <span className={`inline-flex items-center gap-1 font-mono ${className}`}>
+      <span title={address} data-testid="wallet-address-display">
         {displayValue}
       </span>
-      {showCopy && (
+      {!hideCopy && (
         <button
           type="button"
-          onClick={copyAddress}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-          aria-label={copied ? "Wallet address copied" : "Copy wallet address"}
-          title={copied ? "Copied" : "Copy wallet address"}
+          onClick={handleCopy}
+          aria-label={copied ? "Address copied" : "Copy wallet address"}
+          className="rounded p-1 text-on-surface-variant transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <span className="material-symbols-outlined text-[14px]">
-            {copied ? "check" : "content_copy"}
-          </span>
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       )}
     </span>
