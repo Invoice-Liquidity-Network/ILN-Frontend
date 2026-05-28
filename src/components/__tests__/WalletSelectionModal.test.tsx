@@ -1,50 +1,34 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import WalletSelectionModal from "../WalletSelectionModal";
 
-describe("WalletSelectionModal", () => {
-  it("renders Freighter and WalletConnect options", () => {
-    render(
-      <WalletSelectionModal
-        isOpen
-        walletConnectConfigured
-        onClose={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
+afterEach(() => vi.unstubAllEnvs());
 
-    expect(screen.getByRole("dialog", { name: /connect wallet/i })).toBeInTheDocument();
+describe("WalletSelectionModal (#2)", () => {
+  it("offers Freighter and WalletConnect options", () => {
+    render(<WalletSelectionModal onClose={vi.fn()} onSelectFreighter={vi.fn()} />);
     expect(screen.getByRole("button", { name: /freighter/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /walletconnect/i })).toBeInTheDocument();
-    expect(screen.getByText(/qr code/i)).toBeInTheDocument();
   });
 
-  it("returns the selected provider", () => {
-    const onSelect = vi.fn();
-    render(
-      <WalletSelectionModal
-        isOpen
-        walletConnectConfigured
-        onClose={vi.fn()}
-        onSelect={onSelect}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /walletconnect/i }));
-    expect(onSelect).toHaveBeenCalledWith("walletconnect");
+  it("connects via Freighter when chosen", () => {
+    const onSelectFreighter = vi.fn();
+    render(<WalletSelectionModal onClose={vi.fn()} onSelectFreighter={onSelectFreighter} />);
+    fireEvent.click(screen.getByRole("button", { name: /freighter/i }));
+    expect(onSelectFreighter).toHaveBeenCalledTimes(1);
   });
 
-  it("disables WalletConnect when no project id is configured", () => {
-    render(
-      <WalletSelectionModal
-        isOpen
-        walletConnectConfigured={false}
-        onClose={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-
+  it("disables WalletConnect and explains when it is not configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "");
+    render(<WalletSelectionModal onClose={vi.fn()} onSelectFreighter={vi.fn()} />);
     expect(screen.getByRole("button", { name: /walletconnect/i })).toBeDisabled();
-    expect(screen.getByText(/NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID/)).toBeInTheDocument();
+    expect(screen.getByText(/not configured/i)).toBeInTheDocument();
+  });
+
+  it("shows a pairing QR when WalletConnect is configured and selected", () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "proj123");
+    render(<WalletSelectionModal onClose={vi.fn()} onSelectFreighter={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /walletconnect/i }));
+    expect(screen.getByText(/scan with a walletconnect wallet/i)).toBeInTheDocument();
   });
 });

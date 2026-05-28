@@ -1,90 +1,116 @@
 "use client";
 
-import type { WalletProviderId } from "@/context/WalletContext";
+import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  isWalletConnectConfigured,
+  getWalletConnectPairingUri,
+} from "@/lib/walletConnect";
 
 interface WalletSelectionModalProps {
-  isOpen: boolean;
-  walletConnectConfigured: boolean;
   onClose: () => void;
-  onSelect: (provider: WalletProviderId) => void;
+  /** Connect via the Freighter browser extension. */
+  onSelectFreighter: () => void;
 }
 
+/**
+ * Wallet selection modal (#2): lets the user choose between Freighter and
+ * WalletConnect. Freighter connects immediately; WalletConnect shows a pairing
+ * QR when configured, or an honest "unavailable" state otherwise.
+ */
 export default function WalletSelectionModal({
-  isOpen,
-  walletConnectConfigured,
   onClose,
-  onSelect,
+  onSelectFreighter,
 }: WalletSelectionModalProps) {
-  if (!isOpen) return null;
+  const [showWalletConnect, setShowWalletConnect] = useState(false);
+  const walletConnectReady = isWalletConnectConfigured();
+  const pairingUri = walletConnectReady ? safePairingUri() : null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="wallet-selection-title"
-        className="w-full max-w-md rounded-lg border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-2xl"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 id="wallet-selection-title" className="text-lg font-bold text-on-surface">
-              Connect wallet
-            </h2>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              Choose how you want to sign ILN transactions.
-            </p>
-          </div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Select a wallet"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+    >
+      <div className="w-full max-w-md rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-2xl">
+        <div className="flex items-center justify-between border-b border-outline-variant/10 p-6">
+          <h2 className="text-xl font-bold">Connect a wallet</h2>
           <button
             type="button"
-            aria-label="Close wallet selection"
             onClick={onClose}
-            className="rounded-full p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            aria-label="Close"
+            className="rounded-full p-1 text-on-surface-variant hover:bg-surface-variant/50"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <div className="mt-5 grid gap-3">
-          <button
-            type="button"
-            aria-label="Freighter"
-            onClick={() => onSelect("freighter")}
-            className="flex w-full items-center gap-3 rounded-lg border border-outline-variant/20 bg-surface-container-low p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
-          >
-            <span className="material-symbols-outlined rounded-full bg-primary/10 p-2 text-primary">
-              extension
-            </span>
-            <span className="min-w-0">
-              <span className="block font-bold text-on-surface">Freighter</span>
-              <span className="block text-sm text-on-surface-variant">Browser extension wallet</span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            aria-label="WalletConnect"
-            onClick={() => onSelect("walletconnect")}
-            disabled={!walletConnectConfigured}
-            className="flex w-full items-center gap-3 rounded-lg border border-outline-variant/20 bg-surface-container-low p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            <span className="material-symbols-outlined rounded-full bg-primary/10 p-2 text-primary">
-              qr_code_2
-            </span>
-            <span className="min-w-0">
-              <span className="block font-bold text-on-surface">WalletConnect</span>
-              <span className="block text-sm text-on-surface-variant">
-                Pair a mobile or hardware wallet with a QR code.
+        {!showWalletConnect ? (
+          <div className="space-y-3 p-6">
+            <button
+              type="button"
+              onClick={onSelectFreighter}
+              className="flex w-full items-center justify-between rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-4 text-left font-bold text-on-surface transition-colors hover:bg-surface-container-high"
+            >
+              <span className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary">extension</span>
+                Freighter
               </span>
-            </span>
-          </button>
-        </div>
+              <span className="text-xs font-medium text-on-surface-variant">Browser extension</span>
+            </button>
 
-        {!walletConnectConfigured && (
-          <p className="mt-4 rounded-lg border border-outline-variant/20 bg-surface-container-low p-3 text-xs text-on-surface-variant">
-            WalletConnect needs `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` before QR pairing can be used.
-          </p>
+            <button
+              type="button"
+              onClick={() => setShowWalletConnect(true)}
+              disabled={!walletConnectReady}
+              className="flex w-full items-center justify-between rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-4 text-left font-bold text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary">qr_code_2</span>
+                WalletConnect
+              </span>
+              <span className="text-xs font-medium text-on-surface-variant">Mobile &amp; hardware</span>
+            </button>
+
+            {!walletConnectReady ? (
+              <p className="rounded-lg bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                WalletConnect is not configured in this environment. Set
+                <code className="mx-1">NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID</code>
+                to enable mobile and hardware-wallet pairing.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 p-6">
+            <p className="text-sm font-bold text-on-surface">Scan with a WalletConnect wallet</p>
+            {pairingUri ? (
+              <div className="rounded-xl bg-white p-3">
+                <QRCodeSVG value={pairingUri} size={180} />
+              </div>
+            ) : null}
+            <p className="text-center text-xs text-on-surface-variant">
+              Open your mobile wallet and scan this code to pair. Session completion
+              requires the WalletConnect relay.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowWalletConnect(false)}
+              className="text-sm font-bold text-primary hover:underline"
+            >
+              Back
+            </button>
+          </div>
         )}
       </div>
     </div>
   );
+}
+
+function safePairingUri(): string | null {
+  try {
+    return getWalletConnectPairingUri();
+  } catch {
+    return null;
+  }
 }
