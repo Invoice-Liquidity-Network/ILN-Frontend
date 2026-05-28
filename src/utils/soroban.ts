@@ -70,6 +70,7 @@ export interface ReputationScore {
   invoices_submitted: number;
   invoices_paid: number;
   invoices_defaulted: number;
+  last_activity_ledger?: number;
 }
 
 export interface ReputationEvent {
@@ -356,6 +357,7 @@ export async function getReputation(address: string): Promise<ReputationScore | 
       invoices_submitted: Number(native.invoices_submitted ?? native.submitted ?? 0),
       invoices_paid: Number(native.invoices_paid ?? native.paid ?? native.settled_on_time ?? 0),
       invoices_defaulted: Number(native.invoices_defaulted ?? native.defaulted ?? native.defaults ?? 0),
+      last_activity_ledger: native.last_activity_ledger !== undefined ? Number(native.last_activity_ledger) : undefined,
     };
   } catch {
     return null;
