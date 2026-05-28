@@ -1,41 +1,62 @@
-import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import ShareInvoiceButton from "../ShareInvoiceButton";
+import ShareInvoiceButton, {
+  invoiceShareUrl,
+  invoiceShareMailto,
+} from "../ShareInvoiceButton";
+import type { Invoice } from "@/utils/soroban";
+
+function invoice(overrides: Partial<Invoice> = {}): Invoice {
+  return {
+    id: 8n,
+    status: "Pending",
+    freelancer: "GFREELANCER",
+    payer: "GPAYER",
+    amount: 1000n,
+    due_date: 0n,
+    discount_rate: 300,
+    ...overrides,
+  } as Invoice;
+}
+
+describe("invoiceShareUrl", () => {
+  it("builds the canonical detail URL", () => {
+    expect(invoiceShareUrl(8n, "https://iln.app")).toBe("https://iln.app/i/8");
+  });
+  it("trims a trailing slash on the origin", () => {
+    expect(invoiceShareUrl(8n, "https://iln.app/")).toBe("https://iln.app/i/8");
+  });
+});
+
+describe("invoiceShareMailto", () => {
+  it("encodes the invoice URL into a mailto link", () => {
+    const link = invoiceShareMailto(8n, "https://iln.app/i/8");
+    expect(link.startsWith("mailto:?subject=")).toBe(true);
+    expect(link).toContain(encodeURIComponent("https://iln.app/i/8"));
+    expect(link).toContain("Invoice%20%238");
+  });
+});
 
 describe("ShareInvoiceButton", () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: { origin: "https://iln.example" },
-    });
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: vi.fn().mockResolvedValue(undefined) },
-    });
+    writeText.mockClear();
+    Object.assign(navigator, { clipboard: { writeText } });
   });
 
-  it("copies the canonical invoice link and shows confirmation", async () => {
-    render(<ShareInvoiceButton invoiceId={23n} />);
+  it("copies the canonical link and shows a confirmation", async () => {
+    render(<ShareInvoiceButton invoice={invoice()} baseUrl="https://iln.app" />);
 
-    fireEvent.click(screen.getByRole("button", { name: /share invoice/i }));
+    fireEvent.click(screen.getByRole("button", { name: /copy invoice link/i }));
 
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        "https://iln.example/invoices/23",
-      );
-      expect(screen.getByRole("status")).toHaveTextContent("Link copied!");
-    });
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("https://iln.app/i/8"));
+    expect(await screen.findByText(/link copied/i)).toBeInTheDocument();
   });
 
-  it("renders a mailto link with the canonical invoice URL", () => {
-    render(<ShareInvoiceButton invoiceId={23n} />);
-
-    const link = screen.getByRole("link", { name: /share via email/i });
-
-    expect(decodeURIComponent(link.getAttribute("href") ?? "")).toContain(
-      "https://iln.example/invoices/23",
-    );
+  it("offers a pre-filled mailto link", () => {
+    render(<ShareInvoiceButton invoice={invoice()} baseUrl="https://iln.app" />);
+    const mail = screen.getByRole("link", { name: /share invoice via email/i });
+    expect(mail.getAttribute("href")).toContain(encodeURIComponent("https://iln.app/i/8"));
   });
 });
