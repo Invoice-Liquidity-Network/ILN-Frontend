@@ -36,7 +36,7 @@ import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
 import DisputeInvoiceModal from "./DisputeInvoiceModal";
 import LPTransferModal from "./LPTransferModal";
-import YieldAnalyticsChart from "./YieldAnalyticsChart";
+import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPSettingsModal from "./LPSettingsModal";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
@@ -556,7 +556,7 @@ export default function LPDashboard() {
       {activeTab === "my-funded" ? (
         <>
           <div className="px-6 pt-4">
-            <YieldAnalyticsChart
+            <DynamicYieldAnalyticsChart
               invoices={invoices}
               lpAddress={address ?? ""}
               isLoading={loading}

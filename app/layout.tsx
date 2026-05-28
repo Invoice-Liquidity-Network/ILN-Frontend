@@ -9,7 +9,7 @@ import NotificationEventPoller from "@/components/NotificationEventPoller";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import FABProvider from "@/components/FABProvider";
 import CommandPalette from "@/components/CommandPalette";
-import ContractEventSync from "@/components/ContractEventSync";
+import OfflineBanner from "@/components/OfflineBanner";
 import Providers from "./Providers";
 
 
@@ -30,6 +30,18 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#3d627f" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="ILN" />
+        <meta name="description" content="Decentralized invoice factoring on Stellar" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/icons/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#3d627f" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, user-scalable=no, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,7 +69,7 @@ export default function RootLayout({
               <ContractEventSync />
               <WalletProvider>
                 <NotificationProvider>
-                  <NotificationEventPoller />
+                  <OfflineBanner />
                   <FABProvider />
                   <div className="min-h-screen flex flex-col">
                     <div className="flex-1">
