@@ -294,6 +294,44 @@ export async function getVotingPower(_address: string): Promise<number> {
   return 1250; // mock: 1,250 ILN tokens
 }
 
+export async function getDelegationInfo(address: string): Promise<{
+  delegatedTo: string | null;
+  delegatedAmount: number;
+  incomingDelegations: number;
+}> {
+  // Mock implementation - replace with actual Soroban calls
+  // In a real implementation, this would query the governance contract
+  await new Promise((r) => setTimeout(r, 150));
+  
+  // Simulate some users having delegations
+  const mockDelegations = {
+    "GABC123": {
+      delegatedTo: "GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+      delegatedAmount: 500,
+      incomingDelegations: 0,
+    },
+    "GDEF456": {
+      delegatedTo: null,
+      delegatedAmount: 0,
+      incomingDelegations: 1200,
+    },
+  };
+
+  const shortAddress = address.slice(0, 7);
+  const mockData = mockDelegations[shortAddress as keyof typeof mockDelegations];
+  
+  if (mockData) {
+    return mockData;
+  }
+
+  // Default: no delegation
+  return {
+    delegatedTo: null,
+    delegatedAmount: 0,
+    incomingDelegations: Math.floor(Math.random() * 500), // Random incoming delegations for demo
+  };
+}
+
 // ─── Proposal creation ────────────────────────────────────────────────────────
 
 /** The four form-level proposal types exposed in the creation UI */
