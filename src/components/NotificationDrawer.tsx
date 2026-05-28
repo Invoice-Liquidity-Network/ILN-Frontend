@@ -1,6 +1,12 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useNotification } from "@/context/NotificationContext";
+import {
+  formatTimeAgo,
+  getNotificationAccentClass,
+  getNotificationIcon,
+} from "@/utils/notificationHelpers";
 
 type Props = {
   onClose: () => void;
@@ -9,89 +15,102 @@ type Props = {
 export default function NotificationDrawer({ onClose }: Props) {
   const { notifications, markAsRead, markAllAsRead } = useNotification();
 
-  const handleMarkAsRead = (id: string) => {
-    markAsRead(id);
-  };
-
-  const handleMarkAllAsRead = () => {
-    markAllAsRead();
-  };
-
-  const getStyle = (type: string) => {
-    switch (type) {
-      case "funded":
-        return "text-green-600";
-      case "settled":
-        return "text-blue-600";
-      case "expired":
-        return "text-red-600";
-      case "disputed":
-        return "text-orange-600";
-      case "warning":
-        return "text-yellow-600";
-      default:
-        return "text-slate-700";
-    }
-  };
-
   const orderedNotifications = [...notifications].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   return (
-    <div className="fixed right-0 top-0 z-50 w-96 h-full bg-white shadow-2xl p-4 overflow-y-auto dark:bg-slate-950">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold">Notification Centre</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Last 20 updates for your LP positions.</p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          Close
-        </button>
-      </div>
-
+    <>
       <button
         type="button"
-        onClick={handleMarkAllAsRead}
-        className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
+        className="fixed inset-0 z-[60] bg-black/30"
+        aria-label="Close notifications"
+        onClick={onClose}
+      />
+      <aside
+        className="fixed right-0 top-0 z-[70] flex h-full w-full max-w-md flex-col border-l border-outline-variant/20 bg-surface-container-lowest shadow-2xl"
+        aria-label="Notification centre"
       >
-        Mark all as read
-      </button>
-
-      <div className="space-y-3">
-        {orderedNotifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-500 dark:border-slate-700 dark:bg-slate-900">
-            No notifications yet.
+        <div className="flex items-center justify-between border-b border-outline-variant/15 px-5 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-on-surface">Notifications</h2>
+            <p className="text-sm text-on-surface-variant">
+              On-chain activity for your wallet
+            </p>
           </div>
-        ) : (
-          orderedNotifications.slice(0, 20).map((notification) => (
-            <button
-              key={notification.id}
-              type="button"
-              onClick={() => handleMarkAsRead(notification.id)}
-              className={`w-full text-left rounded-2xl border p-4 transition ${
-                notification.read
-                  ? "border-slate-200 bg-slate-100 opacity-70 dark:border-slate-700 dark:bg-slate-900"
-                  : "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
-              }`}
-            >
-              <p className={`text-sm font-semibold ${getStyle(notification.type)}`}>
-                {notification.title}
-              </p>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                {notification.message}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                {new Date(notification.createdAt).toLocaleString()}
-              </p>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-on-surface-variant hover:bg-surface-variant"
+            aria-label="Close drawer"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div className="border-b border-outline-variant/15 px-5 py-3">
+          <button
+            type="button"
+            onClick={() => markAllAsRead()}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Mark all as read
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-3">
+          {orderedNotifications.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-outline-variant/30 bg-surface-variant/30 p-8 text-center text-on-surface-variant">
+              No notifications yet.
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {orderedNotifications.map((notification) => (
+                <li key={notification.id}>
+                  <Link
+                    href={notification.href}
+                    onClick={() => {
+                      markAsRead(notification.id);
+                      onClose();
+                    }}
+                    className={`flex gap-3 rounded-2xl border p-4 transition ${
+                      notification.read
+                        ? "border-outline-variant/15 bg-surface-variant/20 opacity-75"
+                        : "border-outline-variant/20 bg-surface-container-low hover:border-primary/30"
+                    }`}
+                  >
+                    <span
+                      className={`material-symbols-outlined mt-0.5 shrink-0 ${getNotificationAccentClass(notification.type)}`}
+                      aria-hidden
+                    >
+                      {getNotificationIcon(notification.category, notification.type)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-sm font-semibold ${getNotificationAccentClass(notification.type)}`}
+                      >
+                        {notification.title}
+                      </p>
+                      <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
+                        {notification.message}
+                      </p>
+                      <p className="mt-2 text-xs text-on-surface-variant/80">
+                        {formatTimeAgo(notification.createdAt)}
+                      </p>
+                    </div>
+                    {!notification.read && (
+                      <span
+                        className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary"
+                        aria-label="Unread"
+                      />
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
