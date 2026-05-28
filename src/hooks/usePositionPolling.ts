@@ -11,7 +11,7 @@ interface PositionPollingOptions {
   address?: string | null;
   addToast: (toast: Omit<ToastMessage, "id">) => string;
   addNotification: (
-    notification: Omit<NotificationItem, "id" | "createdAt" | "read">
+    notification: Omit<NotificationItem, "createdAt" | "read"> & { id?: string },
   ) => NotificationItem;
 }
 
@@ -28,9 +28,15 @@ function formatYield(invoice: Invoice) {
 function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type"]) {
   const invoiceId = invoice.id.toString();
   const amount = formatYield(invoice);
+  const base = {
+    id: `lp-invoice-${invoiceId}-${type}`,
+    category: "lp" as const,
+    href: "/dashboard",
+  };
 
   if (type === "settled") {
     return {
+      ...base,
       type,
       title: `Invoice #${invoiceId} paid`,
       message: `Invoice #${invoiceId} settled. You earned ${amount} USDC.`,
@@ -39,6 +45,7 @@ function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type
 
   if (type === "expired") {
     return {
+      ...base,
       type,
       title: `Invoice #${invoiceId} expired`,
       message: `Invoice #${invoiceId} has expired — no payout was received.`,
@@ -47,6 +54,7 @@ function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type
 
   if (type === "disputed") {
     return {
+      ...base,
       type,
       title: `Invoice #${invoiceId} disputed`,
       message: `Invoice #${invoiceId} has been disputed and will need review.`,
@@ -54,6 +62,7 @@ function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type
   }
 
   return {
+    ...base,
     type,
     title: `Invoice #${invoiceId} updated`,
     message: `Invoice #${invoiceId} changed state to ${invoice.status}.`,
