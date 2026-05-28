@@ -1,33 +1,34 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
-import type React from "react";
+import { use, useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import ActivityFeed from "@/components/ActivityFeed";
-import ChangeInvoiceTokenModal from "@/components/ChangeInvoiceTokenModal";
-import { TokenAmount } from "@/components/TokenSelector";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import CancelInvoiceButton from "@/components/CancelInvoiceButton";
+import DynamicInvoicePdfButton from "@/components/DynamicInvoicePdfButton";
+import ShareInvoiceButton from "@/components/ShareInvoiceButton";
+import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import { useWallet } from "@/context/WalletContext";
+import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
 import { getInvoice, type Invoice } from "@/utils/soroban";
-import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
 
 type LoadState = "loading" | "success" | "error";
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const invoiceId = BigInt(id);
   const { address, connect } = useWallet();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [error, setError] = useState("");
-  const [showChangeToken, setShowChangeToken] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const invoiceId = BigInt(id);
 
   const fetchInvoice = useCallback(async () => {
     try {
       setLoadState("loading");
-      const nextInvoice = await getInvoice(invoiceId);
-      setInvoice(nextInvoice);
-      setError("");
+      setInvoice(await getInvoice(invoiceId));
       setLoadState("success");
     } catch {
       setError("Failed to load invoice details.");
@@ -36,118 +37,106 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   }, [invoiceId]);
 
   useEffect(() => {
-    void Promise.resolve().then(fetchInvoice);
+    void fetchInvoice();
   }, [fetchInvoice]);
-
-  const token = useMemo(() => {
-    if (!invoice) return defaultToken;
-    return tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "") ?? defaultToken;
-  }, [defaultToken, invoice, tokenMap]);
 
   if (loadState === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-outline-variant/30 border-t-primary" />
+      <main className="min-h-screen">
+        <Navbar />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-outline-variant/30 border-t-primary" />
+        </div>
       </main>
     );
   }
 
   if (loadState === "error" || !invoice) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <span className="material-symbols-outlined text-5xl text-error">error_outline</span>
-          <h1 className="mt-4 text-2xl font-headline">Invoice Not Found</h1>
+      <main className="min-h-screen">
+        <Navbar />
+        <section className="px-4 pt-32 text-center">
+          <h1 className="text-2xl font-headline">Invoice Not Found</h1>
           <p className="mt-2 text-on-surface-variant">{error || "The requested invoice does not exist."}</p>
-        </div>
+        </section>
       </main>
     );
   }
 
-  const isSubmitter = address === invoice.freelancer;
-  const canChangeToken = invoice.status === "Pending" && isSubmitter;
-  const currentTokenLabel = token?.symbol ?? (invoice.token ? "Token" : "USDC");
+  const tokenSymbol =
+    tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "")?.symbol ?? "USDC";
 
   return (
-    <main className="min-h-screen px-4 py-12 sm:py-16">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 flex flex-col gap-1">
-          <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Invoice Detail</p>
-          <h1 className="font-headline text-3xl sm:text-4xl">Invoice #{invoice.id.toString()}</h1>
-        </div>
-
-        <section className="rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <main className="min-h-screen">
+      <Navbar />
+      <section className="px-6 pb-10 pt-32 md:px-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant">Status</p>
-              <p className="mt-1 text-lg font-bold text-on-surface">{invoice.status}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Invoice Detail</p>
+              <h1 className="mt-2 text-3xl font-headline">Invoice #{invoice.id.toString()}</h1>
             </div>
-            {!address ? (
-              <button
-                type="button"
-                onClick={connect}
-                className="rounded-xl border border-outline-variant/25 px-4 py-2 text-sm font-bold text-on-surface transition-colors hover:bg-surface-variant"
-              >
-                Connect Wallet
-              </button>
-            ) : canChangeToken ? (
-              <button
-                type="button"
-                onClick={() => setShowChangeToken(true)}
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-colors hover:bg-primary/90"
-              >
-                Change Token
-              </button>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* PDF export is available for every invoice state (#21). */}
+              <DynamicInvoicePdfButton
+                invoice={invoice}
+                data={{
+                  tokenSymbol,
+                  amountFormatted: formatUSDC(invoice.amount),
+                  dueDateFormatted: formatDate(invoice.due_date),
+                }}
+              />
+              {/* Sharing is offered to the submitter (#23). */}
+              {address && invoice.freelancer.toLowerCase() === address.toLowerCase() ? (
+                <ShareInvoiceButton invoice={invoice} />
+              ) : null}
+              {!address ? (
+                <button
+                  type="button"
+                  onClick={connect}
+                  className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-on-primary"
+                >
+                  Connect Wallet
+                </button>
+              ) : (
+                <CancelInvoiceButton
+                  invoice={invoice}
+                  walletAddress={address}
+                  onCancelled={(cancelled) => setInvoice(cancelled)}
+                />
+              )}
+            </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DetailRow
-              label="Invoice amount"
-              value={
-                token ? (
-                  <TokenAmount amount={formatTokenAmount(invoice.amount, token)} token={token} />
-                ) : (
-                  `${invoice.amount.toString()} ${currentTokenLabel}`
-                )
-              }
-            />
-            <DetailRow label="Current token" value={currentTokenLabel} />
-            <DetailRow label="Due date" value={formatDate(invoice.due_date)} />
-            <DetailRow label="Discount rate" value={`${(invoice.discount_rate / 100).toFixed(2)}%`} />
-            <DetailRow
-              label="Estimated LP yield"
-              value={
-                token ? (
-                  <TokenAmount amount={formatTokenAmount(calculateYield(invoice.amount, invoice.discount_rate), token)} token={token} />
-                ) : (
-                  calculateYield(invoice.amount, invoice.discount_rate).toString()
-                )
-              }
-            />
-            <DetailRow label="Freelancer" value={formatAddress(invoice.freelancer)} />
-            <DetailRow label="Payer" value={formatAddress(invoice.payer)} />
-            {invoice.funder ? <DetailRow label="Funder" value={formatAddress(invoice.funder)} /> : null}
-          </div>
-
-          {address && invoice.status === "Pending" && !isSubmitter ? (
-            <div className="mt-6 rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
-              Only the submitting freelancer can change the invoice token before funding.
+          <article className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-outline-variant/10 pb-4">
+              <div>
+                <p className="text-sm text-on-surface-variant">Current status</p>
+                <div className="mt-2">
+                  <InvoiceStatusBadge status={invoice.status} />
+                </div>
+              </div>
+              <Link href="/dashboard" className="text-sm font-bold text-primary hover:underline">
+                Back to dashboard
+              </Link>
             </div>
-          ) : null}
-        </section>
 
-        <ActivityFeed invoiceId={invoiceId} />
-      </div>
+            <dl className="mt-6 grid gap-4 text-sm">
+              <DetailRow label="Freelancer" href={`/profile/${invoice.freelancer}`} value={formatAddress(invoice.freelancer)} />
+              <DetailRow label="Payer" href={`/profile/${invoice.payer}`} value={formatAddress(invoice.payer)} />
+              {invoice.funder ? (
+                <DetailRow label="Liquidity Provider" href={`/profile/${invoice.funder}`} value={formatAddress(invoice.funder)} />
+              ) : null}
+              <DetailRow label="Face value" value={formatUSDC(invoice.amount)} strong />
+              <DetailRow label="Discount" value={`${(invoice.discount_rate / 100).toFixed(2)}%`} />
+              <DetailRow label="Due date" value={formatDate(invoice.due_date)} />
+            </dl>
+          </article>
 
-      {showChangeToken ? (
-        <ChangeInvoiceTokenModal
-          invoice={invoice}
-          submitter={address ?? ""}
-          onClose={() => setShowChangeToken(false)}
-          onSuccess={(newToken) => setInvoice((current) => (current ? { ...current, token: newToken } : current))}
-        />
-      ) : null}
+          <ActivityFeed invoiceId={invoiceId} />
+        </div>
+      </section>
+      <Footer />
     </main>
   );
 }
@@ -155,14 +144,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 function DetailRow({
   label,
   value,
+  href,
+  strong,
 }: {
   label: string;
-  value: React.ReactNode;
+  value: string;
+  href?: string;
+  strong?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
-      <div className="mt-1 text-sm font-semibold text-on-surface">{value}</div>
+    <div className="flex items-center justify-between gap-4 border-b border-outline-variant/10 pb-3 last:border-b-0">
+      <dt className="text-on-surface-variant">{label}</dt>
+      <dd className={strong ? "font-bold" : "font-mono text-sm"}>
+        {href ? (
+          <Link href={href} className="text-primary hover:underline">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
+      </dd>
     </div>
   );
 }

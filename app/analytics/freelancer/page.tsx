@@ -14,6 +14,7 @@ import {
   formatUSDC,
   formatAddress,
   formatDate,
+  tokenAmountToNumber,
 } from "@/utils/format";
 import {
   calculateFreelancerMetrics,
@@ -246,7 +247,7 @@ export default function FreelancerAnalyticsPage() {
               label="Total Invoiced"
               value={
                 <AnimatedNumber
-                  value={Number(metrics.totalInvoiced) / 10_000_000}
+                  value={tokenAmountToNumber(metrics.totalInvoiced)}
                   formatter={(v) => `$${v.toFixed(2)}`}
                 />
               }
@@ -259,7 +260,7 @@ export default function FreelancerAnalyticsPage() {
               label="Liquidity Received"
               value={
                 <AnimatedNumber
-                  value={Number(metrics.totalLiquidityReceived) / 10_000_000}
+                  value={tokenAmountToNumber(metrics.totalLiquidityReceived)}
                   formatter={(v) => `$${v.toFixed(2)}`}
                 />
               }
@@ -271,7 +272,7 @@ export default function FreelancerAnalyticsPage() {
               label="Total Discount Cost"
               value={
                 <AnimatedNumber
-                  value={Number(metrics.totalDiscountCost) / 10_000_000}
+                  value={tokenAmountToNumber(metrics.totalDiscountCost)}
                   formatter={(v) => `$${v.toFixed(2)}`}
                 />
               }
@@ -452,7 +453,7 @@ export default function FreelancerAnalyticsPage() {
                             {payer.avgSettlementDays.toFixed(1)} days
                           </td>
                           <td className="px-6 py-4 text-sm font-bold text-primary">
-                            ${(Number(payer.fundedAmount) / 10_000_000).toFixed(2)}
+                            ${tokenAmountToNumber(payer.fundedAmount).toFixed(2)}
                           </td>
                         </tr>
                       ))}

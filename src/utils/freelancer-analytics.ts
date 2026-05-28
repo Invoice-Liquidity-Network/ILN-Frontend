@@ -153,11 +153,11 @@ export function getDiscountOverTimeData(invoices: Invoice[], address: string): D
     }
   });
 
-  // Sort by date and convert to USDC (assuming 7 decimals)
+  // Sort by date and convert to USDC (6 decimals)
   return Object.entries(dates)
     .map(([date, cost]) => ({
       date,
-      discountCost: Number(cost) / 10_000_000,
+      discountCost: Number(cost) / 1_000_000,
     }))
     .sort((a, b) => {
       // Sort dates chronologically (this is a simple sort, may need refinement)
