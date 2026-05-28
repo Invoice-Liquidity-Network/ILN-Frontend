@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { DecayWarningBanner } from "@/components/DecayWarningBanner";
 import { TokenAmount, TokenIcon } from "@/components/TokenSelector";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
@@ -260,9 +261,10 @@ function PayerDashboardContent() {
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">Payer Dashboard</p>
             <h1 className="mb-3 text-4xl font-headline md:text-5xl">Invoice Inbox</h1>
-            <p className="max-w-2xl text-on-surface-variant">
+            <p className="max-w-2xl text-on-surface-variant mb-6">
               Track invoices addressed to your wallet, settle funded invoices, follow disputes, and appeal defaults.
             </p>
+            <DecayWarningBanner address={address || undefined} />
           </div>
           {isConnected ? (
             <button
