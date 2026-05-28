@@ -176,7 +176,9 @@ function FreelancerPageContent() {
     const toastId = addToast({ type: "pending", title: t("freelancer.toast.submitting") });
 
     try {
-      const amountStroops = BigInt(Math.round(parseFloat(form.amount) * 10_000_000));
+      const amountStroops = BigInt(
+        Math.round(parseFloat(form.amount) * 10 ** (defaultToken?.decimals ?? 6)),
+      );
       const dueDateUnix = Math.floor(new Date(form.dueDate).getTime() / 1000);
       const discountBps = Math.round(parseFloat(form.discountRate) * 100);
 
