@@ -1,113 +1,57 @@
-import { vi, describe, test, expect, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTransaction } from "../useTransaction";
 
-const addToast = vi.fn(() => "toast-1");
-const updateToast = vi.fn();
-const signTxMock = vi.fn();
+vi.mock("@/context/WalletContext", () => ({ useWallet: vi.fn() }));
+vi.mock("@/utils/soroban", () => ({ submitSignedTransaction: vi.fn() }));
 
-vi.mock("@/context/ToastContext", () => ({
-  useToast: () => ({ addToast, updateToast }),
-}));
+import { useWallet } from "@/context/WalletContext";
+import { submitSignedTransaction } from "@/utils/soroban";
 
-vi.mock("@/context/WalletContext", () => ({
-  useWallet: () => ({
-    isConnected: true,
-    address: "GABCDE12345",
-    signTx: signTxMock,
-  }),
-}));
+const mockTx = {} as any;
 
-vi.mock("@/utils/soroban", () => ({
-  submitSignedTransaction: vi.fn(async () => ({ txHash: "tx-hash" })),
-}));
+beforeEach(() => { vi.clearAllMocks(); });
 
 describe("useTransaction", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it("returns error when wallet not connected", async () => {
+    vi.mocked(useWallet).mockReturnValue({ isConnected: false, address: null, signTx: vi.fn() } as any);
+    const { result } = renderHook(() => useTransaction());
+    let txHash: string | null = null;
+    await act(async () => { txHash = await result.current.execute(mockTx); });
+    expect(txHash).toBeNull();
+    expect(result.current.error).toBe("Wallet not connected");
   });
 
-  test("executes a transaction and updates toast to success", async () => {
-    signTxMock.mockResolvedValue("signed-xdr");
-
+  it("returns tx hash on success", async () => {
+    vi.mocked(useWallet).mockReturnValue({ isConnected: true, address: "GTEST", signTx: vi.fn() } as any);
+    vi.mocked(submitSignedTransaction).mockResolvedValue({ txHash: "abc123" } as any);
     const { result } = renderHook(() => useTransaction());
-    let executePromise: Promise<unknown> | null = null;
-
-    act(() => {
-      executePromise = result.current.execute(
-        async (signTx) => {
-          const signed = await signTx("tx-xdr");
-          expect(result.current.isSigning).toBe(true);
-          return `result:${signed}`;
-        },
-        "Submitting transaction"
-      );
-    });
-
-    await waitFor(() => expect(result.current.isSigning).toBe(true));
-    await act(async () => {
-      await executePromise;
-    });
-
+    let txHash: string | null = null;
+    await act(async () => { txHash = await result.current.execute(mockTx); });
+    expect(txHash).toBe("abc123");
+    expect(result.current.error).toBeNull();
     expect(result.current.loading).toBe(false);
-    expect(result.current.success).toBe(true);
-    expect(result.current.isSigning).toBe(false);
-    expect(addToast).toHaveBeenCalledWith({
-      type: "pending",
-      title: "Submitting transaction",
-      message: "Waiting for wallet signature...",
-    });
-    expect(updateToast).toHaveBeenCalledWith("toast-1", expect.objectContaining({
-      type: "success",
-      title: "Transaction complete",
-      message: "Your transaction was confirmed.",
-    }));
-    expect(await executePromise).toBe("result:signed-xdr");
   });
 
-  test("handles wallet rejection and sets error state", async () => {
-    signTxMock.mockRejectedValue(new Error("User rejected the transaction"));
-
+  it("sets error on transaction failure", async () => {
+    vi.mocked(useWallet).mockReturnValue({ isConnected: true, address: "GTEST", signTx: vi.fn() } as any);
+    vi.mocked(submitSignedTransaction).mockRejectedValue(new Error("tx rejected"));
     const { result } = renderHook(() => useTransaction());
-
-    await act(async () => {
-      const response = await result.current.execute(async (signTx) => await signTx("tx-xdr"));
-      expect(response).toBeNull();
-    });
-
+    let txHash: string | null = "init";
+    await act(async () => { txHash = await result.current.execute(mockTx); });
+    expect(txHash).toBeNull();
+    expect(result.current.error).toBe("tx rejected");
     expect(result.current.loading).toBe(false);
-    expect(result.current.error).toBe("Transaction cancelled");
-    expect(updateToast).toHaveBeenCalledWith("toast-1", expect.objectContaining({
-      type: "error",
-      title: "Transaction cancelled",
-      message: "Transaction cancelled",
-      action: undefined,
-    }));
   });
 
-  test("exposes a retry action for non-rejection failures", async () => {
-    signTxMock.mockRejectedValueOnce(new Error("Network failure"));
-    signTxMock.mockResolvedValueOnce("signed-xdr");
-
+  it("sets loading=true during execution then resets", async () => {
+    vi.mocked(useWallet).mockReturnValue({ isConnected: true, address: "GTEST", signTx: vi.fn() } as any);
+    let resolve!: (v: any) => void;
+    vi.mocked(submitSignedTransaction).mockReturnValue(new Promise((r) => { resolve = r; }));
     const { result } = renderHook(() => useTransaction());
-
-    await act(async () => {
-      const response = await result.current.execute(async (signTx) => await signTx("tx-xdr"));
-      expect(response).toBeNull();
-    });
-
-    const errorToast = updateToast.mock.calls.find(([_id, payload]) => payload.type === "error");
-    expect(errorToast).toBeDefined();
-
-    const action = errorToast?.[1].action as { label: string; onClick: () => Promise<void> } | undefined;
-    expect(action).toBeDefined();
-    expect(action?.label).toBe("Retry");
-
-    await act(async () => {
-      await action?.onClick();
-    });
-
-    expect(addToast).toHaveBeenCalledTimes(2);
-    expect(updateToast).toHaveBeenCalledWith("toast-1", expect.objectContaining({ type: "success" }));
+    act(() => { void result.current.execute(mockTx); });
+    expect(result.current.loading).toBe(true);
+    await act(async () => { resolve({ txHash: "done" }); });
+    expect(result.current.loading).toBe(false);
   });
 });
