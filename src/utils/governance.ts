@@ -305,126 +305,42 @@ export async function getVotingPower(_address: string): Promise<number> {
   return 1250; // mock: 1,250 ILN tokens
 }
 
-export interface DelegationStatus {
-  delegatee: string | null;
-  ownVotingPower: number;
-  incomingDelegationPower: number;
-  incomingDelegatorCount: number;
-  controlledVotingPower: number;
-}
-
-export interface ResolvedDelegateAddress {
-  input: string;
-  address: string;
-  federationName?: string;
-}
-
-export async function resolveDelegateAddress(input: string): Promise<ResolvedDelegateAddress> {
-  const trimmed = input.trim();
-  if (isValidStellarAddress(trimmed)) {
-    return { input: trimmed, address: trimmed };
-  }
-
-  if (!trimmed.includes("*")) {
-    throw new Error("Enter a valid Stellar G-address or federation address.");
-  }
-
-  const [name, domain] = trimmed.split("*");
-  if (!name || !domain) {
-    throw new Error("Federation addresses must use name*domain.com format.");
-  }
-
-  const tomlResponse = await fetch(`https://${domain}/.well-known/stellar.toml`);
-  if (!tomlResponse.ok) {
-    throw new Error("Could not load federation server for this domain.");
-  }
-
-  const toml = await tomlResponse.text();
-  const server = toml.match(/^FEDERATION_SERVER\s*=\s*["']?([^"'\n]+)["']?/m)?.[1];
-  if (!server) {
-    throw new Error("This domain does not publish a federation server.");
-  }
-
-  const lookupUrl = new URL(server);
-  lookupUrl.searchParams.set("q", trimmed);
-  lookupUrl.searchParams.set("type", "name");
-  const lookupResponse = await fetch(lookupUrl.toString());
-  if (!lookupResponse.ok) {
-    throw new Error("Federation lookup failed.");
-  }
-
-  const result = (await lookupResponse.json()) as { account_id?: string };
-  if (!result.account_id || !isValidStellarAddress(result.account_id)) {
-    throw new Error("Federation lookup did not return a valid Stellar address.");
-  }
-
-  return { input: trimmed, address: result.account_id, federationName: trimmed };
-}
-
-export async function getDelegationStatus(address: string): Promise<DelegationStatus> {
-  await new Promise((r) => setTimeout(r, 200));
-  const ownVotingPower = await getVotingPower(address);
-  const incomingDelegationPower = mockIncomingDelegationPower.get(address) ?? 0;
-  const incomingDelegatorCount = Array.from(voteDelegations.values()).filter(
-    (delegatee) => delegatee === address,
-  ).length;
-
-  return {
-    delegatee: voteDelegations.get(address) ?? null,
-    ownVotingPower,
-    incomingDelegationPower,
-    incomingDelegatorCount,
-    controlledVotingPower: ownVotingPower + incomingDelegationPower,
+export async function getDelegationInfo(address: string): Promise<{
+  delegatedTo: string | null;
+  delegatedAmount: number;
+  incomingDelegations: number;
+}> {
+  // Mock implementation - replace with actual Soroban calls
+  // In a real implementation, this would query the governance contract
+  await new Promise((r) => setTimeout(r, 150));
+  
+  // Simulate some users having delegations
+  const mockDelegations = {
+    "GABC123": {
+      delegatedTo: "GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+      delegatedAmount: 500,
+      incomingDelegations: 0,
+    },
+    "GDEF456": {
+      delegatedTo: null,
+      delegatedAmount: 0,
+      incomingDelegations: 1200,
+    },
   };
-}
 
-export async function wouldCreateDelegationCycle(
-  delegator: string,
-  delegatee: string,
-): Promise<boolean> {
-  await new Promise((r) => setTimeout(r, 100));
-  let cursor: string | undefined = delegatee;
-  const seen = new Set<string>();
-
-  while (cursor) {
-    if (cursor === delegator) return true;
-    if (seen.has(cursor)) return false;
-    seen.add(cursor);
-    cursor = voteDelegations.get(cursor);
+  const shortAddress = address.slice(0, 7);
+  const mockData = mockDelegations[shortAddress as keyof typeof mockDelegations];
+  
+  if (mockData) {
+    return mockData;
   }
 
-  return false;
-}
-
-export async function delegateVotes(
-  delegatee: string,
-  signerAddress: string,
-  signTx: (xdr: string) => Promise<string>,
-): Promise<string> {
-  if (!isValidStellarAddress(delegatee)) {
-    throw new Error("Delegate address must be a valid Stellar G-address.");
-  }
-  if (delegatee === signerAddress) {
-    throw new Error("You cannot delegate to yourself.");
-  }
-  if (await wouldCreateDelegationCycle(signerAddress, delegatee)) {
-    throw new Error("You cannot delegate to an address that delegates back to you.");
-  }
-
-  await signTx(`delegate_votes:${delegatee}`);
-  await new Promise((r) => setTimeout(r, 400));
-  voteDelegations.set(signerAddress, delegatee);
-  return Math.random().toString(16).substring(2, 18);
-}
-
-export async function undelegateVotes(
-  signerAddress: string,
-  signTx: (xdr: string) => Promise<string>,
-): Promise<string> {
-  await signTx("undelegate_votes");
-  await new Promise((r) => setTimeout(r, 400));
-  voteDelegations.delete(signerAddress);
-  return Math.random().toString(16).substring(2, 18);
+  // Default: no delegation
+  return {
+    delegatedTo: null,
+    delegatedAmount: 0,
+    incomingDelegations: Math.floor(Math.random() * 500), // Random incoming delegations for demo
+  };
 }
 
 // ─── Proposal creation ────────────────────────────────────────────────────────

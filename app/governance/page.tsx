@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import VoteDelegationPanel from "@/components/VoteDelegationPanel";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
+import VotingPowerDisplay from "@/components/VotingPowerDisplay";
 import { useWallet } from "@/context/WalletContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
@@ -273,7 +275,12 @@ export default function GovernancePage() {
       {/* Main content */}
       <section className="py-12 px-8">
         <div className="max-w-7xl mx-auto">
-          <VoteDelegationPanel />
+          {/* Voting Power Display */}
+          {isConnected && (
+            <div className="mb-8">
+              <VotingPowerDisplay votingPower={votingPower} />
+            </div>
+          )}
 
           {/* Filter tabs */}
           <div className="mb-8">
@@ -333,6 +340,8 @@ export default function GovernancePage() {
               )}
             </>
           )}
+
+          <TokenAllowlistPanel />
         </div>
       </section>
 
