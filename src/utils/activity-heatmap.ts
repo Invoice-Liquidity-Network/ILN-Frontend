@@ -61,14 +61,24 @@ export function deriveAddressActivityFromInvoices(
   return activity;
 }
 
+const HEATMAP_COLORS = {
+  empty: "#ebedf0",
+  level1: "#9be9a8",
+  level2: "#40c463",
+  level3: "#30a14e",
+  level4: "#216e39",
+} as const;
+
 export function getHeatmapIntensityColor(count: number, maxCount: number): string {
-  if (count <= 0 || maxCount <= 0) return "#ebedf0";
+  if (count <= 0 || maxCount <= 0) return HEATMAP_COLORS.empty;
   const ratio = count / maxCount;
-  if (ratio < 0.25) return "#9be9a8";
-  if (ratio < 0.5) return "#40c463";
-  if (ratio < 0.75) return "#30a14e";
-  return "#216e39";
+  if (ratio < 0.25) return HEATMAP_COLORS.level1;
+  if (ratio < 0.5) return HEATMAP_COLORS.level2;
+  if (ratio < 0.75) return HEATMAP_COLORS.level3;
+  return HEATMAP_COLORS.level4;
 }
+
+export { HEATMAP_COLORS };
 
 export function buildHeatmapGrid(
   counts: Map<string, number>,
