@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -10,12 +11,13 @@ import InvoiceTimeline from "@/components/InvoiceTimeline";
 import { CONTRACT_ID, NETWORK_NAME } from "@/constants";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
+import { formatAddress, formatDate, formatUSDC, tokenAmountToNumber } from "@/utils/format";
 import { type Invoice } from "@/utils/soroban";
 import { useInvoices } from "@/hooks/useInvoices";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import LastUpdated from "@/components/LastUpdated";
 import BulkActionBar from "../components/BulkActionBar";
+import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 
 const STELLAR_EXPERT_CONTRACT_URL = `https://stellar.expert/explorer/${NETWORK_NAME.toLowerCase()}/contract/${CONTRACT_ID}`;
 
@@ -47,6 +49,7 @@ export function applyFreelancerFiltersAndSort(
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { addToast } = useToast();
   const { address, connect, isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading, dataUpdatedAt, refetch } = useInvoices();
@@ -139,6 +142,19 @@ export default function DashboardPage() {
     () => myInvoices.filter((inv) => selectedIds.has(inv.id.toString())),
     [myInvoices, selectedIds]
   );
+
+  const handleInvoiceCancelled = (cancelledInvoice: Invoice) => {
+    queryClient.setQueryData<Invoice[]>(["invoices"], (current) =>
+      current?.map((invoice) =>
+        invoice.id === cancelledInvoice.id ? { ...invoice, status: "Cancelled" } : invoice,
+      ),
+    );
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.delete(cancelledInvoice.id.toString());
+      return next;
+    });
+  };
 
   const isAllPendingSelected = useMemo(() => {
     const pendingInvoices = displayedInvoices.filter(inv => inv.status === "Pending");
@@ -344,7 +360,9 @@ export default function DashboardPage() {
                         <td className="px-2 md:px-4 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                         <td className="px-4 md:px-6 py-5">
                           <div className="inline-flex items-center gap-2">
-                            <span className="font-mono text-sm">{formatAddress(invoice.payer)}</span>
+                            <Link href={`/profile/${invoice.payer}`} className="font-mono text-sm text-primary hover:underline">
+                              {formatAddress(invoice.payer)}
+                            </Link>
                             <button
                               onClick={() => void copyPayerAddress(invoice.payer)}
                               className="rounded border border-outline-variant/30 px-2 py-1 text-[10px] font-bold uppercase text-on-surface-variant"
@@ -390,7 +408,7 @@ export default function DashboardPage() {
                                     query: {
                                       prefill_id: invoice.id.toString(),
                                       payer: invoice.payer,
-                                      amount: (Number(invoice.amount) / 10_000_000).toString(),
+                                      amount: tokenAmountToNumber(invoice.amount).toString(),
                                       discount: (invoice.discount_rate / 100).toString(),
                                       token: invoice.token || "",
                                     }
@@ -407,6 +425,12 @@ export default function DashboardPage() {
                                   <span className="material-symbols-outlined text-[18px]">qr_code</span>
                                   Show QR code
                                 </button>
+                                <CancelInvoiceButton
+                                  invoice={invoice}
+                                  walletAddress={address}
+                                  onCancelled={handleInvoiceCancelled}
+                                  compact
+                                />
                               </div>
                             </div>
                           </div>

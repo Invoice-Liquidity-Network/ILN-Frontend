@@ -1,68 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { TESTNET_EURC_TOKEN_ID } from "@/constants";
-import {
-  getInvoicePageUrl,
-  getInvoicePdfFilename,
-  getInvoicePdfRows,
-} from "@/utils/invoicePdf";
+import { invoicePdfFilename, invoicePdfFields, buildInvoicePdf } from "../invoicePdf";
 import type { Invoice } from "@/utils/soroban";
 
-const invoice: Invoice = {
-  id: 42n,
-  freelancer: "GFREELANCERAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  payer: "GPAYERBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-  amount: 125_500_000n,
-  due_date: 1_900_000_000n,
-  discount_rate: 275,
-  status: "Funded",
-  token: TESTNET_EURC_TOKEN_ID,
+function invoice(overrides: Partial<Invoice> = {}): Invoice {
+  return {
+    id: 12n,
+    status: "Funded",
+    freelancer: "GFREELANCER",
+    payer: "GPAYER",
+    amount: 5_000_000_000n,
+    due_date: 0n,
+    discount_rate: 350,
+    ...overrides,
+  } as Invoice;
+}
+
+const data = {
+  tokenSymbol: "USDC",
+  amountFormatted: "5,000.00",
+  dueDateFormatted: "Jan 1, 2030",
+  shareUrl: "https://iln.app/i/12",
 };
 
-describe("invoice PDF helpers", () => {
-  it("uses the required ILN invoice PDF filename", () => {
-    expect(getInvoicePdfFilename(42n)).toBe("ILN-Invoice-42.pdf");
+describe("invoicePdfFilename", () => {
+  it("uses the ILN-Invoice-[ID].pdf convention", () => {
+    expect(invoicePdfFilename(12n)).toBe("ILN-Invoice-12.pdf");
   });
+});
 
-  it("builds the shareable invoice page URL", () => {
-    expect(getInvoicePageUrl(42n, "https://iln.example/")).toBe("https://iln.example/pay/42");
+describe("invoicePdfFields", () => {
+  it("includes every required invoice field", () => {
+    const fields = invoicePdfFields(invoice(), data);
+    const byLabel = Object.fromEntries(fields.map((f) => [f.label, f.value]));
+
+    expect(byLabel["Invoice ID"]).toBe("#12");
+    expect(byLabel["Submitter"]).toBe("GFREELANCER");
+    expect(byLabel["Payer"]).toBe("GPAYER");
+    expect(byLabel["Amount"]).toBe("5,000.00 USDC");
+    expect(byLabel["Token"]).toBe("USDC");
+    expect(byLabel["Discount Rate"]).toBe("3.50%");
+    expect(byLabel["Due Date"]).toBe("Jan 1, 2030");
+    expect(byLabel["Status"]).toBe("Funded");
   });
+});
 
-  it("serializes all required PDF fields", () => {
-    expect(getInvoicePdfRows(invoice)).toMatchInlineSnapshot(`
-      [
-        {
-          "label": "Invoice ID",
-          "value": "#42",
-        },
-        {
-          "label": "Submitter address",
-          "value": "GFREELANCERAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        },
-        {
-          "label": "Payer address",
-          "value": "GPAYERBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-        },
-        {
-          "label": "Amount",
-          "value": "12.55 EURC",
-        },
-        {
-          "label": "Token",
-          "value": "EURC",
-        },
-        {
-          "label": "Discount rate",
-          "value": "275 bps / 2.75%",
-        },
-        {
-          "label": "Due date",
-          "value": "March 17, 2030",
-        },
-        {
-          "label": "Current status",
-          "value": "Funded",
-        },
-      ]
-    `);
+describe("buildInvoicePdf", () => {
+  it("produces a non-empty PDF document with an embedded QR code", async () => {
+    const doc = await buildInvoicePdf(invoice(), data);
+    const bytes = doc.output("arraybuffer");
+    expect(bytes.byteLength).toBeGreaterThan(500);
   });
 });
