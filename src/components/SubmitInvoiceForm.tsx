@@ -11,6 +11,7 @@ import { useWallet } from "@/context/WalletContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import useAddressBook from "@/hooks/useAddressBook";
+import { useTokenPrice } from "@/hooks/useTokenPrice";
 import {
   getMinimumDueDate,
   getYieldPreview,
@@ -70,6 +71,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormValues | "wallet" | "submit", string>>>({});
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [debouncedAmount, setDebouncedAmount] = useState(form.amount);
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || "";
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
@@ -89,6 +91,16 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [addressBookOpen, setAddressBookOpen] = useState(false);
   const [addressBookQuery, setAddressBookQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedAmount(form.amount);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.amount]);
 
   const setField = (field: keyof InvoiceFormValues, value: string) => {
     dispatchForm({ type: "set_field", field, value });
@@ -399,6 +411,14 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                   placeholder="5000.00"
                   inputMode="decimal"
                 />
+                {approximateUsdValue ? (
+                  <p className="mt-2 rounded-xl border border-outline-variant/15 bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant" aria-live="polite">
+                    <span className="font-bold text-on-surface">
+                      ~ {formatUsd(approximateUsdValue)} USD
+                    </span>
+                    <span className="ml-2">Price is approximate</span>
+                  </p>
+                ) : null}
               </Field>
 
               <Field 
@@ -523,6 +543,15 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       </div>
     </div>
   );
+}
+
+function formatUsd(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(value);
 }
 
 function Field({
