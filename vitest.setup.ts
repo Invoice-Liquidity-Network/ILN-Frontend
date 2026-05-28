@@ -1,5 +1,9 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
+
+// Extend expect with jest-axe matchers
+expect.extend(toHaveNoViolations);
 
 // Mock matchMedia for testing components that use prefers-reduced-motion
 Object.defineProperty(window, 'matchMedia', {
