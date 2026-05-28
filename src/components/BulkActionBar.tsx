@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Invoice, cancelInvoice, submitSignedTransaction } from "@/utils/soroban";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import { tokenAmountToNumber } from "@/utils/format";
@@ -19,8 +20,9 @@ export default function BulkActionBar({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelProgress, setCancelProgress] = useState(0);
-  const { address, signTx } = useWallet();
+  const { address } = useWallet();
   const { addToast } = useToast();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
 
   const handleExport = () => {
     setIsExporting(true);
@@ -80,18 +82,22 @@ export default function BulkActionBar({
     let successCount = 0;
     
     for (const invoice of selectedInvoices) {
-      try {
-        const { tx } = await cancelInvoice(address, invoice.id);
-        await submitSignedTransaction({ tx, signTx });
+      const result = await execute(
+        async (signTx) => {
+          const { tx } = await cancelInvoice(address, invoice.id);
+          return submitSignedTransaction({ tx, signTx });
+        },
+        {
+          title: `Cancelling invoice #${invoice.id.toString()}...`,
+          pendingMessage: "Waiting for wallet signature...",
+          successTitle: "Invoice cancelled",
+          successMessage: `Invoice #${invoice.id.toString()} was successfully cancelled.`,
+        }
+      );
+
+      if (result) {
         successCount++;
         setCancelProgress(successCount);
-      } catch (err: any) {
-        addToast({
-          type: "error",
-          title: `Cancel failed for #${invoice.id.toString()}`,
-          message: err.message || "Transaction failed or rejected.",
-        });
-        // We can choose to break or continue; we'll continue to try others
       }
     }
     
@@ -113,6 +119,7 @@ export default function BulkActionBar({
 
   return (
     <>
+      {signingModal}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300">
         <div className="flex items-center gap-4 md:gap-6 bg-surface-container-highest border border-outline-variant/30 text-on-surface p-3 px-5 rounded-full shadow-2xl">
           <div className="flex items-center gap-2">
@@ -145,7 +152,7 @@ export default function BulkActionBar({
             </button>
             <button
               onClick={() => setShowCancelModal(true)}
-              disabled={isCancelling}
+              disabled={isCancelling || txLoading}
               className="px-4 py-2 bg-error text-on-error hover:bg-error/90 rounded-full text-sm font-bold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[16px]">cancel</span>
@@ -207,7 +214,7 @@ export default function BulkActionBar({
               </button>
               <button
                 onClick={handleBulkCancel}
-                disabled={isCancelling}
+                disabled={isCancelling || txLoading}
                 className="px-6 py-2 bg-error text-on-error hover:bg-error/90 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {isCancelling ? (

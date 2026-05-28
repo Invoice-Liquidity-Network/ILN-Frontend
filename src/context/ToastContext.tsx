@@ -5,12 +5,18 @@ import Toast from "../components/Toast";
 
 export type ToastType = "pending" | "success" | "error";
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastMessage {
   id: string;
   type: ToastType;
   title: string;
   message?: string;
   txHash?: string;
+  action?: ToastAction;
 }
 
 interface ToastContextType {

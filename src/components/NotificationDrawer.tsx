@@ -1,42 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useNotification } from "@/context/NotificationContext";
 
 type Props = {
-  notifications: any[];
-  setNotifications: any;
-  setUnread: any;
   onClose: () => void;
 };
 
-export default function NotificationDrawer({
-  notifications,
-  setNotifications,
-  setUnread,
-  onClose,
-}: Props) {
-  const { clearUnread } = useNotification();
+export default function NotificationDrawer({ onClose }: Props) {
+  const { notifications, markAsRead, markAllAsRead } = useNotification();
 
-  const markAsRead = (id: string) => {
-    const updated = notifications.map((n) =>
-      n.id === id ? { ...n, read: true } : n
-    );
-
-    setNotifications(updated);
-    setUnread(updated.filter((n) => !n.read).length);
-    localStorage.setItem("notifications", JSON.stringify(updated));
+  const handleMarkAsRead = (id: string) => {
+    markAsRead(id);
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({
-      ...n,
-      read: true,
-    }));
-
-    setNotifications(updated);
-    setUnread(0);
-    clearUnread();
-    localStorage.setItem("notifications", JSON.stringify(updated));
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
   };
 
   const getStyle = (type: string) => {
@@ -45,45 +23,74 @@ export default function NotificationDrawer({
         return "text-green-600";
       case "settled":
         return "text-blue-600";
-      case "defaulted":
+      case "expired":
         return "text-red-600";
+      case "disputed":
+        return "text-orange-600";
       case "warning":
         return "text-yellow-600";
       default:
-        return "";
+        return "text-slate-700";
     }
   };
 
+  const orderedNotifications = [...notifications].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
   return (
-    <div className="fixed right-0 top-0 w-96 h-full bg-white shadow-lg p-4 overflow-y-auto">
-      {/* Header */}
-      <div className="flex justify-between mb-4">
-        <h2 className="text-lg font-semibold">Notification Centre</h2>
-        <button onClick={onClose}>X</button>
+    <div className="fixed right-0 top-0 z-50 w-96 h-full bg-white shadow-2xl p-4 overflow-y-auto dark:bg-slate-950">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold">Notification Centre</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Last 20 updates for your LP positions.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          Close
+        </button>
       </div>
 
       <button
-        onClick={markAllAsRead}
-        className="mb-4 text-sm text-blue-600"
+        type="button"
+        onClick={handleMarkAllAsRead}
+        className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
       >
         Mark all as read
       </button>
 
-      {/* List */}
       <div className="space-y-3">
-        {notifications.slice(0, 20).map((n) => (
-          <div
-            key={n.id}
-            onClick={() => markAsRead(n.id)}
-            className={`p-3 border rounded cursor-pointer ${
-              n.read ? "opacity-50" : ""
-            }`}
-          >
-            <p className={getStyle(n.type)}>
-              {n.message}
-            </p>
+        {orderedNotifications.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+            No notifications yet.
           </div>
-        ))}
+        ) : (
+          orderedNotifications.slice(0, 20).map((notification) => (
+            <button
+              key={notification.id}
+              type="button"
+              onClick={() => handleMarkAsRead(notification.id)}
+              className={`w-full text-left rounded-2xl border p-4 transition ${
+                notification.read
+                  ? "border-slate-200 bg-slate-100 opacity-70 dark:border-slate-700 dark:bg-slate-900"
+                  : "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+              }`}
+            >
+              <p className={`text-sm font-semibold ${getStyle(notification.type)}`}>
+                {notification.title}
+              </p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                {notification.message}
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
+                {new Date(notification.createdAt).toLocaleString()}
+              </p>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

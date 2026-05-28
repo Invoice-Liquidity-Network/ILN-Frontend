@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
+import { useTransaction } from "@/hooks/useTransaction";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import {
   buildApproveTokenTransaction,
+  fundInvoice,
   getTokenAllowance,
   Invoice,
   submitSignedTransaction,
@@ -26,9 +27,6 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const { address, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
   const { tokens, tokenMap, defaultToken } = useApprovedTokens();
-  
-  const { mutate: fund, isPending: isFunding } = useFundInvoice();
-  const [isApproving, setIsApproving] = useState(false);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(true);
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
@@ -69,55 +67,62 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
 
   const approveToken = async () => {
     if (!address || !selectedInvoiceToken) return;
-    setIsApproving(true);
     setFundingError(null);
 
-    const toastId = addToast({ type: "pending", title: `Approving ${selectedInvoiceToken.symbol}...` });
-    try {
-      const tx = await buildApproveTokenTransaction({
-        owner: address,
-        amount: invoice.amount,
-        tokenId: selectedInvoiceToken.contractId,
-      });
-      const result = await submitSignedTransaction({ tx, signTx });
+    const result = await execute(
+      async (signTx) => {
+        const tx = await buildApproveTokenTransaction({
+          owner: address,
+          amount: invoice.amount,
+          tokenId: selectedInvoiceToken.contractId,
+        });
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Approving ${selectedInvoiceToken.symbol}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: `${selectedInvoiceToken.symbol} approved`,
+        successMessage: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedInvoiceToken)}.`,
+      }
+    );
 
-      updateToast(toastId, {
-        type: "success",
-        title: `${selectedInvoiceToken.symbol} approved`,
-        message: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedInvoiceToken)}.`,
-        txHash: result.txHash,
-      });
-
-      setAllowance(invoice.amount);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Approval failed.";
-      setFundingError(message);
-      updateToast(toastId, {
-        type: "error",
-        title: "Approval failed",
-        message,
-      });
-    } finally {
-      setIsApproving(false);
+    if (!result) {
+      setFundingError(txError ?? "Approval failed.");
+      return;
     }
+
+    setAllowance(invoice.amount);
   };
 
   const confirmFunding = async () => {
     if (!address) return;
-    fund(invoice.id, {
-      onSuccess: () => {
-        onSuccess();
+    setFundingError(null);
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await fundInvoice(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
       },
-      onError: (err) => {
-        setFundingError(err instanceof Error ? err.message : "An unknown error occurred");
+      {
+        title: "Funding invoice...",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Invoice funded successfully!",
+        successMessage: "Your funding transaction is confirmed.",
       }
-    });
+    );
+
+    if (result) {
+      onSuccess();
+    } else {
+      setFundingError(txError ?? "An unknown error occurred");
+    }
   };
 
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
+      {signingModal}
       {/* Header with Step Tracker */}
       <div className="sticky top-0 bg-surface-container-low border-b border-surface-dim z-10 px-6 py-4 flex items-center justify-between">
         <h4 className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>

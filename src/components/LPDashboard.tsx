@@ -4,8 +4,11 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { useNotification } from "@/context/NotificationContext";
+import { usePositionPolling } from "@/hooks/usePositionPolling";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import InvoiceFilterBar from "./InvoiceFilterBar";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
@@ -29,6 +32,7 @@ import LPPortfolio from "./LPPortfolio";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
+import LPEarningsHistory from "./LPEarningsHistory";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
@@ -38,19 +42,29 @@ import YieldAnalyticsChart from "./YieldAnalyticsChart";
 import type { DataTableColumn } from "./DataTable";
 
 
-type Tab = "discovery" | "my-funded" | "watchlist";
+type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
 
 
 
 export default function LPDashboard() {
   const router = useRouter();
-  const { address, connect, signTx } = useWallet();
+  const { address, connect } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { addNotification } = useNotification();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const { t, i18n } = useTranslation();
   const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
   
   const { data: invoices = [], isLoading: loading, dataUpdatedAt } = useInvoices();
+
+  // Set up LP position polling to monitor funded invoices for state changes
+  usePositionPolling({
+    invoices,
+    address,
+    addToast,
+    addNotification,
+  });
   
   const [activeTab, setActiveTab] = useState<Tab>("discovery");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -153,25 +167,24 @@ export default function LPDashboard() {
     }
 
     setClaimingInvoiceId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: `Claiming default for #${invoice.id.toString()}...` });
-    try {
-      const tx = await claimDefault(address, invoice.id);
-      const result = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, {
-        type: "success",
-        title: "Default claimed",
-        txHash: result.txHash,
-      });
-      // useInvoices will auto-poll or we could invalidate here
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to claim default.";
-      updateToast(toastId, {
-        type: "error",
-        title: "Claim failed",
-        message,
-      });
-    } finally {
-      setClaimingInvoiceId(null);
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await claimDefault(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Claiming default for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Default claimed",
+        successMessage: `Default claim for invoice #${invoice.id.toString()} succeeded.`,
+      }
+    );
+
+    setClaimingInvoiceId(null);
+    if (!result) {
+      // ensure claim button resets even when user rejects or transaction fails
+      return;
     }
   };
 
@@ -447,6 +460,7 @@ export default function LPDashboard() {
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant/10 min-h-[500px]">
+      {signingModal}
       <div data-testid="lp-dashboard-header" className="p-6 border-b border-surface-dim flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
@@ -495,6 +509,16 @@ export default function LPDashboard() {
           >
             {t("lpDashboard.tabs.myFunded")}
           </button>
+          <button
+            onClick={() => setActiveTab("earnings-history")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "earnings-history"
+                ? "bg-primary text-surface-container-lowest shadow-md"
+                : "text-on-surface-variant hover:bg-surface-variant/30"
+            }`}
+          >
+            Earnings History
+          </button>
         </div>
 
         {selectedInvoiceIds.length >= 2 && (
@@ -529,6 +553,21 @@ export default function LPDashboard() {
       </div>
 
       {activeTab === "my-funded" ? (
+        <LPPortfolio
+          invoices={myFundedInvoices}
+          isLoading={loading}
+          onClaimDefault={handleClaimDefault}
+          claimingInvoiceId={claimingInvoiceId}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+        />
+      ) : activeTab === "earnings-history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+          walletAddress={address || null}
+        />
         <>
           <div className="px-6 pt-4">
             <YieldAnalyticsChart
