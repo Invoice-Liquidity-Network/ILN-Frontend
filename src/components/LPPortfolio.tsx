@@ -22,6 +22,7 @@ interface LPPortfolioProps {
   transferringInvoiceId?: string | null;
   tokenMap?: Map<string, ApprovedToken>;
   defaultToken?: ApprovedToken | null;
+  onTransfer?: (invoice: Invoice) => void;
 }
 
 export default function LPPortfolio({
@@ -33,6 +34,7 @@ export default function LPPortfolio({
   transferringInvoiceId = null,
   tokenMap = new Map(),
   defaultToken = null,
+  onTransfer,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
   const now = INITIAL_NOW_MS;
@@ -118,19 +120,10 @@ export default function LPPortfolio({
         const isFundedPosition = inv.status === "Funded";
         const isTransferring = transferringInvoiceId === inv.id.toString();
         
-        if (!isClaimEligible && !isFundedPosition) return null;
+        if (!isClaimEligible && !onTransfer) return null;
 
         return (
-          <div className="flex flex-col items-end gap-2 text-right sm:flex-row sm:justify-end">
-            {isFundedPosition && onTransferPosition && (
-              <button
-                onClick={() => onTransferPosition(inv)}
-                disabled={isTransferring}
-                className="rounded-lg border border-primary/30 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10 disabled:opacity-60"
-              >
-                {isTransferring ? "Transferring..." : "Transfer Position"}
-              </button>
-            )}
+          <div className="flex items-center justify-end gap-2">
             {isClaimEligible && (
               <button
                 onClick={() => onClaimDefault(inv)}
@@ -138,6 +131,14 @@ export default function LPPortfolio({
                 className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
               >
                 {isClaiming ? "Claiming..." : "Claim Default"}
+              </button>
+            )}
+            {onTransfer && inv.status === "Funded" && (
+              <button
+                onClick={() => onTransfer(inv)}
+                className="rounded-lg border border-outline-variant px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-dim"
+              >
+                Transfer
               </button>
             )}
           </div>

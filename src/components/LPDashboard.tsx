@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
@@ -12,6 +13,7 @@ import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "@/hooks/useInvoiceFilters";
 import { useInvoices } from "@/hooks/useInvoices";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
+import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 
 import {
   claimDefault,
@@ -29,35 +31,34 @@ import LPPortfolio from "./LPPortfolio";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
+import LPEarningsHistory from "./LPEarningsHistory";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
-import TransferPositionModal from "./TransferPositionModal";
+import DisputeInvoiceModal from "./DisputeInvoiceModal";
+import LPTransferModal from "./LPTransferModal";
+import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
+import LPSettingsModal from "./LPSettingsModal";
+import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
 import { useTransaction } from "@/hooks/useTransaction";
 
 
-type Tab = "discovery" | "my-funded" | "watchlist";
-type WatchlistInvoice = Invoice & { watchAddedAt: number };
-
-function getWatchAddedAt(invoice: Invoice | WatchlistInvoice): number {
-  return "watchAddedAt" in invoice && typeof invoice.watchAddedAt === "number"
-    ? invoice.watchAddedAt
-    : 0;
-}
+type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
 
 
 
 export default function LPDashboard() {
   const router = useRouter();
-  const { address, connect, signTx } = useWallet();
+  const { address, connect } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const { t, i18n } = useTranslation();
   const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
   
   const { data: invoices = [], isLoading: loading, dataUpdatedAt } = useInvoices();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>("discovery");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
@@ -67,16 +68,12 @@ export default function LPDashboard() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
   const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
-  const [transferError, setTransferError] = useState<string | null>(null);
-  const [transferredFunders, setTransferredFunders] = useState<Record<string, string>>({});
-  const transferTransaction = useTransaction({
-    pendingTitle: "Transferring LP position...",
-    pendingMessage: "Please sign the transfer in Freighter.",
-    successTitle: "LP position transferred",
-    successMessage: "Future payouts will go to the new LP address.",
-    errorTitle: "Transfer failed",
-  });
+  const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [overriddenInvoiceIds, setOverriddenInvoiceIds] = useState<string[]>([]);
+  const { settings } = useLPSettings();
 
   const {
     filters,
@@ -173,58 +170,30 @@ export default function LPDashboard() {
     }
 
     setClaimingInvoiceId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: `Claiming default for #${invoice.id.toString()}...` });
-    try {
-      const tx = await claimDefault(address, invoice.id);
-      const result = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, {
-        type: "success",
-        title: "Default claimed",
-        txHash: result.txHash,
-      });
-      // useInvoices will auto-poll or we could invalidate here
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to claim default.";
-      updateToast(toastId, {
-        type: "error",
-        title: "Claim failed",
-        message,
-      });
-    } finally {
-      setClaimingInvoiceId(null);
-    }
-  };
 
-  const handleTransferPosition = async (invoice: Invoice, newLpAddress: string) => {
-    if (!address) {
-      await connect();
+    const result = await execute(
+      async (signTx) => {
+        const tx = await claimDefault(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Claiming default for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Default claimed",
+        successMessage: `Default claim for invoice #${invoice.id.toString()} succeeded.`,
+      }
+    );
+
+    setClaimingInvoiceId(null);
+    if (!result) {
+      // ensure claim button resets even when user rejects or transaction fails
       return;
     }
-
-    setTransferError(null);
-    try {
-      await transferTransaction.runTransaction(async () => {
-        const tx = await transferLpPosition(address, invoice.id, newLpAddress);
-        return submitSignedTransaction({ tx, signTx });
-      });
-      setTransferredFunders((current) => ({
-        ...current,
-        [invoice.id.toString()]: newLpAddress,
-      }));
-      setTransferInvoice(null);
-    } catch (error) {
-      setTransferError(error instanceof Error ? error.message : "Failed to transfer LP position.");
-    }
   };
 
-  const invoicesWithTransferredFunders = useMemo(
-    () =>
-      invoices.map((invoice) => {
-        const transferredFunder = transferredFunders[invoice.id.toString()];
-        return transferredFunder ? { ...invoice, funder: transferredFunder } : invoice;
-      }),
-    [invoices, transferredFunders],
-  );
+  const handleRiskFilter = (filterType: "at-risk" | "disputed" | "all") => {
+    setRiskFilter(filterType);
+  };
 
   const filteredInvoices = useMemo(
     () =>
@@ -233,8 +202,9 @@ export default function LPDashboard() {
           const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
           return token?.symbol ?? "USDC";
         },
+        payerScores,
       }),
-    [defaultToken?.contractId, filters, invoicesWithTransferredFunders, tokenMap],
+    [defaultToken?.contractId, filters, invoices, tokenMap, payerScores],
   );
 
 
@@ -262,7 +232,31 @@ export default function LPDashboard() {
   }), [filteredInvoices, sortKey, sortOrder, payerRisks]);
 
   const discoveryInvoices = sortedInvoices.filter(i => i.status === "Pending");
-  const myFundedInvoices = sortedInvoices.filter(i => i.funder === address);
+  
+  const myFundedInvoicesBase = sortedInvoices.filter(i => i.funder === address);
+  const myFundedInvoices = useMemo(() => {
+    if (riskFilter === "all") return myFundedInvoicesBase;
+    
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + (24 * 60 * 60 * 1000);
+    
+    return myFundedInvoicesBase.filter(invoice => {
+      if (riskFilter === "disputed") {
+        return invoice.status === "Disputed";
+      }
+      
+      if (riskFilter === "at-risk") {
+        const dueDate = Number(invoice.due_date) * 1000;
+        const isNearExpiry = dueDate <= twentyFourHoursFromNow && dueDate > now;
+        const isOverdue = dueDate <= now;
+        const isDisputed = invoice.status === "Disputed";
+        
+        return isDisputed || isNearExpiry || isOverdue;
+      }
+      
+      return true;
+    });
+  }, [myFundedInvoicesBase, riskFilter]);
   
   const watchlistInvoices = sortedInvoices
     .filter(i => watchlist.some(w => w.id === i.id.toString()))
@@ -472,6 +466,7 @@ export default function LPDashboard() {
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant/10 min-h-[500px]">
+      {signingModal}
       <div data-testid="lp-dashboard-header" className="p-6 border-b border-surface-dim flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
@@ -520,6 +515,16 @@ export default function LPDashboard() {
           >
             {t("lpDashboard.tabs.myFunded")}
           </button>
+          <button
+            onClick={() => setActiveTab("earnings-history")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "earnings-history"
+                ? "bg-primary text-surface-container-lowest shadow-md"
+                : "text-on-surface-variant hover:bg-surface-variant/30"
+            }`}
+          >
+            Earnings History
+          </button>
         </div>
 
         {selectedInvoiceIds.length >= 2 && (
@@ -551,21 +556,62 @@ export default function LPDashboard() {
           activeFilterCount={activeFilterCount}
         />
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+        >
+          <span className="material-symbols-outlined text-sm">settings</span>
+          Risk Settings
+        </button>
       </div>
 
       {activeTab === "my-funded" ? (
-        <LPPortfolio
-          invoices={myFundedInvoices}
-          isLoading={loading}
-          onClaimDefault={handleClaimDefault}
-          claimingInvoiceId={claimingInvoiceId}
-          onTransferPosition={(invoice) => {
-            setTransferError(null);
-            setTransferInvoice(invoice);
-          }}
-          transferringInvoiceId={transferTransaction.isPending ? transferInvoice?.id.toString() ?? null : null}
+        <>
+          <div className="px-6 pt-4">
+            <DynamicYieldAnalyticsChart
+              invoices={invoices}
+              lpAddress={address ?? ""}
+              isLoading={loading}
+            />
+          </div>
+          <div className="px-6">
+            <LPRiskSummaryPanel 
+              invoices={myFundedInvoicesBase}
+              onFilterByRisk={handleRiskFilter}
+            />
+            {riskFilter !== "all" && (
+              <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">filter_alt</span>
+                  <span className="font-medium">
+                    Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
+                  </span>
+                </div>
+                <button
+                  onClick={() => setRiskFilter("all")}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
+          </div>
+          <LPPortfolio
+            invoices={myFundedInvoices}
+            isLoading={loading}
+            onClaimDefault={handleClaimDefault}
+            claimingInvoiceId={claimingInvoiceId}
+            tokenMap={tokenMap}
+            defaultToken={defaultToken}
+            onTransfer={(inv) => setTransferInvoice(inv)}
+          />
+        </>
+      ) : activeTab === "earnings-history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
           tokenMap={tokenMap}
           defaultToken={defaultToken}
+          walletAddress={address || null}
         />
       ) : (
         <div className="overflow-x-auto">
@@ -628,8 +674,16 @@ export default function LPDashboard() {
                   </td>
                 </tr>
               ) : (
-                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice, index) => (
-                  <tr key={invoice.id.toString()} className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''}`}>
+                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => {
+                  const pScore = payerScores.get(invoice.payer)?.score ?? 100;
+                  const isBelowThreshold = pScore < settings.minReputation && !overriddenInvoiceIds.includes(invoice.id.toString());
+
+                  return (
+                    <tr 
+                      key={invoice.id.toString()} 
+                      className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                      onClick={() => !isBelowThreshold && handleFund(invoice)}
+                    >
                     <td className="px-6 py-5">
                       <input
                         type="checkbox"
@@ -692,7 +746,17 @@ export default function LPDashboard() {
                             bookmark
                           </span>
                         </button>
-                        {activeTab === "discovery" ? (
+                        {isBelowThreshold ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOverriddenInvoiceIds(prev => [...prev, invoice.id.toString()]);
+                            }}
+                            className="bg-amber-500/10 text-amber-700 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
+                          >
+                            Fund Anyway
+                          </button>
+                        ) : activeTab === "discovery" ? (
                           <button
                             id={index === 0 ? "fund-button" : undefined}
                             onClick={() => handleFund(invoice)}
@@ -701,6 +765,15 @@ export default function LPDashboard() {
                             Fund
                           </button>
                         ) : (
+                          <>
+                            {invoice.status === "Funded" && address && invoice.payer === address && (
+                              <button
+                                onClick={() => setDisputeInvoice(invoice)}
+                                className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                Raise Dispute
+                              </button>
+                            )}
                           <div className="flex flex-col items-end gap-1">
                             <InvoiceStatusBadge status={invoice.status} />
                             {invoice.status !== "Pending" && (
@@ -710,11 +783,13 @@ export default function LPDashboard() {
                               </span>
                             )}
                           </div>
+                          </>
                         )}
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -733,23 +808,24 @@ export default function LPDashboard() {
           setSelectedInvoice(null);
         }}
       />
-      <TransferPositionModal
-        invoice={transferInvoice}
-        currentLpAddress={transferInvoice?.funder ?? address}
-        isTransferring={transferTransaction.isPending}
-        error={transferError}
-        onClose={() => {
-          if (!transferTransaction.isPending) {
-            setTransferInvoice(null);
-            setTransferError(null);
-          }
-        }}
-        onTransfer={(newLpAddress) => {
-          if (transferInvoice) {
-            return handleTransferPosition(transferInvoice, newLpAddress);
-          }
-        }}
-      />
+
+      {/* Dispute Modal */}
+      {disputeInvoice && (
+        <DisputeInvoiceModal
+          invoice={disputeInvoice}
+          onClose={() => setDisputeInvoice(null)}
+          onSuccess={() => setDisputeInvoice(null)}
+        />
+      )}
+
+      {/* LP Transfer Modal */}
+      {transferInvoice && (
+        <LPTransferModal
+          invoice={transferInvoice}
+          onClose={() => setTransferInvoice(null)}
+          onSuccess={() => setTransferInvoice(null)}
+        />
+      )}
     </div>
   );
 }
