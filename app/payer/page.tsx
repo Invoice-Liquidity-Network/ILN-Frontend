@@ -17,7 +17,13 @@ import {
   getAllInvoices,
   markPaid,
   submitSignedTransaction,
+  getTokenMetadata,
+  approveToken,
+  getTokenAllowance,
+  TokenMetadata,
 } from "@/utils/soroban";
+import { useTransaction } from "@/hooks/useTransaction";
+import PayerSettlementModal from "@/components/PayerSettlementModal";
 
 type PayerTab = "Outstanding" | "Settled" | "Pending" | "Disputed";
 
@@ -166,6 +172,12 @@ function PayerDashboardContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const [settlementModal, setSettlementModal] = useState<{
+    invoice: Invoice;
+    token?: TokenMetadata;
+  } | null>(null);
+
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const [appealState, setAppealState] = useState<AppealState | null>(null);
 
   const loadInvoices = useCallback(async () => {
@@ -206,24 +218,52 @@ function PayerDashboardContent() {
 
   const handleSettle = async (invoice: Invoice) => {
     if (!address) return;
-    setSettlingId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: `Settling invoice #${invoice.id}...` });
     try {
-      const tx = await markPaid(address, invoice.id);
-      const { txHash } = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, { type: "success", title: "Invoice settled", txHash });
-      setInvoices((current) =>
-        current.map((item) => (item.id === invoice.id ? { ...item, status: "Paid" } : item)),
-      );
-    } catch (error) {
-      updateToast(toastId, {
-        type: "error",
-        title: "Settlement failed",
-        message: error instanceof Error ? error.message : "Transaction rejected",
-      });
-    } finally {
-      setSettlingId(null);
+      const token = await getTokenMetadata(invoice.token || "");
+      setSettlementModal({ invoice, token });
+    } catch {
+      setSettlementModal({ invoice });
     }
+  };
+
+  const handleConfirmSettlement = async (amount: bigint) => {
+    if (!settlementModal || !address) return;
+    const { invoice, token } = settlementModal;
+
+    await execute(
+      async (signTx) => {
+        // 1. Allowance check
+        if (token) {
+          const allowance = await getTokenAllowance({ owner: address, tokenId: token.contractId });
+          if (allowance < amount) {
+            const approveTx = await approveToken({
+              from: address,
+              amount: amount * 10n, // Approve 10x for convenience, or just exactly enough
+              tokenId: token.contractId,
+            });
+            await signTx(approveTx.toXDR());
+          }
+        }
+
+        // 2. Mark Paid
+        const tx = await markPaid(address, invoice.id, amount);
+        const signedXdr = await signTx(tx.toXDR());
+        const { txHash } = await submitSignedTransaction({ signedXdr });
+
+        // Update local state
+        setInvoices((current) =>
+          current.map((item) => (item.id === invoice.id ? { ...item, status: "Paid" } : item)),
+        );
+
+        return txHash;
+      },
+      {
+        title: `Settling invoice #${invoice.id}`,
+        successMessage: `Invoice #${invoice.id} has been settled successfully.`,
+      },
+    );
+
+    setSettlementModal(null);
   };
 
   const updateAppealEvidence = async (evidence: string) => {
@@ -388,10 +428,9 @@ function PayerDashboardContent() {
                           {activeTab === "Outstanding" && (
                             <button
                               onClick={() => handleSettle(invoice)}
-                              disabled={settlingId === invoice.id.toString()}
                               className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
                             >
-                              {settlingId === invoice.id.toString() ? "Settling..." : "Settle"}
+                              Pay Now
                             </button>
                           )}
                           {meta && (
@@ -428,6 +467,17 @@ function PayerDashboardContent() {
       </section>
 
       <Footer />
+      {signingModal}
+      {settlementModal && (
+        <PayerSettlementModal
+          invoice={settlementModal.invoice}
+          token={settlementModal.token}
+          isOpen={!!settlementModal}
+          onClose={() => setSettlementModal(null)}
+          onConfirm={handleConfirmSettlement}
+          submitting={txLoading}
+        />
+      )}
       {appealState && (
         <AppealDefaultModal
           state={appealState}

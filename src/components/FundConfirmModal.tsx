@@ -31,6 +31,19 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (invoice && !selectedTokenId) {
+      setSelectedTokenId(invoice.token || defaultToken?.contractId || null);
+    }
+  }, [invoice, selectedTokenId, defaultToken]);
+
+  const selectedToken = useMemo(() => {
+    return selectedTokenId ? tokenMap.get(selectedTokenId) || null : null;
+  }, [selectedTokenId, tokenMap]);
+
+  const isTokenMismatch = !!(invoice && selectedTokenId && invoice.token && selectedTokenId !== invoice.token);
 
   const selectedInvoiceToken = invoice
     ? tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "") ?? defaultToken ?? null
@@ -162,6 +175,16 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
             </div>
           )}
 
+          {isTokenMismatch && (
+            <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-4 flex items-center gap-4 text-amber-800">
+              <span className="material-symbols-outlined text-amber-600">warning</span>
+              <p className="text-sm font-medium">
+                This invoice is denominated in <strong>{tokenMap.get(invoice.token || "")?.symbol || "another token"}</strong>. 
+                You must fund with <strong>{tokenMap.get(invoice.token || "")?.symbol || "the required token"}</strong>.
+              </p>
+            </div>
+          )}
+
           {/* STEP 1 */}
           {currentStep === "approve" && (
             <div className="animate-in slide-in-from-right-8 duration-300">
@@ -230,16 +253,15 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
               </div>
 
               <div className="bg-surface-container-low rounded-2xl p-6 mb-8 border border-outline-variant/20 space-y-4">
-                {selectedInvoiceToken ? (
-                  <TokenSelector
-                    label="Invoice token"
-                    value={selectedInvoiceToken.contractId}
-                    tokens={tokens}
-                    readOnly
-                    showBalances
-                    hint="The invoice specifies this token, so LP funding must use the same asset."
-                  />
-                ) : null}
+                <TokenSelector
+                  label="Funding token"
+                  value={selectedTokenId || ""}
+                  tokens={tokens}
+                  onChange={(val) => setSelectedTokenId(val)}
+                  showBalances
+                  hint={isTokenMismatch ? "" : "The invoice specifies this token, so LP funding must use the same asset."}
+                  error={isTokenMismatch ? "Currency mismatch" : undefined}
+                />
 
                 <div className="flex justify-between text-base">
                   <span className="text-on-surface-variant">You will send:</span>
@@ -301,7 +323,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
 
               <div className="flex items-center gap-4">
                 <button
-                  disabled={isFunding}
+                  disabled={isFunding || isTokenMismatch}
                   onClick={confirmFunding}
                   className="px-8 py-4 rounded-xl font-bold text-lg bg-primary text-surface-container-lowest hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 w-full"
                 >
@@ -311,7 +333,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
                       Funding invoice...
                     </>
                   ) : (
-                    "Fund Invoice"
+                    isTokenMismatch ? "Currency Mismatch" : "Fund Invoice"
                   )}
                 </button>
                 <button
