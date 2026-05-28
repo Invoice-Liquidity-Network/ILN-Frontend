@@ -193,37 +193,36 @@ export default function InvoiceFilterBar({
               </div>
             </div>
 
-            {showReputationFilter ? (
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Min Payer Reputation
+              </p>
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                    Min Payer Reputation
-                  </p>
-                  <span className="rounded-full bg-primary-container px-2 py-0.5 text-xs font-bold text-on-primary-container">
-                    {filters.minPayerReputation || "0"}
-                  </span>
-                </div>
                 <input
                   type="range"
                   min="0"
                   max="100"
-                  step="1"
+                  step="5"
                   value={filters.minPayerReputation || "0"}
                   onChange={(event) =>
-                    onFiltersChange((current) => ({
-                      ...current,
-                      minPayerReputation: event.target.value === "0" ? "" : event.target.value,
-                    }))
+                    onFiltersChange((current) => ({ ...current, minPayerReputation: event.target.value }))
                   }
-                  className="w-full accent-primary"
-                  aria-label="Min Payer Reputation"
+                  className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
                 />
-                <div className="flex justify-between text-[10px] font-medium uppercase tracking-wide text-on-surface-variant">
-                  <span>Show all</span>
+                <div className="flex justify-between text-xs text-on-surface-variant">
+                  <span>0</span>
+                  <span className="font-semibold text-on-surface">
+                    {filters.minPayerReputation || "0"}
+                  </span>
                   <span>100</span>
                 </div>
+                {filters.minPayerReputation && Number(filters.minPayerReputation) > 0 && (
+                  <p className="text-xs text-on-surface-variant">
+                    Only showing invoices from payers with reputation ≥ {filters.minPayerReputation}
+                  </p>
+                )}
               </div>
-            ) : null}
+            </div>
           </div>
         </div>
       ) : null}

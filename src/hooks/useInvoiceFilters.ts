@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Invoice } from "@/utils/soroban";
+import { tokenAmountToNumber } from "@/utils/format";
 
 export const INVOICE_STATUSES = ["Pending", "Funded", "Paid", "Defaulted", "Cancelled"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
@@ -102,7 +103,7 @@ function readFiltersFromParams(searchParams: URLSearchParams, namespace: string)
     token: searchParams.get(`${prefix}token`) ?? "",
     minDiscountBps: searchParams.get(`${prefix}minDiscountBps`) ?? "",
     maxDiscountBps: searchParams.get(`${prefix}maxDiscountBps`) ?? "",
-    minPayerReputation: searchParams.get(`${prefix}minPayerReputation`) ?? persistedReputation,
+    minPayerReputation: searchParams.get(`${prefix}minPayerReputation`) ?? "",
   };
 }
 
@@ -114,16 +115,16 @@ export function countActiveInvoiceFilters(filters: InvoiceFilters): number {
     Boolean(filters.startDate.trim() || filters.endDate.trim()),
     Boolean(filters.token.trim()),
     Boolean(filters.minDiscountBps.trim() || filters.maxDiscountBps.trim()),
-    Boolean(filters.minPayerReputation.trim() && filters.minPayerReputation !== "0"),
+    Boolean(filters.minPayerReputation.trim()),
   ].filter(Boolean).length;
 }
 
 export function applyInvoiceFilters(
   invoices: Invoice[],
   filters: InvoiceFilters,
-  options?: {
+  options?: { 
     resolveTokenSymbol?: (invoice: Invoice) => string;
-    resolvePayerReputation?: (invoice: Invoice) => number | null | undefined;
+    payerScores?: Map<string, { score: number } | null>;
   },
 ): Invoice[] {
   const search = filters.search.trim().toLowerCase();
@@ -131,6 +132,7 @@ export function applyInvoiceFilters(
   const maxAmount = parseNumeric(filters.maxAmount);
   const minDiscount = parseNumeric(filters.minDiscountBps);
   const maxDiscount = parseNumeric(filters.maxDiscountBps);
+  const minReputation = parseNumeric(filters.minPayerReputation);
   const statuses = new Set(filters.statuses);
   const start = filters.startDate ? new Date(`${filters.startDate}T00:00:00.000Z`) : null;
   const end = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : null;
@@ -151,7 +153,7 @@ export function applyInvoiceFilters(
       return false;
     }
 
-    const amountUsdc = Number(invoice.amount) / 10_000_000;
+    const amountUsdc = tokenAmountToNumber(invoice.amount);
     if (minAmount !== null && amountUsdc < minAmount) return false;
     if (maxAmount !== null && amountUsdc > maxAmount) return false;
 
@@ -167,11 +169,11 @@ export function applyInvoiceFilters(
     if (minDiscount !== null && invoice.discount_rate < minDiscount) return false;
     if (maxDiscount !== null && invoice.discount_rate > maxDiscount) return false;
 
-    if (minPayerReputation !== null && minPayerReputation > 0) {
-      const payerReputation = options?.resolvePayerReputation?.(invoice);
-      if (payerReputation === null || payerReputation === undefined || payerReputation < minPayerReputation) {
-        return false;
-      }
+    // Filter by payer reputation
+    if (minReputation !== null && options?.payerScores) {
+      const payerScore = options.payerScores.get(invoice.payer);
+      const score = payerScore?.score ?? 0; // Default to 0 for unknown payers
+      if (score < minReputation) return false;
     }
 
     return true;
