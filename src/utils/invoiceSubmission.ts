@@ -1,6 +1,6 @@
 import { StrKey } from "@stellar/stellar-sdk";
 
-export const STROOPS_PER_USDC = 10_000_000;
+export const STROOPS_PER_USDC = 1_000_000;
 export const MAX_DISCOUNT_RATE_PERCENT = 50;
 
 export interface InvoiceFormValues {
@@ -164,7 +164,7 @@ export function parseAmountToStroops(value: string): bigint | null {
 }
 
 export function formatUsdcFromStroops(value: bigint): string {
-  return formatAmountFromUnits(value, 7);
+  return formatAmountFromUnits(value, 6);
 }
 
 export function formatMoney(value: number | string): string {

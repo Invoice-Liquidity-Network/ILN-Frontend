@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { PayerPerformance } from "@/utils/lp-analytics";
-import { formatAddress, formatUSDC } from "@/utils/format";
+import { formatAddress, formatUSDC, tokenAmountToNumber } from "@/utils/format";
 
 interface Props {
   data: PayerPerformance[];
@@ -38,8 +38,8 @@ const PayerPerformanceTable: React.FC<Props> = ({ data }) => {
     const rows = sortedData.map(p => [
       p.payer,
       p.totalInvoices,
-      Number(p.fundedAmount) / 10_000_000,
-      Number(p.totalYield) / 10_000_000,
+      tokenAmountToNumber(p.fundedAmount),
+      tokenAmountToNumber(p.totalYield),
       `${p.defaultRate.toFixed(2)}%`
     ]);
     
