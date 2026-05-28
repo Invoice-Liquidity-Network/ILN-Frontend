@@ -40,6 +40,7 @@ export interface Invoice {
   freelancer: string;
   payer: string;
   amount: bigint;
+  amount_paid?: bigint;
   due_date: bigint;
   discount_rate: number;
   funder?: string;
