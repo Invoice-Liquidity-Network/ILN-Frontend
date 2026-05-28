@@ -11,6 +11,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InvoiceMarketplaceCard from "@/components/InvoiceMarketplaceCard";
 import FundConfirmModal from "@/components/FundConfirmModal";
+import LPSettingsModal from "@/components/LPSettingsModal";
+import { useLPSettings } from "@/hooks/useLPSettings";
 const PAGE_SIZE = 20;
 
 type SortKey = "yield" | "amount" | "due_date";
@@ -27,6 +29,8 @@ export default function MarketplacePage() {
   const [filterMaxAmount, setFilterMaxAmount] = useState("");
   const [page, setPage] = useState(1);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { settings } = useLPSettings();
 
   // Filter to Pending only
   const pendingInvoices = useMemo(
@@ -102,11 +106,20 @@ export default function MarketplacePage() {
     <div className="min-h-screen flex flex-col bg-surface-container-lowest">
       <Navbar />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Invoice Marketplace</h1>
-          <p className="text-on-surface-variant">
-            Browse pending invoices available for funding. Filter, sort, and fund invoices directly.
-          </p>
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Invoice Marketplace</h1>
+            <p className="text-on-surface-variant">
+              Browse pending invoices available for funding. Filter, sort, and fund invoices directly.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+          >
+            <span className="material-symbols-outlined text-sm">settings</span>
+            Risk Settings
+          </button>
         </div>
 
         {/* Filters & Sort */}
@@ -206,6 +219,7 @@ export default function MarketplacePage() {
                 payerRisk={payerRisks.get(invoice.payer) ?? "Unknown"}
                 onFund={setSelectedInvoice}
                 isWalletConnected={isConnected}
+                minReputation={settings.minReputation}
               />
             ))}
           </div>
@@ -241,6 +255,11 @@ export default function MarketplacePage() {
         invoice={selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         onSuccess={() => setSelectedInvoice(null)}
+      />
+
+      <LPSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );

@@ -39,6 +39,8 @@ import FundConfirmModal from "./FundConfirmModal";
 import DisputeInvoiceModal from "./DisputeInvoiceModal";
 import LPTransferModal from "./LPTransferModal";
 import YieldAnalyticsChart from "./YieldAnalyticsChart";
+import LPSettingsModal from "./LPSettingsModal";
+import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
 
 
@@ -78,6 +80,9 @@ export default function LPDashboard() {
   const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
   const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
   const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [overriddenInvoiceIds, setOverriddenInvoiceIds] = useState<string[]>([]);
+  const { settings } = useLPSettings();
 
   const {
     filters,
@@ -550,24 +555,16 @@ export default function LPDashboard() {
           activeFilterCount={activeFilterCount}
         />
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+        >
+          <span className="material-symbols-outlined text-sm">settings</span>
+          Risk Settings
+        </button>
       </div>
 
       {activeTab === "my-funded" ? (
-        <LPPortfolio
-          invoices={myFundedInvoices}
-          isLoading={loading}
-          onClaimDefault={handleClaimDefault}
-          claimingInvoiceId={claimingInvoiceId}
-          tokenMap={tokenMap}
-          defaultToken={defaultToken}
-        />
-      ) : activeTab === "earnings-history" ? (
-        <LPEarningsHistory
-          invoices={invoices}
-          tokenMap={tokenMap}
-          defaultToken={defaultToken}
-          walletAddress={address || null}
-        />
         <>
           <div className="px-6 pt-4">
             <YieldAnalyticsChart
@@ -608,6 +605,13 @@ export default function LPDashboard() {
             onTransfer={(inv) => setTransferInvoice(inv)}
           />
         </>
+      ) : activeTab === "earnings-history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+          walletAddress={address || null}
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -669,8 +673,16 @@ export default function LPDashboard() {
                   </td>
                 </tr>
               ) : (
-                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => (
-                  <tr key={invoice.id.toString()} className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''}`}>
+                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => {
+                  const pScore = payerScores.get(invoice.payer)?.score ?? 100;
+                  const isBelowThreshold = pScore < settings.minReputation && !overriddenInvoiceIds.includes(invoice.id.toString());
+
+                  return (
+                    <tr 
+                      key={invoice.id.toString()} 
+                      className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                      onClick={() => !isBelowThreshold && handleFund(invoice)}
+                    >
                     <td className="px-6 py-5">
                       <input
                         type="checkbox"
@@ -733,7 +745,17 @@ export default function LPDashboard() {
                             bookmark
                           </span>
                         </button>
-                        {activeTab === "discovery" ? (
+                        {isBelowThreshold ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOverriddenInvoiceIds(prev => [...prev, invoice.id.toString()]);
+                            }}
+                            className="bg-amber-500/10 text-amber-700 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
+                          >
+                            Fund Anyway
+                          </button>
+                        ) : activeTab === "discovery" ? (
                           <button
                             id={index === 0 ? "fund-button" : undefined}
                             onClick={() => handleFund(invoice)}
@@ -765,7 +787,8 @@ export default function LPDashboard() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
