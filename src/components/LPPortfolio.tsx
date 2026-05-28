@@ -18,6 +18,7 @@ interface LPPortfolioProps {
   claimingInvoiceId: string | null;
   tokenMap?: Map<string, ApprovedToken>;
   defaultToken?: ApprovedToken | null;
+  onTransfer?: (invoice: Invoice) => void;
 }
 
 export default function LPPortfolio({
@@ -27,6 +28,7 @@ export default function LPPortfolio({
   claimingInvoiceId,
   tokenMap = new Map(),
   defaultToken = null,
+  onTransfer,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
   const now = Date.now();
@@ -110,17 +112,27 @@ export default function LPPortfolio({
         const isClaimEligible = inv.status === "Funded" && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
         
-        if (!isClaimEligible) return null;
+        if (!isClaimEligible && !onTransfer) return null;
 
         return (
-          <div className="text-right">
-            <button
-              onClick={() => onClaimDefault(inv)}
-              disabled={isClaiming}
-              className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
-            >
-              {isClaiming ? "Claiming..." : "Claim Default"}
-            </button>
+          <div className="flex items-center justify-end gap-2">
+            {isClaimEligible && (
+              <button
+                onClick={() => onClaimDefault(inv)}
+                disabled={isClaiming}
+                className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
+              >
+                {isClaiming ? "Claiming..." : "Claim Default"}
+              </button>
+            )}
+            {onTransfer && inv.status === "Funded" && (
+              <button
+                onClick={() => onTransfer(inv)}
+                className="rounded-lg border border-outline-variant px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-dim"
+              >
+                Transfer
+              </button>
+            )}
           </div>
         );
       },
