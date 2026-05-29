@@ -18,6 +18,7 @@ import ActivityHeatmap from "@/components/ActivityHeatmap";
 import { ScoreSimulator } from "@/components/profile/ScoreSimulator";
 import OracleBadge from "@/components/OracleBadge";
 import { DecayWarningBanner } from "@/components/DecayWarningBanner";
+import Skeleton from "@/components/ui/Skeleton";
 
 interface ScoreHistoryPoint {
   period: string;
@@ -189,7 +190,21 @@ export default function ProfilePage() {
           )}
 
           {loading ? (
-            <div className="mt-10 text-center text-on-surface-variant">Loading profile data...</div>
+            <div
+              className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              role="status"
+              aria-label="Loading profile data"
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5"
+                >
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="mt-3 h-7 w-16" />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <MetricCard label="Reputation score" value={reputation ? reputationSummary.score : "No score"} />
