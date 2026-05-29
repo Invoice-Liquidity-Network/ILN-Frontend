@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { formatAddress, formatDate, formatUSDC, calculateYield } from "@/utils/format";
 import type { Invoice } from "@/utils/soroban";
 import type { ApprovedToken } from "@/hooks/useApprovedTokens";
@@ -10,6 +10,8 @@ import LPTokenMetricsCards from "./LPTokenMetricsCards";
 import LPPortfolioAllocationChart from "./LPPortfolioAllocationChart";
 import WeeklyYieldChart from "./WeeklyYieldChart";
 import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
+import LPRiskPanel from "./LPRiskPanel";
+import { applyLPRiskFilter, type LPRiskFilter } from "@/utils/lpRisk";
 
 interface LPPortfolioProps {
   invoices: Invoice[];
@@ -31,7 +33,13 @@ export default function LPPortfolio({
   onTransfer,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
-  const now = Date.now();
+  const [riskFilter, setRiskFilter] = useState<LPRiskFilter>("all");
+  const [riskNow, setRiskNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setRiskNow(Date.now()), 5 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Calculate per-token metrics
   const perTokenMetrics = useMemo(
@@ -42,6 +50,11 @@ export default function LPPortfolio({
   const totalYieldEarned = invoices
     .filter((invoice) => invoice.status === "Paid")
     .reduce((total, invoice) => total + calculateYield(invoice.amount, invoice.discount_rate), 0n);
+
+  const visibleInvoices = useMemo(
+    () => applyLPRiskFilter(invoices, riskFilter, riskNow),
+    [invoices, riskFilter, riskNow],
+  );
 
   const columns: ColumnDefinition<Invoice>[] = [
     {
@@ -108,7 +121,7 @@ export default function LPPortfolio({
       label: "",
       sortable: false,
       renderCell: (inv) => {
-        const isPastDue = Number(inv.due_date) * 1000 < now;
+        const isPastDue = Number(inv.due_date) * 1000 < riskNow;
         const isClaimEligible = inv.status === "Funded" && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
         
@@ -170,10 +183,17 @@ export default function LPPortfolio({
         />
       )}
 
+      <LPRiskPanel
+        invoices={invoices}
+        activeFilter={riskFilter}
+        onFilterChange={setRiskFilter}
+        now={riskNow}
+      />
+
       {/* Portfolio Table */}
       <InvoiceTable
         tableId="lp_portfolio_table"
-        data={invoices}
+        data={visibleInvoices}
         columns={columns}
         isLoading={isLoading}
         emptyStateNode={
