@@ -4,18 +4,21 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import VotingPowerCard from "@/components/VotingPowerCard";
 import VoteProgressBar from "@/components/VoteProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
 import { useWallet } from "@/context/WalletContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
+    effectiveVotingPower,
     Proposal,
     ProposalStatus,
     fetchProposals,
-    getVotingPower,
+    getVotingPowerBreakdown,
     timeRemaining,
     totalVotes,
+    type VotingPowerBreakdown,
 } from "@/utils/governance";
 
 const PAGE_SIZE = 20;
@@ -31,6 +34,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-orange-500/15 text-orange-500 border-orange-500/30", icon: "block" },
   };
   const { color, icon } = config[status];
   return (
@@ -187,13 +191,14 @@ function FilterTabs({
 
 export default function GovernancePage() {
   useDocumentTitle({ pageTitle: "Governance" });
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, connect } = useWallet();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ProposalFilter>("Active");
   const [page, setPage] = useState(1);
-  const [votingPower, setVotingPower] = useState(0);
+  const [votingPower, setVotingPower] = useState<VotingPowerBreakdown | null>(null);
+  const [isLoadingVotingPower, setIsLoadingVotingPower] = useState(false);
 
   const load = useCallback(async () => {
     const data = await fetchProposals();
@@ -202,18 +207,44 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
     // Refresh every 30 s for real-time vote counts
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(() => {
+      void load();
+    }, 30_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [load]);
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setVotingPower(0);
+      void Promise.resolve().then(() => {
+        setVotingPower(null);
+        setIsLoadingVotingPower(false);
+      });
       return;
     }
-    getVotingPower(address).then(setVotingPower);
+
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setIsLoadingVotingPower(true);
+    });
+
+    void getVotingPowerBreakdown(address)
+      .then((breakdown) => {
+        if (!cancelled) setVotingPower(breakdown);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingVotingPower(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [address, isConnected]);
 
   const sorted = useMemo(
@@ -223,7 +254,7 @@ export default function GovernancePage() {
   const filtered = sorted.filter((proposal) => displayStatus(proposal.status) === filter);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const canCreateProposal = isConnected && votingPower > 0;
+  const canCreateProposal = isConnected && votingPower !== null && effectiveVotingPower(votingPower) > 0;
 
   const counts = FILTERS.reduce(
     (acc, f) => {

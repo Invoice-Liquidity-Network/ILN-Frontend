@@ -228,6 +228,7 @@ export default function ProposalDetailPage() {
   const [vetoReason, setVetoReason] = useState("");
   const [vetoReasonHash, setVetoReasonHash] = useState("");
   const [isVetoing, setIsVetoing] = useState(false);
+  const [currentTimestamp, setCurrentTimestamp] = useState(0);
 
   const { signTx } = useWallet();
 
@@ -242,9 +243,16 @@ export default function ProposalDetailPage() {
   }, [proposalId, router]);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
+    const interval = window.setInterval(() => {
+      void load();
+    }, 30_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [load]);
 
   useEffect(() => {
@@ -252,6 +260,13 @@ export default function ProposalDetailPage() {
       getVotingPower(address).then(setVotingPower);
     }
   }, [isConnected, address]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setCurrentTimestamp(Date.now() / 1000);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [proposal?.id, proposal?.status]);
 
   const handleVote = async () => {
     if (!selectedVote || !proposal || !address) return;
@@ -452,13 +467,13 @@ export default function ProposalDetailPage() {
                     {
                       label: "Voting opened",
                       ts: proposal.votingStartsAt,
-                      done: Date.now() / 1000 >= proposal.votingStartsAt,
+                      done: currentTimestamp >= proposal.votingStartsAt,
                       icon: "how_to_vote",
                     },
                     {
                       label: "Voting closes",
                       ts: proposal.votingEndsAt,
-                      done: Date.now() / 1000 >= proposal.votingEndsAt,
+                      done: currentTimestamp >= proposal.votingEndsAt,
                       icon: "lock_clock",
                     },
                     ...(proposal.executableAfter
@@ -466,7 +481,7 @@ export default function ProposalDetailPage() {
                           {
                             label: "Timelock expires — executable",
                             ts: proposal.executableAfter,
-                            done: Date.now() / 1000 >= proposal.executableAfter,
+                            done: currentTimestamp >= proposal.executableAfter,
                             icon: "rocket_launch",
                           },
                         ]
