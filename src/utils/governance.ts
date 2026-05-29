@@ -394,6 +394,19 @@ export interface CreateProposalPayload {
   removeTokenAddress?: string;
 }
 
+export const FEE_ON_TRANSFER_TOKEN_ERROR =
+  "This token implements fee-on-transfer and cannot be added to the ILN allowlist. Tokens must transfer the exact amount specified.";
+
+export function mapGovernanceErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes("FeeOnTransferToken")) {
+    return FEE_ON_TRANSFER_TOKEN_ERROR;
+  }
+
+  return message || "Transaction rejected";
+}
+
 // ─── Mock protocol parameter state ───────────────────────────────────────────
 
 const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
