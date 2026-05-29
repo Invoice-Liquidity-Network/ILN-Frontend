@@ -1,6 +1,7 @@
-import { vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { toHaveNoViolations } from 'jest-axe';
+import { server } from './src/mocks/server';
 
 // Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
@@ -98,10 +99,6 @@ vi.mock('react', async () => {
 // Initialize i18n
 import './src/i18n';
 
-// Mock global fetch
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve([]),
-  } as Response)
-);
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());

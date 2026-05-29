@@ -180,3 +180,16 @@ export const Variant: Story = {
 - Test Storybook updates in a separate branch
 - Regenerate all baselines after major updates
 - Update this documentation as needed
+
+## MSW API Mocking
+
+Tests use Mock Service Worker to mock network calls at the request boundary instead of mocking individual app functions.
+
+### Adding Handlers
+
+1. Add or update fixtures in `src/mocks/fixtures/`.
+2. Add the request handler in `src/mocks/handlers.ts`.
+3. Use `server.use(...)` inside a Vitest test when a test needs a one-off response.
+4. Browser-based tests can start `src/mocks/browser.ts` when they need the same handlers in a real page.
+
+Keep handlers close to the external API shape. Horizon, Friendbot, CoinGecko, and Stellar RPC responses should return realistic status codes and payload fields so tests stay useful when the app code changes.

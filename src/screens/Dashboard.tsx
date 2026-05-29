@@ -19,6 +19,7 @@ import LastUpdated from "@/components/LastUpdated";
 import BulkActionBar from "../components/BulkActionBar";
 import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 import SkeletonRow from "@/components/SkeletonRow";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const STELLAR_EXPERT_CONTRACT_URL = `https://stellar.expert/explorer/${NETWORK_NAME.toLowerCase()}/contract/${CONTRACT_ID}`;
 
@@ -296,8 +297,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {viewMode === "table" ? (
-            <div className="overflow-x-auto rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
+          <ErrorBoundary>
+            {viewMode === "table" ? (
+              <div className="overflow-x-auto rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
               <table className="w-full text-left">
                 <thead className="bg-surface-container-low">
                   <tr>
@@ -448,10 +450,11 @@ export default function DashboardPage() {
               <div className="flex justify-end border-t border-outline-variant/10 bg-surface-container-low/30">
                 <LastUpdated updatedAt={dataUpdatedAt} />
               </div>
-            </div>
-          ) : (
-            <InvoiceTimeline invoices={displayedInvoices} loading={loading} />
-          )}
+              </div>
+            ) : (
+              <InvoiceTimeline invoices={displayedInvoices} loading={loading} />
+            )}
+          </ErrorBoundary>
         </div>
       </section>
 

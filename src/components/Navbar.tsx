@@ -13,6 +13,7 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { i18n, t } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,11 +32,18 @@ export default function Navbar() {
   };
 
   const currentLang = i18n.language === "es" ? "es" : "en";
+  const navLinks = [
+    { href: "/freelancer", label: t("nav.forFreelancers") },
+    { href: "/governance", label: t("nav.governance") },
+    { href: "/payer", label: t("nav.payInvoices") },
+    { href: "/dashboard", label: t("nav.dashboard") },
+    { href: "/analytics", label: t("nav.analytics") },
+  ];
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
-        <Link href="/" className="text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex min-h-11 items-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
           ILN
         </Link>
         <div className="hidden md:flex items-center gap-8">
@@ -87,12 +95,24 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setMobileOpen((open) => !open)}
+            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface-variant transition-colors md:hidden"
+            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
+          >
+            <span className="material-symbols-outlined">
+              {mobileOpen ? "close" : "menu"}
+            </span>
+          </button>
+
           <NotificationBell />
 
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setLangOpen(!langOpen)}
-              className="p-2 rounded-full hover:bg-surface-variant transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
               aria-label={t("language.select")}
               aria-expanded={langOpen}
             >
@@ -124,7 +144,7 @@ export default function Navbar() {
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-surface-variant transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
             aria-label="Toggle dark mode"
           >
             <span className="material-symbols-outlined">
@@ -132,10 +152,34 @@ export default function Navbar() {
             </span>
           </button>
 
-          <WalletButton />
+          <div className="hidden sm:block">
+            <WalletButton />
+          </div>
         </div>
 
       </div>
+      {mobileOpen ? (
+        <div
+          id="mobile-navigation"
+          className="border-t border-outline-variant/15 bg-background/95 px-6 py-4 shadow-lg md:hidden"
+        >
+          <div className="flex flex-col gap-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-variant hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="mt-2 border-t border-outline-variant/15 pt-3">
+              <WalletButton />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }

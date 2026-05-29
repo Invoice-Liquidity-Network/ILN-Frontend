@@ -104,7 +104,7 @@ export default function WalletButton() {
     <div className="relative group">
       <button
         onClick={connect}
-        className="bg-primary text-surface-container-lowest px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 duration-150 flex items-center gap-2"
+        className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-surface-container-lowest shadow-md transition-all duration-150 hover:bg-primary/90 active:scale-95"
       >
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
         Connect Wallet
