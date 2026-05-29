@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useBalances } from "@/hooks/useBalances";
 import { useWallet } from "@/context/WalletContext";
 import { TokenAmount } from "./TokenSelector";
 import { formatAddress, formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
-import { getTokenBalance } from "@/utils/soroban";
 import TestnetFaucetButton from "./TestnetFaucetButton";
-
-interface WalletBalance {
-  contractId: string;
-  amount: bigint;
-}
 
 export default function WalletButton() {
   const { address, isConnected, isInstalled, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
-  const [balances, setBalances] = useState<WalletBalance[]>([]);
-  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  // Auto-refreshes every 30s and on each successful transaction; tokens that
+  // fail to load surface via `unavailable` for the "Add Trustline" prompt.
+  const { balances, unavailable, isLoading: isLoadingBalances } = useBalances(tokens);
   const [copied, setCopied] = useState(false);
 
   const handleCopyAddress = async () => {
@@ -33,45 +29,6 @@ export default function WalletButton() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadBalances() {
-      if (!address || !isConnected || networkMismatch || allowedTokens.length === 0) {
-        setBalances([]);
-        return;
-      }
-
-      setIsLoadingBalances(true);
-      try {
-        const nextBalances = await Promise.all(
-          allowedTokens.map(async (token) => ({
-            contractId: token.contractId,
-            amount: await getTokenBalance(address, token.contractId),
-          })),
-        );
-
-        if (!cancelled) {
-          setBalances(nextBalances.filter((entry) => entry.amount > 0n));
-        }
-      } catch {
-        if (!cancelled) {
-          setBalances([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingBalances(false);
-        }
-      }
-    }
-
-    loadBalances();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, allowedTokens, isConnected, networkMismatch]);
-
   if (isConnected) {
     return (
       <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
@@ -84,25 +41,37 @@ export default function WalletButton() {
           </div>
           {!networkMismatch ? (
             <div className="flex flex-wrap justify-end gap-2">
-              {isLoadingBalances ? (
+              {isLoadingBalances && balances.size === 0 && unavailable.size === 0 ? (
                 <span className="rounded-full border border-outline-variant/15 bg-surface-container-low px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
                   Loading balances...
                 </span>
-              ) : balances.length > 0 ? (
-                balances.map((balance) => {
-                  const token = allowedTokens.find((item) => item.contractId === balance.contractId);
-                  if (!token) return null;
+              ) : (
+                allowedTokens.map((token) => {
+                  const amount = balances.get(token.contractId);
+                  const isUnavailable = unavailable.has(token.contractId);
+                  // Not yet loaded and not flagged unavailable — skip until it resolves.
+                  if (amount === undefined && !isUnavailable) return null;
 
                   return (
                     <span
-                      key={balance.contractId}
-                      className="rounded-full border border-outline-variant/15 bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface"
+                      key={token.contractId}
+                      className="flex items-center gap-1.5 rounded-full border border-outline-variant/15 bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface"
                     >
-                      <TokenAmount amount={formatTokenAmount(balance.amount, token)} token={token} />
+                      <TokenAmount amount={formatTokenAmount(amount ?? 0n, token)} token={token} />
+                      {isUnavailable ? (
+                        <button
+                          type="button"
+                          onClick={connect}
+                          title={`No ${token.symbol} trustline found for this wallet. Add one to hold ${token.symbol}.`}
+                          className="rounded-full bg-primary-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-on-primary-container hover:bg-primary-container/80 transition-colors"
+                        >
+                          Add Trustline
+                        </button>
+                      ) : null}
                     </span>
                   );
                 })
-              ) : null}
+              )}
             </div>
           ) : null}
           <div className="flex items-center gap-1.5">

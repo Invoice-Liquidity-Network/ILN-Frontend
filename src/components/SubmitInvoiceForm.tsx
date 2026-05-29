@@ -1,7 +1,8 @@
 "use client";
 
-import { useReducer, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useTokenPrice } from "@/hooks/useTokenPrice";
 import { NETWORK_NAME } from "@/constants";
@@ -56,6 +57,7 @@ interface SubmitInvoiceFormProps {
 
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
   const { address, isConnected, connect, disconnect, networkMismatch, error: walletError } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
@@ -70,6 +72,17 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormValues | "wallet" | "submit", string>>>({});
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  // Optional referral code — captured client-side; the submit_invoice contract
+  // call does not yet accept it, so it is persisted as attribution per invoice.
+  const [referralCode, setReferralCode] = useState("");
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    },
+    [],
+  );
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || "";
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
@@ -232,6 +245,19 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     const invoiceId = result.invoiceId.toString();
     setSubmittedInvoiceId(invoiceId);
     setLastTxHash(result.txHash);
+
+    // Best-effort per-invoice referral attribution. Never block on failure.
+    const trimmedReferral = referralCode.trim();
+    if (trimmedReferral) {
+      try {
+        window.localStorage.setItem(`iln-referral-${invoiceId}`, trimmedReferral);
+      } catch {
+        // localStorage may be unavailable (private mode); attribution is best-effort.
+      }
+    }
+
+    // Confirm success on screen, then take the freelancer to the new invoice.
+    redirectTimer.current = setTimeout(() => router.push(`/i/${invoiceId}`), 1500);
   };
 
   return (
@@ -430,12 +456,15 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                     <input aria-label="Due date" value={form.dueDate} onChange={(event) => setField("dueDate", event.target.value)} min={getMinimumDueDate()} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" type="date" />
                   </Field>
                 </div>
+                <Field label="Referral code (optional)" tooltip="If someone referred you to the network, enter their referral code here. Optional." hint="Leave blank if you don't have one.">
+                  <input value={referralCode} onChange={(event) => setReferralCode(event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="e.g. ILN-FRIEND" autoComplete="off" spellCheck={false} />
+                </Field>
               </>
             ) : null}
 
             {step === 2 ? (
               <>
-                <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={errors.tokenId} disabled={tokensLoading || isSubmitting} onChange={(value) => setField("tokenId", value)} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
+                <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={errors.tokenId} disabled={tokensLoading || txLoading} onChange={(value) => setField("tokenId", value)} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
                 <Field label="Discount rate (%)" tooltip={<>How much of the invoice value you give up in exchange for instant payment. 300 basis points = 3%. A lower rate attracts more LPs; a higher rate means you receive less upfront.<div className="mt-2 font-bold text-primary">Typical value: 100-500 bps</div></>} error={errors.discountRate} hint={t("submitForm.discountRateHint")}>
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
                     <input value={form.discountRate} onChange={(event) => setField("discountRate", event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="3.00" inputMode="decimal" />
@@ -486,6 +515,13 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                 {lastTxHash ? (
                   <p className="mt-3 text-xs text-on-primary-container/80 break-all">{t("submitForm.txHash")}: {lastTxHash}</p>
                 ) : null}
+                <Link
+                  href={`/i/${submittedInvoiceId}`}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-on-primary-container hover:underline"
+                >
+                  View invoice details
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </Link>
               </div>
             ) : null}
 
@@ -500,8 +536,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                   Continue
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting} className="flex-1 rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 transition-colors">
-                  {isSubmitting ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
+                <button type="submit" disabled={txLoading} className="flex-1 rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 transition-colors">
+                  {txLoading ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
                 </button>
               )}
             </div>
