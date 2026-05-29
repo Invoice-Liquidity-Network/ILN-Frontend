@@ -7,8 +7,9 @@ import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
+import RemindMeButton from "@/components/RemindMeButton";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
 type LoadState = "loading" | "success" | "error";
@@ -39,7 +40,8 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(fetchInvoice, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -51,25 +53,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
     try {
       const tx = await markPaid(address, invoiceId, amount);
       updateToast(toastId, { message: "Transaction prepared. Signing..." });
-      
+
       const { txHash } = await submitSignedTransaction({ tx, signTx });
-      
-      updateToast(toastId, { 
-        type: "success", 
-        title: "Payment Successful", 
+
+      updateToast(toastId, {
+        type: "success",
+        title: "Payment Successful",
         message: "Your payment has been processed on-chain.",
-        txHash 
+        txHash
       });
-      
+
       // Close modal and refresh invoice state
       setIsPaymentModalOpen(false);
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      updateToast(toastId, { 
-        type: "error", 
-        title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+      const message = err instanceof Error ? err.message : "An unexpected error occurred during payment.";
+      updateToast(toastId, {
+        type: "error",
+        title: "Payment Failed",
+        message,
       });
     } finally {
       setIsPaying(false);
@@ -133,17 +136,19 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
+        <RemindMeButton invoice={invoice} viewerAddress={address} />
+
         {/* ── Invoice Summary Card ───────────────────────────────────────── */}
         <section className="rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant mb-4">Invoice Summary</p>
-            
+
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Amount Due</span>
                 <span className="text-2xl font-bold text-on-surface">{formatUsdcFromStroops(invoice.amount)} USDC</span>
               </div>
-              
+
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Due Date</span>
                 <span className="text-sm font-semibold text-on-surface">{new Date(Number(invoice.due_date) * 1000).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
