@@ -3,11 +3,10 @@
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
-import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
@@ -39,7 +38,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -64,12 +63,13 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       // Close modal and refresh invoice state
       setIsPaymentModalOpen(false);
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred during payment.";
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message,
       });
     } finally {
       setIsPaying(false);
@@ -152,14 +152,14 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Freelancer</span>
                 <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-mono text-primary hover:underline">
-                  {formatAddress(invoice.freelancer)}
+                  <WalletAddress address={invoice.freelancer} showCopy={false} />
                 </Link>
               </div>
 
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Payer</span>
                 <Link href={`/profile/${invoice.payer}`} className="text-sm font-mono text-primary hover:underline">
-                  {formatAddress(invoice.payer)}
+                  <WalletAddress address={invoice.payer} showCopy={false} />
                 </Link>
               </div>
 
@@ -167,7 +167,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
                 <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                   <span className="text-sm text-on-surface-variant font-medium">Liquidity Provider</span>
                   <Link href={`/profile/${invoice.funder}`} className="text-sm font-mono text-primary hover:underline">
-                    {formatAddress(invoice.funder)}
+                    <WalletAddress address={invoice.funder} showCopy={false} />
                   </Link>
                 </div>
               )}

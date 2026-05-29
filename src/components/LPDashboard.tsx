@@ -22,7 +22,7 @@ import {
   Invoice,
   submitSignedTransaction,
 } from "@/utils/soroban";
-import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
+import { formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { usePayerScores } from "@/hooks/usePayerScores";
 import RiskBadge from "./RiskBadge";
@@ -40,6 +40,7 @@ import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPSettingsModal from "./LPSettingsModal";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
+import WalletAddress from "./WalletAddress";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
@@ -303,11 +304,11 @@ export default function LPDashboard() {
       renderCell: (inv: Invoice) => (
         <div className="flex flex-col">
           <Link href={`/profile/${inv.freelancer}`} className="text-sm font-medium text-primary hover:underline">
-            {formatAddress(inv.freelancer)}
+            <WalletAddress address={inv.freelancer} showCopy={false} />
           </Link>
           <span className="text-[10px] text-on-surface-variant">
             Payer: <Link href={`/profile/${inv.payer}`} className="font-mono text-on-surface hover:underline">
-              {formatAddress(inv.payer)}
+              <WalletAddress address={inv.payer} showCopy={false} />
             </Link>
           </span>
         </div>
@@ -684,12 +685,12 @@ export default function LPDashboard() {
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
                         <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-medium text-primary hover:underline">
-                          {formatAddress(invoice.freelancer)}
+                          <WalletAddress address={invoice.freelancer} showCopy={false} />
                         </Link>
                         <span className="text-[10px] text-on-surface-variant">
                           {t("lpDashboard.tableHeaders.payer")}:{" "}
                           <Link href={`/profile/${invoice.payer}`} className="font-mono text-on-surface hover:underline">
-                            {formatAddress(invoice.payer)}
+                            <WalletAddress address={invoice.payer} showCopy={false} />
                           </Link>
                         </span>
                       </div>

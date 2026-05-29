@@ -5,7 +5,7 @@ import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { useBalances } from "@/hooks/useBalances";
 import { useWallet } from "@/context/WalletContext";
 import { TokenAmount } from "./TokenSelector";
-import { formatAddress, formatTokenAmount } from "@/utils/format";
+import { formatTokenAmount } from "@/utils/format";
 import { NETWORK_NAME } from "@/constants";
 import TestnetFaucetButton from "./TestnetFaucetButton";
 
