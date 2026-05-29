@@ -18,8 +18,15 @@ import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import LastUpdated from "@/components/LastUpdated";
 import BulkActionBar from "../components/BulkActionBar";
 import CancelInvoiceButton from "@/components/CancelInvoiceButton";
+import SkeletonRow from "@/components/SkeletonRow";
 
 const STELLAR_EXPERT_CONTRACT_URL = `https://stellar.expert/explorer/${NETWORK_NAME.toLowerCase()}/contract/${CONTRACT_ID}`;
+
+/**
+ * Skeleton cell widths for the freelancer invoice table, matching its columns:
+ * select · ID · Payer · Amount · Discount · Due Date · Status · Links.
+ */
+const DASHBOARD_INVOICE_COLUMNS = ["w-4", "w-8", "w-28", "w-24", "w-16", "w-20", "w-20", "w-12"];
 
 export type FreelancerStatusFilter = "All" | "Pending" | "Funded" | "Paid" | "Defaulted" | "Cancelled";
 export type FreelancerSortKey = "amount" | "due_date";
@@ -331,11 +338,9 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   ) : loading && myInvoices.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-14 text-center text-on-surface-variant">
-                        Loading invoices...
-                      </td>
-                    </tr>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonRow key={i} columns={DASHBOARD_INVOICE_COLUMNS} />
+                    ))
                   ) : displayedInvoices.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-14 text-center text-on-surface-variant">
