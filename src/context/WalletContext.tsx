@@ -14,6 +14,7 @@ interface WalletContextType {
   address: string | null;
   isConnected: boolean;
   isInstalled: boolean;
+  isReconnecting: boolean;
   error: string | null;
   networkMismatch: boolean;
   roles: WalletRole[];
@@ -69,6 +70,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
   const [roles, setRoles] = useState<WalletRole[]>([]);
@@ -92,29 +94,54 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const checkConnection = useCallback(async () => {
+    let shouldStopReconnecting = false;
+
     try {
       const installed = extractConnectionState(await isConnected());
       setIsInstalled(installed);
-      
-      if (installed) {
-        const savedAddress = localStorage.getItem(STORAGE_KEY);
-        if (savedAddress) {
-          const { address } = await getAddress();
-          if (address && address === savedAddress) {
-            setAddress(address);
-            await checkNetwork();
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-          }
-        }
+
+      const savedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY);
+      const savedAddress = localStorage.getItem(STORAGE_KEY);
+      const shouldReconnect = savedProvider === FREIGHTER_PROVIDER || Boolean(savedAddress);
+
+      if (!shouldReconnect) {
+        return;
+      }
+
+      if (!installed) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PROVIDER_STORAGE_KEY);
+        return;
+      }
+
+      shouldStopReconnecting = true;
+      setIsReconnecting(true);
+      const { address } = await getAddress();
+
+      if (address && (!savedAddress || address === savedAddress)) {
+        setAddress(address);
+        localStorage.setItem(STORAGE_KEY, address);
+        localStorage.setItem(PROVIDER_STORAGE_KEY, FREIGHTER_PROVIDER);
+        await checkNetwork();
+      } else {
+        setAddress(null);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PROVIDER_STORAGE_KEY);
       }
     } catch (e) {
       console.error("Check connection failed", e);
+      setAddress(null);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PROVIDER_STORAGE_KEY);
+    } finally {
+      if (shouldStopReconnecting) {
+        setIsReconnecting(false);
+      }
     }
   }, [checkNetwork]);
 
   useEffect(() => {
-    checkConnection();
+    void Promise.resolve().then(checkConnection);
   }, [checkConnection]);
 
   useEffect(() => {
@@ -188,6 +215,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (address) {
           setAddress(address);
           localStorage.setItem(STORAGE_KEY, address);
+          localStorage.setItem(PROVIDER_STORAGE_KEY, FREIGHTER_PROVIDER);
           
           const isCorrectNetwork = await checkNetwork();
           if (!isCorrectNetwork) {
@@ -204,9 +232,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setError(msg);
         updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Connection error:", e);
-      const msg = e.message || "Connection failed";
+      const msg = e instanceof Error ? e.message : "Connection failed";
       setError(msg);
       updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
     }
@@ -260,6 +288,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         address, 
         isConnected: !!address, 
         isInstalled,
+        isReconnecting,
         error,
         networkMismatch,
         roles,

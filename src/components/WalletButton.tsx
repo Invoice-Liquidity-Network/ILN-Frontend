@@ -104,10 +104,13 @@ export default function WalletButton() {
     <div className="relative group">
       <button
         onClick={connect}
+        disabled={isReconnecting}
         className="bg-primary text-surface-container-lowest px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 duration-150 flex items-center gap-2"
       >
-        <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
-        Connect Wallet
+        <span className={`material-symbols-outlined text-sm ${isReconnecting ? "animate-spin" : ""}`}>
+          {isReconnecting ? "progress_activity" : "account_balance_wallet"}
+        </span>
+        {isReconnecting ? "Reconnecting..." : "Connect Wallet"}
       </button>
       {!isInstalled && (
         <a
