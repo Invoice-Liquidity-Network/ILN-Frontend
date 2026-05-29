@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
 import { getWalletRoles, type WalletRole } from "@/utils/soroban";
 import { trackEvent } from "@/lib/analytics";
@@ -114,7 +116,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [checkNetwork]);
 
   useEffect(() => {
-    checkConnection();
+    const checkTimer = window.setTimeout(() => {
+      void checkConnection();
+    }, 0);
+    return () => window.clearTimeout(checkTimer);
   }, [checkConnection]);
 
   useEffect(() => {
@@ -204,9 +209,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setError(msg);
         updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Connection error:", e);
-      const msg = e.message || "Connection failed";
+      const msg = e instanceof Error ? e.message : "Connection failed";
       setError(msg);
       updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
     }
