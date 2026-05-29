@@ -43,11 +43,11 @@ function getTokenName(token: TokenLike): string {
   return token.name ?? token.symbol;
 }
 
-function getTokenLogo(token: TokenLike): string {
+function getTokenLogo(token: Pick<TokenLike, "logo" | "symbol">): string {
   return token.logo ?? `/tokens/${token.symbol.toLowerCase()}.svg`;
 }
 
-function getTokenIconLabel(token: TokenLike): string {
+function getTokenIconLabel(token: Pick<TokenLike, "iconLabel" | "symbol">): string {
   return token.iconLabel ?? (token.symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK");
 }
 

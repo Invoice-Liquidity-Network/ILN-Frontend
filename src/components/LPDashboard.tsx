@@ -21,6 +21,7 @@ import {
   getTokenAllowance,
   Invoice,
   submitSignedTransaction,
+  transferLpPosition,
 } from "@/utils/soroban";
 import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -40,6 +41,7 @@ import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPSettingsModal from "./LPSettingsModal";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
+import { useTransaction } from "@/hooks/useTransaction";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
@@ -91,8 +93,12 @@ export default function LPDashboard() {
       } else {
         addToast({ type: "success", title: "Removed from Watchlist" });
       }
-    } catch (error: any) {
-      addToast({ type: "error", title: "Watchlist Error", message: error.message });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Watchlist Error",
+        message: error instanceof Error ? error.message : "Unable to update watchlist.",
+      });
     }
   };
 
@@ -129,7 +135,10 @@ export default function LPDashboard() {
 
   useEffect(() => {
     if (!selectedInvoice || !address) return;
-    void refreshAllowance(selectedInvoice, address);
+    const timeout = window.setTimeout(() => {
+      void refreshAllowance(selectedInvoice, address);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [address, refreshAllowance, selectedInvoice]);
 
   const toggleInvoiceSelection = (id: string) => {
@@ -188,7 +197,7 @@ export default function LPDashboard() {
 
   const filteredInvoices = useMemo(
     () =>
-      applyInvoiceFilters(invoices, filters, {
+      applyInvoiceFilters(invoicesWithTransferredFunders, filters, {
         resolveTokenSymbol: (invoice) => {
           const token = tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "");
           return token?.symbol ?? "USDC";
@@ -199,7 +208,7 @@ export default function LPDashboard() {
   );
 
 
-  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a: any, b: any) => {
+  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a, b) => {
     if (sortKey === "risk") {
       const ra = RISK_SORT_ORDER[payerRisks.get(a.payer) ?? "Unknown"];
       const rb = RISK_SORT_ORDER[payerRisks.get(b.payer) ?? "Unknown"];
@@ -214,6 +223,9 @@ export default function LPDashboard() {
     }
     const aVal = a[sortKey];
     const bVal = b[sortKey];
+    if (aVal === undefined && bVal === undefined) return 0;
+    if (aVal === undefined) return sortOrder === "asc" ? -1 : 1;
+    if (bVal === undefined) return sortOrder === "asc" ? 1 : -1;
     if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
     if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
     return 0;
@@ -262,7 +274,7 @@ export default function LPDashboard() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: any, index: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, invoice: Invoice, index: number) => {
     const rowElements = Array.from(e.currentTarget.parentElement?.querySelectorAll('tr[role="row"]') || []);
 
     switch (e.key) {
@@ -288,7 +300,7 @@ export default function LPDashboard() {
     }
   };
 
-  const commonColumns: DataTableColumn<any>[] = [
+  const commonColumns: DataTableColumn<Invoice>[] = [
     {
       id: "id",
       label: "ID",
@@ -354,7 +366,7 @@ export default function LPDashboard() {
     },
   ];
 
-  const discoveryColumns: DataTableColumn<any>[] = [
+  const discoveryColumns: DataTableColumn<Invoice>[] = [
     ...commonColumns,
     {
       id: "risk",
@@ -398,7 +410,7 @@ export default function LPDashboard() {
     },
   ];
 
-  const watchlistColumns: DataTableColumn<any>[] = [
+  const watchlistColumns: DataTableColumn<WatchlistInvoice>[] = [
     ...commonColumns,
     {
       id: "watchAddedAt",
@@ -708,7 +720,7 @@ export default function LPDashboard() {
                     </td>
                     {activeTab === "watchlist" && (
                       <td className="px-6 py-5 text-xs text-on-surface-variant">
-                        {new Date(invoice.watchAddedAt).toLocaleDateString()}
+                        {new Date(getWatchAddedAt(invoice)).toLocaleDateString()}
                       </td>
                     )}
                     {activeTab === "discovery" && (

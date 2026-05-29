@@ -2,12 +2,18 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
+import {
+  getInvoice,
+  markPaid,
+  submitSignedTransaction,
+  transferLpPosition,
+  type Invoice,
+} from "@/utils/soroban";
 import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
@@ -39,7 +45,8 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(fetchInvoice, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -69,10 +76,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message: err instanceof Error ? err.message : "An unexpected error occurred during payment."
       });
     } finally {
       setIsPaying(false);
+    }
+  };
+
+  const handleTransferPosition = async (newLpAddress: string) => {
+    if (!address || !invoice) return;
+
+    setTransferError(null);
+    try {
+      await transferTransaction.runTransaction(async () => {
+        const tx = await transferLpPosition(address, invoice.id, newLpAddress);
+        return submitSignedTransaction({ tx, signTx });
+      });
+      setInvoice({ ...invoice, funder: newLpAddress });
+      setIsTransferModalOpen(false);
+    } catch (err) {
+      setTransferError(err instanceof Error ? err.message : "Failed to transfer LP position.");
     }
   };
 
@@ -97,6 +120,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }
 
   const isPayer = address === invoice.payer;
+  const isCurrentLp = Boolean(address && invoice.funder && address === invoice.funder);
   const isPaid = invoice.status === "Paid";
   const isFunded = invoice.status === "Funded";
 
@@ -123,7 +147,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {address && !isPayer && !isPaid && (
+        {address && !isPayer && !isCurrentLp && !isPaid && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-5 py-4 text-amber-400">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
             <div>

@@ -11,11 +11,15 @@ import LPPortfolioAllocationChart from "./LPPortfolioAllocationChart";
 import WeeklyYieldChart from "./WeeklyYieldChart";
 import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
 
+const INITIAL_NOW_MS = Date.now();
+
 interface LPPortfolioProps {
   invoices: Invoice[];
   isLoading: boolean;
   onClaimDefault: (invoice: Invoice) => Promise<void>;
   claimingInvoiceId: string | null;
+  onTransferPosition?: (invoice: Invoice) => void;
+  transferringInvoiceId?: string | null;
   tokenMap?: Map<string, ApprovedToken>;
   defaultToken?: ApprovedToken | null;
   onTransfer?: (invoice: Invoice) => void;
@@ -26,12 +30,14 @@ export default function LPPortfolio({
   isLoading,
   onClaimDefault,
   claimingInvoiceId,
+  onTransferPosition,
+  transferringInvoiceId = null,
   tokenMap = new Map(),
   defaultToken = null,
   onTransfer,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
-  const now = Date.now();
+  const now = INITIAL_NOW_MS;
 
   // Calculate per-token metrics
   const perTokenMetrics = useMemo(
@@ -111,6 +117,8 @@ export default function LPPortfolio({
         const isPastDue = Number(inv.due_date) * 1000 < now;
         const isClaimEligible = inv.status === "Funded" && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
+        const isFundedPosition = inv.status === "Funded";
+        const isTransferring = transferringInvoiceId === inv.id.toString();
         
         if (!isClaimEligible && !onTransfer) return null;
 
