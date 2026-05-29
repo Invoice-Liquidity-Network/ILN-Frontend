@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import { GOVERNANCE_ADMIN_ADDRESS } from "@/constants";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
@@ -512,6 +513,12 @@ export default function ProposalDetailPage() {
                     <span className="text-amber-500">Quorum not yet reached</span>
                   )}
                 </p>
+                <QuorumProgressBar
+                  votesCast={total}
+                  quorumRequired={proposal.quorumRequired}
+                  className="mb-5"
+                />
+
                 <VoteProgressBar
                   votesFor={proposal.votesFor}
                   votesAgainst={proposal.votesAgainst}

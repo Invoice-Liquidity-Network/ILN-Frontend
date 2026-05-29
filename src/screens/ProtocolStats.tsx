@@ -4,9 +4,11 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useContractStats } from "@/hooks/useContractStats";
+import { useInvoices } from "@/hooks/useInvoices";
 import StatsMetricCards from "@/components/stats/StatsMetricCards";
 import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
 import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
+import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
 
 function LoadingSkeleton() {
   return (
@@ -38,6 +40,7 @@ function ErrorBanner({ message }: { message: string }) {
 
 export default function ProtocolStatsScreen() {
   const { data: stats, isLoading, error } = useContractStats();
+  const { data: invoices = [], isLoading: invoicesLoading } = useInvoices();
 
   return (
     <main className="min-h-screen">
@@ -70,6 +73,11 @@ export default function ProtocolStatsScreen() {
               <StatsTokenBreakdown
                 tokens={stats.volume_by_token}
                 totalUsd={stats.total_volume_usd}
+              />
+
+              <ProtocolYieldAnalyticsSection
+                invoices={invoices}
+                isLoading={invoicesLoading}
               />
             </>
           )}
