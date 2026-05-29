@@ -6,8 +6,9 @@ import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/u
 import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import TransactionModal from "@/components/TransactionModal";
+import { useTransaction } from "@/hooks/useTransaction";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
@@ -16,7 +17,7 @@ type LoadState = "loading" | "success" | "error";
 export default function PayInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { address, connect, signTx } = useWallet();
-  const { addToast, updateToast } = useToast();
+  const transaction = useTransaction();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -102,6 +103,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen px-4 py-12 sm:py-16">
+      <TransactionModal phase={transaction.state.phase} error={transaction.state.error} />
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex flex-col gap-1">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">

@@ -4,6 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useTransaction } from "@/hooks/useTransaction";
 import {
   buildApproveTokenTransaction,
   fundInvoice,
@@ -73,7 +74,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
 
   useEffect(() => {
     if (!invoice || !address) return;
-    void refreshAllowance(invoice, address);
+    void Promise.resolve().then(() => refreshAllowance(invoice, address));
   }, [address, refreshAllowance, invoice]);
 
   if (!invoice) return null;

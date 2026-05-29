@@ -12,6 +12,7 @@ import { useWallet } from "@/context/WalletContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import useAddressBook from "@/hooks/useAddressBook";
+import { useTransaction } from "@/hooks/useTransaction";
 import {
   getMinimumDueDate,
   getYieldPreview,
@@ -61,6 +62,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
   const { address, isConnected, connect, disconnect, networkMismatch, error: walletError } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
+  const transaction = useTransaction();
   
   const [showBanner, setShowBanner] = useState(!!prefillId);
   const [form, dispatchForm] = useReducer(invoiceFormReducer, {
