@@ -142,6 +142,14 @@ function extractInvoiceIdFromTransaction(result: unknown): bigint | null {
   return null;
 }
 
+function getSimulationError(simulated: unknown, fallback = "Unable to simulate transaction."): string {
+  if (simulated && typeof simulated === "object" && "error" in simulated) {
+    const { error } = simulated as { error?: unknown };
+    return typeof error === "string" ? error : fallback;
+  }
+  return fallback;
+}
+
 async function readTokenContractValue(tokenId: string, method: string): Promise<unknown> {
   const callResult = await server.simulateTransaction(buildReadTransaction(tokenId, method, []));
   if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
@@ -708,7 +716,7 @@ export async function submitInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   // Extract the predicted invoice ID from simulation retval
@@ -717,18 +725,18 @@ export async function submitInvoice(
     const raw = scValToNative(sim.result!.retval);
     // Contract returns Result<u64, Error> — unwrap Ok variant
     if (raw && typeof raw === "object" && "ok" in raw) {
-      invoiceId = BigInt((raw as any).ok);
+      invoiceId = BigInt(String((raw as { ok: unknown }).ok));
     } else if (raw && typeof raw === "object" && "Ok" in raw) {
-      invoiceId = BigInt((raw as any).Ok);
+      invoiceId = BigInt(String((raw as { Ok: unknown }).Ok));
     } else {
-      invoiceId = BigInt(raw as any);
+      invoiceId = BigInt(String(raw));
     }
-  } catch (_) {
+  } catch {
     // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any, invoiceId };
+  return { tx: finalTx, invoiceId };
 }
 
 export interface UpdateInvoiceArgs {
@@ -772,17 +780,17 @@ export async function updateInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function cancelInvoice(
   freelancer: string,
   invoiceId: bigint
-): Promise<{ tx: any }> {
+): Promise<{ tx: Transaction }> {
   // Use a default sequence number / account for preparing or real one if needed
   let account: Account;
   try {
@@ -805,11 +813,11 @@ export async function cancelInvoice(
 
   const sim = await server.simulateTransaction(txUrl);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(txUrl, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function submitInvoiceTransaction({

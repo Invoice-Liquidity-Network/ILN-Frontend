@@ -2,12 +2,18 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getInvoice, markPaid, submitSignedTransaction, type Invoice } from "@/utils/soroban";
+import {
+  disputeInvoice,
+  getInvoice,
+  markPaid,
+  submitSignedTransaction,
+  type Invoice,
+} from "@/utils/soroban";
 import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
@@ -39,7 +45,8 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    const timeout = window.setTimeout(fetchInvoice, 0);
+    return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -69,10 +76,26 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message: err instanceof Error ? err.message : "An unexpected error occurred during payment."
       });
     } finally {
       setIsPaying(false);
+    }
+  };
+
+  const handleDispute = async (reasonHash: string) => {
+    if (!address || !invoice) return;
+
+    setDisputeError(null);
+    try {
+      await disputeTransaction.runTransaction(async () => {
+        const tx = await disputeInvoice(address, invoice.id, reasonHash);
+        return submitSignedTransaction({ tx, signTx });
+      });
+      setInvoice({ ...invoice, status: "Disputed" });
+      setIsDisputeModalOpen(false);
+    } catch (err) {
+      setDisputeError(err instanceof Error ? err.message : "Failed to raise dispute.");
     }
   };
 
