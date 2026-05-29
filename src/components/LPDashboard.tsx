@@ -37,6 +37,7 @@ import FundConfirmModal from "./FundConfirmModal";
 import DisputeInvoiceModal from "./DisputeInvoiceModal";
 import LPTransferModal from "./LPTransferModal";
 import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
+import LPYieldComparison from "./LPYieldComparison";
 import LPSettingsModal from "./LPSettingsModal";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
@@ -555,12 +556,19 @@ export default function LPDashboard() {
 
       {activeTab === "my-funded" ? (
         <>
-          <div className="px-6 pt-4">
+          <div className="px-6 pt-4 flex flex-col gap-4">
             <DynamicYieldAnalyticsChart
               invoices={invoices}
               lpAddress={address ?? ""}
               isLoading={loading}
             />
+            {address ? (
+              <LPYieldComparison
+                invoices={invoices}
+                lpAddress={address}
+                isLoading={loading}
+              />
+            ) : null}
           </div>
           <div className="px-6">
             <LPRiskSummaryPanel 

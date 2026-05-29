@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from "next/navigation";
 import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
+import { networksMatch, normalizeWalletNetwork } from "@/utils/network";
 import { getWalletRoles, type WalletRole } from "@/utils/soroban";
 import { trackEvent } from "@/lib/analytics";
 import { clearWalletStorage, WALLET_ADDRESS_STORAGE_KEY } from "@/utils/walletStorage";
@@ -16,6 +17,7 @@ interface WalletContextType {
   isInstalled: boolean;
   error: string | null;
   networkMismatch: boolean;
+  walletNetwork: string | null;
   roles: WalletRole[];
   rolesLoading: boolean;
   connect: () => Promise<void>;
@@ -71,6 +73,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isInstalled, setIsInstalled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
+  const [walletNetwork, setWalletNetwork] = useState<string | null>(null);
   const [roles, setRoles] = useState<WalletRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   // Which provider to connect with is chosen in the selection modal (#2).
@@ -79,14 +82,18 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const checkNetwork = useCallback(async () => {
     try {
       const network = extractNetworkName(await getNetwork());
-      if (network && network.toUpperCase() !== NETWORK_NAME) {
-        setNetworkMismatch(true);
-        return false;
+      if (!network) {
+        setWalletNetwork(null);
+        setNetworkMismatch(false);
+        return true;
       }
-      setNetworkMismatch(false);
-      return true;
+      setWalletNetwork(network);
+      const mismatch = !networksMatch(network);
+      setNetworkMismatch(mismatch);
+      return !mismatch;
     } catch (e) {
       console.error("Failed to get network", e);
+      setWalletNetwork(null);
       return false;
     }
   }, []);
@@ -216,6 +223,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Clear all in-memory wallet state...
     setAddress(null);
     setNetworkMismatch(false);
+    setWalletNetwork(null);
     setError(null);
     setRoles([]);
     setRolesLoading(false);
@@ -262,6 +270,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isInstalled,
         error,
         networkMismatch,
+        walletNetwork: walletNetwork ? normalizeWalletNetwork(walletNetwork) : null,
         roles,
         rolesLoading,
         connect,
