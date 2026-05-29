@@ -103,7 +103,7 @@ export default function WalletButton() {
   return (
     <div className="relative group">
       <button
-        onClick={connect}
+        onClick={() => setIsSelectionOpen(true)}
         className="bg-primary text-surface-container-lowest px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all active:scale-95 duration-150 flex items-center gap-2"
       >
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
@@ -128,6 +128,15 @@ export default function WalletButton() {
           <p className="mt-1 opacity-90">{error}</p>
         </div>
       )}
+      <WalletSelectionModal
+        isOpen={isSelectionOpen}
+        walletConnectConfigured={isWalletConnectConfigured()}
+        onClose={() => setIsSelectionOpen(false)}
+        onSelect={(provider) => {
+          setIsSelectionOpen(false);
+          void connectProvider(provider);
+        }}
+      />
     </div>
   );
 }

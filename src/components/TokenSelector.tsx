@@ -7,6 +7,7 @@ import { formatTokenAmount } from "@/utils/format";
 import FieldTooltip from "./FieldTooltip";
 
 type TokenLike = ApprovedToken | (Partial<ApprovedToken> & Pick<ApprovedToken, "contractId" | "symbol" | "decimals">);
+type TokenIconLike = Pick<TokenLike, "iconLabel" | "logo" | "symbol">;
 
 interface TokenSelectorProps {
   label: string;
@@ -43,11 +44,11 @@ function getTokenName(token: TokenLike): string {
   return token.name ?? token.symbol;
 }
 
-function getTokenLogo(token: TokenLike): string {
+function getTokenLogo(token: TokenIconLike): string {
   return token.logo ?? `/tokens/${token.symbol.toLowerCase()}.svg`;
 }
 
-function getTokenIconLabel(token: TokenLike): string {
+function getTokenIconLabel(token: TokenIconLike): string {
   return token.iconLabel ?? (token.symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK");
 }
 
@@ -73,7 +74,7 @@ export function TokenIcon({
   token,
   className = "",
 }: {
-  token: Pick<TokenLike, "iconLabel" | "logo" | "symbol">;
+  token: TokenIconLike;
   className?: string;
 }) {
   return (

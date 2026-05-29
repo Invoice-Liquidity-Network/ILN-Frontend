@@ -31,6 +31,10 @@ vi.mock("@stellar/freighter-api", () => ({
   getNetwork:      vi.fn().mockResolvedValue({ network: "TESTNET" }),
 }));
 
+vi.mock("../../utils/walletConnect", () => ({
+  isWalletConnectConfigured: () => true,
+}));
+
 /** Mutable wallet state – reset before each test. */
 const walletState = {
   address: null as string | null,
@@ -38,7 +42,9 @@ const walletState = {
   isInstalled: true,
   error: null as string | null,
   networkMismatch: false,
+  provider: null as "freighter" | "walletconnect" | null,
   connect: vi.fn(),
+  connectProvider: vi.fn(),
   disconnect: vi.fn(),
   signTx: vi.fn(),
 };
@@ -86,7 +92,9 @@ describe("WalletButton", () => {
     walletState.isInstalled = true;
     walletState.error = null;
     walletState.networkMismatch = false;
+    walletState.provider = null;
     walletState.connect.mockReset();
+    walletState.connectProvider.mockReset();
     walletState.disconnect.mockReset();
     walletState.signTx.mockReset();
   });
@@ -116,10 +124,27 @@ describe("WalletButton", () => {
       expect(screen.queryByText(SHORT_ADDRESS)).not.toBeInTheDocument();
     });
 
-    it("calls connect() when the Connect Wallet button is clicked", () => {
+    it("opens wallet selection when the Connect Wallet button is clicked", () => {
       render(<WalletButton />);
       fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
-      expect(walletState.connect).toHaveBeenCalledOnce();
+      expect(screen.getByRole("dialog", { name: /connect wallet/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /freighter/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^walletconnect/i })).toBeInTheDocument();
+      expect(walletState.connectProvider).not.toHaveBeenCalled();
+    });
+
+    it("connects with Freighter from the selection modal", () => {
+      render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
+      fireEvent.click(screen.getByRole("button", { name: /freighter/i }));
+      expect(walletState.connectProvider).toHaveBeenCalledWith("freighter");
+    });
+
+    it("connects with WalletConnect from the selection modal", () => {
+      render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^walletconnect/i }));
+      expect(walletState.connectProvider).toHaveBeenCalledWith("walletconnect");
     });
 
     it("shows the error tooltip when the wallet context has an error string", () => {
