@@ -158,6 +158,28 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 3_600,
     quorumRequired: 100_000,
   },
+  {
+    id: 7,
+    title: "Lower Protocol Fee Rate to 0.3%",
+    description:
+      "Reduce the protocol fee from 0.5% to 0.3% to pass more value back to liquidity providers and improve the protocol's competitiveness ahead of mainnet.",
+    type: "ParameterUpdate",
+    status: "Executed",
+    proposer: "GQRST...U8VW",
+    createdAt: NOW - 9 * DAY,
+    votingStartsAt: NOW - 9 * DAY,
+    votingEndsAt: NOW - 2 * DAY,
+    // Executed roughly 8 hours ago — recent enough to surface in the
+    // homepage / marketplace announcement banner (48h window).
+    executableAfter: NOW - Math.floor(DAY / 3),
+    votesFor: 173_200,
+    votesAgainst: 18_900,
+    votesAbstain: 4_700,
+    quorumRequired: 100_000,
+    parameterChanges: [
+      { parameter: "fee_rate_bps", currentValue: "50 (0.5%)", newValue: "30 (0.3%)" },
+    ],
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -547,4 +569,72 @@ export async function createProposal(
     txHash: Math.random().toString(16).substring(2, 18),
     proposalId: newId,
   };
+}
+
+// ─── Parameter change announcements (#153) ────────────────────────────────────
+
+/**
+ * A single applied protocol-parameter change, suitable for surfacing in an
+ * announcement banner. Mirrors the data a `ParameterUpdated` contract event
+ * would carry.
+ */
+export interface ParameterUpdateEvent {
+  /** Stable id used for per-event dismissal (`{proposalId}:{parameter}`). */
+  id: string;
+  /** The governance proposal that enacted this change (for deep-linking). */
+  proposalId: number;
+  /** Raw on-chain parameter key, e.g. `fee_rate_bps`. */
+  parameter: string;
+  /** Human-readable parameter name, e.g. "Protocol fee rate". */
+  label: string;
+  /** Formatted new value as shown on the proposal, e.g. "30 (0.3%)". */
+  newValue: string;
+  /** Unix seconds when the change took effect (proposal execution time). */
+  updatedAt: number;
+}
+
+/** Human-readable labels for known protocol parameters. */
+const PARAMETER_LABELS: Record<string, string> = {
+  fee_rate_bps: "Protocol fee rate",
+  base_discount_rate: "Base discount rate",
+  max_discount_rate_bps: "Maximum discount rate",
+  quorum_threshold_bps: "Quorum threshold",
+  voting_period_seconds: "Voting period",
+  accepted_tokens: "Accepted tokens",
+  min_invoice_amount: "Minimum invoice amount",
+  reputation_threshold: "Reputation threshold",
+};
+
+/** Map a raw parameter key to a friendly label, falling back to a prettified key. */
+export function parameterLabel(parameter: string): string {
+  return PARAMETER_LABELS[parameter] ?? parameter.replace(/_/g, " ");
+}
+
+/**
+ * Fetch the protocol parameter changes that have been enacted, newest first.
+ *
+ * Derived from executed `ParameterUpdate` proposals. Consumers (e.g. the
+ * {@link ParameterUpdateBanner}) decide how recent a change must be to surface.
+ *
+ * TODO: Replace with a Soroban `getEvents` subscription for `ParameterUpdated`
+ * contract events once the governance contract is deployed.
+ */
+export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
+  const proposals = await fetchProposals();
+
+  return proposals
+    .filter((p) => p.status === "Executed" && p.parameterChanges?.length)
+    .flatMap((p) => {
+      // Execution time: when the proposal became executable, else when voting ended.
+      const updatedAt = p.executableAfter ?? p.votingEndsAt;
+      return (p.parameterChanges ?? []).map((change) => ({
+        id: `${p.id}:${change.parameter}`,
+        proposalId: p.id,
+        parameter: change.parameter,
+        label: parameterLabel(change.parameter),
+        newValue: change.newValue,
+        updatedAt,
+      }));
+    })
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
