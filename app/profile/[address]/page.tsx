@@ -12,6 +12,7 @@ import {
 } from "@/utils/soroban";
 import { resolveFederatedAddress } from "@/utils/federation";
 import { formatDate } from "@/utils/format";
+import { isOracleVerifiedAddress } from "@/utils/oracleVerification";
 import ProfileActivityChart from "@/components/ProfileActivityChart";
 import ProfileRecentInvoices from "@/components/ProfileRecentInvoices";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
