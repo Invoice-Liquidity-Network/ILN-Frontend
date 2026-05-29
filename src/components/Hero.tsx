@@ -2,6 +2,7 @@
 
 import { useTranslation, Trans } from "react-i18next";
 import Link from "next/link";
+import LiveInvoiceTicker from "@/components/LiveInvoiceTicker";
 
 export default function Hero() {
   const { t } = useTranslation();
@@ -29,6 +30,7 @@ export default function Hero() {
               {t("landing.fundAsLP")}
             </Link>
           </div>
+          <LiveInvoiceTicker />
           <div className="flex items-center gap-8 text-on-primary-container/60">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">verified</span>
