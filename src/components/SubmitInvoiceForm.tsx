@@ -29,6 +29,7 @@ const INITIAL_FORM: InvoiceFormValues = {
   dueDate: "",
   discountRate: "3.00",
   tokenId: "",
+  referralCode: "",
 };
 
 type FormAction =
@@ -53,9 +54,10 @@ const STEPS = [
 interface SubmitInvoiceFormProps {
   initialValues?: Partial<InvoiceFormValues>;
   prefillId?: string;
+  onSubmitted?: (invoiceId: string) => void;
 }
 
-export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
+export default function SubmitInvoiceForm({ initialValues, prefillId, onSubmitted }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
@@ -193,6 +195,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       isConnected,
       selectedToken?.decimals ?? 7,
       selectedToken?.symbol ?? "token",
+      undefined,
+      address,
     );
     if (networkMismatch) {
       nextErrors.wallet = t("submitForm.walletError", { network: NETWORK_NAME });
@@ -489,6 +493,21 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                 </p>
               </div>
             ) : null}
+
+            <Field
+              label="Referral code (optional)"
+              tooltip="Optional campaign, partner, or referral identifier for your records. It is not submitted to the current contract."
+              hint="Leave blank if this invoice has no referral source."
+            >
+              <input
+                aria-label="Referral code"
+                value={form.referralCode}
+                onChange={(event) => setField("referralCode", event.target.value)}
+                className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                placeholder="REF-2026"
+                autoComplete="off"
+              />
+            </Field>
 
             {errors.submit ? (
               <div className="rounded-2xl border border-error/15 bg-error-container/70 px-4 py-3 text-sm text-on-error-container">

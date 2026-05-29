@@ -31,6 +31,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
   };
   const { color, icon } = config[status];
   return (
@@ -196,9 +197,10 @@ export default function GovernancePage() {
   const [votingPower, setVotingPower] = useState(0);
 
   const load = useCallback(async () => {
-    const data = await fetchProposals();
-    setProposals(data);
-    setLoading(false);
+    fetchProposals().then((data) => {
+      setProposals(data);
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -210,10 +212,14 @@ export default function GovernancePage() {
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setVotingPower(0);
+      Promise.resolve().then(() => {
+        setVotingPower(0);
+      });
       return;
     }
-    getVotingPower(address).then(setVotingPower);
+    getVotingPower(address).then((power) => {
+      setVotingPower(power);
+    });
   }, [address, isConnected]);
 
   const sorted = useMemo(

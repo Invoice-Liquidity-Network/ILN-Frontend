@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SubmitInvoiceForm from "../SubmitInvoiceForm";
 
@@ -135,6 +135,21 @@ describe("SubmitInvoiceForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("rejects a payer address matching the connected freelancer wallet", async () => {
+    connectWallet(VALID_STELLAR_PAYER);
+    render(<SubmitInvoiceForm />);
+
+    fireEvent.change(screen.getByPlaceholderText("G..."), {
+      target: { value: VALID_STELLAR_PAYER },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+
+    expect(
+      await screen.findByText(/payer address must be different from your wallet address/i),
+    ).toBeInTheDocument();
+    expect(submitInvoiceTransaction).not.toHaveBeenCalled();
+  });
+
   it("rejects a non-numeric invoice amount", async () => {
     connectWallet();
     render(<SubmitInvoiceForm />);
@@ -243,8 +258,9 @@ describe("SubmitInvoiceForm", () => {
   it("submits a fully valid invoice and displays the returned invoice ID and tx hash", async () => {
     connectWallet();
     submitInvoiceTransaction.mockResolvedValue({ invoiceId: 99n, txHash: "deadbeef" });
+    const onSubmitted = vi.fn();
 
-    render(<SubmitInvoiceForm />);
+    render(<SubmitInvoiceForm onSubmitted={onSubmitted} />);
 
     fireEvent.change(screen.getByPlaceholderText("G..."), {
       target: { value: VALID_STELLAR_PAYER },
@@ -270,6 +286,7 @@ describe("SubmitInvoiceForm", () => {
     expect(await screen.findByText("Returned invoice ID")).toBeInTheDocument();
     expect(screen.getByText("#99")).toBeInTheDocument();
     expect(screen.getByText(/Transaction hash: deadbeef/)).toBeInTheDocument();
+    expect(onSubmitted).toHaveBeenCalledWith("99");
   });
 
   it("disables the submit button while the transaction is in-flight", async () => {
@@ -326,7 +343,7 @@ describe("SubmitInvoiceForm", () => {
     await waitFor(() => expect(updateToast).toHaveBeenCalled());
 
     expect(addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "pending", title: /submitting invoice/i }),
+      expect.objectContaining({ type: "pending", title: expect.stringMatching(/submitting invoice/i) }),
     );
     expect(updateToast).toHaveBeenCalledWith(
       "toast-id-1",
