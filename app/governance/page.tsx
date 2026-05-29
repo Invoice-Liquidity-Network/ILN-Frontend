@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import VoteProgressBar from "@/components/VoteProgressBar";
@@ -31,6 +31,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
   };
   const { color, icon } = config[status];
   return (
@@ -195,25 +196,43 @@ export default function GovernancePage() {
   const [page, setPage] = useState(1);
   const [votingPower, setVotingPower] = useState(0);
 
-  const load = useCallback(async () => {
-    const data = await fetchProposals();
-    setProposals(data);
-    setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProposals() {
+      const data = await fetchProposals();
+      if (cancelled) return;
+      setProposals(data);
+      setLoading(false);
+    }
+
+    void loadProposals();
+    // Refresh every 30 s for real-time vote counts
+    const interval = setInterval(() => {
+      void loadProposals();
+    }, 30_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
-    load();
-    // Refresh every 30 s for real-time vote counts
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
-  }, [load]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (!isConnected || !address) {
-      setVotingPower(0);
-      return;
+    async function loadVotingPower() {
+      const power = isConnected && address ? await getVotingPower(address) : 0;
+      if (!cancelled) {
+        setVotingPower(power);
+      }
     }
-    getVotingPower(address).then(setVotingPower);
+
+    void loadVotingPower();
+
+    return () => {
+      cancelled = true;
+    };
   }, [address, isConnected]);
 
   const sorted = useMemo(

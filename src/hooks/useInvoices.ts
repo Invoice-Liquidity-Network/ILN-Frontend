@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllInvoices, getInvoice, fundInvoice, submitSignedTransaction, Invoice } from "@/utils/soroban";
+import {
+  getAllInvoices,
+  getInvoice,
+  fundInvoice,
+  submitSignedTransaction,
+  Invoice,
+} from "@/utils/soroban";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import { isContractEventStreamingActive } from "@/lib/contract-event-stream-state";
@@ -39,6 +45,28 @@ export function useInvoice(id: bigint | null) {
       if (!data) return isContractEventStreamingActive() ? 60_000 : 15000;
       if (TERMINAL_STATUSES.includes(data.status)) return false;
       return isContractEventStreamingActive() ? 60_000 : 15000;
+    },
+  });
+}
+
+export function useSubmitterInvoices(submitter: string | null | undefined) {
+  return useQuery({
+    queryKey: ["invoices", "submitter", submitter],
+    queryFn: async () => {
+      const normalizedSubmitter = submitter?.toLowerCase();
+      const invoices = await getAllInvoices();
+      return invoices.filter((invoice) => invoice.freelancer.toLowerCase() === normalizedSubmitter);
+    },
+    enabled: Boolean(submitter),
+    refetchInterval: (query) => {
+      const data = query.state.data as Invoice[] | undefined;
+      if (!data) return 15000;
+
+      const hasActiveInvoices = data.some(
+        (invoice) => !TERMINAL_STATUSES.includes(invoice.status)
+      );
+
+      return hasActiveInvoices ? 15000 : false;
     },
   });
 }
