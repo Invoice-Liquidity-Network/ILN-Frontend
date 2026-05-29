@@ -142,6 +142,84 @@ function extractInvoiceIdFromTransaction(result: unknown): bigint | null {
   return null;
 }
 
+function toBigInt(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.trunc(value));
+  if (typeof value === "string" && value.trim()) return BigInt(value);
+  return 0n;
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function parseTokenDeployments(value: unknown): LPTokenDeployment[] {
+  if (!value) return [];
+
+  if (value instanceof Map) {
+    return Array.from(value.entries()).map(([token, amount]) => ({
+      token: String(token),
+      amount: toBigInt(amount),
+    }));
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (Array.isArray(entry) && entry.length >= 2) {
+          return { token: String(entry[0]), amount: toBigInt(entry[1]) };
+        }
+        if (entry && typeof entry === "object") {
+          const record = entry as Record<string, unknown>;
+          return {
+            token: String(record.token ?? record.contract_id ?? record.contractId ?? ""),
+            amount: toBigInt(record.amount ?? record.total ?? record.deployed),
+          };
+        }
+        return null;
+      })
+      .filter((entry): entry is LPTokenDeployment => Boolean(entry?.token));
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).map(([token, amount]) => ({
+      token,
+      amount: toBigInt(amount),
+    }));
+  }
+
+  return [];
+}
+
+function getSimulationError(result: unknown): string {
+  if (result && typeof result === "object" && "error" in result) {
+    const error = (result as { error?: unknown }).error;
+    return typeof error === "string" ? error : JSON.stringify(error);
+  }
+  return "unknown simulation error";
+}
+
+function parseInvoice(native: Record<string, unknown>): Invoice {
+  return {
+    id: toBigInt(native.id),
+    freelancer: String(native.freelancer ?? ""),
+    payer: String(native.payer ?? ""),
+    amount: toBigInt(native.amount),
+    due_date: toBigInt(native.due_date),
+    discount_rate: toNumber(native.discount_rate),
+    status: parseStatus(native.status),
+    funder: native.funder === undefined ? undefined : String(native.funder),
+    funded_at: native.funded_at === undefined ? undefined : toBigInt(native.funded_at),
+    token: native.token === undefined ? undefined : String(native.token),
+  };
+}
+
 async function readTokenContractValue(tokenId: string, method: string): Promise<unknown> {
   const callResult = await server.simulateTransaction(buildReadTransaction(tokenId, method, []));
   if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
@@ -173,18 +251,7 @@ export async function getInvoice(id: bigint): Promise<Invoice> {
   );
   if (rpc.Api.isSimulationSuccess(callResult)) {
     const native = scValToNative(callResult.result!.retval);
-    return {
-      id: native.id,
-      freelancer: native.freelancer,
-      payer: native.payer,
-      amount: native.amount,
-      due_date: native.due_date,
-      discount_rate: native.discount_rate,
-      status: parseStatus(native.status),
-      funder: native.funder,
-      funded_at: native.funded_at,
-      token: native.token,
-    };
+    return parseInvoice(native as Record<string, unknown>);
   }
   throw new Error(`Failed to get invoice ${id}`);
 }
@@ -362,6 +429,60 @@ export async function getUsdcAllowance(args: {
   tokenId?: string;
 }): Promise<bigint> {
   return getTokenAllowance(args);
+}
+
+export async function getLPPortfolioStats(lpAddress: string): Promise<LPPortfolioStats> {
+  const params: xdr.ScVal[] = [Address.fromString(lpAddress).toScVal()];
+  const callResult = await server.simulateTransaction(
+    buildReadTransaction(CONTRACT_ID, "get_lp_portfolio_stats", params)
+  );
+
+  if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+    throw new Error("Failed to fetch LP portfolio stats.");
+  }
+
+  const native = scValToNative(callResult.result.retval) as Record<string, unknown>;
+  return {
+    total_deployed_by_token: parseTokenDeployments(
+      native.total_deployed_by_token ?? native.totalDeployedByToken ?? native.deployed_by_token,
+    ),
+    total_earned: toBigInt(native.total_earned ?? native.totalEarned),
+    active_positions_count: toNumber(
+      native.active_positions_count ?? native.activePositionsCount ?? native.active_positions,
+    ),
+    average_yield_bps: toNumber(native.average_yield_bps ?? native.averageYieldBps ?? native.average_yield),
+  };
+}
+
+export async function listInvoicesByLP(
+  lpAddress: string,
+  page = 0,
+  pageSize = 10
+): Promise<Invoice[]> {
+  const offset = Math.max(0, page) * Math.max(1, pageSize);
+  const params: xdr.ScVal[] = [
+    Address.fromString(lpAddress).toScVal(),
+    nativeToScVal(offset, { type: "u32" }),
+    nativeToScVal(pageSize, { type: "u32" }),
+  ];
+  const callResult = await server.simulateTransaction(
+    buildReadTransaction(CONTRACT_ID, "list_invoices_by_lp", params)
+  );
+
+  if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+    throw new Error("Failed to fetch LP positions.");
+  }
+
+  const native = scValToNative(callResult.result.retval);
+  const rows = Array.isArray(native)
+    ? native
+    : native && typeof native === "object" && Array.isArray((native as { invoices?: unknown[] }).invoices)
+      ? (native as { invoices: unknown[] }).invoices
+      : [];
+
+  return rows
+    .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object")
+    .map(parseInvoice);
 }
 
 /** Returns the invoice amount — used to pass the correct funding amount to fund_invoice. */
@@ -708,7 +829,7 @@ export async function submitInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   // Extract the predicted invoice ID from simulation retval
@@ -717,18 +838,18 @@ export async function submitInvoice(
     const raw = scValToNative(sim.result!.retval);
     // Contract returns Result<u64, Error> — unwrap Ok variant
     if (raw && typeof raw === "object" && "ok" in raw) {
-      invoiceId = BigInt((raw as any).ok);
+      invoiceId = BigInt((raw as { ok: unknown }).ok as string | number | bigint);
     } else if (raw && typeof raw === "object" && "Ok" in raw) {
-      invoiceId = BigInt((raw as any).Ok);
+      invoiceId = BigInt((raw as { Ok: unknown }).Ok as string | number | bigint);
     } else {
-      invoiceId = BigInt(raw as any);
+      invoiceId = BigInt(raw as string | number | bigint);
     }
-  } catch (_) {
+  } catch {
     // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any, invoiceId };
+  return { tx: finalTx, invoiceId };
 }
 
 export interface UpdateInvoiceArgs {
@@ -772,17 +893,17 @@ export async function updateInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function cancelInvoice(
   freelancer: string,
   invoiceId: bigint
-): Promise<{ tx: any }> {
+): Promise<{ tx: Transaction }> {
   // Use a default sequence number / account for preparing or real one if needed
   let account: Account;
   try {
@@ -805,11 +926,11 @@ export async function cancelInvoice(
 
   const sim = await server.simulateTransaction(txUrl);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${getSimulationError(sim)}`);
   }
 
   const finalTx = rpc.assembleTransaction(txUrl, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export async function submitInvoiceTransaction({
