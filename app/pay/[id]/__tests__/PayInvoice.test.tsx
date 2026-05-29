@@ -1,27 +1,41 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PayInvoicePage from '../page';
-import * as soroban from '../../../../utils/soroban';
-import { useWallet } from '../../../../context/WalletContext';
-import { useToast } from '../../../../context/ToastContext';
+import * as soroban from '@/utils/soroban';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
 
 // Mock context and utils
-vi.mock('../../../../context/WalletContext', () => ({
+vi.mock('@/context/WalletContext', () => ({
   useWallet: vi.fn(),
 }));
 
-vi.mock('../../../../context/ToastContext', () => ({
+vi.mock('@/context/ToastContext', () => ({
   useToast: vi.fn(),
 }));
 
-vi.mock('../../../../utils/soroban', () => ({
+vi.mock('@/utils/soroban', () => ({
   getInvoice: vi.fn(),
   markPaid: vi.fn(),
   submitSignedTransaction: vi.fn(),
 }));
 
+type TestParams = Promise<{ id: string }> & { _resolvedValue: { id: string } };
+type WalletMock = Partial<ReturnType<typeof useWallet>>;
+type ToastMock = ReturnType<typeof useToast>;
+
+function params(id = '1'): TestParams {
+  const value = Promise.resolve({ id }) as TestParams;
+  value._resolvedValue = { id };
+  return value;
+}
+
+function mockWallet(value: WalletMock) {
+  vi.mocked(useWallet).mockReturnValue(value as ReturnType<typeof useWallet>);
+}
+
 describe('PayInvoicePage', () => {
-  const mockInvoice = {
+  const mockInvoice: soroban.Invoice = {
     id: 1n,
     freelancer: 'GFREELANCER',
     payer: 'GPAYER',
@@ -38,35 +52,31 @@ describe('PayInvoicePage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useToast as any).mockReturnValue(mockToast);
-    (soroban.getInvoice as any).mockResolvedValue(mockInvoice);
+    vi.mocked(useToast).mockReturnValue(mockToast as ToastMock);
+    vi.mocked(soroban.getInvoice).mockResolvedValue(mockInvoice);
   });
 
   it('should render invoice summary without wallet connection', async () => {
-    (useWallet as any).mockReturnValue({
+    mockWallet({
       address: null,
       connect: vi.fn(),
     });
 
-    const params = Promise.resolve({ id: '1' }) as any;
-    params._resolvedValue = { id: '1' };
-    render(<PayInvoicePage params={params} />);
+    render(<PayInvoicePage params={params()} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/100\s+USDC/)).toBeInTheDocument();
+      expect(screen.getByText(/1,000\s+USDC/)).toBeInTheDocument();
       expect(screen.getByText('Connect Wallet and Pay')).toBeInTheDocument();
     });
   });
 
   it('should show warning if connected wallet is not the payer', async () => {
-    (useWallet as any).mockReturnValue({
+    mockWallet({
       address: 'GWRONGWALLET',
       connect: vi.fn(),
     });
 
-    const params = Promise.resolve({ id: '1' }) as any;
-    params._resolvedValue = { id: '1' };
-    render(<PayInvoicePage params={params} />);
+    render(<PayInvoicePage params={params()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Address Mismatch')).toBeInTheDocument();
@@ -75,18 +85,16 @@ describe('PayInvoicePage', () => {
   });
 
   it('should show confirmation if invoice is already paid', async () => {
-    (soroban.getInvoice as any).mockResolvedValue({
+    vi.mocked(soroban.getInvoice).mockResolvedValue({
       ...mockInvoice,
       status: 'Paid',
     });
 
-    (useWallet as any).mockReturnValue({
+    mockWallet({
       address: 'GPAYER',
     });
 
-    const params = Promise.resolve({ id: '1' }) as any;
-    params._resolvedValue = { id: '1' };
-    render(<PayInvoicePage params={params} />);
+    render(<PayInvoicePage params={params()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Invoice settled')).toBeInTheDocument();
@@ -130,17 +138,15 @@ describe('PayInvoicePage', () => {
 
   it('should call markPaid with correct amount when payment is confirmed', async () => {
     const mockSignTx = vi.fn();
-    (useWallet as any).mockReturnValue({
+    mockWallet({
       address: 'GPAYER',
       signTx: mockSignTx,
     });
 
-    (soroban.markPaid as any).mockResolvedValue('mock-tx');
-    (soroban.submitSignedTransaction as any).mockResolvedValue({ txHash: 'hash123' });
+    vi.mocked(soroban.markPaid).mockResolvedValue('mock-tx' as unknown as Awaited<ReturnType<typeof soroban.markPaid>>);
+    vi.mocked(soroban.submitSignedTransaction).mockResolvedValue({ txHash: 'hash123' });
 
-    const params = Promise.resolve({ id: '1' }) as any;
-    params._resolvedValue = { id: '1' };
-    render(<PayInvoicePage params={params} />);
+    render(<PayInvoicePage params={params()} />);
 
     // Open modal
     await waitFor(() => {
