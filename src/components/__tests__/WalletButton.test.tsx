@@ -66,7 +66,7 @@ vi.mock("../../utils/soroban", () => ({
   getNativeXlmBalance: vi.fn().mockResolvedValue(0),
 }));
 vi.mock("../../hooks/useBalances", () => ({
-  useBalances: () => ({ balances: new Map(), isLoading: false }),
+  useBalances: () => ({ balances: new Map(), unavailable: new Set(), isLoading: false, refetch: vi.fn() }),
 }));
 // Not under test here; its balance-polling effect is unrelated to wallet UI.
 vi.mock("../TestnetFaucetButton", () => ({ default: () => null }));

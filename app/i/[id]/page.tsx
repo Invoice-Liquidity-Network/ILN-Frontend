@@ -8,7 +8,10 @@ import ActivityFeed from "@/components/ActivityFeed";
 import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 import DynamicInvoicePdfButton from "@/components/DynamicInvoicePdfButton";
 import ShareInvoiceButton from "@/components/ShareInvoiceButton";
+import MarkPaidButton from "@/components/MarkPaidButton";
+import LPTransferModal from "@/components/LPTransferModal";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
+import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
@@ -23,6 +26,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
+  const [showTransfer, setShowTransfer] = useState(false);
   const invoiceId = BigInt(id);
 
   const fetchInvoice = useCallback(async () => {
@@ -99,11 +103,32 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   Connect Wallet
                 </button>
               ) : (
-                <CancelInvoiceButton
-                  invoice={invoice}
-                  walletAddress={address}
-                  onCancelled={(cancelled) => setInvoice(cancelled)}
-                />
+                <>
+                  {/* Each action self-guards on role + status, so only the
+                      button relevant to the connected wallet renders. */}
+                  <CancelInvoiceButton
+                    invoice={invoice}
+                    walletAddress={address}
+                    onCancelled={(cancelled) => setInvoice(cancelled)}
+                  />
+                  <MarkPaidButton
+                    invoice={invoice}
+                    walletAddress={address}
+                    onPaid={(paid) => setInvoice(paid)}
+                  />
+                  {invoice.funder &&
+                  invoice.funder.toLowerCase() === address.toLowerCase() &&
+                  invoice.status === "Funded" ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowTransfer(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container px-4 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+                      Transfer Position
+                    </button>
+                  ) : null}
+                </>
               )}
             </div>
           </div>
@@ -121,6 +146,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               </Link>
             </div>
 
+            <div className="mt-6">
+              <InvoiceLifecycleTimeline status={invoice.status} />
+            </div>
+
             <dl className="mt-6 grid gap-4 text-sm">
               <DetailRow label="Freelancer" href={`/profile/${invoice.freelancer}`} value={formatAddress(invoice.freelancer)} />
               <DetailRow label="Payer" href={`/profile/${invoice.payer}`} value={formatAddress(invoice.payer)} />
@@ -136,6 +165,16 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           <ActivityFeed invoiceId={invoiceId} />
         </div>
       </section>
+      {showTransfer ? (
+        <LPTransferModal
+          invoice={invoice}
+          onClose={() => setShowTransfer(false)}
+          onSuccess={(transferred, newOwner) => {
+            setInvoice({ ...transferred, funder: newOwner });
+            setShowTransfer(false);
+          }}
+        />
+      ) : null}
       <Footer />
     </main>
   );

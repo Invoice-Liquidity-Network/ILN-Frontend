@@ -7,6 +7,7 @@ import { Transaction } from "@stellar/stellar-sdk";
 import { submitSignedTransaction } from "@/utils/soroban";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { notifyTxSuccess } from "@/utils/txEvents";
 
 type SignTxFn = (txXdr: string) => Promise<string>;
 
@@ -115,6 +116,8 @@ export function useTransaction(): UseTransactionResult {
           message: successMessage,
         });
         queryClient.invalidateQueries();
+        // Let balance/state consumers (e.g. useBalances) refresh immediately on settlement.
+        notifyTxSuccess();
         return result;
       } catch (err: any) {
         const message = err?.message || "Transaction failed.";
