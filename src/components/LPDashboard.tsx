@@ -40,6 +40,7 @@ import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPSettingsModal from "./LPSettingsModal";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
+import ExpiryCountdown from "./ExpiryCountdown";
 
 
 type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
@@ -335,7 +336,12 @@ export default function LPDashboard() {
       id: "due_date",
       label: "Due Date",
       sortable: true,
-      renderCell: (inv) => <span className="text-sm">{formatDate(inv.due_date)}</span>,
+      renderCell: (inv) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">{formatDate(inv.due_date)}</span>
+          <ExpiryCountdown dueDate={inv.due_date} />
+        </div>
+      ),
     },
     {
       id: "yield",
@@ -702,7 +708,12 @@ export default function LPDashboard() {
                         {(invoice.discount_rate / 100).toFixed(2)}%
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
+                    <td className="px-6 py-5 text-sm">
+                      <div className="flex flex-col gap-1">
+                        <span>{formatDate(invoice.due_date)}</span>
+                        <ExpiryCountdown dueDate={invoice.due_date} />
+                      </div>
+                    </td>
                     <td className="px-6 py-5 font-bold text-green-600">
                       <TokenAwareAmount amount={calculateYield(invoice.amount, invoice.discount_rate)} invoice={invoice} tokenMap={tokenMap} defaultToken={defaultToken} />
                     </td>

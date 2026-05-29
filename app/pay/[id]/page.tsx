@@ -7,7 +7,7 @@ import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
+import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
 
@@ -39,7 +39,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   }, [invoiceId]);
 
   useEffect(() => {
-    fetchInvoice();
+    void Promise.resolve().then(fetchInvoice);
   }, [fetchInvoice]);
 
   const handlePaymentConfirm = async (amount: bigint) => {
@@ -64,12 +64,13 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
       // Close modal and refresh invoice state
       setIsPaymentModalOpen(false);
       fetchInvoice();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred during payment.";
       updateToast(toastId, { 
         type: "error", 
         title: "Payment Failed", 
-        message: err.message || "An unexpected error occurred during payment." 
+        message,
       });
     } finally {
       setIsPaying(false);
@@ -146,7 +147,10 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
               
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
                 <span className="text-sm text-on-surface-variant font-medium">Due Date</span>
-                <span className="text-sm font-semibold text-on-surface">{new Date(Number(invoice.due_date) * 1000).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-sm font-semibold text-on-surface">{new Date(Number(invoice.due_date) * 1000).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                  <ExpiryCountdown dueDate={invoice.due_date} />
+                </div>
               </div>
 
               <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">

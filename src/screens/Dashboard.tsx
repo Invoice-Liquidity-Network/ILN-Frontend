@@ -378,7 +378,12 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 md:px-6 py-5 font-bold">{formatUSDC(invoice.amount)}</td>
                         <td className="px-4 md:px-6 py-5">{(invoice.discount_rate / 100).toFixed(2)}%</td>
-                        <td className="px-4 md:px-6 py-5">{formatDate(invoice.due_date)}</td>
+                        <td className="px-4 md:px-6 py-5">
+                          <div className="flex flex-col gap-1">
+                            <span>{formatDate(invoice.due_date)}</span>
+                            <ExpiryCountdown dueDate={invoice.due_date} />
+                          </div>
+                        </td>
                         <td className="px-4 md:px-6 py-5">
                           <InvoiceStatusBadge status={invoice.status} />
                         </td>
