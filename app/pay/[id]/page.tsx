@@ -9,7 +9,7 @@ import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import { NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
-import CancelInvoiceButton from "@/components/CancelInvoiceButton";
+import PartialPaymentModal from "@/components/PartialPaymentModal";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -21,6 +21,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const invoiceId = BigInt(id);
 
@@ -44,28 +45,29 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
     return () => window.clearTimeout(timeout);
   }, [fetchInvoice]);
 
-  const handlePay = async () => {
+  const handlePaymentConfirm = async (amount: bigint) => {
     if (!address || !invoice) return;
 
     setIsPaying(true);
     const toastId = addToast({ type: "pending", title: "Preparing payment...", message: "Please sign the transaction in Freighter." });
 
     try {
-      const tx = await markPaid(address, invoiceId);
+      const tx = await markPaid(address, invoiceId, amount);
       updateToast(toastId, { message: "Transaction prepared. Signing..." });
       
       const { txHash } = await submitSignedTransaction({ tx, signTx });
       
       updateToast(toastId, { 
         type: "success", 
-        title: "Invoice Paid", 
-        message: "The invoice has been successfully settled on-chain.",
+        title: "Payment Successful", 
+        message: "Your payment has been processed on-chain.",
         txHash 
       });
       
-      // Refresh invoice state
-      void fetchInvoice();
-    } catch (err) {
+      // Close modal and refresh invoice state
+      setIsPaymentModalOpen(false);
+      fetchInvoice();
+    } catch (err: any) {
       console.error(err);
       updateToast(toastId, { 
         type: "error", 
@@ -100,7 +102,7 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
   const isPayer = address === invoice.payer;
   const isSubmitter = address === invoice.freelancer;
   const isPaid = invoice.status === "Paid";
-  const isCancelled = invoice.status === "Cancelled";
+  const isFunded = invoice.status === "Funded";
 
   return (
     <main className="min-h-screen px-4 py-12 sm:py-16">
@@ -202,18 +204,18 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
             <div className="w-full text-center py-4 bg-surface-container rounded-2xl border border-outline-variant/20">
               <p className="text-emerald-400 font-bold">Settlement Complete</p>
             </div>
-          ) : isCancelled ? (
-            <div className="w-full text-center py-4 bg-surface-container rounded-2xl border border-outline-variant/20">
-              <p className="font-bold text-on-surface-variant">Invoice Cancelled</p>
-            </div>
-          ) : isPayer ? (
+          ) : isPayer && isFunded ? (
             <button
-              onClick={handlePay}
+              onClick={() => setIsPaymentModalOpen(true)}
               disabled={isPaying}
               className="w-full rounded-2xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-emerald-600 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
             >
-              {isPaying ? "Processing..." : "Settle Invoice Now"}
+              {isPaying ? "Processing..." : "Make Payment"}
             </button>
+          ) : isPayer ? (
+            <div className="w-full text-center py-4 bg-surface-container rounded-2xl border border-outline-variant/20">
+              <p className="text-on-surface-variant font-bold">Awaiting Funding</p>
+            </div>
           ) : (
             <div className="w-full text-center py-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-400 font-bold">
               Restricted to Registered Payer
@@ -239,6 +241,14 @@ export default function PayInvoicePage({ params }: { params: Promise<{ id: strin
           This is a direct settlement page. Verify all details before proceeding.
         </p>
       </div>
+
+      <PartialPaymentModal
+        invoice={invoice}
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onConfirm={handlePaymentConfirm}
+        submitting={isPaying}
+      />
     </main>
   );
 }

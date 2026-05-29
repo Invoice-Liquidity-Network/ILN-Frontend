@@ -32,6 +32,7 @@ describe('PayInvoicePage', () => {
     freelancer: 'GFREELANCER',
     payer: 'GPAYER',
     amount: 1000000000n,
+    amount_paid: 0n,
     due_date: 1713960000n,
     status: 'Funded',
   };
@@ -96,7 +97,41 @@ describe('PayInvoicePage', () => {
     });
   });
 
-  it('should call markPaid when Settle button is clicked', async () => {
+  it('should show Make Payment button for Funded state', async () => {
+    (useWallet as any).mockReturnValue({
+      address: 'GPAYER',
+    });
+
+    const params = Promise.resolve({ id: '1' }) as any;
+    params._resolvedValue = { id: '1' };
+    render(<PayInvoicePage params={params} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Make Payment')).toBeInTheDocument();
+    });
+  });
+
+  it('should open payment modal when Make Payment button is clicked', async () => {
+    (useWallet as any).mockReturnValue({
+      address: 'GPAYER',
+    });
+
+    const params = Promise.resolve({ id: '1' }) as any;
+    params._resolvedValue = { id: '1' };
+    render(<PayInvoicePage params={params} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Make Payment')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Make Payment'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Payment Amount')).toBeInTheDocument();
+    });
+  });
+
+  it('should call markPaid with correct amount when payment is confirmed', async () => {
     const mockSignTx = vi.fn();
     vi.mocked(useWallet).mockReturnValue({
       address: 'GPAYER',
@@ -109,44 +144,85 @@ describe('PayInvoicePage', () => {
     const params = makeParams('1');
     render(<PayInvoicePage params={params} />);
 
+    // Open modal
     await waitFor(() => {
-      expect(screen.getByText('Settle Invoice Now')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Make Payment'));
     });
 
-    fireEvent.click(screen.getByText('Settle Invoice Now'));
+    // Enter partial amount
+    const input = screen.getByPlaceholderText('0.00');
+    fireEvent.change(input, { target: { value: '50' } });
+
+    // Confirm payment
+    const confirmBtn = screen.getByText('Confirm Payment');
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(soroban.markPaid).toHaveBeenCalledWith('GPAYER', 1n);
+      expect(soroban.markPaid).toHaveBeenCalledWith('GPAYER', 1n, 500000000n); // 50 USDC in stroops
       expect(soroban.submitSignedTransaction).toHaveBeenCalled();
       expect(mockToast.updateToast).toHaveBeenCalledWith('toast-id', expect.objectContaining({ type: 'success' }));
     });
   });
 
-  it('should let the submitter cancel a pending invoice optimistically', async () => {
-    vi.mocked(soroban.getInvoice).mockResolvedValue({
-      ...mockInvoice,
-      status: 'Pending',
-    });
+  it('should call markPaid with full amount when Pay Full Amount button is clicked', async () => {
     const mockSignTx = vi.fn();
-    vi.mocked(useWallet).mockReturnValue({
-      address: 'GFREELANCER',
+    (useWallet as any).mockReturnValue({
+      address: 'GPAYER',
       signTx: mockSignTx,
-    } as ReturnType<typeof useWallet>);
+    });
 
-    vi.mocked(soroban.cancelInvoice).mockResolvedValue({ tx: 'cancel-tx' });
-    vi.mocked(soroban.submitSignedTransaction).mockResolvedValue({ txHash: 'cancel-hash' });
+    (soroban.markPaid as any).mockResolvedValue('mock-tx');
+    (soroban.submitSignedTransaction as any).mockResolvedValue({ txHash: 'hash123' });
 
-    const params = makeParams('1');
+    const params = Promise.resolve({ id: '1' }) as any;
+    params._resolvedValue = { id: '1' };
     render(<PayInvoicePage params={params} />);
 
-    await screen.findByText('Cancel Invoice');
-    fireEvent.click(screen.getByText('Cancel Invoice'));
-    fireEvent.click(screen.getByText('Confirm Cancel'));
+    // Open modal
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Make Payment'));
+    });
+
+    // Click Pay Full Amount button
+    const payFullBtn = screen.getByText(/Pay Full Remaining Amount/);
+    fireEvent.click(payFullBtn);
+
+    // Confirm payment
+    const confirmBtn = screen.getByText('Confirm Payment');
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(soroban.cancelInvoice).toHaveBeenCalledWith('GFREELANCER', 1n);
-      expect(soroban.submitSignedTransaction).toHaveBeenCalledWith({ tx: 'cancel-tx', signTx: mockSignTx });
-      expect(screen.getByText('Invoice Cancelled')).toBeInTheDocument();
+      expect(soroban.markPaid).toHaveBeenCalledWith('GPAYER', 1n, 1000000000n); // Full amount in stroops
+      expect(soroban.submitSignedTransaction).toHaveBeenCalled();
+    });
+  });
+
+  it('should refresh invoice after successful payment', async () => {
+    const mockSignTx = vi.fn();
+    (useWallet as any).mockReturnValue({
+      address: 'GPAYER',
+      signTx: mockSignTx,
+    });
+
+    (soroban.markPaid as any).mockResolvedValue('mock-tx');
+    (soroban.submitSignedTransaction as any).mockResolvedValue({ txHash: 'hash123' });
+
+    const params = Promise.resolve({ id: '1' }) as any;
+    params._resolvedValue = { id: '1' };
+    render(<PayInvoicePage params={params} />);
+
+    // Open modal
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Make Payment'));
+    });
+
+    // Enter amount and confirm
+    const input = screen.getByPlaceholderText('0.00');
+    fireEvent.change(input, { target: { value: '50' } });
+    fireEvent.click(screen.getByText('Confirm Payment'));
+
+    await waitFor(() => {
+      expect(soroban.getInvoice).toHaveBeenCalledTimes(2); // Initial + refresh
     });
   });
 });
