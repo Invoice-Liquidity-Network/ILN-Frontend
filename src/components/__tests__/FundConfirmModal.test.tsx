@@ -28,13 +28,14 @@ const getTokenAllowance = vi.fn();
 const buildApproveTokenTransaction = vi.fn();
 const fundInvoice = vi.fn();
 const submitSignedTransaction = vi.fn();
+const getPayerScoresBatch = vi.fn();
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
 vi.mock("../../hooks/useInvoices", () => ({
   useInvoices: vi.fn(),
   useFundInvoice: vi.fn(() => ({
-    mutate: vi.fn((id, { onSuccess, onError }) => {
+    mutate: vi.fn(() => {
       // Manual trigger for testing
     }),
     isPending: false,
@@ -69,7 +70,7 @@ vi.mock("../../utils/soroban", () => ({
   buildApproveTokenTransaction: (...args: unknown[]) => buildApproveTokenTransaction(...args),
   fundInvoice: (...args: unknown[]) => fundInvoice(...args),
   submitSignedTransaction: (...args: unknown[]) => submitSignedTransaction(...args),
-  getPayerScoresBatch: vi.fn().mockResolvedValue(new Map()),
+  getPayerScoresBatch: (...args: unknown[]) => getPayerScoresBatch(...args),
 }));
 
 vi.mock("../../hooks/useApprovedTokens", () => ({
@@ -115,7 +116,7 @@ describe("FundConfirmModal (via LPDashboard)", () => {
   beforeEach(() => {
     addToast.mockClear();
     updateToast.mockClear();
-    (useInvoices as any).mockReturnValue({
+    vi.mocked(useInvoices).mockReturnValue({
       data: [mockInvoice],
       isLoading: false,
       dataUpdatedAt: Date.now(),
@@ -124,6 +125,18 @@ describe("FundConfirmModal (via LPDashboard)", () => {
     buildApproveTokenTransaction.mockReset();
     fundInvoice.mockReset();
     submitSignedTransaction.mockReset();
+    getPayerScoresBatch.mockResolvedValue(
+      new Map([
+        [
+          mockInvoice.payer,
+          {
+            score: 82,
+            settled_on_time: 12,
+            defaults: 1,
+          },
+        ],
+      ]),
+    );
   });
 
   // ── Yield calculation display ─────────────────────────────────────────────
@@ -149,9 +162,7 @@ describe("FundConfirmModal (via LPDashboard)", () => {
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByRole("button", { name: "Fund Now" })).toBeInTheDocument());
 
       expect(screen.getByText(/970/i)).toBeInTheDocument();
     });
@@ -162,9 +173,7 @@ describe("FundConfirmModal (via LPDashboard)", () => {
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByRole("button", { name: "Fund Now" })).toBeInTheDocument());
 
       // 1000 × 3% = 30 USDC  →  300_000_000 stroops → "30 USDC"
       expect(screen.getAllByText(/30 USDC/i)[0]).toBeInTheDocument();
@@ -184,20 +193,18 @@ describe("FundConfirmModal (via LPDashboard)", () => {
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
 
-      await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Fund Invoice" })).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByRole("button", { name: "Fund Now" })).toBeInTheDocument());
 
       expect(screen.queryByRole("button", { name: "Approve USDC" })).not.toBeInTheDocument();
     });
 
     it("calls fundInvoice and submitSignedTransaction when 'Fund Invoice' is clicked", async () => {
       const mutate = vi.fn();
-      (useFundInvoice as any).mockReturnValue({ mutate, isPending: false });
+      vi.mocked(useFundInvoice).mockReturnValue({ mutate, isPending: false });
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Fund Now" }));
 
       await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
       expect(mutate).toHaveBeenCalledWith(
@@ -207,32 +214,45 @@ describe("FundConfirmModal (via LPDashboard)", () => {
     });
 
     it("fires a success toast after a successful fund call", async () => {
-      (useFundInvoice as any).mockReturnValue({
-        mutate: vi.fn((id, { onSuccess }) => onSuccess()),
+      vi.mocked(useFundInvoice).mockReturnValue({
+        mutate: vi.fn((_id: bigint, { onSuccess }: { onSuccess: () => void }) => onSuccess()),
         isPending: false
       });
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Fund Now" }));
 
       // Note: useFundInvoice internal logic handles showToast now
       // but the component might still have its own onsuccess logic
     });
 
     it("shows an error message in the modal when fundInvoice rejects", async () => {
-      (useFundInvoice as any).mockReturnValue({
-        mutate: vi.fn((id, { onError }) => onError(new Error("Contract revert: insufficient balance"))),
+      vi.mocked(useFundInvoice).mockReturnValue({
+        mutate: vi.fn((_id: bigint, { onError }: { onError: (error: Error) => void }) =>
+          onError(new Error("Contract revert: insufficient balance")),
+        ),
         isPending: false
       });
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Fund Now" }));
 
       await waitFor(() => {
         expect(screen.getByText(/Contract revert: insufficient balance/)).toBeInTheDocument();
       });
+    });
+
+    it("shows due-date timing, bps yield, and payer reputation before funding", async () => {
+      render(<LPDashboard />);
+      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Fund Now" })).toBeInTheDocument());
+      expect(screen.getByText("Days to due date:")).toBeInTheDocument();
+      expect(screen.getByText("Payer reputation score:")).toBeInTheDocument();
+      expect(screen.getByText("82/100")).toBeInTheDocument();
+      expect(screen.getByText(/300 bps \/ 3\.00%/)).toBeInTheDocument();
     });
   });
 
@@ -258,7 +278,9 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      const approveButton = await screen.findByRole("button", { name: "Approve USDC" });
+      await waitFor(() => expect(approveButton).toBeEnabled());
+      fireEvent.click(approveButton);
 
       await waitFor(() => expect(buildApproveTokenTransaction).toHaveBeenCalledTimes(1));
       expect(submitSignedTransaction).toHaveBeenCalledTimes(1);
@@ -270,7 +292,9 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      const approveButton = await screen.findByRole("button", { name: "Approve USDC" });
+      await waitFor(() => expect(approveButton).toBeEnabled());
+      fireEvent.click(approveButton);
 
       await waitFor(() =>
         expect(updateToast).toHaveBeenCalledWith(
@@ -285,7 +309,9 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      const approveButton = await screen.findByRole("button", { name: "Approve USDC" });
+      await waitFor(() => expect(approveButton).toBeEnabled());
+      fireEvent.click(approveButton);
 
       await waitFor(() => {
         expect(screen.getByText(/User rejected tx/)).toBeInTheDocument();

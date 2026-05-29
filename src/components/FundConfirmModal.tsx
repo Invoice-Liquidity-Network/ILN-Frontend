@@ -11,7 +11,7 @@ import {
   Invoice,
   submitSignedTransaction,
 } from "@/utils/soroban";
-import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
+import { formatTokenAmount, calculateYield } from "@/utils/format";
 import { useFundInvoice } from "@/hooks/useInvoices";
 import { getPayerScore, PayerScoreResult } from "@/utils/soroban";
 
@@ -19,6 +19,7 @@ type FundingStep = "approve" | "fund";
 
 interface FundConfirmModalProps {
   invoice: Invoice | null;
+  payerScore?: number | null;
   onClose: () => void;
   onSuccess: () => void;
   payerScore?: PayerScoreResult | null;
@@ -73,7 +74,8 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
 
   useEffect(() => {
     if (!invoice || !address) return;
-    void refreshAllowance(invoice, address);
+    const timeout = window.setTimeout(() => void refreshAllowance(invoice, address), 0);
+    return () => window.clearTimeout(timeout);
   }, [address, refreshAllowance, invoice]);
 
   if (!invoice) return null;
@@ -136,6 +138,11 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   };
 
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
+  const yieldAmount = calculateYield(invoice.amount, invoice.discount_rate);
+  const daysToDue = Math.max(
+    0,
+    Math.ceil((Number(invoice.due_date) * 1000 - referenceTimeMs) / (24 * 60 * 60 * 1000)),
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
@@ -305,12 +312,14 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
                 </div>
                 
                 <div className="flex justify-between text-sm border-t border-surface-dim pt-4">
-                  <span className="text-on-surface-variant">Your yield (discount):</span>
+                  <span className="text-on-surface-variant">Gross yield:</span>
                   <span className="font-bold text-green-600 text-base">
                     {selectedInvoiceToken ? (
                       <div className="flex items-center gap-2">
-                        <span>{formatTokenAmount(calculateYield(invoice.amount, invoice.discount_rate), selectedInvoiceToken)} {selectedInvoiceToken.symbol}</span>
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{(invoice.discount_rate / 100).toFixed(2)}%</span>
+                        <span>{formatTokenAmount(yieldAmount, selectedInvoiceToken)}</span>
+                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                          {invoice.discount_rate} bps / {(invoice.discount_rate / 100).toFixed(2)}%
+                        </span>
                       </div>
                     ) : null}
                   </span>

@@ -791,6 +791,7 @@ export default function LPDashboard() {
       {/* Confirmation Modal */}
       <FundConfirmModal
         invoice={selectedInvoice}
+        payerScore={selectedInvoice ? payerScores.get(selectedInvoice.payer)?.score ?? null : null}
         onClose={() => setSelectedInvoice(null)}
         onSuccess={() => {
           setSelectedInvoice(null);
