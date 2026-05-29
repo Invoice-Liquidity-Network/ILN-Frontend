@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import VoteProgressBar from "@/components/VoteProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
@@ -31,6 +32,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
   };
   const { color, icon } = config[status];
   return (
@@ -70,6 +72,8 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
   const total = totalVotes(proposal);
   const remaining = timeRemaining(proposal);
   const proposedValue = proposal.parameterChanges?.[0]?.newValue ?? "Text proposal";
+  const quorumBps = 1000;
+  const totalSupply = proposal.quorumRequired * (10_000 / quorumBps);
 
   return (
     <Link
@@ -108,6 +112,15 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         quorumRequired={proposal.quorumRequired}
         compact
       />
+
+      <div className="mt-3">
+        <QuorumProgressBar
+          totalVotes={total}
+          totalSupply={totalSupply}
+          quorumBps={quorumBps}
+          compact
+        />
+      </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-outline-variant/10">
         <span className="text-xs text-on-surface-variant">
@@ -202,10 +215,17 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
     // Refresh every 30 s for real-time vote counts
-    const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(() => {
+      void load();
+    }, 30_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [load]);
 
   useEffect(() => {
