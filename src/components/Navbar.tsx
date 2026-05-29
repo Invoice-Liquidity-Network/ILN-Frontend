@@ -78,6 +78,12 @@ export default function Navbar() {
           >
             {t("nav.analytics")}
           </Link>
+          <Link
+            className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
+            href="/tokens"
+          >
+            Tokens
+          </Link>
           {/* <a
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="#"
