@@ -13,6 +13,7 @@ type InvoiceFilterBarProps = {
   onClearFilters: () => void;
   activeFilterCount: number;
   className?: string;
+  showReputationFilter?: boolean;
 };
 
 const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
@@ -23,6 +24,7 @@ export default function InvoiceFilterBar({
   onClearFilters,
   activeFilterCount,
   className,
+  showReputationFilter = false,
 }: InvoiceFilterBarProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 

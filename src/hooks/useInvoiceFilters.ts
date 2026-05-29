@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Invoice } from "@/utils/soroban";
 import { tokenAmountToNumber } from "@/utils/format";
@@ -88,6 +88,11 @@ function buildFilterQuery(searchParams: URLSearchParams, namespace: string, filt
 
 function readFiltersFromParams(searchParams: URLSearchParams, namespace: string): InvoiceFilters {
   const prefix = `${namespace}_`;
+  const persistedReputation =
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem(`${prefix}minPayerReputation`) ?? "";
+
   return {
     search: searchParams.get(`${prefix}search`) ?? "",
     statuses: cleanStatusList((searchParams.get(`${prefix}statuses`) ?? "").split(",").filter(Boolean)),
@@ -132,6 +137,7 @@ export function applyInvoiceFilters(
   const start = filters.startDate ? new Date(`${filters.startDate}T00:00:00.000Z`) : null;
   const end = filters.endDate ? new Date(`${filters.endDate}T23:59:59.999Z`) : null;
   const selectedToken = filters.token.trim().toUpperCase();
+  const minPayerReputation = parseNumeric(filters.minPayerReputation);
 
   return invoices.filter((invoice) => {
     if (search) {
@@ -206,6 +212,15 @@ export function useInvoiceFilters({ namespace }: UseInvoiceFiltersOptions) {
   }, [updateFilters]);
 
   const activeFilterCount = useMemo(() => countActiveInvoiceFilters(filters), [filters]);
+
+  useEffect(() => {
+    const key = `${namespace}_minPayerReputation`;
+    if (filters.minPayerReputation.trim()) {
+      window.localStorage.setItem(key, filters.minPayerReputation.trim());
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  }, [filters.minPayerReputation, namespace]);
 
   return {
     filters,
