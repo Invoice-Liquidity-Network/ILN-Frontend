@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import VoteDelegationPanel from "@/components/VoteDelegationPanel";
 import VoteProgressBar from "@/components/VoteProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
@@ -29,6 +30,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Active: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", icon: "fiber_manual_record" },
     Passed: { color: "bg-primary/15 text-primary border-primary/30", icon: "check_circle" },
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "block" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
   };
@@ -202,10 +204,13 @@ export default function GovernancePage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timeout = window.setTimeout(load, 0);
     // Refresh every 30 s for real-time vote counts
     const interval = setInterval(load, 30_000);
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [load]);
 
   useEffect(() => {

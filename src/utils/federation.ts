@@ -4,6 +4,11 @@ import { RPC_URL } from "@/constants";
 const horizonServer = new rpc.Server(RPC_URL);
 const federationCache = new Map<string, string>();
 
+type AccountWithHomeDomain = {
+  home_domain?: string;
+  homeDomain?: string;
+};
+
 export async function resolveFederatedAddress(address: string): Promise<string> {
   if (!address) return address;
   const cached = federationCache.get(address);
@@ -11,7 +16,8 @@ export async function resolveFederatedAddress(address: string): Promise<string> 
 
   try {
     const account = await horizonServer.getAccount(address);
-    const homeDomain = account.home_domain ?? (account as any).homeDomain;
+    const accountWithHomeDomain = account as AccountWithHomeDomain;
+    const homeDomain = accountWithHomeDomain.home_domain ?? accountWithHomeDomain.homeDomain;
     if (!homeDomain) return address;
 
     const stellarTomlResponse = await fetch(`https://${homeDomain}/.well-known/stellar.toml`);

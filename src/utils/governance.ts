@@ -219,6 +219,17 @@ export function formatVotingPower(power: number): string {
 
 const userVotes: Map<number, VoteChoice> = new Map();
 const vetoHistory: VetoRecord[] = [];
+const MOCK_CONNECTED_WALLET = `G${"E".repeat(55)}`;
+const MOCK_REVERSE_DELEGATOR = `G${"D".repeat(55)}`;
+const voteDelegations: Map<string, string> = new Map([
+  [
+    MOCK_REVERSE_DELEGATOR,
+    MOCK_CONNECTED_WALLET,
+  ],
+]);
+const mockIncomingDelegationPower: Map<string, number> = new Map([
+  [MOCK_CONNECTED_WALLET, 750],
+]);
 
 export function getUserVote(proposalId: number): VoteChoice | undefined {
   return userVotes.get(proposalId);
