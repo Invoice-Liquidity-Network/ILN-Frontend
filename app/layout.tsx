@@ -10,6 +10,8 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import FABProvider from "@/components/FABProvider";
 import CommandPalette from "@/components/CommandPalette";
 import OfflineBanner from "@/components/OfflineBanner";
+import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
+import ContractEventSync from "@/components/ContractEventSync";
 import Providers from "./Providers";
 
 
@@ -70,6 +72,7 @@ export default function RootLayout({
               <WalletProvider>
                 <NotificationProvider>
                   <OfflineBanner />
+                  <NetworkMismatchBanner />
                   <FABProvider />
                   <div className="min-h-screen flex flex-col">
                     <div className="flex-1">

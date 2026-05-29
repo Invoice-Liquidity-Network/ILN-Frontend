@@ -24,6 +24,10 @@ vi.mock("@/hooks/useContractStats", () => ({
   useContractStats: () => mockUseContractStats(),
 }));
 
+vi.mock("@/hooks/useInvoices", () => ({
+  useInvoices: () => ({ data: [], isLoading: false }),
+}));
+
 // Recharts ResizeObserver polyfill (must be a class, not a plain function)
 class ResizeObserverMock {
   observe() {}
@@ -133,6 +137,15 @@ describe("ProtocolStatsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Historical Volume")).toBeInTheDocument();
+    });
+  });
+
+  it("renders yield analytics section", async () => {
+    mockUseContractStats.mockReturnValue({ data: mockStats, isLoading: false, error: null });
+    render(<ProtocolStatsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Yield Analytics")).toBeInTheDocument();
     });
   });
 

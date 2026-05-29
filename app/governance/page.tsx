@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
 import { useWallet } from "@/context/WalletContext";
@@ -100,6 +101,12 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
       <p className="text-sm text-on-surface-variant line-clamp-2 mb-4 leading-relaxed">
         {proposal.description}
       </p>
+
+      <QuorumProgressBar
+        votesCast={total}
+        quorumRequired={proposal.quorumRequired}
+        className="mb-3"
+      />
 
       <VoteProgressBar
         votesFor={proposal.votesFor}
