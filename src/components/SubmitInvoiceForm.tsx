@@ -188,18 +188,12 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateInvoiceForm(
-      { ...form, tokenId: effectiveTokenId },
-      isConnected,
-      selectedToken?.decimals ?? 7,
-      selectedToken?.symbol ?? "token",
-    );
-    if (networkMismatch) {
-      nextErrors.wallet = t("submitForm.walletError", { network: NETWORK_NAME });
+    if (currentStep !== 2) {
+      goToNextStep();
+      return;
     }
-    if (!selectedToken && !tokensLoading) {
-      nextErrors.tokenId = t("submitForm.noTokensAvailable");
-    }
+
+    const nextErrors = getValidationErrors();
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -390,9 +384,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            </Field>
+                </Field>
 
             <TokenSelector
               label={t("submitForm.tokenLabel")}
