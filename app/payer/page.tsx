@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import Footer from "@/components/Footer";
+import InvoiceFilterBar from "@/components/InvoiceFilterBar";
 import Navbar from "@/components/Navbar";
 import { DecayWarningBanner } from "@/components/DecayWarningBanner";
 import { TokenAmount, TokenIcon } from "@/components/TokenSelector";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { applyInvoiceFilters, useInvoiceFilters } from "@/hooks/useInvoiceFilters";
 import { APPEAL_WINDOW_LEDGERS, formatLedgerWindow, hashEvidence } from "@/utils/evidence";
 import { formatAddress, formatDate, formatTokenAmount } from "@/utils/format";
 import {
@@ -179,6 +181,12 @@ function PayerDashboardContent() {
 
   const { execute, loading: txLoading, signingModal } = useTransaction();
   const [appealState, setAppealState] = useState<AppealState | null>(null);
+  const {
+    filters,
+    setFilters,
+    clearFilters,
+    activeFilterCount,
+  } = useInvoiceFilters({ namespace: "payerInvoices" });
 
   const loadInvoices = useCallback(async () => {
     if (!isConnected || !address) return;
@@ -198,7 +206,10 @@ function PayerDashboardContent() {
   }, [addToast, address, isConnected]);
 
   useEffect(() => {
-    void loadInvoices();
+    const timeout = window.setTimeout(() => {
+      void loadInvoices();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [loadInvoices]);
 
   const totalsByToken = useMemo(() => {
@@ -211,9 +222,18 @@ function PayerDashboardContent() {
       }, new Map<string, bigint>());
   }, [defaultToken?.contractId, invoices]);
 
+  const filteredInvoices = useMemo(
+    () =>
+      applyInvoiceFilters(invoices, filters, {
+        resolveTokenSymbol: (invoice) =>
+          tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "")?.symbol ?? defaultToken?.symbol ?? "USDC",
+      }),
+    [defaultToken?.contractId, defaultToken?.symbol, filters, invoices, tokenMap],
+  );
+
   const visibleInvoices = useMemo(
-    () => invoices.filter((invoice) => invoiceTab(invoice) === activeTab),
-    [activeTab, invoices],
+    () => filteredInvoices.filter((invoice) => invoiceTab(invoice) === activeTab),
+    [activeTab, filteredInvoices],
   );
 
   const handleSettle = async (invoice: Invoice) => {
@@ -350,6 +370,20 @@ function PayerDashboardContent() {
 
       <section className="px-8 py-8">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
+          {isConnected && (
+            <div className="border-b border-outline-variant/10 p-4">
+              <InvoiceFilterBar
+                filters={filters}
+                onFiltersChange={setFilters}
+                onClearFilters={clearFilters}
+                activeFilterCount={activeFilterCount}
+              />
+              <p className="text-xs text-on-surface-variant">
+                Showing {visibleInvoices.length} of {invoices.length} invoices addressed to you.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 border-b border-outline-variant/10 p-4">
             {TABS.map((tab) => (
               <button
@@ -359,7 +393,7 @@ function PayerDashboardContent() {
                   activeTab === tab ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant"
                 }`}
               >
-                {tab} ({invoices.filter((invoice) => invoiceTab(invoice) === tab).length})
+                {tab} ({filteredInvoices.filter((invoice) => invoiceTab(invoice) === tab).length})
               </button>
             ))}
           </div>
