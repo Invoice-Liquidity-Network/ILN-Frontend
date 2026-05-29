@@ -86,6 +86,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || "";
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
+  const amountDecimalLimit = getAmountDecimalLimit(selectedToken?.symbol);
+  const minimumInvoiceAmount = `0.${"0".repeat(amountDecimalLimit - 1)}1`;
+  const enteredAmountPreview =
+    selectedToken?.symbol === "XLM" ? formatEnteredAmount(form.amount, amountDecimalLimit) : null;
   const preview = getYieldPreview(form.amount, form.discountRate, selectedToken?.decimals ?? 7);
 
   // Live USD-equivalent preview for the entered amount (#22). Price is fetched
@@ -199,6 +203,9 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     }
     if (!selectedToken && !tokensLoading) {
       nextErrors.tokenId = t("submitForm.noTokensAvailable");
+    }
+    if (selectedToken && !isAmountPrecisionValid(form.amount, amountDecimalLimit)) {
+      nextErrors.amount = `${selectedToken.symbol} amounts support up to ${amountDecimalLimit} decimal places.`;
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -420,11 +427,25 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
               >
                 <input
                   value={form.amount}
-                  onChange={(event) => setField("amount", event.target.value)}
+                  onChange={(event) => setAmountField(event.target.value)}
                   className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="5000.00"
                   inputMode="decimal"
+                  pattern={`^\\d+(\\.\\d{0,${amountDecimalLimit}})?$`}
+                  step={minimumInvoiceAmount}
                 />
+                {selectedToken?.symbol === "XLM" ? (
+                  <div className="mt-2 rounded-xl border border-primary/10 bg-primary/5 p-3 text-xs text-on-surface-variant">
+                    <p>
+                      XLM uses 7 decimal places (1 XLM = 10,000,000 stroops). Minimum invoice amount is {minimumInvoiceAmount} XLM.
+                    </p>
+                    {enteredAmountPreview ? (
+                      <p className="mt-1 font-bold text-primary">
+                        You entered: {enteredAmountPreview} XLM
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </Field>
 
               <Field 
@@ -559,6 +580,32 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       </div>
     </div>
   );
+}
+
+function getAmountDecimalLimit(symbol?: string) {
+  return symbol?.toUpperCase() === "XLM" ? 7 : 6;
+}
+
+function isAmountInputAllowed(value: string, decimals: number) {
+  return value === "" || new RegExp(`^\\d*(\\.\\d{0,${decimals}})?$`).test(value);
+}
+
+function isAmountPrecisionValid(value: string, decimals: number) {
+  const fractionalPart = value.split(".")[1];
+  return !fractionalPart || fractionalPart.length <= decimals;
+}
+
+function formatEnteredAmount(value: string, decimals: number) {
+  const normalized = value.trim();
+
+  if (!normalized || !isAmountInputAllowed(normalized, decimals) || normalized === ".") {
+    return null;
+  }
+
+  const [wholePart, fractionalPart = ""] = normalized.split(".");
+  const whole = wholePart || "0";
+
+  return `${whole}.${fractionalPart.padEnd(decimals, "0").slice(0, decimals)}`;
 }
 
 function Field({
