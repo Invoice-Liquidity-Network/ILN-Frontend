@@ -1017,6 +1017,44 @@ export async function buildApproveUsdcTransaction(args: {
   return buildApproveTokenTransaction(args);
 }
 
+// ─── Write: invoice token conversion ─────────────────────────────────────────
+
+export async function buildConvertInvoiceTokenTransaction({
+  submitter,
+  invoiceId,
+  newToken,
+}: {
+  submitter: string;
+  invoiceId: bigint;
+  newToken: string;
+}) {
+  const account = await server.getAccount(submitter);
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeContractFunction({
+        contract: CONTRACT_ID,
+        function: "convert_invoice_token",
+        args: [
+          nativeToScVal(invoiceId, { type: "u64" }),
+          Address.fromString(newToken).toScVal(),
+        ],
+      })
+    )
+    .setTimeout(60)
+    .build();
+
+  const simulated = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(simulated)) {
+    const message =
+      "error" in simulated ? simulated.error : "Unable to simulate invoice token conversion.";
+    throw new Error(`Simulation failed: ${message}`);
+  }
+  return rpc.assembleTransaction(tx, simulated).build();
+}
+
 // ─── Write: generic signed transaction dispatcher ─────────────────────────────
 
 export async function submitSignedTransaction({
