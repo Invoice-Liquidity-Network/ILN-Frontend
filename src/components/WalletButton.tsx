@@ -96,6 +96,7 @@ export default function WalletButton() {
         >
           Disconnect
         </button>
+        <FaucetButton />
       </div>
     );
   }
