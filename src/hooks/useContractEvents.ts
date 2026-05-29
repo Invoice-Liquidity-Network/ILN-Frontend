@@ -12,22 +12,23 @@ import {
   setContractEventStreamingActive,
 } from "@/lib/contract-event-stream-state";
 import type { Invoice } from "@/utils/soroban";
+import { invoiceKeys } from "@/hooks/queries/keys";
 
 function patchInvoiceQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   event: ParsedContractEvent,
 ) {
-  queryClient.setQueryData<Invoice[]>(["invoices"], (current) =>
+  queryClient.setQueryData<Invoice[]>(invoiceKeys.all, (current) =>
     applyContractEventToInvoices(current, event),
   );
 
   if (event.invoiceId !== undefined) {
-    queryClient.setQueryData<Invoice>(["invoice", event.invoiceId.toString()], (current) => {
+    queryClient.setQueryData<Invoice>(invoiceKeys.detail(event.invoiceId), (current) => {
       if (!current) return current;
       const updated = applyContractEventToInvoices([current], event);
       return updated?.[0] ?? current;
     });
-    queryClient.invalidateQueries({ queryKey: ["invoice", event.invoiceId.toString()] });
+    queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(event.invoiceId) });
   }
 }
 
