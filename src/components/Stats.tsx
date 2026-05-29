@@ -1,3 +1,5 @@
+import InvoiceStateDonut from "@/components/InvoiceStateDonut";
+
 export default function Stats() {
   const stats = [
     { label: "Total Invoices", value: "1,247" },
@@ -8,9 +10,9 @@ export default function Stats() {
 
   return (
     <section className="bg-surface-dim py-12 px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-6 gap-8">
         {stats.map((stat, index) => (
-          <div key={index} className="p-6 bg-surface-container-low rounded-lg">
+          <div key={index} className="p-6 bg-surface-container-low rounded-lg md:col-span-1">
             <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">
               {stat.label}
             </p>
@@ -19,6 +21,10 @@ export default function Stats() {
             </p>
           </div>
         ))}
+
+        <div className="md:col-span-2">
+          <InvoiceStateDonut />
+        </div>
       </div>
     </section>
   );
