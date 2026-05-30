@@ -8,6 +8,7 @@ import VoteProgressBar from "@/components/VoteProgressBar";
 import QuorumProgressBar from "@/components/QuorumProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useWallet } from "@/context/WalletContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
@@ -32,6 +33,7 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
     Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
     Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
     Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
+    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
   };
   const { color, icon } = config[status];
   return (
@@ -296,54 +298,58 @@ export default function GovernancePage() {
             />
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-64 rounded-2xl bg-surface-container animate-pulse"
-                />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-24">
-              <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 block mb-4">
-                inbox
-              </span>
-              <p className="text-on-surface-variant">No {filter.toLowerCase()} proposals yet.</p>
-            </div>
-          ) : (
-            <>
+          <ErrorBoundary>
+            {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {pageItems.map((p) => (
-                  <ProposalCard key={p.id} proposal={p} />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-64 rounded-2xl bg-surface-container animate-pulse"
+                  />
                 ))}
               </div>
-              {pageCount > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-3">
-                  <button
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    disabled={page === 1}
-                    className="rounded-lg border border-outline-variant/30 px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-on-surface-variant">
-                    Page {page} of {pageCount}
-                  </span>
-                  <button
-                    onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-                    disabled={page === pageCount}
-                    className="rounded-lg border border-outline-variant/30 px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-24">
+                <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 block mb-4">
+                  inbox
+                </span>
+                <p className="text-on-surface-variant">No {filter.toLowerCase()} proposals yet.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {pageItems.map((p) => (
+                    <ProposalCard key={p.id} proposal={p} />
+                  ))}
                 </div>
-              )}
-            </>
-          )}
+                {pageCount > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      disabled={page === 1}
+                      className="rounded-lg border border-outline-variant/30 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-on-surface-variant">
+                      Page {page} of {pageCount}
+                    </span>
+                    <button
+                      onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                      disabled={page === pageCount}
+                      className="rounded-lg border border-outline-variant/30 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </ErrorBoundary>
 
-          <TokenAllowlistPanel />
+          <ErrorBoundary>
+            <TokenAllowlistPanel />
+          </ErrorBoundary>
         </div>
       </section>
 

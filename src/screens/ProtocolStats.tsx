@@ -9,6 +9,7 @@ import StatsMetricCards from "@/components/stats/StatsMetricCards";
 import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
 import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
 import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 function LoadingSkeleton() {
   return (
@@ -65,7 +66,7 @@ export default function ProtocolStatsScreen() {
           )}
 
           {!isLoading && !error && stats && (
-            <>
+            <ErrorBoundary>
               <StatsMetricCards stats={stats} />
 
               <StatsVolumeChart dailyVolume={stats.daily_volume} />
@@ -79,7 +80,7 @@ export default function ProtocolStatsScreen() {
                 invoices={invoices}
                 isLoading={invoicesLoading}
               />
-            </>
+            </ErrorBoundary>
           )}
         </div>
       </section>

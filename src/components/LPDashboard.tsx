@@ -39,6 +39,7 @@ import LPTransferModal from "./LPTransferModal";
 import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPYieldComparison from "./LPYieldComparison";
 import LPSettingsModal from "./LPSettingsModal";
+import ErrorBoundary from "./ErrorBoundary";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
 
@@ -592,15 +593,17 @@ export default function LPDashboard() {
               </div>
             )}
           </div>
-          <LPPortfolio
-            invoices={myFundedInvoices}
-            isLoading={loading}
-            onClaimDefault={handleClaimDefault}
-            claimingInvoiceId={claimingInvoiceId}
-            tokenMap={tokenMap}
-            defaultToken={defaultToken}
-            onTransfer={(inv) => setTransferInvoice(inv)}
-          />
+          <ErrorBoundary>
+            <LPPortfolio
+              invoices={myFundedInvoices}
+              isLoading={loading}
+              onClaimDefault={handleClaimDefault}
+              claimingInvoiceId={claimingInvoiceId}
+              tokenMap={tokenMap}
+              defaultToken={defaultToken}
+              onTransfer={(inv) => setTransferInvoice(inv)}
+            />
+          </ErrorBoundary>
         </>
       ) : activeTab === "earnings-history" ? (
         <LPEarningsHistory
@@ -610,6 +613,7 @@ export default function LPDashboard() {
           walletAddress={address || null}
         />
       ) : (
+        <ErrorBoundary>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-surface-container-low border-b border-surface-dim">
@@ -790,6 +794,7 @@ export default function LPDashboard() {
             </tbody>
           </table>
         </div>
+        </ErrorBoundary>
       )}
 
       <div className="flex justify-end border-t border-surface-dim bg-surface-container-low/30">

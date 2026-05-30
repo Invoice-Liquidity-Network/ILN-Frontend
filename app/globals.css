@@ -73,6 +73,22 @@ body {
   font-family: var(--font-body);
 }
 
+@media (max-width: 640px) {
+  button,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  button,
+  [role="button"] {
+    min-width: 44px;
+  }
+}
+
 h1, h2, h3, .serif {
   font-family: var(--font-headline);
 }

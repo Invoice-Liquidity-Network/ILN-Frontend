@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import InvoiceMarketplaceCard from "@/components/InvoiceMarketplaceCard";
 import FundConfirmModal from "@/components/FundConfirmModal";
 import LPSettingsModal from "@/components/LPSettingsModal";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useLPSettings } from "@/hooks/useLPSettings";
 const PAGE_SIZE = 20;
 
@@ -184,46 +185,47 @@ export default function MarketplacePage() {
           {sorted.length} invoice{sorted.length !== 1 ? "s" : ""} available
         </p>
 
-        {/* Grid */}
-        {loading && paginated.length === 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 animate-pulse">
-                <div className="h-5 w-20 bg-surface-variant rounded mb-3" />
-                <div className="space-y-2">
-                  <div className="h-4 bg-surface-variant rounded" />
-                  <div className="h-4 bg-surface-variant rounded w-3/4" />
-                  <div className="h-4 bg-surface-variant rounded w-1/2" />
+        <ErrorBoundary>
+          {loading && paginated.length === 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 animate-pulse">
+                  <div className="h-5 w-20 bg-surface-variant rounded mb-3" />
+                  <div className="space-y-2">
+                    <div className="h-4 bg-surface-variant rounded" />
+                    <div className="h-4 bg-surface-variant rounded w-3/4" />
+                    <div className="h-4 bg-surface-variant rounded w-1/2" />
+                  </div>
+                  <div className="h-10 bg-surface-variant rounded mt-4" />
                 </div>
-                <div className="h-10 bg-surface-variant rounded mt-4" />
-              </div>
-            ))}
-          </div>
-        ) : paginated.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">receipt_long</span>
-            <p className="font-medium text-on-surface">No Pending Invoices</p>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              There are currently no invoices matching your filters.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {paginated.map((invoice) => (
-              <InvoiceMarketplaceCard
-                key={invoice.id.toString()}
-                invoice={invoice}
-                tokenMap={tokenMap}
-                defaultToken={defaultToken}
-                payerScore={payerScores.get(invoice.payer) ?? null}
-                payerRisk={payerRisks.get(invoice.payer) ?? "Unknown"}
-                onFund={setSelectedInvoice}
-                isWalletConnected={isConnected}
-                minReputation={settings.minReputation}
-              />
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">receipt_long</span>
+              <p className="font-medium text-on-surface">No Pending Invoices</p>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                There are currently no invoices matching your filters.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {paginated.map((invoice) => (
+                <InvoiceMarketplaceCard
+                  key={invoice.id.toString()}
+                  invoice={invoice}
+                  tokenMap={tokenMap}
+                  defaultToken={defaultToken}
+                  payerScore={payerScores.get(invoice.payer) ?? null}
+                  payerRisk={payerRisks.get(invoice.payer) ?? "Unknown"}
+                  onFund={setSelectedInvoice}
+                  isWalletConnected={isConnected}
+                  minReputation={settings.minReputation}
+                />
+              ))}
+            </div>
+          )}
+        </ErrorBoundary>
 
         {/* Pagination */}
         {totalPages > 1 && (
