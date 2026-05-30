@@ -1,0 +1,54 @@
+name: Contract Integration Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  contract-tests:
+    name: Mocked Stellar SDK Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run contract integration tests with coverage
+        run: npx vitest run __tests__/contract --reporter=verbose --coverage
+        env:
+          CI: true
+
+      - name: Enforce 90% coverage on contract layer
+        run: |
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            try {
+              const cov = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+              const files = Object.keys(cov).filter(k => k.includes('utils/soroban') || k.includes('utils/contract-stats') || k.includes('utils/governance') || k.includes('lib/contract'));
+              if (files.length === 0) { console.log('100'); process.exit(0); }
+              const lines = files.reduce((acc, f) => { acc.total += cov[f].lines.total; acc.covered += cov[f].lines.covered; return acc; }, { total: 0, covered: 0 });
+              console.log(Math.round((lines.covered / lines.total) * 100));
+            } catch(e) { console.log('0'); }
+          ")
+          echo "Contract layer coverage: $COVERAGE%"
+          if [ "$COVERAGE" -lt 90 ]; then
+            echo "FAIL: Coverage $COVERAGE% is below the 90% threshold"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-coverage
+          path: coverage/
+          retention-days: 14

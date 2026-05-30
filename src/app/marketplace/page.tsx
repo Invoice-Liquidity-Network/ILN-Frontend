@@ -19,7 +19,7 @@ const PAGE_SIZE = 20;
 type SortKey = "yield" | "amount" | "due_date";
 
 export default function MarketplacePage() {
-  const { address, isConnected } = useWallet();
+  const { isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();
 
@@ -126,8 +126,9 @@ export default function MarketplacePage() {
         {/* Filters & Sort */}
         <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-end">
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase text-on-surface-variant">Token</label>
+            <label htmlFor="filter-token" className="text-xs font-bold uppercase text-on-surface-variant">Token</label>
             <select
+              id="filter-token"
               value={filterToken}
               onChange={(e) => { setFilterToken(e.target.value); setPage(1); }}
               className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
@@ -139,8 +140,9 @@ export default function MarketplacePage() {
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase text-on-surface-variant">Min Yield %</label>
+            <label htmlFor="filter-min-yield" className="text-xs font-bold uppercase text-on-surface-variant">Min Yield %</label>
             <input
+              id="filter-min-yield"
               type="number"
               min="0"
               step="0.1"
@@ -151,8 +153,9 @@ export default function MarketplacePage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold uppercase text-on-surface-variant">Max Amount (USDC)</label>
+            <label htmlFor="filter-max-amount" className="text-xs font-bold uppercase text-on-surface-variant">Max Amount (USDC)</label>
             <input
+              id="filter-max-amount"
               type="number"
               min="0"
               step="100"
