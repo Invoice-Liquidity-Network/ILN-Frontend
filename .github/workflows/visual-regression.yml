@@ -1,0 +1,49 @@
+name: Visual Regression Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  chromatic:
+    name: Chromatic Visual Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run build-storybook
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+
+      - name: Run Chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          exitZeroOnChanges: false
+          exitOnceUploaded: false
+          onlyChanged: true
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+      - name: Upload Storybook build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: storybook-static/
+          retention-days: 7

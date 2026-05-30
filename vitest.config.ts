@@ -16,6 +16,24 @@ export default defineConfig({
     ]
   },
   test: {
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/utils/soroban.ts',
+        'src/utils/contract-stats.ts',
+        'src/utils/governance.ts',
+        'src/lib/contract-events.ts',
+        'src/lib/contract-event-stream-state.ts',
+      ],
+      thresholds: {
+        lines: 90,
+        functions: 90,
+        branches: 80,
+        statements: 90,
+      },
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+    },
     projects: [{
       extends: true,
       test: {
@@ -34,7 +52,9 @@ export default defineConfig({
       test: {
         name: 'storybook',
         browser: {
-          enabled: true,
+          // Only run Storybook browser tests when STORYBOOK_TESTS=1 is set
+          // (requires: npx playwright install chromium)
+          enabled: process.env.STORYBOOK_TESTS === '1',
           headless: true,
           provider: playwright({}),
           instances: [{
