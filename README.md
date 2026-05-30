@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Snapshot Tests
 
-The frontend includes Vitest snapshot coverage for the main invoice UI surfaces in `frontend/__tests__`.
+The frontend includes Vitest snapshot coverage for the main invoice UI surfaces in `__tests__`.
 
 Run the suite with:
 
