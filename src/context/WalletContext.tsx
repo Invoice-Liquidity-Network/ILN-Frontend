@@ -7,14 +7,24 @@ import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
 import { networksMatch, normalizeWalletNetwork } from "@/utils/network";
 import { getWalletRoles, type WalletRole } from "@/utils/soroban";
 import { trackEvent } from "@/lib/analytics";
-import { clearWalletStorage, WALLET_ADDRESS_STORAGE_KEY } from "@/utils/walletStorage";
+import {
+  clearWalletStorage,
+  getStoredWalletProvider,
+  setStoredWalletProvider,
+  WALLET_ADDRESS_STORAGE_KEY,
+  type WalletProviderType,
+} from "@/utils/walletStorage";
 import WalletSelectionModal from "@/components/WalletSelectionModal";
 import { useToast } from "./ToastContext";
+
+type WalletProviderName = WalletProviderType;
 
 interface WalletContextType {
   address: string | null;
   isConnected: boolean;
   isInstalled: boolean;
+  isReconnecting: boolean;
+  preferredWalletProvider: WalletProviderName | null;
   error: string | null;
   networkMismatch: boolean;
   walletNetwork: string | null;
@@ -71,6 +81,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
   const [walletNetwork, setWalletNetwork] = useState<string | null>(null);
@@ -78,6 +89,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [rolesLoading, setRolesLoading] = useState(false);
   // Which provider to connect with is chosen in the selection modal (#2).
   const [isSelectingProvider, setIsSelectingProvider] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<WalletProviderName | null>(null);
+  const [openWalletConnectByDefault, setOpenWalletConnectByDefault] = useState(false);
 
   const checkNetwork = useCallback(async () => {
     try {
@@ -102,23 +115,61 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const installed = extractConnectionState(await isConnected());
       setIsInstalled(installed);
-      
+
       if (installed) {
-        const savedAddress = localStorage.getItem(STORAGE_KEY);
-        if (savedAddress) {
-          const { address } = await getAddress();
-          if (address && address === savedAddress) {
-            setAddress(address);
-            await checkNetwork();
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-          }
+        const { address } = await getAddress();
+        if (address) {
+          setAddress(address);
+          localStorage.setItem(STORAGE_KEY, address);
+          await checkNetwork();
         }
       }
     } catch (e) {
       console.error("Check connection failed", e);
     }
   }, [checkNetwork]);
+
+  const attemptSilentReconnect = useCallback(async () => {
+    const savedProvider = getStoredWalletProvider();
+    setSelectedProvider(savedProvider);
+    if (savedProvider !== "freighter") {
+      return;
+    }
+
+    setIsReconnecting(true);
+
+    try {
+      const installed = extractConnectionState(await isConnected());
+      setIsInstalled(installed);
+
+      if (!installed) {
+        clearWalletStorage();
+        setSelectedProvider(null);
+        return;
+      }
+
+      const { address } = await getAddress();
+      if (!address) {
+        clearWalletStorage();
+        setSelectedProvider(null);
+        return;
+      }
+
+      setAddress(address);
+      localStorage.setItem(STORAGE_KEY, address);
+      await checkNetwork();
+    } catch (e) {
+      console.error("Silent reconnect failed", e);
+      clearWalletStorage();
+      setSelectedProvider(null);
+    } finally {
+      setIsReconnecting(false);
+    }
+  }, [checkNetwork]);
+
+  useEffect(() => {
+    attemptSilentReconnect();
+  }, [attemptSilentReconnect]);
 
   useEffect(() => {
     checkConnection();
@@ -164,6 +215,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // actual per-provider connect runs once the user chooses.
   const connect = async () => {
     setError(null);
+    setOpenWalletConnectByDefault(selectedProvider === "walletconnect");
     setIsSelectingProvider(true);
   };
 
@@ -195,6 +247,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (address) {
           setAddress(address);
           localStorage.setItem(STORAGE_KEY, address);
+          setSelectedProvider("freighter");
+          setStoredWalletProvider("freighter");
           
           const isCorrectNetwork = await checkNetwork();
           if (!isCorrectNetwork) {
@@ -228,6 +282,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setRoles([]);
     setRolesLoading(false);
     setIsSelectingProvider(false);
+    setSelectedProvider(null);
+    setIsReconnecting(false);
     // ...and every persisted/cached trace of the session (#4).
     clearWalletStorage();
     trackEvent("wallet_disconnected");
@@ -262,12 +318,18 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     throw new Error("Freighter did not return a signed transaction.");
   };
 
+  const handleSelectWalletConnect = () => {
+    setSelectedProvider("walletconnect");
+    setStoredWalletProvider("walletconnect");
+  };
+
   return (
     <WalletContext.Provider 
       value={{ 
         address, 
         isConnected: !!address, 
         isInstalled,
+        isReconnecting,
         error,
         networkMismatch,
         walletNetwork: walletNetwork ? normalizeWalletNetwork(walletNetwork) : null,
@@ -281,8 +343,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       {children}
       {isSelectingProvider ? (
         <WalletSelectionModal
-          onClose={() => setIsSelectingProvider(false)}
+          onClose={() => {
+            setIsSelectingProvider(false);
+            setOpenWalletConnectByDefault(false);
+          }}
           onSelectFreighter={() => void connectFreighter()}
+          onSelectWalletConnect={handleSelectWalletConnect}
+          initialWalletConnectView={openWalletConnectByDefault}
         />
       ) : null}
     </WalletContext.Provider>

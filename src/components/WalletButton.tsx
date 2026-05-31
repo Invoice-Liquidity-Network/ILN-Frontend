@@ -10,7 +10,7 @@ import { NETWORK_NAME } from "@/constants";
 import TestnetFaucetButton from "./TestnetFaucetButton";
 
 export default function WalletButton() {
-  const { address, isConnected, isInstalled, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, isInstalled, isReconnecting, preferredWalletProvider, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
   // Auto-refreshes every 30s and on each successful transaction; tokens that
@@ -100,16 +100,22 @@ export default function WalletButton() {
     );
   }
 
+  const connectionLabel = isReconnecting ? "Reconnecting..." : "Connect Wallet";
+
   return (
     <div className="relative group">
       <button
         onClick={connect}
-        className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-surface-container-lowest shadow-md transition-all duration-150 hover:bg-primary/90 active:scale-95"
+        disabled={isReconnecting}
+        className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-surface-container-lowest shadow-md transition-all duration-150 hover:bg-primary/90 active:scale-95 disabled:cursor-wait disabled:opacity-70"
       >
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
-        Connect Wallet
+        {connectionLabel}
       </button>
-      {!isInstalled && (
+      {isReconnecting && (
+        <p className="mt-2 text-xs text-on-surface-variant">Attempting to restore your wallet session…</p>
+      )}
+      {!isInstalled && !isReconnecting && preferredWalletProvider !== "walletconnect" && (
         <a
           href="https://www.freighter.app/"
           target="_blank"
