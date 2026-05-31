@@ -18,6 +18,7 @@ import ActivityHeatmap from "@/components/ActivityHeatmap";
 import { ScoreSimulator } from "@/components/profile/ScoreSimulator";
 import OracleBadge from "@/components/OracleBadge";
 import { DecayWarningBanner } from "@/components/DecayWarningBanner";
+import GovernanceActivity from "@/components/GovernanceActivity";
 import Skeleton from "@/components/ui/Skeleton";
 
 interface ScoreHistoryPoint {
@@ -64,7 +65,8 @@ export default function ProfilePage() {
         if (!cancelled) {
           setError("Failed to load profile data.");
         }
-      } finally {
+      }
+      finally {
         if (!cancelled) {
           setLoading(false);
         }
@@ -250,6 +252,8 @@ export default function ProfilePage() {
                 </p>
               </section>
             )}
+
+            <GovernanceActivity address={address} />
           </div>
 
           <div className="space-y-4">
