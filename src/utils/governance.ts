@@ -18,6 +18,15 @@ export interface ParameterChange {
   newValue: string;
 }
 
+export interface VoteCastEvent {
+  proposalId: number;
+  proposalTitle: string;
+  voter: string;
+  vote: VoteChoice;
+  weight: number;
+  timestamp: number;
+}
+
 export interface Proposal {
   id: number;
   title: string;
@@ -637,4 +646,55 @@ export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
       }));
     })
     .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+// ─── Governance Activity ──────────────────────────────────────────────────────
+
+export const MOCK_VOTES: VoteCastEvent[] = [
+  {
+    proposalId: 1,
+    proposalTitle: "Reduce Base Discount Rate to 3.5%",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 1.5 * DAY,
+  },
+  {
+    proposalId: 3,
+    proposalTitle: "Add EURC as Accepted Invoice Currency",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 10 * DAY,
+  },
+  {
+    proposalId: 4,
+    proposalTitle: "Extend Voting Period to 10 Days",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "Against",
+    weight: 1250,
+    timestamp: NOW - 25 * DAY,
+  },
+  {
+    proposalId: 7,
+    proposalTitle: "Lower Protocol Fee Rate to 0.3%",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 5 * DAY,
+  },
+];
+
+/**
+ * Fetch governance voting history for a specific address.
+ * Derived from VoteCast events.
+ */
+export async function fetchVotesForAddress(address: string): Promise<VoteCastEvent[]> {
+  await new Promise((r) => setTimeout(r, 400));
+  // In a real implementation, we would filter contract events by the voter address.
+  // For the mock, we return data if the address matches our mock voter.
+  if (address === "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ") {
+    return [...MOCK_VOTES].sort((a, b) => b.timestamp - a.timestamp);
+  }
+  return [];
 }

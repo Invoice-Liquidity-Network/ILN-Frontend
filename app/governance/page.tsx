@@ -260,13 +260,22 @@ export default function GovernancePage() {
               </p>
             </div>
             {canCreateProposal ? (
+               <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href="/governance/how-it-works"
+                className="inline-flex items-center gap-2 bg-surface-container text-on-surface-variant px-5 py-3 rounded-xl text-sm font-bold border border-outline-variant/30 hover:border-primary/40 hover:text-primary transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">help_outline</span>
+                How it works
+              </Link>
               <Link
                 href="/governance/new"
-                className="shrink-0 inline-flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
                 Create Proposal
               </Link>
+            </div>
             ) : (
               <div className="rounded-xl border border-outline-variant/30 px-5 py-3 text-sm text-on-surface-variant">
                 Connect a wallet with ILN voting power to create proposals.
