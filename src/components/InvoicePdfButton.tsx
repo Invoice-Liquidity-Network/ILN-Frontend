@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Invoice } from "@/utils/soroban";
-import { downloadInvoicePdf, type InvoicePdfData } from "@/utils/invoicePdf";
+import type { InvoicePdfData } from "@/utils/invoicePdf";
 
 interface InvoicePdfButtonProps {
   invoice: Invoice;
@@ -23,6 +23,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
     try {
       const origin =
         baseUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
+      const { downloadInvoicePdf } = await import("@/utils/invoicePdf");
       await downloadInvoicePdf(invoice, {
         ...data,
         shareUrl: `${origin.replace(/\/$/, "")}/i/${invoice.id.toString()}`,

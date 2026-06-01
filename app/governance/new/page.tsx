@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import { useBalances } from "@/hooks/useBalances";
+import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import {
   fetchProtocolParameters,
   createProposal,
@@ -33,7 +34,8 @@ export default function NewGovernanceProposalPage() {
   const router = useRouter();
   const { address, isConnected } = useWallet();
   const { execute, loading: txLoading } = useTransaction();
-  const { balances, loading: balancesLoading } = useBalances(address);
+  const { tokens } = useApprovedTokens();
+  const { balances, isLoading: balancesLoading } = useBalances(tokens);
 
   const [formData, setFormData] = useState<FormData>({
     formType: "",

@@ -5,7 +5,7 @@ import { useWallet } from "@/context/WalletContext";
 export function DecayWarningBanner({ address }: { address?: string }) {
   const { address: connectedAddress } = useWallet();
   const targetAddress = address || connectedAddress;
-  const { isDecaying, projectedScore30Days, currentScore, loading } = useReputationDecay(targetAddress);
+  const { isDecaying, projectedScore30Days, currentScore, loading } = useReputationDecay(targetAddress || undefined);
 
   // Only show on the connected wallet's own profile/dashboard
   if (!connectedAddress || connectedAddress.toLowerCase() !== targetAddress?.toLowerCase()) {

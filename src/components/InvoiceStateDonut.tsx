@@ -29,7 +29,7 @@ export default function InvoiceStateDonut() {
       <div style={{ width: "100%", height: 220 }}>
         <ResponsiveContainer>
           <PieChart>
-            <Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2} label={null}>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2}>
               {data.map((entry) => (
                 <Cell key={entry.name} fill={COLORS[entry.name] ?? "#ddd"} />
               ))}
