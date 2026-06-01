@@ -16,7 +16,7 @@ export interface ToastMessage {
   id: string;
   type: ToastType;
   title: string;
-  message?: string;
+  message?: string | React.ReactNode;
   txHash?: string;
   action?: ToastAction;
 }
@@ -29,9 +29,21 @@ interface ToastContextType {
 
 export const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-function buildDescription(toast: Omit<ToastMessage, "id">): string | undefined {
+function buildDescription(toast: Omit<ToastMessage, "id">): React.ReactNode | undefined {
+  if (React.isValidElement(toast.message)) {
+    if (toast.txHash) {
+      return (
+        <div className="flex flex-col gap-2">
+          {toast.message}
+          <div className="text-xs opacity-80">Tx: {toast.txHash.slice(0, 8)}…</div>
+        </div>
+      );
+    }
+    return toast.message;
+  }
+
   const parts: string[] = [];
-  if (toast.message) parts.push(toast.message);
+  if (typeof toast.message === "string") parts.push(toast.message);
   if (toast.txHash) parts.push(`Tx: ${toast.txHash.slice(0, 8)}…`);
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }

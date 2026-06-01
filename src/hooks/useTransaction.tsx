@@ -8,6 +8,8 @@ import { submitSignedTransaction } from "@/utils/soroban";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
 import { notifyTxSuccess } from "@/utils/txEvents";
+import { parseContractError, CONTRACT_ERROR_MAP, UNKNOWN_CONTRACT_ERROR } from "@/lib/contract/errors";
+import { TransactionErrorToast } from "@/components/transaction/TransactionErrorToast";
 
 type SignTxFn = (txXdr: string) => Promise<string>;
 
@@ -120,16 +122,40 @@ export function useTransaction(): UseTransactionResult {
         notifyTxSuccess();
         return result;
       } catch (err: any) {
-        const message = err?.message || "Transaction failed.";
+        const message = err?.message || String(err || "Transaction failed.");
         const isRejected = isWalletRejection(message);
         setError(message);
 
+        let title = "Transaction failed";
+        let toastMessage: React.ReactNode = `${message}. Please try again or contact support if the issue persists.`;
+
+        if (isRejected) {
+          title = "Transaction cancelled";
+          toastMessage = "Transaction cancelled";
+        } else {
+          const code = parseContractError(err);
+          const errorInfo = code ? CONTRACT_ERROR_MAP[code] : UNKNOWN_CONTRACT_ERROR;
+          
+          title = errorInfo.title;
+          
+          const hasTechnicalDetails = !!code || (message && message !== "Transaction failed." && message !== errorInfo.message);
+          const technicalDetails = hasTechnicalDetails 
+            ? (code ? `${code}\n${message}` : message) 
+            : undefined;
+
+          toastMessage = (
+            <TransactionErrorToast
+              message={errorInfo.message}
+              remediation={errorInfo.remediation}
+              technicalDetails={technicalDetails}
+            />
+          );
+        }
+
         updateToast(toastId, {
           type: "error",
-          title: isRejected ? "Transaction cancelled" : "Transaction failed",
-          message: isRejected
-            ? "Transaction cancelled"
-            : `${message}. Please try again or contact support if the issue persists.`,
+          title,
+          message: toastMessage,
           action: isRejected
             ? undefined
             : {
