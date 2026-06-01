@@ -36,10 +36,8 @@ const walletState = {
   address: null as string | null,
   isConnected: false,
   isInstalled: true,
-  error: null as string | null,
-  networkMismatch: false,
-  connect: vi.fn(),
-  disconnect: vi.fn(),
+  isReconnecting: false,
+  preferredWalletProvider: null as string | null,
   signTx: vi.fn(),
 };
 
@@ -84,6 +82,8 @@ describe("WalletButton", () => {
     walletState.address = null;
     walletState.isConnected = false;
     walletState.isInstalled = true;
+    walletState.isReconnecting = false;
+    walletState.preferredWalletProvider = null;
     walletState.error = null;
     walletState.networkMismatch = false;
     walletState.connect.mockReset();
@@ -97,6 +97,13 @@ describe("WalletButton", () => {
     it("renders the Connect Wallet button", () => {
       render(<WalletButton />);
       expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
+    });
+
+    it("shows a reconnecting state while the app restores a session", () => {
+      walletState.isReconnecting = true;
+      render(<WalletButton />);
+      expect(screen.getByRole("button", { name: /reconnecting.../i })).toBeDisabled();
+      expect(screen.getByText(/attempting to restore your wallet session/i)).toBeInTheDocument();
     });
 
     it("shows an install prompt when Freighter is not installed (#1)", () => {
