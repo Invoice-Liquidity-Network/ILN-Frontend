@@ -360,7 +360,7 @@ export default function AnalyticsPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loadState === "loading") {
     return (
-      <main className="min-h-screen px-4 pt-24">
+      <main id="analytics-main" className="min-h-screen px-4 pt-24">
         <Spinner />
       </main>
     );
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
   // ── Error (no cached data) ────────────────────────────────────────────────
   if (loadState === "error" && !data) {
     return (
-      <main className="min-h-screen px-4 pt-24">
+      <main id="analytics-main" className="min-h-screen px-4 pt-24">
         <ErrorState message={errorMessage} />
       </main>
     );
