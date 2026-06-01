@@ -20,6 +20,7 @@ import BulkActionBar from "../components/BulkActionBar";
 import CancelInvoiceButton from "@/components/CancelInvoiceButton";
 import SkeletonRow from "@/components/SkeletonRow";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PageHeader from "@/components/PageHeader";
 
 const STELLAR_EXPERT_CONTRACT_URL = `https://stellar.expert/explorer/${NETWORK_NAME.toLowerCase()}/contract/${CONTRACT_ID}`;
 
@@ -214,58 +215,57 @@ export default function DashboardPage() {
     <main className="min-h-screen">
       <Navbar />
       <section className="pt-32 pb-10 px-6 md:px-8 border-b border-outline-variant/10 bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Freelancer Dashboard</p>
-            <h1 className="text-3xl md:text-5xl font-headline">My Submitted Invoices</h1>
-            <p className="text-on-surface-variant mt-2">
-              Track every invoice you submitted, monitor statuses, and open the transaction context on Stellar Expert.
-            </p>
-          </div>
-          {!isConnected ? (
-            <button
-              onClick={connect}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-              <div className="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/30">
+        <div className="max-w-7xl mx-auto">
+          <PageHeader
+            breadcrumbs={[{ label: "Freelancer Dashboard" }]}
+            title="My Submitted Invoices"
+            description="Track every invoice you submitted, monitor statuses, and open the transaction context on Stellar Expert."
+            actions={
+              !isConnected ? (
                 <button
-                  onClick={() => toggleViewMode("table")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    viewMode === "table" 
-                    ? "bg-surface-container-highest text-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
-                  }`}
+                  onClick={connect}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
                 >
-                  <span className="material-symbols-outlined text-sm">table_rows</span>
-                  Table
+                  Connect Wallet
                 </button>
-                <button
-                  onClick={() => toggleViewMode("timeline")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    viewMode === "timeline" 
-                    ? "bg-surface-container-highest text-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm">timeline</span>
-                  Timeline
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                    <button
+                      onClick={() => toggleViewMode("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        viewMode === "table" 
+                        ? "bg-surface-container-highest text-primary shadow-sm" 
+                        : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">table_rows</span>
+                      Table
+                    </button>
+                    <button
+                      onClick={() => toggleViewMode("timeline")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        viewMode === "timeline" 
+                        ? "bg-surface-container-highest text-primary shadow-sm" 
+                        : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">timeline</span>
+                      Timeline
+                    </button>
+                  </div>
 
-              <button
-                onClick={() => void refetch()}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-4 py-2.5 text-sm font-medium text-on-surface-variant disabled:opacity-50"
-              >
-                Refresh
-              </button>
-            </div>
-          )}
+                  <button
+                    onClick={() => void refetch()}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-4 py-2.5 text-sm font-medium text-on-surface-variant disabled:opacity-50"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              )
+            }
+          />
         </div>
       </section>
 

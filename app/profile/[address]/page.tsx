@@ -20,6 +20,7 @@ import OracleBadge from "@/components/OracleBadge";
 import { DecayWarningBanner } from "@/components/DecayWarningBanner";
 import GovernanceActivity from "@/components/GovernanceActivity";
 import Skeleton from "@/components/ui/Skeleton";
+import PageHeader from "@/components/PageHeader";
 
 interface ScoreHistoryPoint {
   period: string;
@@ -160,27 +161,24 @@ export default function ProfilePage() {
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
-                Public reputation profile
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-semibold text-on-surface">{resolvedAddress}</h1>
+          <PageHeader
+            breadcrumbs={[{ label: "Public reputation profile" }]}
+            title={resolvedAddress}
+            description={
+              resolvedAddress !== address
+                ? `${address}\nFederation name resolved for this Stellar address.`
+                : `${address}\nNo Federation name found yet.`
+            }
+            actions={
+              <div className="flex flex-col lg:items-end gap-3">
                 <OracleBadge verified={false} />
+                <div className="rounded-3xl bg-surface-container p-4 text-right">
+                  <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Last active</p>
+                  <p className="mt-1 text-lg font-semibold text-on-surface">{lastActiveLabel}</p>
+                </div>
               </div>
-              <p className="mt-2 break-all font-mono text-sm text-on-surface-variant">{address}</p>
-              <p className="mt-2 text-sm text-on-surface-variant">
-                {resolvedAddress !== address
-                  ? "Federation name resolved for this Stellar address."
-                  : "No Federation name found yet."}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-surface-container p-4 text-right">
-              <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Last active</p>
-              <p className="mt-1 text-lg font-semibold text-on-surface">{lastActiveLabel}</p>
-            </div>
-          </div>
+            }
+          />
           <div className="mt-4">
             <DecayWarningBanner address={address} />
           </div>
