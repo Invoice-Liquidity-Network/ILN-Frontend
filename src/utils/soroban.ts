@@ -23,6 +23,7 @@ import {
   parseDiscountRateToBps,
   toUnixTimestamp,
 } from "./invoiceSubmission";
+import { fetchNativeXlmBalance } from "@/lib/horizonClient";
 
 // ─── RPC & constants ──────────────────────────────────────────────────────────
 
@@ -222,20 +223,7 @@ export async function getWalletRoles(address: string): Promise<WalletRole[]> {
 }
 
 export async function getNativeXlmBalance(address: string): Promise<number> {
-  const horizonUrl =
-    NETWORK_PASSPHRASE === "Public Global Stellar Network ; September 2015"
-      ? `https://horizon.stellar.org/accounts/${address}`
-      : `https://horizon-testnet.stellar.org/accounts/${address}`;
-
-  const response = await fetch(horizonUrl);
-  if (!response.ok) {
-    if (response.status === 404) return 0;
-    throw new Error("Failed to fetch XLM balance.");
-  }
-
-  const account = await response.json();
-  const nativeBalance = account.balances?.find((balance: { asset_type?: string }) => balance.asset_type === "native");
-  return Number(nativeBalance?.balance ?? 0);
+  return fetchNativeXlmBalance(address);
 }
 
 export async function getApprovedTokenIds(): Promise<string[]> {
