@@ -42,12 +42,13 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
       {!collapsed && (
         <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <label className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
+            <label htmlFor="yc-amount-range" className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
               Invoice Amount (USDC)
               <span>{amount}</span>
             </label>
             <div className="flex w-full space-x-2">
               <input
+                id="yc-amount-range"
                 type="range"
                 min={100}
                 max={10000}
@@ -58,6 +59,7 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
               />
               <input
                 type="number"
+                aria-label="Invoice Amount value"
                 min={100}
                 max={10000}
                 step={100}
@@ -72,12 +74,13 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
           </div>
 
           <div className="space-y-2">
-            <label className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
+            <label htmlFor="yc-discount-range" className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
               Discount Rate (bps)
               <span>{discountRate}</span>
             </label>
             <div className="flex w-full space-x-2">
               <input
+                id="yc-discount-range"
                 type="range"
                 min={1}
                 max={5000}
@@ -88,6 +91,7 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
               />
               <input
                 type="number"
+                aria-label="Discount Rate value"
                 min={1}
                 max={5000}
                 step={1}
@@ -102,12 +106,13 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
           </div>
 
           <div className="space-y-2">
-            <label className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
+            <label htmlFor="yc-settlement-range" className="flex items-center justify-between text-sm font-medium text-on-surface-variant">
               Expected Settlement (days)
               <span>{settlementDays}</span>
             </label>
             <div className="flex w-full space-x-2">
               <input
+                id="yc-settlement-range"
                 type="range"
                 min={1}
                 max={90}
@@ -118,6 +123,7 @@ export default function YieldCalculator({ onFindMatching }: YieldCalculatorProps
               />
               <input
                 type="number"
+                aria-label="Settlement days value"
                 min={1}
                 max={90}
                 step={1}

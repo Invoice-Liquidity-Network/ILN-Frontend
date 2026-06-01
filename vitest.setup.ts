@@ -6,6 +6,14 @@ import { server } from './src/mocks/server';
 // Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
 
+// Mock ResizeObserver for recharts / other components that use it
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+
 // Mock matchMedia for testing components that use prefers-reduced-motion
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -41,7 +49,8 @@ vi.mock('@tanstack/react-query', () => ({
     getQueryData: vi.fn(),
   })),
   QueryClient: vi.fn(),
-  QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  QueryClientProvider: ({ children }: { children: any }) => children,
 }));
 
 // Mock next/navigation

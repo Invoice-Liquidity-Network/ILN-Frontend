@@ -102,6 +102,7 @@ export default function InvoiceFilterBar({
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
+                  aria-label="Minimum amount (USDC)"
                   min="0"
                   step="0.01"
                   value={filters.minAmount}
@@ -113,6 +114,7 @@ export default function InvoiceFilterBar({
                 />
                 <input
                   type="number"
+                  aria-label="Maximum amount (USDC)"
                   min="0"
                   step="0.01"
                   value={filters.maxAmount}
@@ -150,6 +152,7 @@ export default function InvoiceFilterBar({
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
               <select
+                aria-label="Token filter"
                 value={filters.token}
                 onChange={(event) => onFiltersChange((current) => ({ ...current, token: event.target.value }))}
                 className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
@@ -168,6 +171,7 @@ export default function InvoiceFilterBar({
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
+                  aria-label="Minimum discount (bps)"
                   min="0"
                   step="1"
                   value={filters.minDiscountBps}
@@ -179,6 +183,7 @@ export default function InvoiceFilterBar({
                 />
                 <input
                   type="number"
+                  aria-label="Maximum discount (bps)"
                   min="0"
                   step="1"
                   value={filters.maxDiscountBps}
@@ -198,6 +203,7 @@ export default function InvoiceFilterBar({
               <div className="space-y-2">
                 <input
                   type="range"
+                  aria-label="Minimum payer reputation"
                   min="0"
                   max="100"
                   step="5"

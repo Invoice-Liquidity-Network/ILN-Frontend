@@ -618,36 +618,36 @@ export default function LPDashboard() {
           <table className="w-full text-left">
             <thead className="bg-surface-container-low border-b border-surface-dim">
               <tr>
-                <th className="px-6 py-4 w-10"></th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" aria-label="Select" className="px-6 py-4 w-10"><span className="sr-only">Select</span></th>
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   ID
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   Freelancer
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
                   {t("lpDashboard.tableHeaders.amount")} {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("discount_rate")}>
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("discount_rate")}>
                   {t("lpDashboard.tableHeaders.discount")} {sortKey === "discount_rate" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("due_date")}>
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("due_date")}>
                   {t("lpDashboard.tableHeaders.dueDate")} {sortKey === "due_date" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   Est. Yield
                 </th>
                 {activeTab === "watchlist" && (
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                     Added
                   </th>
                 )}
                 {activeTab === "discovery" && (
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer" onClick={() => toggleSort("risk")}>
+                  <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer" onClick={() => toggleSort("risk")}>
                     {t("lpDashboard.tableHeaders.risk")} {sortKey === "risk" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
                 )}
-                <th className="px-6 py-4"></th>
+                <th scope="col" aria-label="Actions" className="px-6 py-4"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-dim">

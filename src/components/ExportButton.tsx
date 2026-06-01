@@ -31,6 +31,7 @@ export function ExportButton<T extends Record<string, any>>({ data, filenamePref
   return (
     <div className="flex flex-wrap items-center gap-3 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
       <select
+        aria-label="Date range"
         className="bg-zinc-800 text-zinc-200 border-zinc-700 rounded-md px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-teal-500"
         value={range}
         onChange={(e) => setRange(e.target.value as DateRange)}
