@@ -15,20 +15,26 @@ interface LPPortfolioProps {
   invoices: Invoice[];
   isLoading: boolean;
   onClaimDefault: (invoice: Invoice) => Promise<void>;
+  onClaimInsurance?: (invoice: Invoice) => Promise<void>;
   claimingInvoiceId: string | null;
+  claimingInsuranceId?: string | null;
   tokenMap?: Map<string, ApprovedToken>;
   defaultToken?: ApprovedToken | null;
   onTransfer?: (invoice: Invoice) => void;
+  isEnrolledInInsurance?: boolean;
 }
 
 export default function LPPortfolio({
   invoices,
   isLoading,
   onClaimDefault,
+  onClaimInsurance,
   claimingInvoiceId,
+  claimingInsuranceId,
   tokenMap = new Map(),
   defaultToken = null,
   onTransfer,
+  isEnrolledInInsurance,
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
   const now = Date.now();
@@ -111,19 +117,32 @@ export default function LPPortfolio({
         const isPastDue = Number(inv.due_date) * 1000 < now;
         const isClaimEligible = inv.status === "Funded" && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
+        const isClaimingInsurance = claimingInsuranceId === inv.id.toString();
         
         if (!isClaimEligible && !onTransfer) return null;
 
         return (
           <div className="flex items-center justify-end gap-2">
             {isClaimEligible && (
-              <button
-                onClick={() => onClaimDefault(inv)}
-                disabled={isClaiming}
-                className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
-              >
-                {isClaiming ? "Claiming..." : "Claim Default"}
-              </button>
+              <>
+                <button
+                  onClick={() => onClaimDefault(inv)}
+                  disabled={isClaiming || isClaimingInsurance}
+                  className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
+                >
+                  {isClaiming ? "Claiming..." : "Claim Default"}
+                </button>
+                {onClaimInsurance && isEnrolledInInsurance && (
+                  <button
+                    onClick={() => onClaimInsurance(inv)}
+                    disabled={isClaiming || isClaimingInsurance}
+                    className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-surface transition-all hover:opacity-90 disabled:opacity-60 flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">shield</span>
+                    {isClaimingInsurance ? "Processing..." : "File a Claim"}
+                  </button>
+                )}
+              </>
             )}
             {onTransfer && inv.status === "Funded" && (
               <button

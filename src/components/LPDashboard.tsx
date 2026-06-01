@@ -17,6 +17,7 @@ import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 
 import {
   claimDefault,
+  claimInsurance,
   getAllInvoices,
   getTokenAllowance,
   Invoice,
@@ -43,11 +44,11 @@ import LPOnboardingModal from "./LPOnboardingModal";
 import ErrorBoundary from "./ErrorBoundary";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
-
+import { NEXT_PUBLIC_INSURANCE_POOL_ENABLED } from "@/constants";
+import InsurancePoolPanel from "./InsurancePoolPanel";
+import { useInsurance } from "@/hooks/useInsurance";
 
 type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
-
-
 
 export default function LPDashboard() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function LPDashboard() {
   const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const { t, i18n } = useTranslation();
+  const { isEnrolled: isEnrolledInInsurance } = useInsurance();
   const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
   
   const { data: invoices = [], isLoading: loading, dataUpdatedAt } = useInvoices();
@@ -68,6 +70,7 @@ export default function LPDashboard() {
   const [sortKey, setSortKey] = useState<keyof Invoice | "risk" | "yield">("amount");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
+  const [claimingInsuranceId, setClaimingInsuranceId] = useState<string | null>(null);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
   const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
@@ -184,6 +187,31 @@ export default function LPDashboard() {
       // ensure claim button resets even when user rejects or transaction fails
       return;
     }
+  };
+
+  const handleClaimInsurance = async (invoice: Invoice) => {
+    if (!address) {
+      await connect();
+      return;
+    }
+
+    setClaimingInsuranceId(invoice.id.toString());
+
+    const result = await execute(
+      async (signTx) => {
+        const { claimInsurance } = await import("@/utils/soroban");
+        const tx = await claimInsurance(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Filing insurance claim for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Claim Filed",
+        successMessage: `Insurance claim for invoice #${invoice.id.toString()} has been submitted.`,
+      }
+    );
+
+    setClaimingInsuranceId(null);
   };
 
   const handleRiskFilter = (filterType: "at-risk" | "disputed" | "all") => {
@@ -614,16 +642,24 @@ export default function LPDashboard() {
                 </button>
               </div>
             )}
+            {NEXT_PUBLIC_INSURANCE_POOL_ENABLED && (
+              <div className="mb-6">
+                <InsurancePoolPanel />
+              </div>
+            )}
           </div>
           <ErrorBoundary>
             <LPPortfolio
               invoices={myFundedInvoices}
               isLoading={loading}
               onClaimDefault={handleClaimDefault}
+              onClaimInsurance={handleClaimInsurance}
               claimingInvoiceId={claimingInvoiceId}
+              claimingInsuranceId={claimingInsuranceId}
               tokenMap={tokenMap}
               defaultToken={defaultToken}
               onTransfer={(inv) => setTransferInvoice(inv)}
+              isEnrolledInInsurance={isEnrolledInInsurance}
             />
           </ErrorBoundary>
         </>
