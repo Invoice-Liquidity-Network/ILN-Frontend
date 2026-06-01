@@ -39,6 +39,7 @@ import LPTransferModal from "./LPTransferModal";
 import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
 import LPYieldComparison from "./LPYieldComparison";
 import LPSettingsModal from "./LPSettingsModal";
+import LPOnboardingModal from "./LPOnboardingModal";
 import ErrorBoundary from "./ErrorBoundary";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
@@ -70,6 +71,7 @@ export default function LPDashboard() {
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
   const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
+  const [showLpOnboarding, setShowLpOnboarding] = useState(false);
   const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [overriddenInvoiceIds, setOverriddenInvoiceIds] = useState<string[]>([]);
@@ -247,6 +249,26 @@ export default function LPDashboard() {
       return true;
     });
   }, [myFundedInvoicesBase, riskFilter]);
+
+  useEffect(() => {
+    if (!address || loading) {
+      setShowLpOnboarding(false);
+      return;
+    }
+
+    const storageKey = `iln_lp_onboarding_completed_${address}`;
+    const hasCompleted = localStorage.getItem(storageKey);
+    const shouldShowOnboarding = myFundedInvoicesBase.length === 0 && !hasCompleted;
+
+    setShowLpOnboarding(shouldShowOnboarding);
+  }, [address, loading, myFundedInvoicesBase.length]);
+
+  const handleCloseLpOnboarding = () => {
+    if (address) {
+      localStorage.setItem(`iln_lp_onboarding_completed_${address}`, "true");
+    }
+    setShowLpOnboarding(false);
+  };
   
   const watchlistInvoices = sortedInvoices
     .filter(i => watchlist.some(w => w.id === i.id.toString()))
@@ -802,6 +824,15 @@ export default function LPDashboard() {
       </div>
 
       {/* Confirmation Modal */}
+      <LPOnboardingModal
+        isOpen={showLpOnboarding}
+        onClose={handleCloseLpOnboarding}
+        onGoToMarketplace={() => {
+          handleCloseLpOnboarding();
+          router.push("/marketplace");
+        }}
+      />
+
       <FundConfirmModal
         invoice={selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
