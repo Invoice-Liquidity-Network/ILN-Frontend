@@ -38,6 +38,7 @@ export default function Navbar() {
     { href: "/payer", label: t("nav.payInvoices") },
     { href: "/dashboard", label: t("nav.dashboard") },
     { href: "/analytics", label: t("nav.analytics") },
+    { href: "/referrals", label: "Referrals" },
   ];
 
   return (
