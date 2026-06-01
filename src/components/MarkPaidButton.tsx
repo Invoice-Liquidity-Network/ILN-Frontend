@@ -49,7 +49,7 @@ export default function MarkPaidButton({
     });
 
     try {
-      const tx = await markPaid(walletAddress, invoice.id);
+      const tx = await markPaid(walletAddress, invoice.id, invoice.amount);
       const txHash = await execute(tx, "Mark invoice paid");
 
       if (!txHash) throw new Error("Transaction was not submitted.");

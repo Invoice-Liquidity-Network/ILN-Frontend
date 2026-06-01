@@ -116,7 +116,7 @@ export default function GovernanceActivity({ address }: GovernanceActivityProps)
                 </td>
                 <td className="py-4 text-right whitespace-nowrap">
                   <span className="text-xs text-on-surface-variant">
-                    {formatDate(vote.timestamp)}
+                    {formatDate(BigInt(vote.timestamp))}
                   </span>
                 </td>
               </tr>

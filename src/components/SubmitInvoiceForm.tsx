@@ -390,58 +390,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            </Field>
-
-            <TokenSelector
-              label={t("submitForm.tokenLabel")}
-              tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM."
-              value={effectiveTokenId}
-              tokens={tokens}
-              showBalances
-              error={errors.tokenId}
-              disabled={tokensLoading || txLoading}
-              onChange={(value) => setField("tokenId", value)}
-              hint={
-                tokensError
-                  ? tokensError
-                  : tokensLoading
-                    ? t("submitForm.loadingTokens")
-                    : t("submitForm.tokensHint")
-              }
-            />
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field 
-                label={`${t("submitForm.amountLabel")}${selectedToken ? ` (${selectedToken.symbol})` : ""}`} 
-                tooltip="The full value of the invoice in USDC. This is what the payer owes you in total."
-                error={errors.amount}
-              >
-                <input
-                  value={form.amount}
-                  onChange={(event) => setField("amount", event.target.value)}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="5000.00"
-                  inputMode="decimal"
-                />
-              </Field>
-
-              <Field 
-                label="Due date" 
-                error={errors.dueDate}
-              >
-                <input
-                  aria-label="Due date"
-                  value={form.dueDate}
-                  onChange={(event) => setField("dueDate", event.target.value)}
-                  min={getMinimumDueDate()}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  type="date"
-                />
-              </Field>
-            </div>
                 </Field>
+
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label={`${t("submitForm.amountLabel")}${selectedToken ? ` (${selectedToken.symbol})` : ""}`} tooltip="The full value of the invoice. This is what the payer owes you in total." error={errors.amount}>
                     <input value={form.amount} onChange={(event) => setField("amount", event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="5000.00" inputMode="decimal" />
@@ -461,7 +411,6 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                 </Field>
               </>
             ) : null}
-
             {step === 2 ? (
               <>
                 <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={errors.tokenId} disabled={tokensLoading || txLoading} onChange={(value) => setField("tokenId", value)} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
