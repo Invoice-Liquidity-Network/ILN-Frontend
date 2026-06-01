@@ -2,7 +2,7 @@
 
 import { useEffect, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useTokenPrice } from "@/hooks/useTokenPrice";
 import { NETWORK_NAME } from "@/constants";
@@ -22,6 +22,7 @@ import {
   toUnixTimestamp,
 } from "@/utils/invoiceSubmission";
 import { submitInvoiceTransaction } from "@/utils/soroban";
+import { useToast } from "@/context/ToastContext";
 
 const INITIAL_FORM: InvoiceFormValues = {
   payer: "",
@@ -58,6 +59,8 @@ interface SubmitInvoiceFormProps {
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { addToast } = useToast();
   const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
   const { address, isConnected, connect, disconnect, networkMismatch, error: walletError } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
@@ -72,10 +75,16 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormValues | "wallet" | "submit", string>>>({});
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  // Optional referral code — captured client-side; the submit_invoice contract
-  // call does not yet accept it, so it is persisted as attribution per invoice.
+  // Optional referral code — captured client-side; passed to the contract.
   const [referralCode, setReferralCode] = useState("");
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const refParam = searchParams.get("ref");
+    if (refParam) {
+      setReferralCode(refParam);
+    }
+  }, [searchParams]);
 
   useEffect(
     () => () => {
@@ -88,8 +97,6 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
   const preview = getYieldPreview(form.amount, form.discountRate, selectedToken?.decimals ?? 7);
 
-  // Live USD-equivalent preview for the entered amount (#22). Price is fetched
-  // per token (cached 60s) and the USD figure recomputes as the user types.
   const { usdPrice } = useTokenPrice(selectedToken?.symbol);
   const parsedAmount = Number.parseFloat(form.amount);
   const usdEquivalent =
@@ -228,6 +235,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
           discountRate,
           signTx,
           token: selectedToken.contractId,
+          referralCode: referralCode.trim(),
         }),
       {
         title: "Submitting invoice to Stellar testnet...",
@@ -256,7 +264,6 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       }
     }
 
-    // Confirm success on screen, then take the freelancer to the new invoice.
     redirectTimer.current = setTimeout(() => router.push(`/i/${invoiceId}`), 1500);
   };
 
