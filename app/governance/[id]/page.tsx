@@ -38,6 +38,15 @@ function formatRelativeCountdown(seconds: number): string {
   return `${minutes}m remaining`;
 }
 
+function executionEffect(proposal: Proposal): string | null {
+  if (!proposal.parameterChanges?.length) return null;
+  if (proposal.parameterChanges.length === 1) {
+    const change = proposal.parameterChanges[0];
+    return `${change.parameter.replace(/_/g, " ")} updated to ${change.newValue}`;
+  }
+  return `${proposal.parameterChanges.length} protocol parameters were updated.`;
+}
+
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: ProposalStatus }) {
@@ -285,24 +294,20 @@ export default function ProposalDetailPage() {
     if (!proposal || !address) return;
 
     setIsExecuting(true);
-    const toastId = addToast({ type: "pending", title: "Executing proposal…" });
-    try {
-      const txHash = await executeProposal(proposal.id, address, signTx);
-      updateToast(toastId, {
-        type: "success",
-        title: "Proposal executed",
-        txHash,
-      });
+    const result = await execute(
+      async (signTx) => executeProposal(proposal.id, address, signTx),
+      {
+        title: "Executing proposal…",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Proposal executed",
+        successMessage: "The proposal has been successfully executed.",
+      }
+    );
+
+    if (result) {
       await load();
-    } catch (err) {
-      updateToast(toastId, {
-        type: "error",
-        title: "Execution failed",
-        message: err instanceof Error ? err.message : "Transaction rejected",
-      });
-    } finally {
-      setIsExecuting(false);
     }
+    setIsExecuting(false);
   };
 
   const handleVetoReasonChange = async (reason: string) => {
@@ -354,8 +359,8 @@ export default function ProposalDetailPage() {
   const alreadyVoted = !!proposal?.userVote;
   const isActive = proposal?.status === "Active";
   const isPassed = proposal?.status === "Passed";
-  const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0;
   const isAdmin = !!address && address === GOVERNANCE_ADMIN_ADDRESS;
+  const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0;
 
   const remaining = proposal ? timeRemaining(proposal) : "";
   const total = proposal ? totalVotes(proposal) : 0;
@@ -364,6 +369,7 @@ export default function ProposalDetailPage() {
   const timelockRemaining = proposal?.status === "Passed" && proposal.executableAfter && proposal.executableAfter > now
     ? formatRelativeCountdown(proposal.executableAfter - now)
     : "";
+  const executionSummary = proposal ? executionEffect(proposal) : null;
 
   // ─── Loading skeleton ───────────────────────────────────────────────────────
 
@@ -527,13 +533,33 @@ export default function ProposalDetailPage() {
                 </div>
               )}
 
-              {isPassed && timelockRemaining && (
-                <div className="rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary">schedule</span>
-                  <div>
-                    <p className="text-sm font-semibold text-primary">Timelock countdown</p>
-                    <p className="text-xs text-on-surface-variant">{timelockRemaining}</p>
+              {isPassed && proposal?.executableAfter && (
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-3">
+                  <div className="flex items-center gap-3 text-primary">
+                    <span className="material-symbols-outlined text-[20px]">schedule</span>
+                    <p className="text-sm font-semibold">Timelock status</p>
                   </div>
+
+                  {timelockRemaining ? (
+                    <div>
+                      <p className="text-sm font-semibold">Timelock expires in</p>
+                      <p className="text-xs text-on-surface-variant">{timelockRemaining}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold">Timelock expired</p>
+                      <p className="text-xs text-on-surface-variant">
+                        The execution delay has passed. Anyone can now execute this proposal on-chain.
+                      </p>
+                      <button
+                        onClick={handleExecute}
+                        disabled={isExecuting}
+                        className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 active:scale-95 transition-all shadow-md disabled:opacity-50"
+                      >
+                        {isExecuting ? "Executing…" : "Execute Proposal"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -601,16 +627,21 @@ export default function ProposalDetailPage() {
 
               {/* Executed state */}
               {proposal.status === "Executed" && (
-                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 px-5 py-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-purple-500" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    verified
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-purple-500">Executed on-chain</p>
-                    <p className="text-xs text-on-surface-variant">
-                      Changes are live on the protocol.
-                    </p>
+                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 px-5 py-4 space-y-3">
+                  <div className="flex items-center gap-3 text-purple-500">
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      verified
+                    </span>
+                    <p className="text-sm font-semibold">Already executed</p>
                   </div>
+                  <p className="text-xs text-on-surface-variant">
+                    Changes are live on the protocol.
+                  </p>
+                  {executionSummary && (
+                    <div className="rounded-2xl border border-purple-500/10 bg-purple-500/10 p-3 text-sm text-purple-700">
+                      {executionSummary}
+                    </div>
+                  )}
                 </div>
               )}
 
