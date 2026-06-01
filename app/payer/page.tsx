@@ -247,8 +247,7 @@ function PayerDashboardContent() {
 
         // 2. Mark Paid
         const tx = await markPaid(address, invoice.id, amount);
-        const signedXdr = await signTx(tx.toXDR());
-        const { txHash } = await submitSignedTransaction({ signedXdr });
+        const { txHash } = await submitSignedTransaction({ tx, signTx });
 
         // Update local state
         setInvoices((current) =>

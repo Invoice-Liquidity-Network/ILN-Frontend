@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Footer from "../../../components/Footer";
-import Navbar from "../../../components/Navbar";
-import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 // ─── Lifecycle Diagram Component ──────────────────────────────────────────────
 

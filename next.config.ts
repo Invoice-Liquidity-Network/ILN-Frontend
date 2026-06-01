@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+// @ts-ignore
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
@@ -56,7 +57,7 @@ export default withPWA({
       },
     },
     {
-      urlPattern: ({ request }) => request.destination === "document",
+      urlPattern: ({ request }: any) => request.destination === "document",
       handler: "NetworkFirst",
       options: {
         cacheName: "pages",
