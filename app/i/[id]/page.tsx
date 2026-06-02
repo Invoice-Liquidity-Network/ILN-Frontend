@@ -13,6 +13,7 @@ import LPTransferModal from "@/components/LPTransferModal";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
 import InvoiceNftCard from "@/components/InvoiceNftCard";
+import LPWhitelistManager from "@/components/invoices/LPWhitelistManager";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
@@ -172,6 +173,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               invoiceFunder={invoice.funder}
             />
           ) : null}
+          <LPWhitelistManager
+            invoiceId={invoiceId.toString()}
+            submitterAddress={invoice.freelancer}
+            currentWallet={address}
+            status={invoice.status}
+            whitelist={(invoice as any).whitelist || []}
+          />
 
           <ActivityFeed invoiceId={invoiceId} />
         </div>
