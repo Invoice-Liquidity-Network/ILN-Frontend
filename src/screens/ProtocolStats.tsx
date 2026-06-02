@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { useContractStats } from "@/hooks/useContractStats";
 import { useInvoices } from "@/hooks/useInvoices";
 import StatsMetricCards from "@/components/stats/StatsMetricCards";
+import StatsDisputeRateCard from "@/components/stats/StatsDisputeRateCard";
 import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
 import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
 import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
@@ -65,6 +66,8 @@ export default function ProtocolStatsScreen() {
           {!isLoading && !error && stats && (
             <ErrorBoundary>
               <StatsMetricCards stats={stats} />
+
+              <StatsDisputeRateCard metrics={stats.dispute_rate} />
 
               <StatsVolumeChart dailyVolume={stats.daily_volume} />
 

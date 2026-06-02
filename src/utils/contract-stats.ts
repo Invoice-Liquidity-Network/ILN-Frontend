@@ -1,5 +1,7 @@
 import { getAllInvoices, type Invoice } from "./soroban";
 import { TESTNET_USDC_TOKEN_ID, TESTNET_EURC_TOKEN_ID, TESTNET_XLM_TOKEN_ID } from "@/constants";
+import { fetchProtocolContractEvents } from "@/lib/fetch-protocol-contract-events";
+import { computeDisputeRateMetrics, type DisputeRateMetrics } from "@/utils/dispute-rate";
 
 const FUNDED_STATUSES = new Set(["Funded", "PartiallyFunded", "Paid", "Defaulted"]);
 
@@ -33,6 +35,7 @@ export interface ContractStats {
   total_volume_usd: number;
   volume_by_token: TokenVolume[];
   daily_volume: DailyVolumeBucket[];
+  dispute_rate: DisputeRateMetrics;
 }
 
 interface TokenInfo {
@@ -96,7 +99,10 @@ export function buildHistoricalVolume(invoices: Invoice[], days: number): DailyV
 }
 
 export async function get_contract_stats(): Promise<ContractStats> {
-  const invoices = await getAllInvoices();
+  const [invoices, contractEvents] = await Promise.all([
+    getAllInvoices(),
+    fetchProtocolContractEvents(90),
+  ]);
 
   let total_funded = 0;
   let total_paid = 0;
@@ -136,5 +142,6 @@ export async function get_contract_stats(): Promise<ContractStats> {
     total_volume_usd,
     volume_by_token,
     daily_volume: buildHistoricalVolume(invoices, 90),
+    dispute_rate: computeDisputeRateMetrics(contractEvents),
   };
 }
