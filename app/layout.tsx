@@ -12,6 +12,7 @@ import CommandPalette from "@/components/CommandPalette";
 import OfflineBanner from "@/components/OfflineBanner";
 import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 import ContractEventSync from "@/components/ContractEventSync";
+import WhatsNewModal from "@/components/modals/WhatsNewModal";
 import Providers from "./Providers";
 
 
@@ -83,6 +84,9 @@ export default function RootLayout({
                   </div>
                   <Suspense fallback={null}>
                     <OnboardingFlow />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <WhatsNewModal />
                   </Suspense>
                   <Suspense fallback={null}>
                     <CommandPalette />
