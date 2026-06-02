@@ -24,6 +24,7 @@ import {
 } from "@/utils/soroban";
 import { useTransaction } from "@/hooks/useTransaction";
 import PayerSettlementModal from "@/components/PayerSettlementModal";
+import PayerReputationCard from "@/components/PayerReputationCard";
 
 type PayerTab = "Outstanding" | "Settled" | "Pending" | "Disputed";
 
