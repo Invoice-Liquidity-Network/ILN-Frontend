@@ -1,0 +1,7 @@
+.next
+out
+build
+node_modules
+public/mockServiceWorker.js
+public/sw.js
+package-lock.json
