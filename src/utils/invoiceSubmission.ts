@@ -1,4 +1,5 @@
 import { StrKey } from "@stellar/stellar-sdk";
+import { getTokenInputDecimals } from "@/utils/token-amount-input";
 
 export const STROOPS_PER_USDC = 1_000_000;
 export const MAX_DISCOUNT_RATE_PERCENT = 50;
@@ -135,7 +136,8 @@ export function validateInvoiceForm(
     errors.payer = "Enter a valid Stellar public key for the payer.";
   }
 
-  const amountUnits = parseAmountToUnits(values.amount, decimals);
+  const inputDecimals = getTokenInputDecimals(tokenSymbol);
+  const amountUnits = parseAmountToUnits(values.amount, inputDecimals);
   if (amountUnits === null || amountUnits <= 0n) {
     errors.amount = `Enter a valid invoice amount in ${tokenSymbol}.`;
   }
