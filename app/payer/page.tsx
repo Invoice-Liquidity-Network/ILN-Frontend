@@ -25,6 +25,7 @@ import {
 import { useTransaction } from "@/hooks/useTransaction";
 import PayerSettlementModal from "@/components/PayerSettlementModal";
 import PayerReputationCard from "@/components/PayerReputationCard";
+import PayerReminderOptIn from "@/components/payer/PayerReminderOptIn";
 
 type PayerTab = "Outstanding" | "Settled" | "Pending" | "Disputed";
 
@@ -344,6 +345,19 @@ function PayerDashboardContent() {
                 })}
               </div>
               <p className="text-xs text-on-surface-variant">Outstanding total by token</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isConnected && (
+        <section className="px-8 pt-8">
+          <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <PayerReputationCard address={address!} />
+            </div>
+            <div>
+              <PayerReminderOptIn />
             </div>
           </div>
         </section>
