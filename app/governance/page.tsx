@@ -9,6 +9,7 @@ import QuorumProgressBar from "@/components/QuorumProgressBar";
 import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
 import VotingPowerDisplay from "@/components/VotingPowerDisplay";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PageHeader from "@/components/PageHeader";
 import { useWallet } from "@/context/WalletContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
@@ -249,39 +250,35 @@ export default function GovernancePage() {
       {/* Hero banner */}
       <section className="pt-32 pb-12 px-8 border-b border-outline-variant/10 bg-surface-container-lowest">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">
-                ILN Governance
-              </p>
-              <h1 className="text-4xl md:text-5xl font-headline mb-3">Proposals</h1>
-              <p className="text-on-surface-variant max-w-xl text-base leading-relaxed">
-                Shape the future of the protocol. Review active proposals and cast your vote using your ILN token balance.
-              </p>
-            </div>
-            {canCreateProposal ? (
-               <div className="flex items-center gap-3 shrink-0">
-              <Link
-                href="/governance/how-it-works"
-                className="inline-flex items-center gap-2 bg-surface-container text-on-surface-variant px-5 py-3 rounded-xl text-sm font-bold border border-outline-variant/30 hover:border-primary/40 hover:text-primary transition-all"
-              >
-                <span className="material-symbols-outlined text-[18px]">help_outline</span>
-                How it works
-              </Link>
-              <Link
-                href="/governance/new"
-                className="inline-flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all"
-              >
-                <span className="material-symbols-outlined text-[18px]">add</span>
-                Create Proposal
-              </Link>
-            </div>
-            ) : (
-              <div className="rounded-xl border border-outline-variant/30 px-5 py-3 text-sm text-on-surface-variant">
-                Connect a wallet with ILN voting power to create proposals.
-              </div>
-            )}
-          </div>
+          <PageHeader
+            breadcrumbs={[{ label: "ILN Governance" }]}
+            title="Proposals"
+            description="Shape the future of the protocol. Review active proposals and cast your vote using your ILN token balance."
+            actions={
+              canCreateProposal ? (
+                <div className="flex items-center gap-3 shrink-0">
+                  <Link
+                    href="/governance/how-it-works"
+                    className="inline-flex items-center gap-2 bg-surface-container text-on-surface-variant px-5 py-3 rounded-xl text-sm font-bold border border-outline-variant/30 hover:border-primary/40 hover:text-primary transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">help_outline</span>
+                    How it works
+                  </Link>
+                  <Link
+                    href="/governance/new"
+                    className="inline-flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                    Create Proposal
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-outline-variant/30 px-5 py-3 text-sm text-on-surface-variant">
+                  Connect a wallet with ILN voting power to create proposals.
+                </div>
+              )
+            }
+          />
         </div>
       </section>
 
