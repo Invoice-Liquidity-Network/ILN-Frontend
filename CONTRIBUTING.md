@@ -1,5 +1,17 @@
 # Contributing to ILN Frontend
 
+## Commit message format
+
+This repository uses Conventional Commits to power changelog generation via `git-cliff`.
+
+- Commit messages should follow the format: `<type>(<scope>): <short summary>`.
+- Use the types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Example: `chore: add CHANGELOG and git-cliff automation for frontend repo`
+- After adding release-worthy commits, update the changelog with:
+  ```bash
+  npm run generate:changelog
+  ```
+
 ## Visual Regression Testing with Chromatic
 
 This project uses Chromatic for visual regression testing to catch unintended UI changes before they reach production.
