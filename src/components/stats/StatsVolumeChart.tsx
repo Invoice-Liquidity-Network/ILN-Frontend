@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,9 +12,13 @@ import {
   type TooltipProps,
 } from "recharts";
 import type { DailyVolumeBucket } from "@/utils/contract-stats";
-import { TOKEN_COLORS } from "@/utils/contract-stats";
+import {
+  CHART_TOKEN_COLORS,
+  parseContractStatsForStackedBar,
+  type VolumeChartRangeDays,
+} from "@/utils/stats-volume-chart-data";
 
-type Range = "30D" | "90D";
+const TOKEN_KEYS = ["USDC", "EURC", "XLM"] as const;
 
 const CHART_TICK_STYLE = {
   fill: "var(--color-on-surface-variant, #94a3b8)",
@@ -23,13 +27,19 @@ const CHART_TICK_STYLE = {
 };
 const GRID_STROKE = "var(--color-outline-variant, #334155)";
 
+function formatUsd(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
 function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   const total = payload.reduce((sum, e) => sum + (e.value as number), 0);
   return (
     <div className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 shadow-xl">
       <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-        {label}
+        Week of {label}
       </p>
       <div className="flex flex-col gap-1.5">
         {payload.map((entry) => (
@@ -38,17 +48,13 @@ function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) 
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-xs font-medium text-on-surface">{entry.name}</span>
             </div>
-            <span className="text-xs font-bold text-on-surface">
-              {Number(entry.value).toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </span>
+            <span className="text-xs font-bold text-on-surface">{formatUsd(Number(entry.value))}</span>
           </div>
         ))}
         <div className="my-1 h-px bg-outline-variant/10" />
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs font-bold text-on-surface">Total USD</span>
-          <span className="text-xs font-extrabold text-primary">
-            ${total.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-          </span>
+          <span className="text-xs font-extrabold text-primary">{formatUsd(total)}</span>
         </div>
       </div>
     </div>
@@ -60,34 +66,37 @@ interface Props {
 }
 
 export default function StatsVolumeChart({ dailyVolume }: Props) {
-  const [range, setRange] = useState<Range>("30D");
+  const [rangeDays, setRangeDays] = useState<VolumeChartRangeDays>(30);
 
-  const data = useMemo(() => {
-    const days = range === "30D" ? 30 : 90;
-    return dailyVolume.slice(-days);
-  }, [dailyVolume, range]);
+  const { weeklyBars, totalVolumeUsd } = useMemo(
+    () => parseContractStatsForStackedBar(dailyVolume, rangeDays),
+    [dailyVolume, rangeDays],
+  );
 
-  const isEmpty = data.length === 0 || data.every((d) => d.volume_usd === 0);
+  const isEmpty =
+    weeklyBars.length === 0 ||
+    weeklyBars.every((w) => w.USDC === 0 && w.EURC === 0 && w.XLM === 0);
 
   return (
     <div className="flex flex-col gap-6 rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="font-headline text-xl font-bold text-on-surface">Historical Volume</h3>
-          <p className="text-sm text-on-surface-variant">Daily funded volume across all tokens</p>
+          <p className="text-sm text-on-surface-variant">Weekly funded volume by token (USD equivalent)</p>
         </div>
         <div className="flex items-center gap-1 p-1 bg-surface-container rounded-xl self-start">
-          {(["30D", "90D"] as Range[]).map((r) => (
+          {([30, 90] as VolumeChartRangeDays[]).map((days) => (
             <button
-              key={r}
-              onClick={() => setRange(r)}
+              key={days}
+              type="button"
+              onClick={() => setRangeDays(days)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                range === r
+                rangeDays === days
                   ? "bg-primary text-white shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
-              {r}
+              {days} days
             </button>
           ))}
         </div>
@@ -105,15 +114,7 @@ export default function StatsVolumeChart({ dailyVolume }: Props) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                {Object.entries(TOKEN_COLORS).map(([symbol, color]) => (
-                  <linearGradient key={`grad-${symbol}`} id={`vol-grad-${symbol}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0} />
-                  </linearGradient>
-                ))}
-              </defs>
+            <BarChart data={weeklyBars} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -131,39 +132,32 @@ export default function StatsVolumeChart({ dailyVolume }: Props) {
                 tick={CHART_TICK_STYLE}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
+                tickFormatter={(v: number) =>
+                  v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
+                }
               />
               <Tooltip content={<ChartTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="usdc"
-                name="USDC"
-                stackId="1"
-                stroke={TOKEN_COLORS.USDC}
-                fill="url(#vol-grad-USDC)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="eurc"
-                name="EURC"
-                stackId="1"
-                stroke={TOKEN_COLORS.EURC}
-                fill="url(#vol-grad-EURC)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="xlm"
-                name="XLM"
-                stackId="1"
-                stroke={TOKEN_COLORS.XLM}
-                fill="url(#vol-grad-XLM)"
-                strokeWidth={2}
-              />
-            </AreaChart>
+              {TOKEN_KEYS.map((symbol) => (
+                <Bar
+                  key={symbol}
+                  dataKey={symbol}
+                  name={symbol}
+                  stackId="volume"
+                  fill={CHART_TOKEN_COLORS[symbol]}
+                />
+              ))}
+            </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-outline-variant/10">
+        <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+          Total volume ({rangeDays} days)
+        </span>
+        <span className="font-headline text-lg font-bold text-primary">
+          {formatUsd(totalVolumeUsd)}
+        </span>
       </div>
     </div>
   );
