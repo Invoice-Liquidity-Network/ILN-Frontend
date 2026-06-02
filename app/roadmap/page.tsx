@@ -13,7 +13,7 @@ import {
   RoadmapStatus,
 } from "@/data/roadmap";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { CheckCircle2, Clock, Zap, ExternalLink, Github } from "lucide-react";
+import { CheckCircle2, Clock, Zap, ExternalLink } from "lucide-react";
 
 const statusConfig: Record<
   RoadmapStatus,
@@ -79,17 +79,17 @@ function RoadmapCard({ item }: RoadmapCardProps) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
               >
-                {item.status === "In Progress" ? (
-                  <>
-                    <Github className="w-3 h-3" />
-                    Contribute to this feature
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="w-3 h-3" />
-                    View on GitHub
-                  </>
-                )}
+                    {item.status === "In Progress" ? (
+                      <>
+                        <ExternalLink className="w-3 h-3" />
+                        Contribute to this feature
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-3 h-3" />
+                        View on GitHub
+                      </>
+                    )}
               </a>
             )}
           </div>
@@ -219,7 +219,7 @@ export default function RoadmapPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors"
           >
-            <Github className="w-5 h-5" />
+            <ExternalLink className="w-5 h-5" />
             View on GitHub
           </a>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { fetchProtocolParameters } from "@/utils/governance";
 import { Invoice, TokenMetadata, getTokenAllowance, getUsdcAllowance } from "@/utils/soroban";
 import { CONTRACT_ID } from "@/constants";
 import { formatTokenAmount, formatAddress } from "@/utils/format";
@@ -42,6 +43,21 @@ export default function PayerSettlementModal({
     // discount_rate is in basis points. yield = amount * bps / 10000
     return (amountToPay * BigInt(invoice.discount_rate)) / 10000n;
   }, [amountToPay, invoice.discount_rate]);
+
+  const [protocolFeeBps, setProtocolFeeBps] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchProtocolParameters()
+      .then((p) => {
+        if (!mounted) return;
+        setProtocolFeeBps(p.feeRateBps ?? 0);
+      })
+      .catch(() => setProtocolFeeBps(0));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && invoice.payer && token) {
@@ -133,9 +149,26 @@ export default function PayerSettlementModal({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-on-surface-variant">Projected LP Earnings</span>
-                <span className="font-medium text-emerald-600">
-                  + {token ? formatTokenAmount(lpEarnings, token) : lpEarnings.toString()} {token?.symbol}
-                </span>
+                <div className="flex items-end gap-3">
+                  <span className="font-medium text-emerald-600">
+                    + {token ? formatTokenAmount(lpEarnings, token) : lpEarnings.toString()} {token?.symbol}
+                  </span>
+                  {protocolFeeBps !== null && (
+                    <span
+                      title="This fee funds ILN protocol development and the treasury"
+                      className="text-xs text-on-surface-variant"
+                      data-testid="protocol-fee-display"
+                    >
+                      {protocolFeeBps === 0 ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 font-bold">0% fee</span>
+                      ) : (
+                        <span>
+                          Protocol fee: {protocolFeeBps} bps (≈ {token ? formatTokenAmount((lpEarnings * BigInt(protocolFeeBps)) / 10000n, token) : "-"} {token?.symbol})
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="pt-3 border-t border-primary/10 flex justify-between items-end">
                 <span className="text-sm font-bold text-on-surface">Total to Pay</span>

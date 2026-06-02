@@ -330,6 +330,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isConnected: !!address, 
         isInstalled,
         isReconnecting,
+        preferredWalletProvider: selectedProvider,
         error,
         networkMismatch,
         walletNetwork: walletNetwork ? normalizeWalletNetwork(walletNetwork) : null,

@@ -621,6 +621,17 @@ export async function disputeInvoice(
   return rpc.assembleTransaction(tx, sim).build();
 }
 
+/**
+ * Stub for updateLPWhitelist — some deployments may not support this
+ * instruction; export a placeholder so consumers can safely call it
+ * and bundlers don't fail on missing named exports.
+ */
+export async function updateLPWhitelist(args: { invoiceId: bigint; whitelist: string[] }) {
+  // In production this should build and return a transaction for signing.
+  // For now, throw to indicate unsupported on-chain instruction.
+  throw new Error("updateLPWhitelist is not supported by the deployed contract");
+}
+
 // ─── Write: claim default ─────────────────────────────────────────────────────
 
 export async function claimDefault(funder: string, invoice_id: bigint) {

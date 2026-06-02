@@ -40,24 +40,26 @@ function tokenAccentClasses(symbol: string): string {
   }
 }
 
-function getTokenName(token: TokenLike): string {
-  return token.name ?? token.symbol;
+function getTokenName(token: Partial<TokenLike> & { symbol?: string; name?: string }): string {
+  return token.name ?? token.symbol ?? "Token";
 }
 
-function getTokenLogo(token: TokenLike): string {
-  return token.logo ?? `/tokens/${token.symbol.toLowerCase()}.svg`;
+function getTokenLogo(token: Partial<TokenLike> & { symbol?: string; logo?: string }): string {
+  const symbol = token.symbol ?? "unknown";
+  return token.logo ?? `/tokens/${symbol.toLowerCase()}.svg`;
 }
 
-function getTokenIconLabel(token: TokenLike): string {
-  return token.iconLabel ?? (token.symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK");
+function getTokenIconLabel(token: Partial<TokenLike> & { symbol?: string; iconLabel?: string }): string {
+  const sym = token.symbol ?? "TK";
+  return token.iconLabel ?? (sym.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK");
 }
 
-function isTokenAllowed(token: TokenLike): boolean {
-  return token.isAllowed ?? true;
+function isTokenAllowed(token: Partial<TokenLike>): boolean {
+  return (token as any).isAllowed ?? true;
 }
 
-function getUnavailableReason(token: TokenLike): string {
-  return token.unavailableReason ?? "This token is not currently available for ILN invoices.";
+function getUnavailableReason(token: Partial<TokenLike>): string {
+  return (token as any).unavailableReason ?? "This token is not currently available for ILN invoices.";
 }
 
 function chooseSelectedToken(tokens: TokenLike[], value: string) {
