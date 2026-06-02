@@ -15,3 +15,16 @@ export const TESTNET_XLM_TOKEN_ID = process.env.NEXT_PUBLIC_TESTNET_XLM_TOKEN_ID
 export const GOVERNANCE_ADMIN_ADDRESS =
   process.env.NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS ||
   "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+
+// ─── Invoice NFT display (#234) ───────────────────────────────────────────────
+
+export const NEXT_PUBLIC_NFT_ENABLED = process.env.NEXT_PUBLIC_NFT_ENABLED === "true";
+/** Optional override for a dedicated NFT contract. Defaults to {@link CONTRACT_ID}. */
+export const NFT_CONTRACT_ID = process.env.NEXT_PUBLIC_NFT_CONTRACT_ID || CONTRACT_ID;
+/** Optional Soroban read method used to resolve a metadata URI for `tokenId`. */
+export const NFT_METADATA_METHOD = process.env.NEXT_PUBLIC_NFT_METADATA_METHOD || "token_uri";
+/**
+ * Optional hints to improve event parsing without code changes.
+ * Format: `mint:Minted,mint;transfer:Transfer,transfer;burn:Burned,burn`
+ */
+export const NFT_EVENT_HINTS = process.env.NEXT_PUBLIC_NFT_EVENT_HINTS || "";

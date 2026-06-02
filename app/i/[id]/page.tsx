@@ -12,10 +12,12 @@ import MarkPaidButton from "@/components/MarkPaidButton";
 import LPTransferModal from "@/components/LPTransferModal";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
+import InvoiceNftCard from "@/components/InvoiceNftCard";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
 import { getInvoice, type Invoice } from "@/utils/soroban";
+import { NEXT_PUBLIC_NFT_ENABLED } from "@/constants";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -161,6 +163,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               <DetailRow label="Due date" value={formatDate(invoice.due_date)} />
             </dl>
           </article>
+
+          {NEXT_PUBLIC_NFT_ENABLED ? (
+            <InvoiceNftCard
+              invoiceId={invoiceId}
+              invoiceStatus={invoice.status}
+              walletAddress={address}
+              invoiceFunder={invoice.funder}
+            />
+          ) : null}
 
           <ActivityFeed invoiceId={invoiceId} />
         </div>
