@@ -12,11 +12,13 @@ import MarkPaidButton from "@/components/MarkPaidButton";
 import LPTransferModal from "@/components/LPTransferModal";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
+import InvoiceNftCard from "@/components/InvoiceNftCard";
 import LPWhitelistManager from "@/components/invoices/LPWhitelistManager";
 import { useWallet } from "@/context/WalletContext";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
 import { getInvoice, type Invoice } from "@/utils/soroban";
+import { NEXT_PUBLIC_NFT_ENABLED } from "@/constants";
 
 type LoadState = "loading" | "success" | "error";
 
@@ -163,6 +165,14 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             </dl>
           </article>
 
+          {NEXT_PUBLIC_NFT_ENABLED ? (
+            <InvoiceNftCard
+              invoiceId={invoiceId}
+              invoiceStatus={invoice.status}
+              walletAddress={address}
+              invoiceFunder={invoice.funder}
+            />
+          ) : null}
           <LPWhitelistManager
             invoiceId={invoiceId.toString()}
             submitterAddress={invoice.freelancer}
