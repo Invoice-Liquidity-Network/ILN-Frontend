@@ -32,6 +32,10 @@ vi.mock("@/utils/soroban", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/fetch-protocol-contract-events", () => ({
+  fetchProtocolContractEvents: vi.fn().mockResolvedValue([]),
+}));
+
 import { getAllInvoices } from "@/utils/soroban";
 
 function makeInvoice(overrides: Partial<Invoice> = {}): Invoice {

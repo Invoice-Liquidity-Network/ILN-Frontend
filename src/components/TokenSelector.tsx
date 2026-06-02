@@ -5,6 +5,7 @@ import type { ApprovedToken } from "@/hooks/useApprovedTokens";
 import { useBalances, type TokenBalanceMap } from "@/hooks/useBalances";
 import { formatTokenAmount } from "@/utils/format";
 import FieldTooltip from "./FieldTooltip";
+import { getXlmPrecisionNote } from "@/utils/token-amount-input";
 
 type TokenLike = ApprovedToken | (Partial<ApprovedToken> & Pick<ApprovedToken, "contractId" | "symbol" | "decimals">);
 
@@ -262,6 +263,11 @@ function BaseTokenSelector({
       </div>
 
       {hint ? <p className="mt-2 text-xs text-on-surface-variant">{hint}</p> : null}
+      {selectedToken?.symbol === "XLM" ? (
+        <p className="mt-2 text-xs text-on-surface-variant" data-testid="xlm-token-selector-note">
+          {getXlmPrecisionNote()}
+        </p>
+      ) : null}
     </div>
   );
 }

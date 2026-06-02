@@ -21,6 +21,12 @@ import {
   parseDiscountRateToBps,
   toUnixTimestamp,
 } from "@/utils/invoiceSubmission";
+import {
+  formatAmountEntryPreview,
+  getTokenInputDecimals,
+  getXlmPrecisionNote,
+  sanitizeAmountInput,
+} from "@/utils/token-amount-input";
 import { submitInvoiceTransaction } from "@/utils/soroban";
 import { useToast } from "@/context/ToastContext";
 
@@ -95,7 +101,11 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || "";
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
-  const preview = getYieldPreview(form.amount, form.discountRate, selectedToken?.decimals ?? 7);
+  const amountInputDecimals = getTokenInputDecimals(selectedToken?.symbol ?? "USDC");
+  const preview = getYieldPreview(form.amount, form.discountRate, amountInputDecimals);
+  const amountEntryPreview = selectedToken
+    ? formatAmountEntryPreview(form.amount, selectedToken.symbol)
+    : null;
 
   const { usdPrice } = useTokenPrice(selectedToken?.symbol);
   const parsedAmount = Number.parseFloat(form.amount);
@@ -114,6 +124,18 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     dispatchForm({ type: "set_field", field, value });
     setErrors((current) => ({ ...current, [field]: undefined, submit: undefined, wallet: undefined }));
     setSubmittedInvoiceId(null);
+  };
+
+  const handleAmountChange = (value: string) => {
+    setField("amount", sanitizeAmountInput(value, amountInputDecimals));
+  };
+
+  const handleTokenChange = (value: string) => {
+    setField("tokenId", value);
+    const token = tokenMap.get(value);
+    if (token && form.amount) {
+      setField("amount", sanitizeAmountInput(form.amount, getTokenInputDecimals(token.symbol)));
+    }
   };
 
   const validateCurrentStep = () => {
@@ -213,7 +235,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       return;
     }
 
-    const amount = parseAmountToUnits(form.amount, selectedToken?.decimals ?? 7);
+    const amount = parseAmountToUnits(form.amount, amountInputDecimals);
     const dueDate = toUnixTimestamp(form.dueDate);
     const discountRate = parseDiscountRateToBps(form.discountRate);
 
@@ -401,7 +423,23 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label={`${t("submitForm.amountLabel")}${selectedToken ? ` (${selectedToken.symbol})` : ""}`} tooltip="The full value of the invoice. This is what the payer owes you in total." error={errors.amount}>
-                    <input value={form.amount} onChange={(event) => setField("amount", event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="5000.00" inputMode="decimal" />
+                    <input
+                      value={form.amount}
+                      onChange={(event) => handleAmountChange(event.target.value)}
+                      className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      placeholder="5000.00"
+                      inputMode="decimal"
+                    />
+                    {selectedToken?.symbol === "XLM" ? (
+                      <p className="mt-2 text-xs text-on-surface-variant" data-testid="xlm-amount-note">
+                        {getXlmPrecisionNote()}
+                      </p>
+                    ) : null}
+                    {amountEntryPreview ? (
+                      <p className="mt-2 text-xs font-medium text-on-surface" data-testid="amount-entry-preview">
+                        {amountEntryPreview}
+                      </p>
+                    ) : null}
                     {usdEquivalent !== null ? (
                       <p className="mt-2 text-xs font-medium text-on-surface-variant" data-testid="usd-preview">
                         ~ ${usdEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
@@ -420,7 +458,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
             ) : null}
             {step === 2 ? (
               <>
-                <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={errors.tokenId} disabled={tokensLoading || txLoading} onChange={(value) => setField("tokenId", value)} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
+                <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={errors.tokenId} disabled={tokensLoading || txLoading} onChange={handleTokenChange} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
                 <Field label="Discount rate (%)" tooltip={<>How much of the invoice value you give up in exchange for instant payment. 300 basis points = 3%. A lower rate attracts more LPs; a higher rate means you receive less upfront.<div className="mt-2 font-bold text-primary">Typical value: 100-500 bps</div></>} error={errors.discountRate} hint={t("submitForm.discountRateHint")}>
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
                     <input value={form.discountRate} onChange={(event) => setField("discountRate", event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="3.00" inputMode="decimal" />
