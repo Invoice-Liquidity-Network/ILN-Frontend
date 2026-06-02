@@ -8,12 +8,12 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import NotificationEventPoller from "@/components/NotificationEventPoller";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import FABProvider from "@/components/FABProvider";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import CommandPalette from "@/components/CommandPalette";
 import OfflineBanner from "@/components/OfflineBanner";
 import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 import ContractEventSync from "@/components/ContractEventSync";
 import Providers from "./Providers";
-
 
 export const metadata: Metadata = {
   title: "ILN | Invoice Liquidity Network",
@@ -37,13 +37,19 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ILN" />
-        <meta name="description" content="Decentralized invoice factoring on Stellar" />
+        <meta
+          name="description"
+          content="Decentralized invoice factoring on Stellar"
+        />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#3d627f" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, user-scalable=no, viewport-fit=cover" />
+        <meta
+          name="viewport"
+          content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, user-scalable=no, viewport-fit=cover"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -62,9 +68,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className="antialiased bg-background text-foreground transition-colors duration-300 selection:bg-primary-container selection:text-on-primary-container"
-      >
+      <body className="antialiased bg-background text-foreground transition-colors duration-300 selection:bg-primary-container selection:text-on-primary-container">
         <I18nProvider>
           <Providers>
             <ToastProvider>
@@ -76,9 +80,7 @@ export default function RootLayout({
                   <FABProvider />
                   <div className="min-h-screen flex flex-col">
                     <div className="flex-1">
-                      <Suspense fallback={null}>
-                        {children}
-                      </Suspense>
+                      <Suspense fallback={null}>{children}</Suspense>
                     </div>
                   </div>
                   <Suspense fallback={null}>
@@ -87,6 +89,7 @@ export default function RootLayout({
                   <Suspense fallback={null}>
                     <CommandPalette />
                   </Suspense>
+                  <FeedbackWidget />
                 </NotificationProvider>
               </WalletProvider>
             </ToastProvider>
