@@ -167,10 +167,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         `${notification.category}-${notification.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       const newNotification: NotificationItem = {
+        ...notification,
         id: stableId,
         createdAt: new Date().toISOString(),
         read: readMap[stableId] ?? false,
-        ...notification,
       };
 
       setNotificationsState((prev) => {

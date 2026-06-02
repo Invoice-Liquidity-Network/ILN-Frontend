@@ -1,4 +1,5 @@
 import { getAllInvoices, type Invoice } from "./soroban";
+import { fetchProtocolParameters } from "@/utils/governance";
 import { TESTNET_USDC_TOKEN_ID, TESTNET_EURC_TOKEN_ID, TESTNET_XLM_TOKEN_ID } from "@/constants";
 
 const FUNDED_STATUSES = new Set(["Funded", "PartiallyFunded", "Paid", "Defaulted"]);
@@ -31,6 +32,8 @@ export interface ContractStats {
   total_funded: number;
   total_paid: number;
   total_volume_usd: number;
+  total_protocol_fees_usd?: number;
+  feeRateBps?: number;
   volume_by_token: TokenVolume[];
   daily_volume: DailyVolumeBucket[];
 }
@@ -98,9 +101,13 @@ export function buildHistoricalVolume(invoices: Invoice[], days: number): DailyV
 export async function get_contract_stats(): Promise<ContractStats> {
   const invoices = await getAllInvoices();
 
+  const protocolParams = await fetchProtocolParameters().catch(() => ({ feeRateBps: 0 }));
+  const feeBps = protocolParams.feeRateBps ?? 0;
+
   let total_funded = 0;
   let total_paid = 0;
   let total_volume_usd = 0;
+  let total_protocol_fees_usd = 0;
   const rawVolumes: Record<string, { amount_raw: number; amount_usd: number }> = {};
 
   for (const invoice of invoices) {
@@ -113,6 +120,10 @@ export async function get_contract_stats(): Promise<ContractStats> {
       if (!rawVolumes[symbol]) rawVolumes[symbol] = { amount_raw: 0, amount_usd: 0 };
       rawVolumes[symbol].amount_raw += whole;
       rawVolumes[symbol].amount_usd += usd;
+      // accumulate protocol fees (fee applies to the discount / yield portion)
+      const discount = Number((invoice.amount * BigInt(invoice.discount_rate)) / 10_000n) / 10 ** decimals;
+      const feeUsd = (discount * (feeBps / 10000)) * usdRate;
+      total_protocol_fees_usd += feeUsd;
     }
     if (invoice.status === "Paid") total_paid++;
   }
@@ -134,6 +145,8 @@ export async function get_contract_stats(): Promise<ContractStats> {
     total_funded,
     total_paid,
     total_volume_usd,
+    total_protocol_fees_usd,
+    feeRateBps: feeBps,
     volume_by_token,
     daily_volume: buildHistoricalVolume(invoices, 90),
   };
