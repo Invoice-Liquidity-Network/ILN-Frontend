@@ -35,6 +35,32 @@ async function fetchTransactionsPage(url: string): Promise<HorizonTxResponse> {
   return (await res.json()) as HorizonTxResponse;
 }
 
+/** Fetch recent contract events (newest first) for the homepage activity feed. */
+export async function fetchRecentProtocolContractEvents(): Promise<ParsedContractEvent[]> {
+  const cacheKey = `protocol-contract-events:recent-feed`;
+
+  return dedupedFetch(
+    cacheKey,
+    async () => {
+      const base = getHorizonBaseUrl();
+      const url = `${base}/transactions?accounts=${encodeURIComponent(CONTRACT_ID)}&order=desc&limit=200`;
+      const pageResp = await fetchTransactionsPage(url);
+      const events: ParsedContractEvent[] = [];
+
+      for (const tx of pageResp._embedded?.records ?? []) {
+        events.push(...parseContractEventsFromTransaction(tx));
+      }
+
+      return events.sort((a, b) => {
+        const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return tb - ta;
+      });
+    },
+    TTL.EVENTS,
+  );
+}
+
 /** Fetch ILN contract events from Horizon for the last `lookbackDays` days. */
 export async function fetchProtocolContractEvents(
   lookbackDays = DEFAULT_LOOKBACK_DAYS,

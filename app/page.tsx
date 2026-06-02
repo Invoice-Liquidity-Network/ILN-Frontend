@@ -5,6 +5,7 @@ import Hero from "@/components/Hero";
 import ParameterUpdateBanner from "@/components/ParameterUpdateBanner";
 import PersonalizedDashboard from "@/components/PersonalizedDashboard";
 import Stats from "@/components/Stats";
+import RecentTransactionsPanel from "@/components/RecentTransactionsPanel";
 import HowItWorks from "@/components/HowItWorks";
 import ForFreelancers from "@/components/ForFreelancers";
 import ForLPs from "@/components/ForLPs";
@@ -26,6 +27,7 @@ export default function Home() {
       <Hero />
       <PersonalizedDashboard />
       <Stats />
+      <RecentTransactionsPanel />
       <HowItWorks />
       <ForFreelancers />
       <ForLPs />
