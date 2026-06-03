@@ -176,7 +176,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           <LPWhitelistManager
             invoiceId={invoiceId.toString()}
             submitterAddress={invoice.freelancer}
-            currentWallet={address}
+            currentWallet={address ?? undefined}
             status={invoice.status}
             whitelist={(invoice as any).whitelist || []}
           />

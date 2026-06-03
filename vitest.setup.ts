@@ -3,6 +3,9 @@ import '@testing-library/jest-dom';
 import { toHaveNoViolations } from 'jest-axe';
 import { server } from './src/mocks/server';
 
+// Vitest provides a global `expect` in tests; declare it for TypeScript here.
+declare const expect: any;
+
 // Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
 

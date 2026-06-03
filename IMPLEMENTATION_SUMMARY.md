@@ -128,6 +128,57 @@ Tests verify:
 - ✅ Only notifies for LP's own funded invoices
 - ✅ No notifications when address is null
 
+## Payer Email Reminders Implementation Summary
+
+### Overview
+Implemented an opt-in email reminder system for payers using Resend and Supabase. Payers can now subscribe to receive email notifications 72 hours and 24 hours before their outstanding invoices are due.
+
+### What Was Implemented
+
+#### 1. **Email Template**
+   - **Location**: `src/emails/PaymentReminder.tsx`
+   - Built with `react-email`
+   - Includes invoice ID, amount, token, due date, and deep links to the payer dashboard and "Pay Now" page.
+
+#### 2. **Reminders API Route**
+   - **Location**: `app/api/reminders/route.ts`
+   - `POST`: Saves or updates payer email preferences in Supabase.
+   - `GET`: Background job logic (secured by `CRON_SECRET`) that:
+     1. Fetches all active reminder preferences.
+     2. Identifies funded invoices due in 72h or 24h.
+     3. Sends emails via Resend SDK for each milestone once.
+     4. Tracks sent emails in a `sent_reminders` table to prevent duplicates.
+
+#### 3. **Unsubscribe Route**
+   - **Location**: `app/api/reminders/unsubscribe/route.ts`
+   - Simple GET handler to disable reminders for a given address.
+
+#### 4. **Payer Dashboard UI**
+   - **Location**: `src/components/payer/PayerReminderOptIn.tsx`
+   - A modern opt-in form integrated into the Payer Dashboard.
+   - Allows users to enter their email and toggle reminders on/off.
+
+#### 5. **Database Integration (Supabase)**
+   - **Location**: `src/lib/supabase.ts`
+   - Configured Supabase client for persistence.
+   - Requires two tables: `reminder_preferences` and `sent_reminders`.
+
+#### 6. **API Testing**
+   - **Location**: `__tests__/reminders.test.ts`
+   - Full test coverage for the API route with mocked Resend SDK and Supabase client.
+   - Verifies opt-in saving, milestone detection, and duplicate prevention.
+
+### Setup Instructions
+
+1. **Environment Variables**:
+   - `RESEND_API_KEY`: API key from resend.com
+   - `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase credentials.
+   - `SUPABASE_SERVICE_ROLE_KEY`: Required for the background cron job to bypass RLS.
+   - `CRON_SECRET`: Secret token for securing the trigger endpoint.
+
+2. **Cron Job**:
+   - Set up a periodic job (e.g., via Vercel Cron or GitHub Actions) to call `GET /api/reminders` with the `Authorization: Bearer <CRON_SECRET>` header.
+
 ## No Breaking Changes
 
 - All existing functionality preserved

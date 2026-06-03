@@ -56,6 +56,18 @@ const mockStats: ContractStats = {
     eurc: 1_000 + i * 30,
     xlm: 500 + i * 20,
   })),
+  dispute_rate: {
+    rate30dPercent: 2.5,
+    funded30d: 40,
+    disputed30d: 1,
+    dailyTrend90d: Array.from({ length: 90 }, (_, i) => ({
+      date: new Date(Date.now() - (89 - i) * 86_400_000).toISOString().slice(0, 10),
+      label: `Day ${i + 1}`,
+      fundedCount: 1,
+      disputedCount: 0,
+      ratePercent: 0,
+    })),
+  },
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────

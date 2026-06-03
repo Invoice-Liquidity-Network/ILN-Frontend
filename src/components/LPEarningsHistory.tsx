@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { exportToCSV } from "@/utils/exportData";
 import { formatAddress, formatDate, formatTokenAmount, calculateYield } from "@/utils/format";
 import type { Invoice } from "@/utils/soroban";
+import FieldTooltip from "./FieldTooltip";
 import type { ApprovedToken } from "@/hooks/useApprovedTokens";
+import { fetchProtocolParameters } from "@/utils/governance";
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +44,21 @@ export default function LPEarningsHistory({
   const currentPage = Math.min(page, pageCount);
   const visibleInvoices = sortedInvoices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const [protocolFeeBps, setProtocolFeeBps] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchProtocolParameters()
+      .then((p) => {
+        if (!mounted) return;
+        setProtocolFeeBps(p.feeRateBps ?? 0);
+      })
+      .catch(() => setProtocolFeeBps(0));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const getToken = (invoice: Invoice) => tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "") ?? defaultToken;
 
   const exportData = sortedInvoices.map((invoice) => {
@@ -51,6 +68,7 @@ export default function LPEarningsHistory({
     const amountFunded = formatTokenAmount(invoice.amount, token ?? { symbol: "USDC", decimals: 6 });
     const payout = formatTokenAmount(payoutReceived, token ?? { symbol: "USDC", decimals: 6 });
     const earned = formatTokenAmount(yieldAmount, token ?? { symbol: "USDC", decimals: 6 });
+    const feePaid = protocolFeeBps ? formatTokenAmount((yieldAmount * BigInt(protocolFeeBps)) / 10000n, token ?? { symbol: "USDC", decimals: 6 }) : "0";
 
     return {
       "Invoice ID": `#${invoice.id.toString()}`,
@@ -58,7 +76,8 @@ export default function LPEarningsHistory({
       "Settlement Date": invoice.funded_at ? formatDate(invoice.funded_at) : "N/A",
       "Amount Funded": amountFunded,
       "Payout Received": payout,
-      Earned: earned,
+        Earned: earned,
+        "Fee Paid": feePaid,
       Token: token?.symbol ?? "USDC",
       "Yield %": `${(invoice.discount_rate / 100).toFixed(2)}%`,
     };
@@ -82,9 +101,16 @@ export default function LPEarningsHistory({
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h3 className="text-lg font-bold">Earnings History</h3>
-          <p className="text-sm text-on-surface-variant mt-1">
-            View all settled invoices you funded, sorted by settlement date.
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-on-surface-variant">
+              View all settled invoices you funded, sorted by settlement date.
+            </p>
+            {protocolFeeBps === 0 && (
+              <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wider">
+                0% Fee
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={handleExport}
@@ -109,6 +135,14 @@ export default function LPEarningsHistory({
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Amount Funded</th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Payout Received</th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Earned</th>
+                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <div className="flex items-center gap-1">
+                    Fee Paid
+                    <FieldTooltip content="This fee funds ILN protocol development and the treasury" trigger={
+                      <span className="material-symbols-outlined text-[14px] cursor-help normal-case">info</span>
+                    } />
+                  </div>
+                </th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Token</th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Yield %</th>
               </tr>
@@ -118,6 +152,7 @@ export default function LPEarningsHistory({
                 const token = getToken(invoice);
                 const yieldAmount = calculateYield(invoice.amount, invoice.discount_rate);
                 const payoutReceived = invoice.amount + yieldAmount;
+                const feePaid = protocolFeeBps ? (yieldAmount * BigInt(protocolFeeBps)) / 10000n : 0n;
 
                 return (
                   <tr key={invoice.id.toString()} className="hover:bg-surface-variant/50">
@@ -127,6 +162,7 @@ export default function LPEarningsHistory({
                     <td className="px-4 py-4 font-medium">{formatTokenAmount(invoice.amount, token ?? { symbol: "USDC", decimals: 6 })}</td>
                     <td className="px-4 py-4 font-medium">{formatTokenAmount(payoutReceived, token ?? { symbol: "USDC", decimals: 6 })}</td>
                     <td className="px-4 py-4 font-medium text-green-600">{formatTokenAmount(yieldAmount, token ?? { symbol: "USDC", decimals: 6 })}</td>
+                    <td className="px-4 py-4 font-medium text-on-surface">{formatTokenAmount(feePaid, token ?? { symbol: "USDC", decimals: 6 })}</td>
                     <td className="px-4 py-4 text-sm text-on-surface">{token?.symbol ?? "USDC"}</td>
                     <td className="px-4 py-4 text-sm text-on-surface">{(invoice.discount_rate / 100).toFixed(2)}%</td>
                   </tr>
