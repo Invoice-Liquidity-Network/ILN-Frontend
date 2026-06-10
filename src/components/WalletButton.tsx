@@ -120,7 +120,7 @@ export default function WalletButton() {
           href="https://www.freighter.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 block text-right text-[11px] font-medium text-primary hover:underline"
+          className="mt-1 flex min-h-[44px] items-center justify-end text-[11px] font-medium text-primary hover:underline"
         >
           Don&apos;t have Freighter? Install it →
         </a>

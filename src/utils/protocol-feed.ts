@@ -106,11 +106,11 @@ export function buildProtocolFeedItems(
       ? formatFeedAmountValue(invoice.amount, tokenMeta.decimals)
       : "—";
     const timestampMs = eventTimestampMs(event);
-    const meta = FEED_EVENT_LABELS[event.type];
+    const meta = FEED_EVENT_LABELS[event.type as ProtocolFeedEventType];
 
     items.push({
       id: `${event.type}-${invoiceId}-${timestampMs}-${event.ledger ?? 0}`,
-      eventType: event.type,
+      eventType: event.type as ProtocolFeedEventType,
       label: meta.label,
       icon: meta.icon,
       invoiceId,
