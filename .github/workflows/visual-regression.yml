@@ -8,6 +8,7 @@ on:
 
 jobs:
   chromatic:
+    if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
     name: Chromatic Visual Regression
     runs-on: ubuntu-latest
     steps:
