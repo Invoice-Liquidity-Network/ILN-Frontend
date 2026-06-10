@@ -8,10 +8,10 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
     '@storybook/addon-a11y',
+    '@storybook/addon-docs',
+    '@storybook/addon-vitest',
+    '@storybook/addon-mcp',
   ],
   framework: {
     name: '@storybook/react-vite',
@@ -23,6 +23,22 @@ const config: StorybookConfig = {
         alias: {
           '@': path.resolve(dirname, '../src'),
           '@/app': path.resolve(dirname, '../app'),
+          'storybook/highlight': path.resolve(dirname, '../node_modules/storybook/highlight/index.js'),
+          'storybook/internal/csf': path.resolve(dirname, '../node_modules/storybook/dist/csf/index.js'),
+          '@storybook/global': path.resolve(dirname, '../node_modules/@storybook/global/dist/index.js'),
+        },
+      },
+    });
+  },
+  managerVite: async (config) => {
+    return mergeConfig(config, {
+      build: {
+        rollupOptions: {
+          external: [
+            'storybook/highlight',
+            'storybook/internal/csf',
+            '@storybook/global',
+          ],
         },
       },
     });

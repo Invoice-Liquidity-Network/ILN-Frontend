@@ -5,7 +5,13 @@ import PaymentReminderEmail from "@/emails/PaymentReminder";
 import { getAllInvoices, getTokenMetadata } from "@/utils/soroban";
 import { formatTokenAmount } from "@/utils/format";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 // POST: Save/Update opt-in preference
 export async function POST(req: NextRequest) {
@@ -100,7 +106,7 @@ export async function GET(req: NextRequest) {
             const payNowLink = `${baseUrl}/pay/${inv.id.toString()}`;
             const unsubscribeUrl = `${baseUrl}/api/reminders/unsubscribe?address=${pref.address}`;
 
-            const { error: sendError } = await resend.emails.send({
+            const { error: sendError } = await getResend().emails.send({
               from: "ILN Reminders <reminders@iln.finance>",
               to: [pref.email],
               subject: `Payment Reminder: Invoice #${inv.id} is due in ${milestone} hours`,

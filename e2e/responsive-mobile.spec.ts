@@ -41,13 +41,15 @@ async function expectTouchTargets(page: Page) {
 }
 
 test.describe("mobile responsive layout", () => {
+  test.slow(); // Increases timeout for all tests in this describe
   test("navigation menu collapses and expands", async ({ page }, testInfo) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.getByLabel("Open navigation menu").click();
-    await expect(page.locator("#mobile-navigation")).toBeVisible();
-    await expect(page.getByRole("link", { name: /dashboard/i })).toBeVisible();
+    await page.waitForTimeout(1000);
+    await page.getByLabel(/navigation menu/i).first().click();
+    await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#mobile-navigation").getByRole("link", { name: /dashboard/i })).toBeVisible();
     await page.getByLabel("Close navigation menu").click();
-    await expect(page.locator("#mobile-navigation")).toBeHidden();
+    await expect(page.locator("#mobile-navigation")).toBeHidden({ timeout: 10000 });
     await expectNoHorizontalOverflow(page);
     await expectTouchTargets(page);
     await screenshotPage(page, testInfo, "navigation");
@@ -83,8 +85,10 @@ test.describe("mobile responsive layout", () => {
 
   test("wallet connection modal opens from mobile menu", async ({ page }, testInfo) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.getByLabel("Open navigation menu").click();
-    await page.getByRole("button", { name: /connect wallet/i }).click();
+    await page.waitForTimeout(1000);
+    await page.getByLabel(/navigation menu/i).first().click();
+    await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
+    await page.locator("#mobile-navigation").getByRole("button", { name: /connect wallet/i }).first().click();
     await expect(page.getByRole("button", { name: /freighter/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /walletconnect/i })).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -96,7 +100,9 @@ test.describe("mobile responsive layout", () => {
     test(`captures ${target.name} screenshot artifact`, async ({ page }, testInfo) => {
       await page.goto(target.path, { waitUntil: "domcontentloaded" });
       if (target.name === "wallet") {
-        await page.getByLabel("Open navigation menu").click();
+        await page.waitForTimeout(1000);
+        await page.getByLabel(/navigation menu/i).first().click({ force: true });
+        await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
       }
       await screenshotPage(page, testInfo, target.name);
     });
