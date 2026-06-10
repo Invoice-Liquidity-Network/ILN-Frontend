@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
+const fn = () => () => {};
 import InvoiceMarketplaceCard from './InvoiceMarketplaceCard';
 
 const USDC_TOKEN_ID = 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75';
