@@ -16,6 +16,8 @@ import {
 } from "@/utils/walletStorage";
 import WalletSelectionModal from "@/components/WalletSelectionModal";
 import { useToast } from "./ToastContext";
+import { getAllInvoices } from "@/utils/soroban";
+import { deriveWalletRoles, type WalletRole, type WalletRoleSummary } from "@/utils/walletRoles";
 
 type WalletProviderName = WalletProviderType;
 
@@ -172,7 +174,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [attemptSilentReconnect]);
 
   useEffect(() => {
-    checkConnection();
+    void Promise.resolve().then(checkConnection);
   }, [checkConnection]);
 
   useEffect(() => {
@@ -265,9 +267,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setError(msg);
         updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Connection error:", e);
-      const msg = e.message || "Connection failed";
+      const msg = e instanceof Error ? e.message : "Connection failed";
       setError(msg);
       updateToast(toastId, { type: "error", title: "Connection Failed", message: msg });
     }
