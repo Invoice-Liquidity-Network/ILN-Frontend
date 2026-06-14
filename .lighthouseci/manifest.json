@@ -1,1 +1,146 @@
-[]
+[
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_44_23-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_44_23-report.json",
+    "summary": {
+      "performance": 0.54,
+      "accessibility": 0.98,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_45_39-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_45_39-report.json",
+    "summary": {
+      "performance": 0.56,
+      "accessibility": 0.98,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/marketplace",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_13_23_48_06-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_13_23_48_06-report.json",
+    "summary": {
+      "performance": 0.61,
+      "accessibility": 0.94,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/marketplace",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_14_00_02_20-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_14_00_02_20-report.json",
+    "summary": {
+      "performance": 0.4,
+      "accessibility": 0.94,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/lp",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_04_23-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_04_23-report.json",
+    "summary": {
+      "performance": 0.35,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/lp",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_07_12-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_07_12-report.json",
+    "summary": {
+      "performance": 0.51,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/governance",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_08_11-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_08_11-report.json",
+    "summary": {
+      "performance": 0.65,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/governance",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_11_38-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_11_38-report.json",
+    "summary": {
+      "performance": 0.68,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_43_17-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/-2026_06_13_23_43_17-report.json",
+    "summary": {
+      "performance": 0.61,
+      "accessibility": 0.98,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/marketplace",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_13_23_47_14-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/marketplace-2026_06_13_23_47_14-report.json",
+    "summary": {
+      "performance": 0.64,
+      "accessibility": 0.94,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/lp",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_05_58-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/lp-2026_06_14_00_05_58-report.json",
+    "summary": {
+      "performance": 0.42,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/governance",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_10_26-report.html",
+    "jsonPath": "/home/nursca/Invoice-Liquidity-Network/frontend/.lighthouseci/governance-2026_06_14_00_10_26-report.json",
+    "summary": {
+      "performance": 0.66,
+      "accessibility": 0.91,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  }
+]

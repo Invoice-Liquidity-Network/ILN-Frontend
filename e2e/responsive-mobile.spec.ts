@@ -1,5 +1,12 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
+async function waitForHydration(page: Page) {
+  await page.waitForFunction(() => {
+    const nav = document.querySelector("nav");
+    return nav && Object.keys(nav).some((k) => k.startsWith("__reactFiber"));
+  }, { timeout: 15000 });
+}
+
 const pagesToScreenshot = [
   { name: "home", path: "/" },
   { name: "marketplace", path: "/marketplace" },
@@ -43,8 +50,8 @@ async function expectTouchTargets(page: Page) {
 test.describe("mobile responsive layout", () => {
   test.slow(); // Increases timeout for all tests in this describe
   test("navigation menu collapses and expands", async ({ page }, testInfo) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1000);
+    await page.goto("/", { waitUntil: "networkidle" });
+    await waitForHydration(page);
     await page.getByLabel(/navigation menu/i).first().click();
     await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
     await expect(page.locator("#mobile-navigation").getByRole("link", { name: /dashboard/i })).toBeVisible();
@@ -84,8 +91,8 @@ test.describe("mobile responsive layout", () => {
   });
 
   test("wallet connection modal opens from mobile menu", async ({ page }, testInfo) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1000);
+    await page.goto("/", { waitUntil: "networkidle" });
+    await waitForHydration(page);
     await page.getByLabel(/navigation menu/i).first().click();
     await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
     await page.locator("#mobile-navigation").getByRole("button", { name: /connect wallet/i }).first().click();
@@ -100,7 +107,7 @@ test.describe("mobile responsive layout", () => {
     test(`captures ${target.name} screenshot artifact`, async ({ page }, testInfo) => {
       await page.goto(target.path, { waitUntil: "domcontentloaded" });
       if (target.name === "wallet") {
-        await page.waitForTimeout(1000);
+        await waitForHydration(page);
         await page.getByLabel(/navigation menu/i).first().click({ force: true });
         await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
       }

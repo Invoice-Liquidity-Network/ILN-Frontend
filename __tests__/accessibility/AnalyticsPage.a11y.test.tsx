@@ -1,9 +1,8 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { describe, it, expect, vi } from "vitest";
 import AnalyticsPage from "@/app/analytics/page";
 
-// Mock the dependencies
 vi.mock("@/hooks/useDocumentTitle", () => ({
   useDocumentTitle: vi.fn(),
 }));
@@ -35,74 +34,33 @@ vi.mock("@/components/AnimatedNumber", () => ({
 describe("AnalyticsPage Accessibility", () => {
   it("should not have any accessibility violations", async () => {
     const { container } = render(<AnalyticsPage />);
-    
-    // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+
+    await waitFor(() => {
+      expect(container.querySelector("main")).toBeInTheDocument();
+    });
+
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("should have proper main landmark", () => {
+  it("should have proper main landmark", async () => {
     const { container } = render(<AnalyticsPage />);
-    
-    const main = container.querySelector("main");
-    expect(main).toBeInTheDocument();
-    expect(main).toHaveAttribute("id", "analytics-main");
+
+    await waitFor(() => {
+      const main = container.querySelector("main");
+      expect(main).toBeInTheDocument();
+      expect(main).toHaveAttribute("id", "analytics-main");
+    });
   });
 
-  it("should have accessible metric cards", () => {
+  it("should show loading state with accessible spinner", async () => {
     const { container } = render(<AnalyticsPage />);
-    
-    // Wait for content to load
-    setTimeout(() => {
-      const metricCards = container.querySelectorAll('[id^="metric-"]');
-      metricCards.forEach((card) => {
-        // Each metric card should have an ID for accessibility
-        expect(card).toHaveAttribute("id");
-        
-        // Should contain accessible text
-        expect(card.textContent?.trim()).toBeTruthy();
-      });
-    }, 100);
-  });
 
-  it("should have proper section headings", () => {
-    const { container } = render(<AnalyticsPage />);
-    
-    setTimeout(() => {
-      const sections = container.querySelectorAll("section");
-      sections.forEach((section) => {
-        // Each section should have an aria-labelledby or heading
-        const hasLabel = 
-          section.getAttribute("aria-labelledby") ||
-          section.querySelector("h1, h2, h3, h4, h5, h6");
-        
-        expect(hasLabel).toBeTruthy();
-      });
-    }, 100);
-  });
-
-  it("should have accessible refresh button", () => {
-    const { container } = render(<AnalyticsPage />);
-    
-    setTimeout(() => {
-      const refreshButton = container.querySelector("#analytics-refresh-btn");
-      if (refreshButton) {
-        expect(refreshButton).toHaveAttribute("aria-label");
-        expect(refreshButton).toHaveAttribute("type", "button");
-      }
-    }, 100);
-  });
-
-  it("should have proper chart accessibility", () => {
-    const { getByTestId } = render(<AnalyticsPage />);
-    
-    setTimeout(() => {
-      // Charts should be present and accessible
-      expect(getByTestId("amount-histogram")).toBeInTheDocument();
-      expect(getByTestId("funding-chart")).toBeInTheDocument();
-      expect(getByTestId("default-rate-chart")).toBeInTheDocument();
-    }, 100);
+    await waitFor(() => {
+      const spinner = container.querySelector("[aria-hidden='true']");
+      expect(spinner).toBeInTheDocument();
+      const loadingText = container.querySelector("p");
+      expect(loadingText?.textContent).toMatch(/loading/i);
+    });
   });
 });

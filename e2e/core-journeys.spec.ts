@@ -1,12 +1,19 @@
 import { expect, test, devices } from "@playwright/test";
 
+async function waitForHydration(page: import("@playwright/test").Page) {
+  await page.waitForFunction(() => {
+    const nav = document.querySelector("nav");
+    return nav && Object.keys(nav).some((k) => k.startsWith("__reactFiber"));
+  }, { timeout: 15000 });
+}
+
 test.describe("Core user journeys", () => {
   test.slow();
   test.describe("Wallet connection", () => {
     test("user can connect wallet from navigation", async ({ page, isMobile }) => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.goto("/", { waitUntil: "networkidle" });
+      await waitForHydration(page);
       if (isMobile) {
-        await page.waitForTimeout(1000);
         const menuButton = page.getByLabel(/navigation menu/i).first();
         await menuButton.click();
         await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
@@ -17,12 +24,13 @@ test.describe("Core user journeys", () => {
       await expect(connectButton).toBeVisible({ timeout: 15000 });
       await connectButton.click();
       await expect(page.getByRole("button", { name: /freighter/i }).first()).toBeVisible({ timeout: 10000 });
+      await page.goto("about:blank");
     });
 
     test("wallet connection button is visible on homepage", async ({ page, isMobile }) => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.goto("/", { waitUntil: "networkidle" });
+      await waitForHydration(page);
       if (isMobile) {
-        await page.waitForTimeout(1000);
         const menuButton = page.getByLabel(/navigation menu/i).first();
         await menuButton.click();
         await expect(page.locator("#mobile-navigation")).toBeVisible({ timeout: 15000 });
@@ -172,7 +180,8 @@ test.describe("Core user journeys", () => {
 
   test.describe("Navigation", () => {
     test("header navigation is accessible from all pages", async ({ page }) => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.goto("/", { waitUntil: "networkidle" });
+      await waitForHydration(page);
       const homeLink = page.getByRole("link", { name: /home|ILN/i }).first();
       const marketplaceLink = page.getByRole("link", { name: /marketplace|freelancer/i }).first();
       expect(await homeLink.isVisible()).toBe(true);
@@ -183,7 +192,8 @@ test.describe("Core user journeys", () => {
 
     test("mobile navigation menu toggles", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await page.goto("/", { waitUntil: "networkidle" });
+      await waitForHydration(page);
       const menuButton = page.getByLabel(/menu|navigation/i).first();
       if (await menuButton.isVisible()) {
         await menuButton.click();

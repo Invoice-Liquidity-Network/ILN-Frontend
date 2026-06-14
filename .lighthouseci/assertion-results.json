@@ -1,1 +1,202 @@
-[]
+[
+  {
+    "name": "maxNumericValue",
+    "expected": 100,
+    "actual": 926.06935,
+    "values": [
+      926.06935,
+      967.9999999999998,
+      1075.1521
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-blocking-time",
+    "level": "warn",
+    "url": "http://localhost:3000/",
+    "auditTitle": "Total Blocking Time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 204800,
+    "actual": 4360707,
+    "values": [
+      4365915,
+      4367335,
+      4360707
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-byte-weight",
+    "level": "warn",
+    "url": "http://localhost:3000/",
+    "auditTitle": "Avoid enormous network payloads",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/total-byte-weight/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.7,
+    "actual": 0.61,
+    "values": [
+      0.61,
+      0.54,
+      0.56
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditProperty": "performance",
+    "auditId": "categories",
+    "level": "warn",
+    "url": "http://localhost:3000/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 100,
+    "actual": 1040.9529249999996,
+    "values": [
+      1040.9529249999996,
+      1060.5,
+      4093.4166999999998
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-blocking-time",
+    "level": "warn",
+    "url": "http://localhost:3000/marketplace",
+    "auditTitle": "Total Blocking Time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 204800,
+    "actual": 1877769,
+    "values": [
+      1877894,
+      1877787,
+      1877769
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-byte-weight",
+    "level": "warn",
+    "url": "http://localhost:3000/marketplace",
+    "auditTitle": "Avoids enormous network payloads",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/total-byte-weight/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.7,
+    "actual": 0.64,
+    "values": [
+      0.64,
+      0.61,
+      0.4
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditProperty": "performance",
+    "auditId": "categories",
+    "level": "warn",
+    "url": "http://localhost:3000/marketplace"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 100,
+    "actual": 1049.1241499999999,
+    "values": [
+      16592.5,
+      1049.1241499999999,
+      1493.999999999999
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-blocking-time",
+    "level": "warn",
+    "url": "http://localhost:3000/lp",
+    "auditTitle": "Total Blocking Time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 204800,
+    "actual": 2009671,
+    "values": [
+      2031137,
+      2010255,
+      2009671
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-byte-weight",
+    "level": "warn",
+    "url": "http://localhost:3000/lp",
+    "auditTitle": "Avoids enormous network payloads",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/total-byte-weight/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.7,
+    "actual": 0.51,
+    "values": [
+      0.35,
+      0.42,
+      0.51
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditProperty": "performance",
+    "auditId": "categories",
+    "level": "warn",
+    "url": "http://localhost:3000/lp"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 100,
+    "actual": 697.9999999999995,
+    "values": [
+      995,
+      845.9999999999999,
+      697.9999999999995
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-blocking-time",
+    "level": "warn",
+    "url": "http://localhost:3000/governance",
+    "auditTitle": "Total Blocking Time",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/lighthouse-total-blocking-time/"
+  },
+  {
+    "name": "maxNumericValue",
+    "expected": 204800,
+    "actual": 1857090,
+    "values": [
+      1857350,
+      1857090,
+      1858105
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "total-byte-weight",
+    "level": "warn",
+    "url": "http://localhost:3000/governance",
+    "auditTitle": "Avoids enormous network payloads",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/total-byte-weight/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.7,
+    "actual": 0.68,
+    "values": [
+      0.65,
+      0.66,
+      0.68
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditProperty": "performance",
+    "auditId": "categories",
+    "level": "warn",
+    "url": "http://localhost:3000/governance"
+  }
+]
