@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Developer Quickstart
+
+New contributors should start with the [developer quickstart](docs/developer-quickstart.md).
+It covers prerequisites, `.env.local` setup, Stellar testnet wallet notes, local
+development, tests, and common setup issues.
+
+For the shortest path:
+
+```bash
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the app.
+
 ## Snapshot Tests
 
 The frontend includes Vitest snapshot coverage for the main invoice UI surfaces in `__tests__`.
@@ -18,7 +34,7 @@ npm test -- --update-snapshots
 
 ## Getting Started
 
-First of all, run the development server:
+After following the quickstart, run the development server:
 
 ```bash
 npm run dev
