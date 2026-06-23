@@ -35,6 +35,8 @@ For a deep dive into layout grids, elevation layers, and color tokens, read the 
 
 ## 🏗 Application Architecture
 
+For a deep dive into data flows, component interactions, and key trade-offs, refer to the [Frontend Architecture Overview](docs/architecture.md).
+
 The application is structured logically to support multiple participant roles (freelancers, payers, liquidity providers, and governance administrators).
 
 ### 📁 Directory Layout
@@ -191,6 +193,7 @@ A central marketplace listing all active open invoices waiting for funding, deta
 ## 🔗 Useful Links & Documentation
 
 - **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
+- **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
 - **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) to understand conventional commits (`git-cliff`) and testing standards.
 - **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
 - **Design System Blueprint**: Deep dive into "The Fiscal Atelier" aesthetic rules in [DESIGN.md](DESIGN.md).
