@@ -394,7 +394,7 @@ export default function LPDashboard() {
       label: "Est. Yield",
       sortable: false,
       renderCell: (inv) => (
-        <span className="font-bold text-green-600">
+        <span className="font-bold text-green-600 dark:text-green-400">
           <TokenAwareAmount
             amount={calculateYield(inv.amount, inv.discount_rate)}
             invoice={inv}
@@ -428,7 +428,7 @@ export default function LPDashboard() {
           <button
             onClick={(e) => handleWatchlistToggle(inv.id, e)}
             className={`p-2 rounded-full transition-colors ${
-              isInWatchlist(inv.id) ? "text-red-500 hover:bg-red-50" : "text-on-surface-variant hover:bg-surface-variant/50"
+              isInWatchlist(inv.id) ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" : "text-on-surface-variant hover:bg-surface-variant/50"
             }`}
             title={isInWatchlist(inv.id) ? "Remove from watchlist" : "Add to watchlist"}
           >
@@ -470,7 +470,7 @@ export default function LPDashboard() {
         <div className="flex items-center justify-end gap-2 text-right">
           <button
             onClick={(e) => handleWatchlistToggle(inv.id, e)}
-            className="p-2 rounded-full transition-colors text-red-500 hover:bg-red-50"
+            className="p-2 rounded-full transition-colors text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
             title="Remove from watchlist"
           >
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -773,7 +773,7 @@ export default function LPDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
-                    <td className="px-6 py-5 font-bold text-green-600">
+                    <td className="px-6 py-5 font-bold text-green-600 dark:text-green-400">
                       <TokenAwareAmount amount={calculateYield(invoice.amount, invoice.discount_rate)} invoice={invoice} tokenMap={tokenMap} defaultToken={defaultToken} />
                     </td>
                     {activeTab === "watchlist" && (
@@ -795,7 +795,7 @@ export default function LPDashboard() {
                           onClick={(e) => handleWatchlistToggle(invoice.id, e)}
                           className={`p-2 rounded-full transition-colors ${
                             isInWatchlist(invoice.id)
-                              ? "text-red-500 hover:bg-red-50"
+                              ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
                               : "text-on-surface-variant hover:bg-surface-variant/50"
                           }`}
                           title={isInWatchlist(invoice.id) ? "Remove from watchlist" : "Add to watchlist"}
@@ -810,7 +810,7 @@ export default function LPDashboard() {
                               e.stopPropagation();
                               setOverriddenInvoiceIds(prev => [...prev, invoice.id.toString()]);
                             }}
-                            className="bg-amber-500/10 text-amber-700 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
+                            className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
                           >
                             Fund Anyway
                           </button>
@@ -827,7 +827,7 @@ export default function LPDashboard() {
                             {invoice.status === "Funded" && address && invoice.payer === address && (
                               <button
                                 onClick={() => setDisputeInvoice(invoice)}
-                                className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+                                className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
                               >
                                 Raise Dispute
                               </button>

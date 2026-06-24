@@ -34,7 +34,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3d627f" />
+        <meta name="theme-color" content="#3d627f" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ILN" />
@@ -50,23 +51,6 @@ export default function RootLayout({
         <meta
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width, viewport-fit=cover"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var localTheme = localStorage.getItem('theme');
-                  var prefTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  if (localTheme === 'dark' || (!localTheme && prefTheme)) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                  } else {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
         />
       </head>
       <body className="antialiased bg-background text-foreground transition-colors duration-300 selection:bg-primary-container selection:text-on-primary-container">

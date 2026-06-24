@@ -36,20 +36,20 @@ export function getDisputeRateColorClasses(color: DisputeRateColor): {
   switch (color) {
     case "green":
       return {
-        value: "text-green-700",
-        border: "border-green-200/60",
+        value: "text-green-700 dark:text-green-400",
+        border: "border-green-200/60 dark:border-green-800/60",
         sparkline: "#16a34a",
       };
     case "amber":
       return {
-        value: "text-amber-700",
-        border: "border-amber-200/60",
+        value: "text-amber-700 dark:text-amber-400",
+        border: "border-amber-200/60 dark:border-amber-800/60",
         sparkline: "#d97706",
       };
     case "red":
       return {
-        value: "text-red-700",
-        border: "border-red-200/60",
+        value: "text-red-700 dark:text-red-400",
+        border: "border-red-200/60 dark:border-red-800/60",
         sparkline: "#dc2626",
       };
   }
