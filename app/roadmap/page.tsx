@@ -142,7 +142,7 @@ function PhaseColumn({ phase, items }: PhaseColumnProps) {
 }
 
 export default function RoadmapPage() {
-  useDocumentTitle({ pageTitle: "Public Roadmap | ILN" });
+  useDocumentTitle({ pageTitle: "Public Roadmap" });
   const { t } = useTranslation();
   const phases = getRoadmapPhases();
 

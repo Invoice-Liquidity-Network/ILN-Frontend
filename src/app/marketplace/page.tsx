@@ -15,11 +15,13 @@ import LPSettingsModal from "@/components/LPSettingsModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PageHeader from "@/components/PageHeader";
 import { useLPSettings } from "@/hooks/useLPSettings";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 const PAGE_SIZE = 20;
 
 type SortKey = "yield" | "amount" | "due_date";
 
 export default function MarketplacePage() {
+  useDocumentTitle({ pageTitle: "Invoice Marketplace" });
   const { isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading, refetch } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();

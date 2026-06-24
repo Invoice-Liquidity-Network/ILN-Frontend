@@ -5,7 +5,7 @@ import ProtocolStatsScreen from "@/screens/ProtocolStats";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function StatsPage() {
-  useDocumentTitle({ pageTitle: "Protocol Statistics | ILN" });
+  useDocumentTitle({ pageTitle: "Protocol Statistics" });
   return (
     <Suspense fallback={null}>
       <ProtocolStatsScreen />
