@@ -4,6 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   buildApproveTokenTransaction,
   fundInvoice,
@@ -39,6 +40,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const [faqExpanded, setFaqExpanded] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [protocolFeeBps, setProtocolFeeBps] = useState<number | null>(null);
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   useEffect(() => {
     if (invoice && !selectedTokenId) {
@@ -155,11 +157,11 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
+    <div ref={modalRef} className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       {signingModal}
       {/* Header with Step Tracker */}
       <div className="sticky top-0 bg-surface-container-low border-b border-surface-dim z-10 px-6 py-4 flex items-center justify-between">
-        <h4 className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
+        <h4 id="modal-title" className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
         
         {needsApproval && (
           <div className="flex items-center gap-4">
@@ -181,7 +183,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
           </div>
         )}
 
-        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant">
+        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant" aria-label="Close modal">
           <span className="material-symbols-outlined shrink-0">close</span>
         </button>
       </div>

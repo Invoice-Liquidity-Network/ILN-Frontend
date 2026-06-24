@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   isWalletConnectConfigured,
   getWalletConnectPairingUri,
@@ -31,9 +32,11 @@ export default function WalletSelectionModal({
   const [showWalletConnect, setShowWalletConnect] = useState(initialWalletConnectView);
   const walletConnectReady = isWalletConnectConfigured();
   const pairingUri = walletConnectReady ? safePairingUri() : null;
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   return (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-label="Select a wallet"
