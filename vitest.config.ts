@@ -24,6 +24,7 @@ export default defineConfig({
         'src/utils/governance.ts',
         'src/lib/contract-events.ts',
         'src/lib/contract-event-stream-state.ts',
+        'src/lib/contract/**/*.ts',
       ],
       thresholds: {
         lines: 90,
