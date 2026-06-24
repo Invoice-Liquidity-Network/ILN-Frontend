@@ -304,7 +304,7 @@ export default function GovernancePage() {
             />
           </div>
 
-          <ErrorBoundary>
+          <ErrorBoundary onRetry={() => void load()}>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -353,7 +353,7 @@ export default function GovernancePage() {
             )}
           </ErrorBoundary>
 
-          <ErrorBoundary>
+          <ErrorBoundary onRetry={() => void load()}>
             <TokenAllowlistPanel />
           </ErrorBoundary>
         </div>

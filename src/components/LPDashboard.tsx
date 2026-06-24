@@ -60,7 +60,7 @@ export default function LPDashboard() {
   const { isEnrolled: isEnrolledInInsurance } = useInsurance();
   const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
   
-  const { data: invoices = [], isLoading: loading, dataUpdatedAt } = useInvoices();
+  const { data: invoices = [], isLoading: loading, dataUpdatedAt, refetch } = useInvoices();
 
   const [activeTab, setActiveTab] = useState<Tab>("discovery");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -648,7 +648,7 @@ export default function LPDashboard() {
               </div>
             )}
           </div>
-          <ErrorBoundary>
+          <ErrorBoundary onRetry={() => void refetch()}>
             <LPPortfolio
               invoices={myFundedInvoices}
               isLoading={loading}
@@ -671,7 +671,7 @@ export default function LPDashboard() {
           walletAddress={address || null}
         />
       ) : (
-        <ErrorBoundary>
+        <ErrorBoundary onRetry={() => void refetch()}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-surface-container-low border-b border-surface-dim">
