@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useWallet } from "@/context/WalletContext";
 import {
   useNotification,
@@ -54,8 +54,21 @@ function mergeNotifications(
 
 export default function NotificationBell() {
   const { address, isConnected } = useWallet();
-  const { setNotifications, unreadCount, isRead } = useNotification();
+  const { setNotifications, unreadCount, isRead, markAllAsRead } = useNotification();
   const [open, setOpen] = useState(false);
+  // Track previous unread count to detect new notifications for pulse
+  const prevUnreadRef = useRef(unreadCount);
+  const [isPulsing, setIsPulsing] = useState(false);
+
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setIsPulsing(true);
+      const timer = setTimeout(() => setIsPulsing(false), 2000);
+      prevUnreadRef.current = unreadCount;
+      return () => clearTimeout(timer);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
 
   useEffect(() => {
     if (!address) return;
@@ -79,23 +92,35 @@ export default function NotificationBell() {
     };
   }, [address, isRead, setNotifications]);
 
+  const handleOpen = () => {
+    setOpen(true);
+    // Clear unread count when drawer opens
+    if (unreadCount > 0) markAllAsRead();
+  };
+
   if (!isConnected) return null;
 
   return (
     <div className="relative" data-tour="notifications-bell">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-label="Open notifications"
+        onClick={handleOpen}
+        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={open}
         className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
         <span className="material-symbols-outlined text-on-surface-variant">
           notifications
         </span>
+
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error">
-            {unreadCount > 99 ? "99+" : unreadCount}
+          <span
+            aria-hidden
+            className={`absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error ${
+              isPulsing ? "animate-pulse" : ""
+            }`}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
