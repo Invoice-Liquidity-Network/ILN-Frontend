@@ -1,26 +1,26 @@
 "use client";
 
+import { useTheme as useNextTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, setTheme, resolvedTheme } = useNextTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Read from localStorage or media query on mount
-    const storedTheme = localStorage.getItem("theme");
-    const prefDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    const initialTheme = storedTheme === "dark" || (!storedTheme && prefDark) ? "dark" : "light";
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
+    setMounted(true);
   }, []);
 
+  const activeTheme = mounted ? (resolvedTheme ?? theme ?? "light") : "light";
+
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
+    setTheme(activeTheme === "dark" ? "light" : "dark");
   };
 
-  return { theme, toggleTheme };
+  return {
+    theme: activeTheme,
+    toggleTheme,
+    setTheme,
+    mounted,
+  };
 }

@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from "react";
 
 export default function Navbar() {
   useWallet();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, mounted } = useTheme();
   const { i18n, t } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -149,7 +149,7 @@ export default function Navbar() {
             aria-label="Toggle dark mode"
           >
             <span className="material-symbols-outlined">
-              {theme === "dark" ? "light_mode" : "dark_mode"}
+              {!mounted ? "dark_mode" : theme === "dark" ? "light_mode" : "dark_mode"}
             </span>
           </button>
 
