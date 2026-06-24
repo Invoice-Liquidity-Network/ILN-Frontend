@@ -297,7 +297,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <ErrorBoundary>
+          <ErrorBoundary onRetry={() => void refetch()}>
             {viewMode === "table" ? (
               <div className="overflow-x-auto rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
               <table className="w-full text-left">

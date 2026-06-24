@@ -42,7 +42,7 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 export default function ProtocolStatsScreen() {
-  const { data: stats, isLoading, error } = useContractStats();
+  const { data: stats, isLoading, error, refetch } = useContractStats();
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices();
 
   return (
@@ -64,7 +64,7 @@ export default function ProtocolStatsScreen() {
           )}
 
           {!isLoading && !error && stats && (
-            <ErrorBoundary>
+            <ErrorBoundary onRetry={() => void refetch()}>
               <StatsMetricCards stats={stats} />
 
               <StatsDisputeRateCard metrics={stats.dispute_rate} />

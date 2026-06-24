@@ -21,7 +21,7 @@ type SortKey = "yield" | "amount" | "due_date";
 
 export default function MarketplacePage() {
   const { isConnected } = useWallet();
-  const { data: allInvoices = [], isLoading: loading } = useInvoices();
+  const { data: allInvoices = [], isLoading: loading, refetch } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();
 
   const [sortKey, setSortKey] = useState<SortKey>("yield");
@@ -189,7 +189,7 @@ export default function MarketplacePage() {
           {sorted.length} invoice{sorted.length !== 1 ? "s" : ""} available
         </p>
 
-        <ErrorBoundary>
+        <ErrorBoundary onRetry={() => void refetch()}>
           {loading && paginated.length === 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
