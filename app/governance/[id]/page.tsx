@@ -11,6 +11,7 @@ import QuorumProgressBar from "@/components/QuorumProgressBar";
 import { GOVERNANCE_ADMIN_ADDRESS } from "@/constants";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useTransaction } from "@/hooks/useTransaction";
 import { hashEvidence } from "@/utils/evidence";
 import {
@@ -249,6 +250,7 @@ export default function ProposalDetailPage() {
   const [vetoReason, setVetoReason] = useState("");
   const [vetoReasonHash, setVetoReasonHash] = useState("");
   const [isVetoing, setIsVetoing] = useState(false);
+  useDocumentTitle({ pageTitle: proposal?.title ?? `Proposal #${proposalId}` });
 
   const load = useCallback(async () => {
     const data = await fetchProposal(proposalId);

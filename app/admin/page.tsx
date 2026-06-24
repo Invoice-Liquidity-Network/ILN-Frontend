@@ -61,7 +61,7 @@ function MetricPanel({
 }
 
 export default function AdminHealthDashboard() {
-  useDocumentTitle({ pageTitle: "Admin Protocol Health | ILN" });
+  useDocumentTitle({ pageTitle: "Admin Protocol Health" });
   const { address, signTx } = useWallet();
   const isAdmin = isAdminAddress(address);
   const [health, setHealth] = useState<ProtocolHealth | null>(null);

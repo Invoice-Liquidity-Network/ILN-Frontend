@@ -93,4 +93,38 @@ describe("YieldCalculator", () => {
     // Should be expanded again
     expect(screen.getByText("Invoice Amount (USDC)")).toBeInTheDocument();
   });
+
+  test("toggles advanced mode and renders projections", () => {
+    const modeToggle = screen.getByRole("button", { name: /simple/i });
+    fireEvent.click(modeToggle);
+
+    expect(screen.getByRole("button", { name: /advanced/i })).toBeInTheDocument();
+    expect(screen.getByText("Invoice category")).toBeInTheDocument();
+    expect(screen.getByText("Compound yield projections")).toBeInTheDocument();
+    expect(screen.getByText("Category comparison")).toBeInTheDocument();
+  });
+
+  test("handles zero amount without breaking projections", () => {
+    const amountInput = screen.getByLabelText(/Invoice Amount \(USDC\)/i)
+      .parentElement?.querySelector("input[type=number]");
+    if (!amountInput) throw new Error("Amount input not found");
+
+    fireEvent.change(amountInput, { target: { value: "0" } });
+
+    expect(screen.getAllByText("0 USDC").length).toBeGreaterThan(0);
+    expect(screen.getByText("Freelancer receives:")).toBeInTheDocument();
+    expect(screen.getAllByText("0 USDC").length).toBeGreaterThan(1);
+  });
+
+  test("handles a 100% discount rate", () => {
+    const discountInput = screen.getByLabelText(/Discount Rate \(bps\)/i)
+      .parentElement?.querySelector("input[type=number]");
+    if (!discountInput) throw new Error("Discount input not found");
+
+    fireEvent.change(discountInput, { target: { value: "10000" } });
+
+    expect(screen.getByText("Freelancer receives:")).toBeInTheDocument();
+    expect(screen.getAllByText("0 USDC").length).toBeGreaterThan(0);
+    expect(screen.getByText("1,000 USDC")).toBeInTheDocument();
+  });
 });
