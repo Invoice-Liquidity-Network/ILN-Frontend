@@ -133,25 +133,38 @@ export function validateInvoiceForm(
   if (!values.payer.trim()) {
     errors.payer = "Payer Stellar address is required.";
   } else if (!isValidStellarAccount(values.payer)) {
-    errors.payer = "Enter a valid Stellar public key for the payer.";
+    errors.payer = "Enter a valid Stellar address";
   }
 
   const inputDecimals = getTokenInputDecimals(tokenSymbol);
   const amountUnits = parseAmountToUnits(values.amount, inputDecimals);
-  if (amountUnits === null || amountUnits <= 0n) {
-    errors.amount = `Enter a valid invoice amount in ${tokenSymbol}.`;
+  const maxUnits = parseAmountToUnits("10000000", inputDecimals) ?? 10000000n * (10n ** BigInt(inputDecimals));
+  
+  if (!values.amount) {
+    errors.amount = "Amount must be provided.";
+  } else if (amountUnits === null || amountUnits <= 0n) {
+    errors.amount = `Amount must be between 0 and 10,000,000`;
+  } else if (amountUnits > maxUnits) {
+    errors.amount = `Amount must be between 0 and 10,000,000`;
   }
 
   const dueDate = toUnixTimestamp(values.dueDate);
-  if (dueDate === null) {
+  const maxDueDateInSeconds = nowInSeconds + (365 * 24 * 60 * 60);
+  if (!values.dueDate) {
+    errors.dueDate = "Select a valid due date.";
+  } else if (dueDate === null) {
     errors.dueDate = "Select a valid due date.";
   } else if (dueDate <= nowInSeconds) {
-    errors.dueDate = "Due date must be in the future.";
+    errors.dueDate = "Due date must be in the future";
+  } else if (dueDate > maxDueDateInSeconds) {
+    errors.dueDate = "Due date cannot exceed 365 days";
   }
 
   const discountRateBps = parseDiscountRateToBps(values.discountRate);
-  if (discountRateBps === null) {
-    errors.discountRate = `Discount rate must be between 0.01% and ${MAX_DISCOUNT_RATE_PERCENT}%.`;
+  if (!values.discountRate) {
+    errors.discountRate = "Discount rate must be provided.";
+  } else if (discountRateBps === null || discountRateBps < 100) {
+    errors.discountRate = `Discount rate must be between 1% and 50%`;
   }
 
   if (!values.tokenId.trim()) {
