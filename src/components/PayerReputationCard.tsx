@@ -65,7 +65,7 @@ export default function PayerReputationCard({ address, refreshTrigger }: PayerRe
           >
             <span className="material-symbols-outlined text-[18px] text-on-surface-variant">info</span>
             {showTooltip && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 rounded-lg bg-surface-container-high p-3 shadow-lg text-xs text-on-surface border border-outline-variant/20">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[200] w-48 rounded-lg bg-surface-container-high p-3 shadow-lg text-xs text-on-surface border border-outline-variant/20">
                 Your score affects whether LPs are willing to fund your invoices
               </div>
             )}

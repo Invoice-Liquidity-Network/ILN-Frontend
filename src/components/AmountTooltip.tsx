@@ -142,7 +142,7 @@ export function AmountTooltip({ breakdown, children, className = "" }: AmountToo
         <span
           role="tooltip"
           data-testid="amount-tooltip-content"
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 min-w-[220px] rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-sm"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[200] min-w-[220px] rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-sm"
         >
           <table className="w-full border-collapse">
             <tbody>

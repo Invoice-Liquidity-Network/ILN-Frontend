@@ -64,6 +64,15 @@
   --font-label: "Avenir Next", Manrope, "Segoe UI", sans-serif;
 }
 
+/* z-index layers:
+ * 50   — navbar, dropdowns
+ * 60   — shortcuts modal
+ * 100  — dialogs / modals
+ * 200  — tooltips (must float above open dialogs)
+ * 9999 — onboarding spotlight
+ * 10000 — critical overlays (LP onboarding, feedback widget)
+ */
+
 :root {
   --background: #fff8f3;
   --foreground: #221a0f;
@@ -73,6 +82,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
+}
+
+/* Smooth colour transition when user switches theme */
+[data-theme-transition],
+[data-theme-transition] *,
+[data-theme-transition] *::before,
+[data-theme-transition] *::after {
+  transition-property: color, background-color, border-color;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
 }
 
 @media (max-width: 640px) {
