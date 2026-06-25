@@ -60,7 +60,7 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
       {open && (
         <div
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-surface-container-highest rounded-xl shadow-xl border border-outline-variant p-4 text-sm animate-in fade-in zoom-in duration-150"
+          className="absolute z-[200] bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-surface-container-highest rounded-xl shadow-xl border border-outline-variant p-4 text-sm animate-in fade-in zoom-in duration-150"
         >
           {/* Caret */}
           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-surface-container-highest border-r border-b border-outline-variant rotate-45" />

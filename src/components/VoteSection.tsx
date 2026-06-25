@@ -16,27 +16,55 @@ interface VoteSectionProps {
   votingPower: number;
 }
 
+const VOTE_STYLES: Record<VoteChoice, { base: string; active: string; icon: string }> = {
+  For: {
+    base: "border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10",
+    active: "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20",
+    icon: "thumb_up",
+  },
+  Against: {
+    base: "border-red-500/40 text-red-500 hover:bg-red-500/10",
+    active: "bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20",
+    icon: "thumb_down",
+  },
+  Abstain: {
+    base: "border-outline text-on-surface-variant hover:bg-surface-container-high",
+    active: "bg-outline text-white border-outline shadow-lg",
+    icon: "do_not_disturb",
+  },
+};
+
 function VoteButton({
-  label,
-  colorClass,
-  onClick,
+  choice,
+  selected,
   disabled,
   loading,
+  onClick,
 }: {
-  label: string;
-  colorClass: string;
-  onClick: () => void;
+  choice: VoteChoice;
+  selected: boolean;
   disabled: boolean;
   loading: boolean;
+  onClick: () => void;
 }) {
+  const s = VOTE_STYLES[choice];
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex-1 rounded-2xl border px-5 py-4 text-sm font-semibold transition-all duration-200 ${colorClass} ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+      className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 active:scale-95
+        ${selected ? s.active : s.base}
+        ${disabled && !selected ? "opacity-40 cursor-not-allowed" : ""}
+      `}
     >
-      {loading ? "Voting…" : label}
+      <span
+        className="material-symbols-outlined text-[20px]"
+        style={selected ? { fontVariationSettings: "'FILL' 1" } : undefined}
+      >
+        {s.icon}
+      </span>
+      {loading && !selected ? "Voting…" : choice}
     </button>
   );
 }
@@ -90,11 +118,7 @@ export default function VoteSection({
       </div>
 
       <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-5 space-y-4">
-        {alreadyVoted ? (
-          <div className="text-sm text-on-surface-variant">
-            You voted <span className="font-semibold text-on-surface">{userVote}</span>.
-          </div>
-        ) : !isConnected ? (
+        {!isConnected ? (
           <div className="space-y-3">
             <p className="text-sm text-on-surface-variant">Connect your wallet to cast a vote.</p>
             <button
@@ -112,23 +136,19 @@ export default function VoteSection({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-on-surface-variant">
-              {alreadyVoted ? "Your vote is recorded." : "Select a stance below to vote."}
+              {alreadyVoted ? "Your vote has been recorded." : "Select a stance below to vote."}
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <VoteButton
-                label="Vote For"
-                colorClass="border-emerald-500 text-emerald-500 hover:bg-emerald-500/10"
-                onClick={() => onVote("For")}
-                disabled={voteDisabled}
-                loading={voteLoading}
-              />
-              <VoteButton
-                label="Vote Against"
-                colorClass="border-red-500 text-red-500 hover:bg-red-500/10"
-                onClick={() => onVote("Against")}
-                disabled={voteDisabled}
-                loading={voteLoading}
-              />
+            <div className="grid grid-cols-3 gap-2">
+              {(["For", "Against", "Abstain"] as VoteChoice[]).map((choice) => (
+                <VoteButton
+                  key={choice}
+                  choice={choice}
+                  selected={alreadyVoted && userVote === choice}
+                  disabled={alreadyVoted || voteDisabled}
+                  loading={voteLoading}
+                  onClick={() => onVote(choice)}
+                />
+              ))}
             </div>
           </div>
         )}
