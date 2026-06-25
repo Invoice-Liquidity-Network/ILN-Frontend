@@ -48,7 +48,7 @@ describe("LPDashboard onboarding", () => {
   it("shows onboarding for first-time LPs without funded positions", async () => {
     render(<LPDashboard />);
 
-    expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /welcome to iln/i })).toBeInTheDocument();
   });
 
   it("persists onboarding completion and does not show again", async () => {
@@ -57,7 +57,7 @@ describe("LPDashboard onboarding", () => {
     render(<LPDashboard />);
 
     await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: /how it works/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: /welcome to iln/i })).not.toBeInTheDocument();
     });
   });
 });
