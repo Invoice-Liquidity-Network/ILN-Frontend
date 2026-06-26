@@ -26,6 +26,8 @@ interface InvoiceMarketplaceCardProps {
   payerOracleVerified?: boolean;
   auctionMeta?: AuctionMeta;
   minReputation?: number;
+  isBookmarked?: boolean;
+  onBookmark?: (id: string, bookmarked: boolean) => void;
 }
 
 function yieldPercent(amount: bigint, discountRate: number): string {
@@ -45,6 +47,8 @@ export default function InvoiceMarketplaceCard({
   payerOracleVerified = false,
   auctionMeta,
   minReputation = 0,
+  isBookmarked = false,
+  onBookmark,
 }: InvoiceMarketplaceCardProps) {
   const [override, setOverride] = useState(false);
   const token = tokenMap.get(invoice.token ?? "") ?? defaultToken;
