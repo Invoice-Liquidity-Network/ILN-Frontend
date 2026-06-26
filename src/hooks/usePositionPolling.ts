@@ -146,6 +146,10 @@ export function usePositionPolling({
     };
 
     const onActivity = () => { lastActivity.current = Date.now(); };
+    const onVisibility = () => {
+      window.clearTimeout(timerId);
+      schedule();
+    };
 
     evaluateInvoices(invoicesRef.current);
     schedule();
@@ -153,12 +157,14 @@ export function usePositionPolling({
     document.addEventListener("mousemove", onActivity, { passive: true });
     document.addEventListener("keydown", onActivity, { passive: true });
     document.addEventListener("click", onActivity, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       window.clearTimeout(timerId);
       document.removeEventListener("mousemove", onActivity);
       document.removeEventListener("keydown", onActivity);
       document.removeEventListener("click", onActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [address, addToast, addNotification]);
 }
