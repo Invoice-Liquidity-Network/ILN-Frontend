@@ -10,6 +10,8 @@ import DynamicInvoicePdfButton from "@/components/DynamicInvoicePdfButton";
 import ShareInvoiceButton from "@/components/ShareInvoiceButton";
 import MarkPaidButton from "@/components/MarkPaidButton";
 import LPTransferModal from "@/components/LPTransferModal";
+import FundConfirmModal from "@/components/FundConfirmModal";
+import DisputeInvoiceModal from "@/components/DisputeInvoiceModal";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
 import InvoiceNftCard from "@/components/InvoiceNftCard";
@@ -30,6 +32,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showFund, setShowFund] = useState(false);
+  const [showDispute, setShowDispute] = useState(false);
   const invoiceId = BigInt(id);
 
   const fetchInvoice = useCallback(async () => {
@@ -109,6 +113,18 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <>
                   {/* Each action self-guards on role + status, so only the
                       button relevant to the connected wallet renders. */}
+                  {invoice.status === "Pending" &&
+                  invoice.freelancer.toLowerCase() !== address.toLowerCase() &&
+                  invoice.payer.toLowerCase() !== address.toLowerCase() ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowFund(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary shadow-sm transition-colors hover:bg-primary/90"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">payments</span>
+                      Fund
+                    </button>
+                  ) : null}
                   <CancelInvoiceButton
                     invoice={invoice}
                     walletAddress={address}
@@ -119,6 +135,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     walletAddress={address}
                     onPaid={(paid) => setInvoice(paid)}
                   />
+                  {invoice.status === "Funded" && invoice.payer.toLowerCase() === address.toLowerCase() ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDispute(true)}
+                      className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
+                    >
+                      Raise Dispute
+                    </button>
+                  ) : null}
                   {invoice.funder &&
                   invoice.funder.toLowerCase() === address.toLowerCase() &&
                   invoice.status === "Funded" ? (
@@ -184,6 +209,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           <ActivityFeed invoiceId={invoiceId} />
         </div>
       </section>
+      {showFund ? (
+        <FundConfirmModal
+          invoice={invoice}
+          onClose={() => setShowFund(false)}
+          onSuccess={() => {
+            setShowFund(false);
+            void fetchInvoice();
+          }}
+        />
+      ) : null}
+      {showDispute ? (
+        <DisputeInvoiceModal
+          invoice={invoice}
+          onClose={() => setShowDispute(false)}
+          onSuccess={() => {
+            setShowDispute(false);
+            void fetchInvoice();
+          }}
+        />
+      ) : null}
       {showTransfer ? (
         <LPTransferModal
           invoice={invoice}
