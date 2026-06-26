@@ -1,477 +1,236 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import { Download, AlertTriangle, TrendingUp, Shield } from "lucide-react";
-import { Invoice } from "@/utils/soroban";
-import { PayerScore } from "@/utils/risk";
-import { useRiskAnalysis } from "@/hooks/useRiskAnalysis";
-import { formatAddress, formatTokenAmount } from "@/utils/format";
-import {
-  InvoiceRiskDetail,
-  RiskTrendData,
-  RISK_FACTOR_EXPLANATIONS,
-} from "@/utils/riskCalculations";
+import { useMemo } from "react";
+import type { Invoice } from "@/utils/soroban";
+import { formatTokenAmount } from "@/utils/format";
+
+interface RiskMetrics {
+  positionsAtRisk: number;
+  capitalAtRisk: bigint;
+  disputedPositions: number;
+  totalPositions: number;
+  totalCapital: bigint;
+}
 
 interface LPRiskSummaryPanelProps {
   invoices: Invoice[];
-  payerScores: Map<string, PayerScore> | null;
-  isLoading?: boolean;
+  onFilterByRisk: (filterType: "at-risk" | "disputed" | "all") => void;
 }
 
-const RISK_COLORS: Record<string, string> = {
-  Low: "#10b981",
-  Medium: "#f59e0b",
-  High: "#ef4444",
-  Unknown: "#6b7280",
-};
+export default function LPRiskSummaryPanel({ invoices, onFilterByRisk }: LPRiskSummaryPanelProps) {
+  const riskMetrics = useMemo((): RiskMetrics => {
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + (24 * 60 * 60 * 1000);
 
-export default function LPRiskSummaryPanel({
-  invoices,
-  payerScores,
-  isLoading = false,
-}: LPRiskSummaryPanelProps) {
-  const { invoiceRisks, portfolioMetrics, trendData } = useRiskAnalysis({
-    invoices,
-    payerScores,
-  });
+    let positionsAtRisk = 0;
+    let capitalAtRisk = 0n;
+    let disputedPositions = 0;
+    let totalCapital = 0n;
 
-  const [expandedInvoices, setExpandedInvoices] = useState<Set<string>>(
-    new Set(),
-  );
-  const [sortKey, setSortKey] = useState<"risk" | "amount" | "age">("risk");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    invoices.forEach((invoice) => {
+      const dueDate = Number(invoice.due_date) * 1000;
+      const isNearExpiry = dueDate <= twentyFourHoursFromNow && dueDate > now;
+      const isOverdue = dueDate <= now;
+      const isDisputed = invoice.status === "Disputed";
+      const isFunded = invoice.status === "Funded" || isDisputed;
 
-  const sortedInvoiceRisks = useMemo(() => {
-    const sorted = [...invoiceRisks];
-    sorted.sort((a, b) => {
-      let aValue: number, bValue: number;
+      if (isFunded) {
+        totalCapital += invoice.amount;
 
-      switch (sortKey) {
-        case "risk":
-          aValue = a.riskScore;
-          bValue = b.riskScore;
-          break;
-        case "amount":
-          aValue = Number(a.amount);
-          bValue = Number(b.amount);
-          break;
-        case "age":
-          aValue = a.riskFactors.fundingAge;
-          bValue = b.riskFactors.fundingAge;
-          break;
+        if (isDisputed) {
+          disputedPositions++;
+          capitalAtRisk += invoice.amount;
+        } else if (isNearExpiry || isOverdue) {
+          positionsAtRisk++;
+          capitalAtRisk += invoice.amount;
+        }
       }
-
-      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
     });
-    return sorted;
-  }, [invoiceRisks, sortKey, sortOrder]);
 
-  const riskDistribution = useMemo(() => {
-    return [
-      {
-        name: "Low",
-        value: portfolioMetrics.lowRiskCount,
-        color: RISK_COLORS.Low,
-      },
-      {
-        name: "Medium",
-        value: portfolioMetrics.mediumRiskCount,
-        color: RISK_COLORS.Medium,
-      },
-      {
-        name: "High",
-        value: portfolioMetrics.highRiskCount,
-        color: RISK_COLORS.High,
-      },
-      {
-        name: "Unknown",
-        value: portfolioMetrics.unknownRiskCount,
-        color: RISK_COLORS.Unknown,
-      },
-    ].filter((d) => d.value > 0);
-  }, [portfolioMetrics]);
-
-  const handleExportPDF = async () => {
-    // Generate PDF export
-    const reportData = {
-      generatedAt: new Date().toISOString(),
-      portfolioOverview: {
-        totalInvoices: invoiceRisks.length,
-        totalFunded: portfolioMetrics.totalFunded,
-        averageRiskScore: portfolioMetrics.averageRiskScore,
-        riskDistribution: {
-          low: portfolioMetrics.lowRiskCount,
-          medium: portfolioMetrics.mediumRiskCount,
-          high: portfolioMetrics.highRiskCount,
-        },
-      },
-      invoiceRisks: sortedInvoiceRisks,
-      trendData: trendData,
+    return {
+      positionsAtRisk,
+      capitalAtRisk,
+      disputedPositions,
+      totalPositions: invoices.filter(inv => inv.status === "Funded" || inv.status === "Disputed").length,
+      totalCapital,
     };
+  }, [invoices]);
 
-    // Create a simple CSV/JSON export for now (PDF would require additional library)
-    const jsonStr = JSON.stringify(reportData, (_, value) =>
-      typeof value === "bigint" ? value.toString() : value,
-    );
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `risk-report-${new Date().toISOString().split("T")[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const getRiskLevel = (value: number, total: number): "low" | "medium" | "high" => {
+    if (total === 0) return "low";
+    const percentage = (value / total) * 100;
+    if (percentage >= 20) return "high";
+    if (percentage >= 10) return "medium";
+    return "low";
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-surface-container-low rounded-lg border border-surface-container-high p-6 animate-pulse">
-        <div className="h-8 bg-surface-container-high rounded w-1/3 mb-4" />
-        <div className="space-y-3">
-          <div className="h-20 bg-surface-container-high rounded" />
-          <div className="h-20 bg-surface-container-high rounded" />
-        </div>
-      </div>
-    );
+  const getCapitalRiskLevel = (atRisk: bigint, total: bigint): "low" | "medium" | "high" => {
+    if (total === 0n) return "low";
+    const percentage = Number((atRisk * 100n) / total);
+    if (percentage >= 25) return "high";
+    if (percentage >= 15) return "medium";
+    return "low";
+  };
+
+  const positionRiskLevel = getRiskLevel(
+    riskMetrics.positionsAtRisk + riskMetrics.disputedPositions,
+    riskMetrics.totalPositions
+  );
+  const capitalRiskLevel = getCapitalRiskLevel(riskMetrics.capitalAtRisk, riskMetrics.totalCapital);
+  const disputeRiskLevel = getRiskLevel(riskMetrics.disputedPositions, riskMetrics.totalPositions);
+
+  const getRiskColor = (level: "low" | "medium" | "high") => {
+    switch (level) {
+      case "low": return "text-green-600 bg-green-50 border-green-200";
+      case "medium": return "text-orange-600 bg-orange-50 border-orange-200";
+      case "high": return "text-red-600 bg-red-50 border-red-200";
+    }
+  };
+
+  const getRiskIcon = (level: "low" | "medium" | "high") => {
+    switch (level) {
+      case "low": return "check_circle";
+      case "medium": return "warning";
+      case "high": return "error";
+    }
+  };
+
+  if (riskMetrics.totalPositions === 0) {
+    return null; // Don't show panel if no funded positions
   }
 
   return (
-    <div className="space-y-6">
-      {/* Portfolio Overview */}
-      <div className="bg-surface-container-low rounded-lg border border-surface-container-high p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
+    <div className="bg-surface-container-lowest rounded-2xl shadow-lg border border-outline-variant/10 p-6 mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">shield</span>
             Risk Summary
-          </h2>
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-3 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-            aria-label="Export risk report"
-          >
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
+          </h3>
+          <p className="text-sm text-on-surface-variant mt-1">
+            Overview of your portfolio risk exposure
+          </p>
         </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <div className="text-xs font-medium text-on-surface-variant mb-1">
-              Total Invoices
-            </div>
-            <div className="text-2xl font-bold">{invoiceRisks.length}</div>
-          </div>
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <div className="text-xs font-medium text-on-surface-variant mb-1">
-              Avg Risk Score
-            </div>
-            <div className="text-2xl font-bold">
-              {portfolioMetrics.averageRiskScore.toFixed(1)}
-            </div>
-            <div className="text-xs text-on-surface-variant mt-1">
-              out of 100
-            </div>
-          </div>
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <div className="text-xs font-medium text-on-surface-variant mb-1">
-              High Risk
-            </div>
-            <div className="text-2xl font-bold text-red-600">
-              {portfolioMetrics.highRiskCount}
-            </div>
-            <div className="text-xs text-on-surface-variant mt-1">
-              {invoiceRisks.length > 0
-                ? (
-                    (portfolioMetrics.highRiskCount / invoiceRisks.length) *
-                    100
-                  ).toFixed(0)
-                : 0}
-              %
-            </div>
-          </div>
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <div className="text-xs font-medium text-on-surface-variant mb-1">
-              Total Funded
-            </div>
-            <div className="text-2xl font-bold">
-              ${(Number(portfolioMetrics.totalFunded) / 1e7).toFixed(2)}
-            </div>
-            <div className="text-xs text-on-surface-variant mt-1">USDC</div>
-          </div>
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          {/* Risk Distribution Pie Chart */}
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <h3 className="text-sm font-semibold mb-4">Risk Distribution</h3>
-            {riskDistribution.length > 0 ? (
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={riskDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {riskDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "none",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-on-surface-variant">
-                No risk data available
-              </div>
-            )}
-          </div>
-
-          {/* Historical Trend Chart */}
-          <div className="bg-surface rounded-lg p-4 border border-surface-container-high">
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Risk Trend (30 Days)
-            </h3>
-            {trendData.length > 0 ? (
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11 }}
-                      interval={Math.floor(trendData.length / 4)}
-                    />
-                    <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "none",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="averageRisk"
-                      stroke={RISK_COLORS.Medium}
-                      strokeWidth={2}
-                      dot={false}
-                      name="Avg Risk Score"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-on-surface-variant">
-                No trend data available
-              </div>
-            )}
-          </div>
+        <div className="text-right">
+          <div className="text-sm text-on-surface-variant">Last updated</div>
+          <div className="text-sm font-medium">{new Date().toLocaleTimeString()}</div>
         </div>
       </div>
 
-      {/* Per-Invoice Risk Breakdown */}
-      <div className="bg-surface-container-low rounded-lg border border-surface-container-high p-6">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-amber-500" />
-          Per-Invoice Risk Breakdown
-        </h3>
-
-        {/* Sort Controls */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {(["risk", "amount", "age"] as const).map((key) => (
-            <button
-              key={key}
-              onClick={() => {
-                if (sortKey === key) {
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                } else {
-                  setSortKey(key);
-                  setSortOrder("desc");
-                }
-              }}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                sortKey === key
-                  ? "bg-primary text-on-primary"
-                  : "bg-surface hover:bg-surface-container-high text-on-surface"
-              }`}
-            >
-              Sort by {key.charAt(0).toUpperCase() + key.slice(1)}{" "}
-              {sortKey === key && (sortOrder === "asc" ? "↑" : "↓")}
-            </button>
-          ))}
-        </div>
-
-        {/* Invoice Risk Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-surface-container-high text-on-surface-variant text-xs font-semibold uppercase">
-                <th className="text-left py-3 px-3">Invoice ID</th>
-                <th className="text-left py-3 px-3">Payer</th>
-                <th className="text-left py-3 px-3">Amount</th>
-                <th className="text-center py-3 px-3">Risk Score</th>
-                <th className="text-center py-3 px-3">Risk Level</th>
-                <th className="text-center py-3 px-3">Factors</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedInvoiceRisks.map((risk) => {
-                const isExpanded = expandedInvoices.has(risk.id.toString());
-                return (
-                  <React.Fragment key={risk.id.toString()}>
-                    <tr className="border-b border-surface-container-high hover:bg-surface-container-high/50 transition-colors">
-                      <td className="py-3 px-3 font-mono text-xs">
-                        #{risk.id.toString()}
-                      </td>
-                      <td className="py-3 px-3 text-xs">
-                        {formatAddress(risk.freelancer)}
-                      </td>
-                      <td className="py-3 px-3 text-xs font-semibold">
-                        ${(Number(risk.amount) / 1e7).toFixed(2)}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span className="font-semibold">
-                          {risk.riskScore.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className="px-2 py-1 rounded-full text-xs font-semibold"
-                          style={{
-                            backgroundColor: RISK_COLORS[risk.riskLevel] + "20",
-                            color: RISK_COLORS[risk.riskLevel],
-                          }}
-                        >
-                          {risk.riskLevel}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          onClick={() => {
-                            const newSet = new Set(expandedInvoices);
-                            if (newSet.has(risk.id.toString())) {
-                              newSet.delete(risk.id.toString());
-                            } else {
-                              newSet.add(risk.id.toString());
-                            }
-                            setExpandedInvoices(newSet);
-                          }}
-                          className="text-primary hover:underline text-xs font-semibold"
-                        >
-                          {isExpanded ? "Hide" : "Show"}
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* Expanded Risk Factors */}
-                    {isExpanded && (
-                      <tr className="bg-surface-container-high/30 border-b border-surface-container-high">
-                        <td colSpan={6} className="py-4 px-6">
-                          <div className="grid md:grid-cols-3 gap-4">
-                            <div className="bg-surface rounded-lg p-3 border border-surface-container-high">
-                              <div className="text-xs font-semibold text-on-surface-variant mb-1">
-                                On-Time Payment Rate
-                              </div>
-                              <div className="text-lg font-bold mb-2">
-                                {risk.riskFactors.onTimePaymentRate.toFixed(1)}%
-                              </div>
-                              <p className="text-xs text-on-surface-variant">
-                                {RISK_FACTOR_EXPLANATIONS.onTimePaymentRate}
-                              </p>
-                            </div>
-
-                            <div className="bg-surface rounded-lg p-3 border border-surface-container-high">
-                              <div className="text-xs font-semibold text-on-surface-variant mb-1">
-                                Default Count
-                              </div>
-                              <div className="text-lg font-bold mb-2">
-                                {risk.riskFactors.defaultCount}
-                              </div>
-                              <p className="text-xs text-on-surface-variant">
-                                {RISK_FACTOR_EXPLANATIONS.defaultCount}
-                              </p>
-                            </div>
-
-                            <div className="bg-surface rounded-lg p-3 border border-surface-container-high">
-                              <div className="text-xs font-semibold text-on-surface-variant mb-1">
-                                Funding Age
-                              </div>
-                              <div className="text-lg font-bold mb-2">
-                                {risk.riskFactors.fundingAge} days
-                              </div>
-                              <p className="text-xs text-on-surface-variant">
-                                {RISK_FACTOR_EXPLANATIONS.fundingAge}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {sortedInvoiceRisks.length === 0 && (
-          <div className="text-center py-12 text-on-surface-variant">
-            <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No invoices to analyze yet.</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Positions at Risk */}
+        <button
+          onClick={() => onFilterByRisk("at-risk")}
+          className={`p-4 rounded-xl border-2 transition-all hover:shadow-md text-left ${getRiskColor(positionRiskLevel)}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="material-symbols-outlined text-2xl">
+              {getRiskIcon(positionRiskLevel)}
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wide opacity-80">
+              {positionRiskLevel} risk
+            </span>
           </div>
-        )}
-      </div>
-
-      {/* Risk Factor Explanations */}
-      <div className="bg-surface-container-low rounded-lg border border-surface-container-high p-6">
-        <h3 className="text-lg font-bold mb-4">Understanding Risk Factors</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          {Object.entries(RISK_FACTOR_EXPLANATIONS).map(
-            ([factor, explanation]) => (
-              <div
-                key={factor}
-                className="bg-surface rounded-lg p-4 border border-surface-container-high"
-              >
-                <h4 className="font-semibold mb-2 capitalize">
-                  {factor.replace(/([A-Z])/g, " $1").trim()}
-                </h4>
-                <p className="text-sm text-on-surface-variant">{explanation}</p>
-              </div>
-            ),
+          <div className="text-2xl font-bold mb-1">
+            {riskMetrics.positionsAtRisk}
+          </div>
+          <div className="text-sm font-medium mb-1">
+            Positions at Risk
+          </div>
+          <div className="text-xs opacity-80">
+            Disputed or expiring within 24h
+          </div>
+          {riskMetrics.positionsAtRisk > 0 && (
+            <div className="mt-2 text-xs font-medium">
+              Click to filter →
+            </div>
           )}
-        </div>
+        </button>
+
+        {/* Capital at Risk */}
+        <button
+          onClick={() => onFilterByRisk("at-risk")}
+          className={`p-4 rounded-xl border-2 transition-all hover:shadow-md text-left ${getRiskColor(capitalRiskLevel)}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="material-symbols-outlined text-2xl">
+              {getRiskIcon(capitalRiskLevel)}
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wide opacity-80">
+              {capitalRiskLevel} risk
+            </span>
+          </div>
+          <div className="text-2xl font-bold mb-1">
+            {formatTokenAmount(riskMetrics.capitalAtRisk, { decimals: 7, symbol: "USDC" })}
+          </div>
+          <div className="text-sm font-medium mb-1">
+            Capital at Risk
+          </div>
+          <div className="text-xs opacity-80">
+            {riskMetrics.totalCapital > 0n 
+              ? `${Number((riskMetrics.capitalAtRisk * 100n) / riskMetrics.totalCapital)}% of portfolio`
+              : "0% of portfolio"
+            }
+          </div>
+          {riskMetrics.capitalAtRisk > 0n && (
+            <div className="mt-2 text-xs font-medium">
+              Click to filter →
+            </div>
+          )}
+        </button>
+
+        {/* Disputed Positions */}
+        <button
+          onClick={() => onFilterByRisk("disputed")}
+          className={`p-4 rounded-xl border-2 transition-all hover:shadow-md text-left ${getRiskColor(disputeRiskLevel)}`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="material-symbols-outlined text-2xl">
+              {getRiskIcon(disputeRiskLevel)}
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wide opacity-80">
+              {disputeRiskLevel} risk
+            </span>
+          </div>
+          <div className="text-2xl font-bold mb-1">
+            {riskMetrics.disputedPositions}
+          </div>
+          <div className="text-sm font-medium mb-1">
+            Disputed Positions
+          </div>
+          <div className="text-xs opacity-80">
+            Positions under dispute
+          </div>
+          {riskMetrics.disputedPositions > 0 && (
+            <div className="mt-2 text-xs font-medium">
+              Click to filter →
+            </div>
+          )}
+        </button>
       </div>
+
+      {/* Additional Risk Insights */}
+      {(riskMetrics.positionsAtRisk > 0 || riskMetrics.disputedPositions > 0) && (
+        <div className="mt-6 p-4 bg-surface-container-low rounded-xl">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-orange-600 mt-0.5">info</span>
+            <div>
+              <div className="font-medium text-on-surface mb-1">Risk Management Recommendations</div>
+              <ul className="text-sm text-on-surface-variant space-y-1">
+                {riskMetrics.positionsAtRisk > 0 && (
+                  <li>• Monitor positions nearing expiry for payment status</li>
+                )}
+                {riskMetrics.disputedPositions > 0 && (
+                  <li>• Review disputed positions and consider resolution actions</li>
+                )}
+                {capitalRiskLevel === "high" && (
+                  <li>• Consider diversifying portfolio to reduce concentration risk</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

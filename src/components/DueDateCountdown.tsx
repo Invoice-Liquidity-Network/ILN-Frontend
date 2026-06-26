@@ -40,8 +40,8 @@ function formatTimeDisplay(time: TimeRemaining): {
 } {
   if (time.isOverdue) {
     return {
-      text: `Overdue by ${time.days}d ${time.hours}h`,
-      className: "text-red-500 font-semibold",
+      text: "Expired",
+      className: "inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600",
       shouldPulse: false,
     };
   }
@@ -67,10 +67,10 @@ function formatTimeDisplay(time: TimeRemaining): {
     };
   }
 
-  // More than 7 days: "X days Y hrs" with default color
+  // More than 7 days: "X days Y hrs" with green color
   return {
     text: `${days}d ${time.hours}h`,
-    className: "text-on-surface font-medium",
+    className: "text-green-500 font-semibold",
     shouldPulse: false,
   };
 }
@@ -129,7 +129,7 @@ export default function DueDateCountdown({
         {/* Tooltip */}
         {isTooltipVisible && (
           <div
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-dim text-on-surface text-xs rounded-lg shadow-lg border border-outline-variant/20 whitespace-nowrap z-50"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-dim text-on-surface text-xs rounded-lg shadow-lg border border-outline-variant/20 whitespace-nowrap z-[200]"
             role="tooltip"
           >
             <div className="font-semibold mb-0.5">Due Date</div>

@@ -5,10 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import VoteSection from "@/components/VoteSection";
 import VoteProgressBar from "@/components/VoteProgressBar";
+import QuorumProgressBar from "@/components/QuorumProgressBar";
 import { GOVERNANCE_ADMIN_ADDRESS } from "@/constants";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useTransaction } from "@/hooks/useTransaction";
 import { hashEvidence } from "@/utils/evidence";
 import {
     Proposal,
@@ -24,6 +28,25 @@ import {
     totalVotes,
     vetoProposal,
 } from "@/utils/governance";
+
+function formatRelativeCountdown(seconds: number): string {
+  if (seconds <= 0) return "Ready to execute";
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h remaining`;
+  if (hours > 0) return `${hours}h ${minutes}m remaining`;
+  return `${minutes}m remaining`;
+}
+
+function executionEffect(proposal: Proposal): string | null {
+  if (!proposal.parameterChanges?.length) return null;
+  if (proposal.parameterChanges.length === 1) {
+    const change = proposal.parameterChanges[0];
+    return `${change.parameter.replace(/_/g, " ")} updated to ${change.newValue}`;
+  }
+  return `${proposal.parameterChanges.length} protocol parameters were updated.`;
+}
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -66,54 +89,6 @@ function TypePill({ type }: { type: Proposal["type"] }) {
       <span className="material-symbols-outlined text-[14px]">{icon}</span>
       {text}
     </span>
-  );
-}
-
-// ─── Vote button ──────────────────────────────────────────────────────────────
-
-function VoteButton({
-  choice,
-  selected,
-  disabled,
-  onClick,
-}: {
-  choice: VoteChoice;
-  selected: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const styles: Record<VoteChoice, { base: string; active: string; icon: string }> = {
-    For: {
-      base: "border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10",
-      active: "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20",
-      icon: "thumb_up",
-    },
-    Against: {
-      base: "border-red-500/40 text-red-500 hover:bg-red-500/10",
-      active: "bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20",
-      icon: "thumb_down",
-    },
-    Abstain: {
-      base: "border-outline text-on-surface-variant hover:bg-surface-container-high",
-      active: "bg-outline text-white border-outline shadow-lg",
-      icon: "do_not_disturb",
-    },
-  };
-  const s = styles[choice];
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border-2 font-semibold text-sm transition-all duration-200 active:scale-95
-        ${selected ? s.active : s.base}
-        ${disabled ? "opacity-40 cursor-not-allowed" : ""}
-      `}
-    >
-      <span className="material-symbols-outlined text-[22px]" style={selected ? { fontVariationSettings: "'FILL' 1" } : {}}>
-        {s.icon}
-      </span>
-      {choice}
-    </button>
   );
 }
 
@@ -213,23 +188,21 @@ function VetoProposalModal({
 export default function ProposalDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { address, isConnected, connect } = useWallet();
+  const { address, isConnected, connect, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: isVoting, signingModal } = useTransaction();
 
   const proposalId = Number(params.id);
 
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [votingPower, setVotingPower] = useState<number>(0);
-  const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
-  const [isVoting, setIsVoting] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [vetoModalOpen, setVetoModalOpen] = useState(false);
   const [vetoReason, setVetoReason] = useState("");
   const [vetoReasonHash, setVetoReasonHash] = useState("");
   const [isVetoing, setIsVetoing] = useState(false);
-
-  const { signTx } = useWallet();
+  useDocumentTitle({ pageTitle: proposal?.title ?? `Proposal #${proposalId}` });
 
   const load = useCallback(async () => {
     const data = await fetchProposal(proposalId);
@@ -253,28 +226,21 @@ export default function ProposalDetailPage() {
     }
   }, [isConnected, address]);
 
-  const handleVote = async () => {
-    if (!selectedVote || !proposal || !address) return;
+  const handleVote = async (choice: VoteChoice) => {
+    if (!proposal || !address) return;
 
-    setIsVoting(true);
-    const toastId = addToast({ type: "pending", title: `Casting vote: ${selectedVote}…` });
-    try {
-      const txHash = await castVote(proposal.id, selectedVote, address, signTx);
-      updateToast(toastId, {
-        type: "success",
-        title: "Vote submitted",
-        txHash,
-      });
-      // Re-fetch to reflect updated counts
+    const result = await execute(
+      async (signTx) => castVote(proposal.id, choice, address, signTx),
+      {
+        title: `Casting vote: ${choice}…`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Vote submitted",
+        successMessage: `Your ${choice.toLowerCase()} vote has been recorded.`,
+      }
+    );
+
+    if (result) {
       await load();
-    } catch (err) {
-      updateToast(toastId, {
-        type: "error",
-        title: "Vote failed",
-        message: err instanceof Error ? err.message : "Transaction rejected",
-      });
-    } finally {
-      setIsVoting(false);
     }
   };
 
@@ -282,24 +248,20 @@ export default function ProposalDetailPage() {
     if (!proposal || !address) return;
 
     setIsExecuting(true);
-    const toastId = addToast({ type: "pending", title: "Executing proposal…" });
-    try {
-      const txHash = await executeProposal(proposal.id, address, signTx);
-      updateToast(toastId, {
-        type: "success",
-        title: "Proposal executed",
-        txHash,
-      });
+    const result = await execute(
+      async (signTx) => executeProposal(proposal.id, address, signTx),
+      {
+        title: "Executing proposal…",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Proposal executed",
+        successMessage: "The proposal has been successfully executed.",
+      }
+    );
+
+    if (result) {
       await load();
-    } catch (err) {
-      updateToast(toastId, {
-        type: "error",
-        title: "Execution failed",
-        message: err instanceof Error ? err.message : "Transaction rejected",
-      });
-    } finally {
-      setIsExecuting(false);
     }
+    setIsExecuting(false);
   };
 
   const handleVetoReasonChange = async (reason: string) => {
@@ -351,13 +313,17 @@ export default function ProposalDetailPage() {
   const alreadyVoted = !!proposal?.userVote;
   const isActive = proposal?.status === "Active";
   const isPassed = proposal?.status === "Passed";
-  const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0;
   const isAdmin = !!address && address === GOVERNANCE_ADMIN_ADDRESS;
-  const voteButtonsDisabled = !canVote || isVoting;
+  const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0;
 
   const remaining = proposal ? timeRemaining(proposal) : "";
   const total = proposal ? totalVotes(proposal) : 0;
   const quorum = proposal ? quorumReached(proposal) : false;
+  const now = Math.floor(Date.now() / 1000);
+  const timelockRemaining = proposal?.status === "Passed" && proposal.executableAfter && proposal.executableAfter > now
+    ? formatRelativeCountdown(proposal.executableAfter - now)
+    : "";
+  const executionSummary = proposal ? executionEffect(proposal) : null;
 
   // ─── Loading skeleton ───────────────────────────────────────────────────────
 
@@ -498,27 +464,17 @@ export default function ProposalDetailPage() {
 
             {/* ─── Right: Voting panel ──────────────────────────────────────── */}
             <div className="space-y-5">
-              {/* Vote breakdown */}
-              <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6">
-                <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[20px]">bar_chart</span>
-                  Vote Breakdown
-                </h2>
-                <p className="text-xs text-on-surface-variant mb-5">
-                  {total.toLocaleString()} ILN total &middot;{" "}
-                  {quorum ? (
-                    <span className="text-emerald-500">Quorum reached</span>
-                  ) : (
-                    <span className="text-amber-500">Quorum not yet reached</span>
-                  )}
-                </p>
-                <VoteProgressBar
-                  votesFor={proposal.votesFor}
-                  votesAgainst={proposal.votesAgainst}
-                  votesAbstain={proposal.votesAbstain}
-                  quorumRequired={proposal.quorumRequired}
-                />
-              </div>
+              <VoteSection
+                proposal={proposal}
+                isConnected={isConnected}
+                alreadyVoted={alreadyVoted}
+                userVote={proposal.userVote}
+                onVote={handleVote}
+                voteLoading={isVoting}
+                canVote={canVote}
+                connect={connect}
+                votingPower={votingPower}
+              />
 
               {/* Time remaining */}
               {isActive && remaining && (
@@ -528,6 +484,36 @@ export default function ProposalDetailPage() {
                     <p className="text-sm font-semibold text-amber-500">Voting in progress</p>
                     <p className="text-xs text-on-surface-variant">{remaining}</p>
                   </div>
+                </div>
+              )}
+
+              {isPassed && proposal?.executableAfter && (
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-3">
+                  <div className="flex items-center gap-3 text-primary">
+                    <span className="material-symbols-outlined text-[20px]">schedule</span>
+                    <p className="text-sm font-semibold">Timelock status</p>
+                  </div>
+
+                  {timelockRemaining ? (
+                    <div>
+                      <p className="text-sm font-semibold">Timelock expires in</p>
+                      <p className="text-xs text-on-surface-variant">{timelockRemaining}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold">Timelock expired</p>
+                      <p className="text-xs text-on-surface-variant">
+                        The execution delay has passed. Anyone can now execute this proposal on-chain.
+                      </p>
+                      <button
+                        onClick={handleExecute}
+                        disabled={isExecuting}
+                        className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 active:scale-95 transition-all shadow-md disabled:opacity-50"
+                      >
+                        {isExecuting ? "Executing…" : "Execute Proposal"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -554,80 +540,6 @@ export default function ProposalDetailPage() {
                   </button>
                 )}
               </div>
-
-              {/* Cast vote */}
-              {isActive && (
-                <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 space-y-4">
-                  <div>
-                    <h2 className="text-base font-semibold mb-0.5">Cast Your Vote</h2>
-                    {alreadyVoted ? (
-                      <p className="text-xs text-on-surface-variant">
-                        You voted{" "}
-                        <span
-                          className={`font-bold ${
-                            proposal.userVote === "For"
-                              ? "text-emerald-500"
-                              : proposal.userVote === "Against"
-                              ? "text-red-500"
-                              : "text-on-surface-variant"
-                          }`}
-                        >
-                          {proposal.userVote}
-                        </span>
-                      </p>
-                    ) : !isConnected ? (
-                      <p className="text-xs text-on-surface-variant">Connect your wallet to vote.</p>
-                    ) : votingPower === 0 ? (
-                      <p className="text-xs text-on-surface-variant">
-                        You need ILN tokens to vote.
-                      </p>
-                    ) : (
-                      <p className="text-xs text-on-surface-variant">Select your stance below.</p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    {(["For", "Against", "Abstain"] as VoteChoice[]).map((choice) => (
-                      <VoteButton
-                        key={choice}
-                        choice={choice}
-                        selected={
-                          alreadyVoted
-                            ? proposal.userVote === choice
-                            : selectedVote === choice
-                        }
-                        disabled={voteButtonsDisabled || alreadyVoted}
-                        onClick={() => !alreadyVoted && setSelectedVote(choice)}
-                      />
-                    ))}
-                  </div>
-
-                  {!alreadyVoted && isConnected && votingPower > 0 && (
-                    <button
-                      onClick={handleVote}
-                      disabled={!selectedVote || isVoting}
-                      className={`w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                        selectedVote && !isVoting
-                          ? "bg-primary text-white hover:bg-primary/90 shadow-md"
-                          : "bg-surface-container text-on-surface-variant cursor-not-allowed"
-                      }`}
-                    >
-                      {isVoting ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="animate-spin material-symbols-outlined text-[16px]">
-                            progress_activity
-                          </span>
-                          Submitting…
-                        </span>
-                      ) : selectedVote ? (
-                        `Confirm: Vote ${selectedVote}`
-                      ) : (
-                        "Select a choice above"
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
 
               {/* Execute button (Passed proposals) */}
               {isPassed && (
@@ -669,16 +581,21 @@ export default function ProposalDetailPage() {
 
               {/* Executed state */}
               {proposal.status === "Executed" && (
-                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 px-5 py-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-purple-500" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    verified
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-purple-500">Executed on-chain</p>
-                    <p className="text-xs text-on-surface-variant">
-                      Changes are live on the protocol.
-                    </p>
+                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 px-5 py-4 space-y-3">
+                  <div className="flex items-center gap-3 text-purple-500">
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      verified
+                    </span>
+                    <p className="text-sm font-semibold">Already executed</p>
                   </div>
+                  <p className="text-xs text-on-surface-variant">
+                    Changes are live on the protocol.
+                  </p>
+                  {executionSummary && (
+                    <div className="rounded-2xl border border-purple-500/10 bg-purple-500/10 p-3 text-sm text-purple-700">
+                      {executionSummary}
+                    </div>
+                  )}
                 </div>
               )}
 

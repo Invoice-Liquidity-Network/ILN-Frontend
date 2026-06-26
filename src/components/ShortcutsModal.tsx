@@ -1,5 +1,7 @@
 "use client";
 
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+
 type Shortcut = {
   keys: string[];
   description: string;
@@ -62,19 +64,22 @@ export default function ShortcutsModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose}>
+    <div ref={modalRef} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
       <div
         className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Keyboard shortcuts</h2>
+          <h2 id="shortcuts-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">Keyboard shortcuts</h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close modal"
             className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
           >
             Esc

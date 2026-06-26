@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
@@ -14,9 +16,11 @@ import {
 } from "@/hooks/useInvoiceFilters";
 import { useInvoices } from "@/hooks/useInvoices";
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from "./SkeletonRow";
+import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 
 import {
   claimDefault,
+  claimInsurance,
   getAllInvoices,
   getTokenAllowance,
   Invoice,
@@ -36,26 +40,36 @@ import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
+import LPEarningsHistory from "./LPEarningsHistory";
 import LastUpdated from "./LastUpdated";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import FundConfirmModal from "./FundConfirmModal";
+import DisputeInvoiceModal from "./DisputeInvoiceModal";
+import LPTransferModal from "./LPTransferModal";
+import DynamicYieldAnalyticsChart from "./DynamicYieldAnalyticsChart";
+import LPYieldComparison from "./LPYieldComparison";
+import LPSettingsModal from "./LPSettingsModal";
+import LPOnboardingModal from "./LPOnboardingModal";
+import ErrorBoundary from "./ErrorBoundary";
+import { useLPSettings } from "@/hooks/useLPSettings";
 import type { DataTableColumn } from "./DataTable";
+import { NEXT_PUBLIC_INSURANCE_POOL_ENABLED } from "@/constants";
+import InsurancePoolPanel from "./InsurancePoolPanel";
+import { useInsurance } from "@/hooks/useInsurance";
 
-type Tab = "discovery" | "my-funded" | "watchlist";
+type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
 
 export default function LPDashboard() {
   const router = useRouter();
-  const { address, connect, signTx } = useWallet();
+  const { address, connect } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const { t, i18n } = useTranslation();
-  const getLocale = () => (i18n.language === "es" ? "es-ES" : "en-US");
-
-  const {
-    data: invoices = [],
-    isLoading: loading,
-    dataUpdatedAt,
-  } = useInvoices();
+  const { isEnrolled: isEnrolledInInsurance } = useInsurance();
+  const getLocale = () => i18n.language === "es" ? "es-ES" : "en-US";
+  
+  const { data: invoices = [], isLoading: loading, dataUpdatedAt, refetch } = useInvoices();
 
   const [activeTab, setActiveTab] = useState<Tab>("discovery");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -66,10 +80,16 @@ export default function LPDashboard() {
     "amount",
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(
-    null,
-  );
+  const [claimingInvoiceId, setClaimingInvoiceId] = useState<string | null>(null);
+  const [claimingInsuranceId, setClaimingInsuranceId] = useState<string | null>(null);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [disputeInvoice, setDisputeInvoice] = useState<Invoice | null>(null);
+  const [transferInvoice, setTransferInvoice] = useState<Invoice | null>(null);
+  const [showLpOnboarding, setShowLpOnboarding] = useState(false);
+  const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [overriddenInvoiceIds, setOverriddenInvoiceIds] = useState<string[]>([]);
+  const { settings } = useLPSettings();
 
   const { filters, setFilters, clearFilters, activeFilterCount } =
     useInvoiceFilters({ namespace: "lpInvoices" });
@@ -172,30 +192,54 @@ export default function LPDashboard() {
     }
 
     setClaimingInvoiceId(invoice.id.toString());
-    const toastId = addToast({
-      type: "pending",
-      title: `Claiming default for #${invoice.id.toString()}...`,
-    });
-    try {
-      const tx = await claimDefault(address, invoice.id);
-      const result = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, {
-        type: "success",
-        title: "Default claimed",
-        txHash: result.txHash,
-      });
-      // useInvoices will auto-poll or we could invalidate here
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to claim default.";
-      updateToast(toastId, {
-        type: "error",
-        title: "Claim failed",
-        message,
-      });
-    } finally {
-      setClaimingInvoiceId(null);
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await claimDefault(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Claiming default for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Default claimed",
+        successMessage: `Default claim for invoice #${invoice.id.toString()} succeeded.`,
+      }
+    );
+
+    setClaimingInvoiceId(null);
+    if (!result) {
+      // ensure claim button resets even when user rejects or transaction fails
+      return;
     }
+  };
+
+  const handleClaimInsurance = async (invoice: Invoice) => {
+    if (!address) {
+      await connect();
+      return;
+    }
+
+    setClaimingInsuranceId(invoice.id.toString());
+
+    const result = await execute(
+      async (signTx) => {
+        const { claimInsurance } = await import("@/utils/soroban");
+        const tx = await claimInsurance(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Filing insurance claim for #${invoice.id.toString()}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Claim Filed",
+        successMessage: `Insurance claim for invoice #${invoice.id.toString()} has been submitted.`,
+      }
+    );
+
+    setClaimingInsuranceId(null);
+  };
+
+  const handleRiskFilter = (filterType: "at-risk" | "disputed" | "all") => {
+    setRiskFilter(filterType);
   };
 
   const filteredInvoices = useMemo(
@@ -207,8 +251,9 @@ export default function LPDashboard() {
           );
           return token?.symbol ?? "USDC";
         },
+        payerScores,
       }),
-    [defaultToken?.contractId, filters, invoices, tokenMap],
+    [defaultToken?.contractId, filters, invoices, tokenMap, payerScores],
   );
 
   const sortedInvoices = useMemo(
@@ -240,6 +285,73 @@ export default function LPDashboard() {
   );
   const myFundedInvoices = sortedInvoices.filter((i) => i.funder === address);
 
+  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a: any, b: any) => {
+    if (sortKey === "risk") {
+      const ra = RISK_SORT_ORDER[payerRisks.get(a.payer) ?? "Unknown"];
+      const rb = RISK_SORT_ORDER[payerRisks.get(b.payer) ?? "Unknown"];
+      return sortOrder === "asc" ? ra - rb : rb - ra;
+    }
+    if (sortKey === "yield") {
+      const ay = calculateYield(a.amount, a.discount_rate);
+      const by = calculateYield(b.amount, b.discount_rate);
+      if (ay < by) return sortOrder === "asc" ? -1 : 1;
+      if (ay > by) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    }
+    const aVal = a[sortKey];
+    const bVal = b[sortKey];
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  }), [filteredInvoices, sortKey, sortOrder, payerRisks]);
+
+  const discoveryInvoices = sortedInvoices.filter(i => i.status === "Pending");
+  
+  const myFundedInvoicesBase = sortedInvoices.filter(i => i.funder === address);
+  const myFundedInvoices = useMemo(() => {
+    if (riskFilter === "all") return myFundedInvoicesBase;
+    
+    const now = Date.now();
+    const twentyFourHoursFromNow = now + (24 * 60 * 60 * 1000);
+    
+    return myFundedInvoicesBase.filter(invoice => {
+      if (riskFilter === "disputed") {
+        return invoice.status === "Disputed";
+      }
+      
+      if (riskFilter === "at-risk") {
+        const dueDate = Number(invoice.due_date) * 1000;
+        const isNearExpiry = dueDate <= twentyFourHoursFromNow && dueDate > now;
+        const isOverdue = dueDate <= now;
+        const isDisputed = invoice.status === "Disputed";
+        
+        return isDisputed || isNearExpiry || isOverdue;
+      }
+      
+      return true;
+    });
+  }, [myFundedInvoicesBase, riskFilter]);
+
+  useEffect(() => {
+    if (!address || loading) {
+      setShowLpOnboarding(false);
+      return;
+    }
+
+    const storageKey = `iln_lp_onboarding_completed_${address}`;
+    const hasCompleted = localStorage.getItem(storageKey);
+    const shouldShowOnboarding = myFundedInvoicesBase.length === 0 && !hasCompleted;
+
+    setShowLpOnboarding(shouldShowOnboarding);
+  }, [address, loading, myFundedInvoicesBase.length]);
+
+  const handleCloseLpOnboarding = () => {
+    if (address) {
+      localStorage.setItem(`iln_lp_onboarding_completed_${address}`, "true");
+    }
+    setShowLpOnboarding(false);
+  };
+  
   const watchlistInvoices = sortedInvoices
     .filter((i) => watchlist.some((w) => w.id === i.id.toString()))
     .map((i) => {
@@ -307,11 +419,13 @@ export default function LPDashboard() {
       sortable: false,
       renderCell: (inv: Invoice) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium">
+          <Link href={`/profile/${inv.freelancer}`} className="text-sm font-medium text-primary hover:underline">
             {formatAddress(inv.freelancer)}
-          </span>
+          </Link>
           <span className="text-[10px] text-on-surface-variant">
-            Payer: {formatAddress(inv.payer)}
+            Payer: <Link href={`/profile/${inv.payer}`} className="font-mono text-on-surface hover:underline">
+              {formatAddress(inv.payer)}
+            </Link>
           </span>
         </div>
       ),
@@ -352,7 +466,7 @@ export default function LPDashboard() {
       label: "Est. Yield",
       sortable: false,
       renderCell: (inv) => (
-        <span className="font-bold text-green-600">
+        <span className="font-bold text-green-600 dark:text-green-400">
           <TokenAwareAmount
             amount={calculateYield(inv.amount, inv.discount_rate)}
             invoice={inv}
@@ -386,9 +500,7 @@ export default function LPDashboard() {
           <button
             onClick={(e) => handleWatchlistToggle(inv.id, e)}
             className={`p-2 rounded-full transition-colors ${
-              isInWatchlist(inv.id)
-                ? "text-red-500 hover:bg-red-50"
-                : "text-on-surface-variant hover:bg-surface-variant/50"
+              isInWatchlist(inv.id) ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" : "text-on-surface-variant hover:bg-surface-variant/50"
             }`}
             title={
               isInWatchlist(inv.id)
@@ -438,7 +550,7 @@ export default function LPDashboard() {
         <div className="flex items-center justify-end gap-2 text-right">
           <button
             onClick={(e) => handleWatchlistToggle(inv.id, e)}
-            className="p-2 rounded-full transition-colors text-red-500 hover:bg-red-50"
+            className="p-2 rounded-full transition-colors text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
             title="Remove from watchlist"
           >
             <span
@@ -483,10 +595,8 @@ export default function LPDashboard() {
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant/10 min-h-[500px]">
-      <div
-        data-testid="lp-dashboard-header"
-        className="p-6 border-b border-surface-dim flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-      >
+      {signingModal}
+      <div data-testid="lp-dashboard-header" className="p-6 border-b border-surface-dim flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">
@@ -538,6 +648,16 @@ export default function LPDashboard() {
           >
             {t("lpDashboard.tabs.myFunded")}
           </button>
+          <button
+            onClick={() => setActiveTab("earnings-history")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === "earnings-history"
+                ? "bg-primary text-surface-container-lowest shadow-md"
+                : "text-on-surface-variant hover:bg-surface-variant/30"
+            }`}
+          >
+            Earnings History
+          </button>
         </div>
 
         {selectedInvoiceIds.length >= 2 && (
@@ -571,83 +691,116 @@ export default function LPDashboard() {
           activeFilterCount={activeFilterCount}
         />
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+        >
+          <span className="material-symbols-outlined text-sm">settings</span>
+          Risk Settings
+        </button>
       </div>
 
       {activeTab === "my-funded" ? (
         <>
-          <LPPortfolio
-            invoices={myFundedInvoices}
-            isLoading={loading}
-            onClaimDefault={handleClaimDefault}
-            claimingInvoiceId={claimingInvoiceId}
-            tokenMap={tokenMap}
-            defaultToken={defaultToken}
-          />
-          {/* Risk Summary Panel */}
-          <div className="px-6 py-6 border-t border-surface-dim bg-surface-container-lowest">
-            <LPRiskSummaryPanel
-              invoices={myFundedInvoices}
-              payerScores={payerScores}
+          <div className="px-6 pt-4 flex flex-col gap-4">
+            <DynamicYieldAnalyticsChart
+              invoices={invoices}
+              lpAddress={address ?? ""}
               isLoading={loading}
             />
+            {address ? (
+              <LPYieldComparison
+                invoices={invoices}
+                lpAddress={address}
+                isLoading={loading}
+              />
+            ) : null}
           </div>
+          <div className="px-6">
+            <LPRiskSummaryPanel 
+              invoices={myFundedInvoicesBase}
+              onFilterByRisk={handleRiskFilter}
+            />
+            {riskFilter !== "all" && (
+              <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">filter_alt</span>
+                  <span className="font-medium">
+                    Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
+                  </span>
+                </div>
+                <button
+                  onClick={() => setRiskFilter("all")}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
+            {NEXT_PUBLIC_INSURANCE_POOL_ENABLED && (
+              <div className="mb-6">
+                <InsurancePoolPanel />
+              </div>
+            )}
+          </div>
+          <ErrorBoundary onRetry={() => void refetch()}>
+            <LPPortfolio
+              invoices={myFundedInvoices}
+              isLoading={loading}
+              onClaimDefault={handleClaimDefault}
+              onClaimInsurance={handleClaimInsurance}
+              claimingInvoiceId={claimingInvoiceId}
+              claimingInsuranceId={claimingInsuranceId}
+              tokenMap={tokenMap}
+              defaultToken={defaultToken}
+              onTransfer={(inv) => setTransferInvoice(inv)}
+              isEnrolledInInsurance={isEnrolledInInsurance}
+            />
+          </ErrorBoundary>
         </>
+      ) : activeTab === "earnings-history" ? (
+        <LPEarningsHistory
+          invoices={invoices}
+          tokenMap={tokenMap}
+          defaultToken={defaultToken}
+          walletAddress={address || null}
+        />
       ) : (
+        <ErrorBoundary onRetry={() => void refetch()}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-surface-container-low border-b border-surface-dim">
               <tr>
-                <th className="px-6 py-4 w-10">
-                  <span className="sr-only">Select</span>
-                </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" aria-label="Select" className="px-6 py-4 w-10"><span className="sr-only">Select</span></th>
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   ID
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   Freelancer
                 </th>
-                <th
-                  className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group"
-                  onClick={() => toggleSort("amount")}
-                >
-                  {t("lpDashboard.tableHeaders.amount")}{" "}
-                  {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("amount")}>
+                  {t("lpDashboard.tableHeaders.amount")} {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th
-                  className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group"
-                  onClick={() => toggleSort("discount_rate")}
-                >
-                  {t("lpDashboard.tableHeaders.discount")}{" "}
-                  {sortKey === "discount_rate" &&
-                    (sortOrder === "asc" ? "↑" : "↓")}
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("discount_rate")}>
+                  {t("lpDashboard.tableHeaders.discount")} {sortKey === "discount_rate" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th
-                  className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group"
-                  onClick={() => toggleSort("due_date")}
-                >
-                  {t("lpDashboard.tableHeaders.dueDate")}{" "}
-                  {sortKey === "due_date" && (sortOrder === "asc" ? "↑" : "↓")}
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer group" onClick={() => toggleSort("due_date")}>
+                  {t("lpDashboard.tableHeaders.dueDate")} {sortKey === "due_date" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                   Est. Yield
                 </th>
                 {activeTab === "watchlist" && (
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">
                     Added
                   </th>
                 )}
                 {activeTab === "discovery" && (
-                  <th
-                    className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer"
-                    onClick={() => toggleSort("risk")}
-                  >
-                    {t("lpDashboard.tableHeaders.risk")}{" "}
-                    {sortKey === "risk" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th scope="col" className="px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider cursor-pointer" onClick={() => toggleSort("risk")}>
+                    {t("lpDashboard.tableHeaders.risk")} {sortKey === "risk" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
                 )}
-                <th className="px-6 py-4">
-                  <span className="sr-only">Actions</span>
-                </th>
+                <th scope="col" aria-label="Actions" className="px-6 py-4"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-dim">
@@ -681,14 +834,16 @@ export default function LPDashboard() {
                   </td>
                 </tr>
               ) : (
-                (activeTab === "discovery"
-                  ? discoveryInvoices
-                  : watchlistInvoices
-                ).map((invoice: any, index: number) => (
-                  <tr
-                    key={invoice.id.toString()}
-                    className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? "bg-primary/5" : ""}`}
-                  >
+                (activeTab === "discovery" ? discoveryInvoices : watchlistInvoices).map((invoice: any, index: number) => {
+                  const pScore = payerScores.get(invoice.payer)?.score ?? 100;
+                  const isBelowThreshold = pScore < settings.minReputation && !overriddenInvoiceIds.includes(invoice.id.toString());
+
+                  return (
+                    <tr 
+                      key={invoice.id.toString()} 
+                      className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                      onClick={() => !isBelowThreshold && handleFund(invoice)}
+                    >
                     <td className="px-6 py-5">
                       <input
                         type="checkbox"
@@ -706,12 +861,14 @@ export default function LPDashboard() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">
+                        <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-medium text-primary hover:underline">
                           {formatAddress(invoice.freelancer)}
-                        </span>
+                        </Link>
                         <span className="text-[10px] text-on-surface-variant">
                           {t("lpDashboard.tableHeaders.payer")}:{" "}
-                          {formatAddress(invoice.payer)}
+                          <Link href={`/profile/${invoice.payer}`} className="font-mono text-on-surface hover:underline">
+                            {formatAddress(invoice.payer)}
+                          </Link>
                         </span>
                       </div>
                     </td>
@@ -728,19 +885,9 @@ export default function LPDashboard() {
                         {(invoice.discount_rate / 100).toFixed(2)}%
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-sm">
-                      {formatDate(invoice.due_date)}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-green-600">
-                      <TokenAwareAmount
-                        amount={calculateYield(
-                          invoice.amount,
-                          invoice.discount_rate,
-                        )}
-                        invoice={invoice}
-                        tokenMap={tokenMap}
-                        defaultToken={defaultToken}
-                      />
+                    <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
+                    <td className="px-6 py-5 font-bold text-green-600 dark:text-green-400">
+                      <TokenAwareAmount amount={calculateYield(invoice.amount, invoice.discount_rate)} invoice={invoice} tokenMap={tokenMap} defaultToken={defaultToken} />
                     </td>
                     {activeTab === "watchlist" && (
                       <td className="px-6 py-5 text-xs text-on-surface-variant">
@@ -761,7 +908,7 @@ export default function LPDashboard() {
                           onClick={(e) => handleWatchlistToggle(invoice.id, e)}
                           className={`p-2 rounded-full transition-colors ${
                             isInWatchlist(invoice.id)
-                              ? "text-red-500 hover:bg-red-50"
+                              ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
                               : "text-on-surface-variant hover:bg-surface-variant/50"
                           }`}
                           title={
@@ -781,7 +928,17 @@ export default function LPDashboard() {
                             bookmark
                           </span>
                         </button>
-                        {activeTab === "discovery" ? (
+                        {isBelowThreshold ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOverriddenInvoiceIds(prev => [...prev, invoice.id.toString()]);
+                            }}
+                            className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
+                          >
+                            Fund Anyway
+                          </button>
+                        ) : activeTab === "discovery" ? (
                           <button
                             id={index === 0 ? "fund-button" : undefined}
                             onClick={() => handleFund(invoice)}
@@ -790,6 +947,15 @@ export default function LPDashboard() {
                             Fund
                           </button>
                         ) : (
+                          <>
+                            {invoice.status === "Funded" && address && invoice.payer === address && (
+                              <button
+                                onClick={() => setDisputeInvoice(invoice)}
+                                className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
+                              >
+                                Raise Dispute
+                              </button>
+                            )}
                           <div className="flex flex-col items-end gap-1">
                             <InvoiceStatusBadge status={invoice.status} />
                             {invoice.status !== "Pending" && (
@@ -801,15 +967,18 @@ export default function LPDashboard() {
                               </span>
                             )}
                           </div>
+                          </>
                         )}
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+        </ErrorBoundary>
       )}
 
       <div className="flex justify-end border-t border-surface-dim bg-surface-container-low/30">
@@ -817,6 +986,15 @@ export default function LPDashboard() {
       </div>
 
       {/* Confirmation Modal */}
+      <LPOnboardingModal
+        isOpen={showLpOnboarding}
+        onClose={handleCloseLpOnboarding}
+        onGoToMarketplace={() => {
+          handleCloseLpOnboarding();
+          router.push("/marketplace");
+        }}
+      />
+
       <FundConfirmModal
         invoice={selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
@@ -824,6 +1002,24 @@ export default function LPDashboard() {
           setSelectedInvoice(null);
         }}
       />
+
+      {/* Dispute Modal */}
+      {disputeInvoice && (
+        <DisputeInvoiceModal
+          invoice={disputeInvoice}
+          onClose={() => setDisputeInvoice(null)}
+          onSuccess={() => setDisputeInvoice(null)}
+        />
+      )}
+
+      {/* LP Transfer Modal */}
+      {transferInvoice && (
+        <LPTransferModal
+          invoice={transferInvoice}
+          onClose={() => setTransferInvoice(null)}
+          onSuccess={() => setTransferInvoice(null)}
+        />
+      )}
     </div>
   );
 }

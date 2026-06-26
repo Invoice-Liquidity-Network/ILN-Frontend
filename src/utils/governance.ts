@@ -18,6 +18,15 @@ export interface ParameterChange {
   newValue: string;
 }
 
+export interface VoteCastEvent {
+  proposalId: number;
+  proposalTitle: string;
+  voter: string;
+  vote: VoteChoice;
+  weight: number;
+  timestamp: number;
+}
+
 export interface Proposal {
   id: number;
   title: string;
@@ -158,6 +167,28 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 3_600,
     quorumRequired: 100_000,
   },
+  {
+    id: 7,
+    title: "Lower Protocol Fee Rate to 0.3%",
+    description:
+      "Reduce the protocol fee from 0.5% to 0.3% to pass more value back to liquidity providers and improve the protocol's competitiveness ahead of mainnet.",
+    type: "ParameterUpdate",
+    status: "Executed",
+    proposer: "GQRST...U8VW",
+    createdAt: NOW - 9 * DAY,
+    votingStartsAt: NOW - 9 * DAY,
+    votingEndsAt: NOW - 2 * DAY,
+    // Executed roughly 8 hours ago — recent enough to surface in the
+    // homepage / marketplace announcement banner (48h window).
+    executableAfter: NOW - Math.floor(DAY / 3),
+    votesFor: 173_200,
+    votesAgainst: 18_900,
+    votesAbstain: 4_700,
+    quorumRequired: 100_000,
+    parameterChanges: [
+      { parameter: "fee_rate_bps", currentValue: "50 (0.5%)", newValue: "30 (0.3%)" },
+    ],
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -292,6 +323,44 @@ export async function getVotingPower(_address: string): Promise<number> {
   // TODO: Fetch from ILN token contract once deployed
   await new Promise((r) => setTimeout(r, 200));
   return 1250; // mock: 1,250 ILN tokens
+}
+
+export async function getDelegationInfo(address: string): Promise<{
+  delegatedTo: string | null;
+  delegatedAmount: number;
+  incomingDelegations: number;
+}> {
+  // Mock implementation - replace with actual Soroban calls
+  // In a real implementation, this would query the governance contract
+  await new Promise((r) => setTimeout(r, 150));
+  
+  // Simulate some users having delegations
+  const mockDelegations = {
+    "GABC123": {
+      delegatedTo: "GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+      delegatedAmount: 500,
+      incomingDelegations: 0,
+    },
+    "GDEF456": {
+      delegatedTo: null,
+      delegatedAmount: 0,
+      incomingDelegations: 1200,
+    },
+  };
+
+  const shortAddress = address.slice(0, 7);
+  const mockData = mockDelegations[shortAddress as keyof typeof mockDelegations];
+  
+  if (mockData) {
+    return mockData;
+  }
+
+  // Default: no delegation
+  return {
+    delegatedTo: null,
+    delegatedAmount: 0,
+    incomingDelegations: Math.floor(Math.random() * 500), // Random incoming delegations for demo
+  };
 }
 
 // ─── Proposal creation ────────────────────────────────────────────────────────
@@ -509,4 +578,123 @@ export async function createProposal(
     txHash: Math.random().toString(16).substring(2, 18),
     proposalId: newId,
   };
+}
+
+// ─── Parameter change announcements (#153) ────────────────────────────────────
+
+/**
+ * A single applied protocol-parameter change, suitable for surfacing in an
+ * announcement banner. Mirrors the data a `ParameterUpdated` contract event
+ * would carry.
+ */
+export interface ParameterUpdateEvent {
+  /** Stable id used for per-event dismissal (`{proposalId}:{parameter}`). */
+  id: string;
+  /** The governance proposal that enacted this change (for deep-linking). */
+  proposalId: number;
+  /** Raw on-chain parameter key, e.g. `fee_rate_bps`. */
+  parameter: string;
+  /** Human-readable parameter name, e.g. "Protocol fee rate". */
+  label: string;
+  /** Formatted new value as shown on the proposal, e.g. "30 (0.3%)". */
+  newValue: string;
+  /** Unix seconds when the change took effect (proposal execution time). */
+  updatedAt: number;
+}
+
+/** Human-readable labels for known protocol parameters. */
+const PARAMETER_LABELS: Record<string, string> = {
+  fee_rate_bps: "Protocol fee rate",
+  base_discount_rate: "Base discount rate",
+  max_discount_rate_bps: "Maximum discount rate",
+  quorum_threshold_bps: "Quorum threshold",
+  voting_period_seconds: "Voting period",
+  accepted_tokens: "Accepted tokens",
+  min_invoice_amount: "Minimum invoice amount",
+  reputation_threshold: "Reputation threshold",
+};
+
+/** Map a raw parameter key to a friendly label, falling back to a prettified key. */
+export function parameterLabel(parameter: string): string {
+  return PARAMETER_LABELS[parameter] ?? parameter.replace(/_/g, " ");
+}
+
+/**
+ * Fetch the protocol parameter changes that have been enacted, newest first.
+ *
+ * Derived from executed `ParameterUpdate` proposals. Consumers (e.g. the
+ * {@link ParameterUpdateBanner}) decide how recent a change must be to surface.
+ *
+ * TODO: Replace with a Soroban `getEvents` subscription for `ParameterUpdated`
+ * contract events once the governance contract is deployed.
+ */
+export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
+  const proposals = await fetchProposals();
+
+  return proposals
+    .filter((p) => p.status === "Executed" && p.parameterChanges?.length)
+    .flatMap((p) => {
+      // Execution time: when the proposal became executable, else when voting ended.
+      const updatedAt = p.executableAfter ?? p.votingEndsAt;
+      return (p.parameterChanges ?? []).map((change) => ({
+        id: `${p.id}:${change.parameter}`,
+        proposalId: p.id,
+        parameter: change.parameter,
+        label: parameterLabel(change.parameter),
+        newValue: change.newValue,
+        updatedAt,
+      }));
+    })
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+// ─── Governance Activity ──────────────────────────────────────────────────────
+
+export const MOCK_VOTES: VoteCastEvent[] = [
+  {
+    proposalId: 1,
+    proposalTitle: "Reduce Base Discount Rate to 3.5%",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 1.5 * DAY,
+  },
+  {
+    proposalId: 3,
+    proposalTitle: "Add EURC as Accepted Invoice Currency",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 10 * DAY,
+  },
+  {
+    proposalId: 4,
+    proposalTitle: "Extend Voting Period to 10 Days",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "Against",
+    weight: 1250,
+    timestamp: NOW - 25 * DAY,
+  },
+  {
+    proposalId: 7,
+    proposalTitle: "Lower Protocol Fee Rate to 0.3%",
+    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    vote: "For",
+    weight: 1250,
+    timestamp: NOW - 5 * DAY,
+  },
+];
+
+/**
+ * Fetch governance voting history for a specific address.
+ * Derived from VoteCast events.
+ */
+export async function fetchVotesForAddress(address: string): Promise<VoteCastEvent[]> {
+  await new Promise((r) => setTimeout(r, 400));
+  // In a real implementation, we would filter contract events by the voter address.
+  // For the mock, we return data if the address matches our mock voter.
+  if (address === "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ") {
+    return [...MOCK_VOTES].sort((a, b) => b.timestamp - a.timestamp);
+  }
+  return [];
 }

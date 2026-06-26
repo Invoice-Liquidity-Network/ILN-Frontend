@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -10,14 +11,24 @@ import InvoiceTimeline from "@/components/InvoiceTimeline";
 import { CONTRACT_ID, NETWORK_NAME } from "@/constants";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
+import { formatAddress, formatDate, formatUSDC, tokenAmountToNumber } from "@/utils/format";
 import { type Invoice } from "@/utils/soroban";
 import { useInvoices } from "@/hooks/useInvoices";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import LastUpdated from "@/components/LastUpdated";
 import BulkActionBar from "../components/BulkActionBar";
+import CancelInvoiceButton from "@/components/CancelInvoiceButton";
+import SkeletonRow from "@/components/SkeletonRow";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import PageHeader from "@/components/PageHeader";
 
 const STELLAR_EXPERT_CONTRACT_URL = `https://stellar.expert/explorer/${NETWORK_NAME.toLowerCase()}/contract/${CONTRACT_ID}`;
+
+/**
+ * Skeleton cell widths for the freelancer invoice table, matching its columns:
+ * select · ID · Payer · Amount · Discount · Due Date · Status · Links.
+ */
+const DASHBOARD_INVOICE_COLUMNS = ["w-4", "w-8", "w-28", "w-24", "w-16", "w-20", "w-20", "w-12"];
 
 export type FreelancerStatusFilter = "All" | "Pending" | "Funded" | "Paid" | "Defaulted" | "Cancelled";
 export type FreelancerSortKey = "amount" | "due_date";
@@ -47,6 +58,7 @@ export function applyFreelancerFiltersAndSort(
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { addToast } = useToast();
   const { address, connect, isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading, dataUpdatedAt, refetch } = useInvoices();
@@ -140,6 +152,19 @@ export default function DashboardPage() {
     [myInvoices, selectedIds]
   );
 
+  const handleInvoiceCancelled = (cancelledInvoice: Invoice) => {
+    queryClient.setQueryData<Invoice[]>(["invoices"], (current) =>
+      current?.map((invoice) =>
+        invoice.id === cancelledInvoice.id ? { ...invoice, status: "Cancelled" } : invoice,
+      ),
+    );
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.delete(cancelledInvoice.id.toString());
+      return next;
+    });
+  };
+
   const isAllPendingSelected = useMemo(() => {
     const pendingInvoices = displayedInvoices.filter(inv => inv.status === "Pending");
     if (pendingInvoices.length === 0) return false;
@@ -190,58 +215,57 @@ export default function DashboardPage() {
     <main className="min-h-screen">
       <Navbar />
       <section className="pt-32 pb-10 px-6 md:px-8 border-b border-outline-variant/10 bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Freelancer Dashboard</p>
-            <h1 className="text-3xl md:text-5xl font-headline">My Submitted Invoices</h1>
-            <p className="text-on-surface-variant mt-2">
-              Track every invoice you submitted, monitor statuses, and open the transaction context on Stellar Expert.
-            </p>
-          </div>
-          {!isConnected ? (
-            <button
-              onClick={connect}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-              <div className="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/30">
+        <div className="max-w-7xl mx-auto">
+          <PageHeader
+            breadcrumbs={[{ label: "Freelancer Dashboard" }]}
+            title="My Submitted Invoices"
+            description="Track every invoice you submitted, monitor statuses, and open the transaction context on Stellar Expert."
+            actions={
+              !isConnected ? (
                 <button
-                  onClick={() => toggleViewMode("table")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    viewMode === "table" 
-                    ? "bg-surface-container-highest text-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
-                  }`}
+                  onClick={connect}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white"
                 >
-                  <span className="material-symbols-outlined text-sm">table_rows</span>
-                  Table
+                  Connect Wallet
                 </button>
-                <button
-                  onClick={() => toggleViewMode("timeline")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    viewMode === "timeline" 
-                    ? "bg-surface-container-highest text-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm">timeline</span>
-                  Timeline
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                    <button
+                      onClick={() => toggleViewMode("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        viewMode === "table" 
+                        ? "bg-surface-container-highest text-primary shadow-sm" 
+                        : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">table_rows</span>
+                      Table
+                    </button>
+                    <button
+                      onClick={() => toggleViewMode("timeline")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        viewMode === "timeline" 
+                        ? "bg-surface-container-highest text-primary shadow-sm" 
+                        : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">timeline</span>
+                      Timeline
+                    </button>
+                  </div>
 
-              <button
-                onClick={() => void refetch()}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-4 py-2.5 text-sm font-medium text-on-surface-variant disabled:opacity-50"
-              >
-                Refresh
-              </button>
-            </div>
-          )}
+                  <button
+                    onClick={() => void refetch()}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-4 py-2.5 text-sm font-medium text-on-surface-variant disabled:opacity-50"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              )
+            }
+          />
         </div>
       </section>
 
@@ -273,8 +297,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {viewMode === "table" ? (
-            <div className="overflow-x-auto rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
+          <ErrorBoundary onRetry={() => void refetch()}>
+            {viewMode === "table" ? (
+              <div className="overflow-x-auto rounded-2xl border border-outline-variant/10 bg-surface-container-lowest">
               <table className="w-full text-left">
                 <thead className="bg-surface-container-low">
                   <tr>
@@ -315,11 +340,9 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   ) : loading && myInvoices.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-14 text-center text-on-surface-variant">
-                        Loading invoices...
-                      </td>
-                    </tr>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonRow key={i} columns={DASHBOARD_INVOICE_COLUMNS} />
+                    ))
                   ) : displayedInvoices.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-14 text-center text-on-surface-variant">
@@ -344,7 +367,9 @@ export default function DashboardPage() {
                         <td className="px-2 md:px-4 py-5 font-bold text-primary">#{invoice.id.toString()}</td>
                         <td className="px-4 md:px-6 py-5">
                           <div className="inline-flex items-center gap-2">
-                            <span className="font-mono text-sm">{formatAddress(invoice.payer)}</span>
+                            <Link href={`/profile/${invoice.payer}`} className="font-mono text-sm text-primary hover:underline">
+                              {formatAddress(invoice.payer)}
+                            </Link>
                             <button
                               onClick={() => void copyPayerAddress(invoice.payer)}
                               className="rounded border border-outline-variant/30 px-2 py-1 text-[10px] font-bold uppercase text-on-surface-variant"
@@ -390,7 +415,7 @@ export default function DashboardPage() {
                                     query: {
                                       prefill_id: invoice.id.toString(),
                                       payer: invoice.payer,
-                                      amount: (Number(invoice.amount) / 10_000_000).toString(),
+                                      amount: tokenAmountToNumber(invoice.amount).toString(),
                                       discount: (invoice.discount_rate / 100).toString(),
                                       token: invoice.token || "",
                                     }
@@ -407,6 +432,12 @@ export default function DashboardPage() {
                                   <span className="material-symbols-outlined text-[18px]">qr_code</span>
                                   Show QR code
                                 </button>
+                                <CancelInvoiceButton
+                                  invoice={invoice}
+                                  walletAddress={address}
+                                  onCancelled={handleInvoiceCancelled}
+                                  compact
+                                />
                               </div>
                             </div>
                           </div>
@@ -419,10 +450,11 @@ export default function DashboardPage() {
               <div className="flex justify-end border-t border-outline-variant/10 bg-surface-container-low/30">
                 <LastUpdated updatedAt={dataUpdatedAt} />
               </div>
-            </div>
-          ) : (
-            <InvoiceTimeline invoices={displayedInvoices} loading={loading} />
-          )}
+              </div>
+            ) : (
+              <InvoiceTimeline invoices={displayedInvoices} loading={loading} />
+            )}
+          </ErrorBoundary>
         </div>
       </section>
 

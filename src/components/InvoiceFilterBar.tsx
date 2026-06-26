@@ -17,6 +17,21 @@ type InvoiceFilterBarProps = {
 
 const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
 
+function handleStatusKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  e.preventDefault();
+  const boxes = Array.from(
+    e.currentTarget.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+  );
+  const idx = boxes.indexOf(document.activeElement as HTMLInputElement);
+  if (idx === -1) return;
+  const next =
+    e.key === "ArrowDown" || e.key === "ArrowRight"
+      ? (idx + 1) % boxes.length
+      : (idx - 1 + boxes.length) % boxes.length;
+  boxes[next]?.focus();
+}
+
 export default function InvoiceFilterBar({
   filters,
   onFiltersChange,
@@ -30,6 +45,13 @@ export default function InvoiceFilterBar({
 
   return (
     <div className={containerClass}>
+      {/* Screen reader live region — announces filter state changes */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {activeFilterCount > 0
+          ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
+          : "No filters applied"}
+      </div>
+
       <div className="flex flex-col gap-3 mb-5 md:flex-row md:items-center">
         <input
           type="search"
@@ -46,7 +68,9 @@ export default function InvoiceFilterBar({
           <button
             type="button"
             onClick={() => setIsAdvancedOpen((current) => !current)}
-            className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-3 py-2 text-sm font-medium text-on-surface-variant hover:border-primary/40 hover:text-primary"
+            aria-expanded={isAdvancedOpen}
+            aria-controls="invoice-filter-advanced"
+            className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-3 py-2 text-sm font-medium text-on-surface-variant hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             Filters
             {activeFilterCount > 0 ? (
@@ -60,7 +84,7 @@ export default function InvoiceFilterBar({
             <button
               type="button"
               onClick={onClearFilters}
-              className="text-xs font-bold uppercase tracking-wide text-primary hover:underline"
+              className="text-xs font-bold uppercase tracking-wide text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
             >
               Clear all filters
             </button>
@@ -69,11 +93,24 @@ export default function InvoiceFilterBar({
       </div>
 
       {isAdvancedOpen ? (
-        <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4">
+        <div
+          id="invoice-filter-advanced"
+          className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4"
+        >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Status</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p
+                id="status-group-label"
+                className="text-xs font-bold uppercase tracking-wide text-on-surface-variant"
+              >
+                Status
+              </p>
+              <div
+                role="group"
+                aria-labelledby="status-group-label"
+                className="grid grid-cols-2 gap-2"
+                onKeyDown={handleStatusKeyDown}
+              >
                 {INVOICE_STATUSES.map((status) => (
                   <label key={status} className="inline-flex items-center gap-2 text-xs text-on-surface">
                     <input
@@ -102,6 +139,7 @@ export default function InvoiceFilterBar({
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
+                  aria-label="Minimum amount (USDC)"
                   min="0"
                   step="0.01"
                   value={filters.minAmount}
@@ -113,6 +151,7 @@ export default function InvoiceFilterBar({
                 />
                 <input
                   type="number"
+                  aria-label="Maximum amount (USDC)"
                   min="0"
                   step="0.01"
                   value={filters.maxAmount}
@@ -150,6 +189,7 @@ export default function InvoiceFilterBar({
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
               <select
+                aria-label="Token filter"
                 value={filters.token}
                 onChange={(event) => onFiltersChange((current) => ({ ...current, token: event.target.value }))}
                 className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
@@ -168,6 +208,7 @@ export default function InvoiceFilterBar({
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
+                  aria-label="Minimum discount (bps)"
                   min="0"
                   step="1"
                   value={filters.minDiscountBps}
@@ -179,6 +220,7 @@ export default function InvoiceFilterBar({
                 />
                 <input
                   type="number"
+                  aria-label="Maximum discount (bps)"
                   min="0"
                   step="1"
                   value={filters.maxDiscountBps}
@@ -188,6 +230,38 @@ export default function InvoiceFilterBar({
                   }
                   className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Min Payer Reputation
+              </p>
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  aria-label="Minimum payer reputation"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={filters.minPayerReputation || "0"}
+                  onChange={(event) =>
+                    onFiltersChange((current) => ({ ...current, minPayerReputation: event.target.value }))
+                  }
+                  className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-xs text-on-surface-variant">
+                  <span>0</span>
+                  <span className="font-semibold text-on-surface">
+                    {filters.minPayerReputation || "0"}
+                  </span>
+                  <span>100</span>
+                </div>
+                {filters.minPayerReputation && Number(filters.minPayerReputation) > 0 && (
+                  <p className="text-xs text-on-surface-variant">
+                    Only showing invoices from payers with reputation ≥ {filters.minPayerReputation}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -114,7 +114,9 @@ export default function InvoiceTimeline({ invoices, loading }: InvoiceTimelinePr
                 </div>
                 
                 <div className="text-on-surface-variant text-sm mb-3">
-                  Payer: <span className="font-mono">{formatAddress(invoice.payer)}</span>
+                  Payer: <Link href={`/profile/${invoice.payer}`} className="font-mono text-primary hover:underline">
+                    {formatAddress(invoice.payer)}
+                  </Link>
                 </div>
 
                 <div className="flex flex-col gap-2 border-t border-outline-variant/10 pt-3 mt-3">

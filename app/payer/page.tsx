@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { DecayWarningBanner } from "@/components/DecayWarningBanner";
 import { TokenAmount, TokenIcon } from "@/components/TokenSelector";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
@@ -16,7 +17,15 @@ import {
   getAllInvoices,
   markPaid,
   submitSignedTransaction,
+  getTokenMetadata,
+  approveToken,
+  getTokenAllowance,
+  TokenMetadata,
 } from "@/utils/soroban";
+import { useTransaction } from "@/hooks/useTransaction";
+import PayerSettlementModal from "@/components/PayerSettlementModal";
+import PayerReputationCard from "@/components/PayerReputationCard";
+import PayerReminderOptIn from "@/components/payer/PayerReminderOptIn";
 
 type PayerTab = "Outstanding" | "Settled" | "Pending" | "Disputed";
 
@@ -165,6 +174,12 @@ function PayerDashboardContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const [settlementModal, setSettlementModal] = useState<{
+    invoice: Invoice;
+    token?: TokenMetadata;
+  } | null>(null);
+
+  const { execute, loading: txLoading, signingModal } = useTransaction();
   const [appealState, setAppealState] = useState<AppealState | null>(null);
 
   const loadInvoices = useCallback(async () => {
@@ -205,24 +220,51 @@ function PayerDashboardContent() {
 
   const handleSettle = async (invoice: Invoice) => {
     if (!address) return;
-    setSettlingId(invoice.id.toString());
-    const toastId = addToast({ type: "pending", title: `Settling invoice #${invoice.id}...` });
     try {
-      const tx = await markPaid(address, invoice.id);
-      const { txHash } = await submitSignedTransaction({ tx, signTx });
-      updateToast(toastId, { type: "success", title: "Invoice settled", txHash });
-      setInvoices((current) =>
-        current.map((item) => (item.id === invoice.id ? { ...item, status: "Paid" } : item)),
-      );
-    } catch (error) {
-      updateToast(toastId, {
-        type: "error",
-        title: "Settlement failed",
-        message: error instanceof Error ? error.message : "Transaction rejected",
-      });
-    } finally {
-      setSettlingId(null);
+      const token = await getTokenMetadata(invoice.token || "");
+      setSettlementModal({ invoice, token });
+    } catch {
+      setSettlementModal({ invoice });
     }
+  };
+
+  const handleConfirmSettlement = async (amount: bigint) => {
+    if (!settlementModal || !address) return;
+    const { invoice, token } = settlementModal;
+
+    await execute(
+      async (signTx) => {
+        // 1. Allowance check
+        if (token) {
+          const allowance = await getTokenAllowance({ owner: address, tokenId: token.contractId });
+          if (allowance < amount) {
+            const approveTx = await approveToken({
+              from: address,
+              amount: amount * 10n, // Approve 10x for convenience, or just exactly enough
+              tokenId: token.contractId,
+            });
+            await signTx(approveTx.toXDR());
+          }
+        }
+
+        // 2. Mark Paid
+        const tx = await markPaid(address, invoice.id, amount);
+        const { txHash } = await submitSignedTransaction({ tx, signTx });
+
+        // Update local state
+        setInvoices((current) =>
+          current.map((item) => (item.id === invoice.id ? { ...item, status: "Paid" } : item)),
+        );
+
+        return txHash;
+      },
+      {
+        title: `Settling invoice #${invoice.id}`,
+        successMessage: `Invoice #${invoice.id} has been settled successfully.`,
+      },
+    );
+
+    setSettlementModal(null);
   };
 
   const updateAppealEvidence = async (evidence: string) => {
@@ -260,9 +302,10 @@ function PayerDashboardContent() {
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">Payer Dashboard</p>
             <h1 className="mb-3 text-4xl font-headline md:text-5xl">Invoice Inbox</h1>
-            <p className="max-w-2xl text-on-surface-variant">
+            <p className="max-w-2xl text-on-surface-variant mb-6">
               Track invoices addressed to your wallet, settle funded invoices, follow disputes, and appeal defaults.
             </p>
+            <DecayWarningBanner address={address || undefined} />
           </div>
           {isConnected ? (
             <button
@@ -301,6 +344,19 @@ function PayerDashboardContent() {
                 })}
               </div>
               <p className="text-xs text-on-surface-variant">Outstanding total by token</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isConnected && (
+        <section className="px-8 pt-8">
+          <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <PayerReputationCard address={address!} />
+            </div>
+            <div>
+              <PayerReminderOptIn />
             </div>
           </div>
         </section>
@@ -386,10 +442,9 @@ function PayerDashboardContent() {
                           {activeTab === "Outstanding" && (
                             <button
                               onClick={() => handleSettle(invoice)}
-                              disabled={settlingId === invoice.id.toString()}
                               className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
                             >
-                              {settlingId === invoice.id.toString() ? "Settling..." : "Settle"}
+                              Pay Now
                             </button>
                           )}
                           {meta && (
@@ -426,6 +481,17 @@ function PayerDashboardContent() {
       </section>
 
       <Footer />
+      {signingModal}
+      {settlementModal && (
+        <PayerSettlementModal
+          invoice={settlementModal.invoice}
+          token={settlementModal.token}
+          isOpen={!!settlementModal}
+          onClose={() => setSettlementModal(null)}
+          onConfirm={handleConfirmSettlement}
+          submitting={txLoading}
+        />
+      )}
       {appealState && (
         <AppealDefaultModal
           state={appealState}

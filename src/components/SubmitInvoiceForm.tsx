@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useTokenPrice } from "@/hooks/useTokenPrice";
 import { NETWORK_NAME } from "@/constants";
 import TokenSelector, { TokenAmount } from "../components/TokenSelector";
 import FieldTooltip from "./FieldTooltip";
-import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { useTransaction } from "@/hooks/useTransaction";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import useAddressBook from "@/hooks/useAddressBook";
 import {
@@ -18,7 +21,14 @@ import {
   parseDiscountRateToBps,
   toUnixTimestamp,
 } from "@/utils/invoiceSubmission";
+import {
+  formatAmountEntryPreview,
+  getTokenInputDecimals,
+  getXlmPrecisionNote,
+  sanitizeAmountInput,
+} from "@/utils/token-amount-input";
 import { submitInvoiceTransaction } from "@/utils/soroban";
+import { useToast } from "@/context/ToastContext";
 
 const INITIAL_FORM: InvoiceFormValues = {
   payer: "",
@@ -28,6 +38,25 @@ const INITIAL_FORM: InvoiceFormValues = {
   tokenId: "",
 };
 
+type FormAction =
+  | { type: "set_field"; field: keyof InvoiceFormValues; value: string }
+  | { type: "reset"; values: InvoiceFormValues };
+
+function invoiceFormReducer(state: InvoiceFormValues, action: FormAction): InvoiceFormValues {
+  switch (action.type) {
+    case "set_field":
+      return { ...state, [action.field]: action.value };
+    case "reset":
+      return action.values;
+  }
+}
+
+const STEPS = [
+  { id: 1, label: "Invoice Details" },
+  { id: 2, label: "Token & Rate" },
+  { id: 3, label: "Review & Submit" },
+];
+
 interface SubmitInvoiceFormProps {
   initialValues?: Partial<InvoiceFormValues>;
   prefillId?: string;
@@ -35,34 +64,125 @@ interface SubmitInvoiceFormProps {
 
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
-  const { addToast, updateToast } = useToast();
-  const { address, isConnected, connect, disconnect, networkMismatch, error: walletError, signTx } = useWallet();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { addToast } = useToast();
+  const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
+  const { address, isConnected, connect, disconnect, networkMismatch, error: walletError } = useWallet();
   const { tokens, tokenMap, defaultToken, isLoading: tokensLoading, error: tokensError } = useApprovedTokens();
   
   const [showBanner, setShowBanner] = useState(!!prefillId);
-  const [form, setForm] = useState<InvoiceFormValues>({
+  const [form, dispatchForm] = useReducer(invoiceFormReducer, {
     ...INITIAL_FORM,
     ...initialValues,
     dueDate: "",
   });
+  const [touched, setTouched] = useState<Partial<Record<keyof InvoiceFormValues | "all", boolean>>>({});
+  const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Partial<Record<keyof InvoiceFormValues | "wallet" | "submit", string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  // Optional referral code — captured client-side; passed to the contract.
+  const [referralCode, setReferralCode] = useState("");
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const refParam = searchParams.get("ref");
+    if (refParam) {
+      setReferralCode(refParam);
+    }
+  }, [searchParams]);
+
+  useEffect(
+    () => () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    },
+    [],
+  );
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || "";
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
-  const preview = getYieldPreview(form.amount, form.discountRate, selectedToken?.decimals ?? 7);
-  
-  const { addressBook, searchAddresses } = useAddressBook();
+  const amountInputDecimals = getTokenInputDecimals(selectedToken?.symbol ?? "USDC");
+  const preview = getYieldPreview(form.amount, form.discountRate, amountInputDecimals);
+  const amountEntryPreview = selectedToken
+    ? formatAmountEntryPreview(form.amount, selectedToken.symbol)
+    : null;
+
+  const { usdPrice } = useTokenPrice(selectedToken?.symbol);
+  const parsedAmount = Number.parseFloat(form.amount);
+  const usdEquivalent =
+    usdPrice !== null && Number.isFinite(parsedAmount) && parsedAmount > 0
+      ? parsedAmount * usdPrice
+      : null;
+
+
+  const { searchAddresses } = useAddressBook();
   const [addressBookOpen, setAddressBookOpen] = useState(false);
   const [addressBookQuery, setAddressBookQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const validationErrors = useMemo(() => {
+    const errs = validateInvoiceForm(
+      { ...form, tokenId: effectiveTokenId },
+      isConnected,
+      selectedToken?.decimals ?? 7,
+      selectedToken?.symbol ?? "token",
+    );
+    if (!selectedToken && !tokensLoading) {
+      errs.tokenId = t("submitForm.noTokensAvailable");
+    }
+    if (networkMismatch) {
+      errs.wallet = t("submitForm.walletError", { network: NETWORK_NAME });
+    }
+    return errs;
+  }, [form, effectiveTokenId, isConnected, selectedToken, tokensLoading, networkMismatch, t]);
+
+  const displayErrors = useMemo(() => {
+    const combined = { ...errors };
+    for (const [key, val] of Object.entries(validationErrors)) {
+      if (touched[key as keyof InvoiceFormValues] || touched.all) {
+        combined[key as keyof typeof combined] = val;
+      }
+    }
+    return combined;
+  }, [validationErrors, touched, errors]);
+
+  const handleBlur = (field: keyof InvoiceFormValues) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const isStep1Valid = !validationErrors.payer && !validationErrors.amount && !validationErrors.dueDate && !validationErrors.wallet;
+  const isStep2Valid = !validationErrors.tokenId && !validationErrors.discountRate;
+  const isFormValid = isStep1Valid && isStep2Valid;
+
   const setField = (field: keyof InvoiceFormValues, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
-    setErrors((current) => ({ ...current, [field]: undefined, submit: undefined, wallet: undefined }));
+    dispatchForm({ type: "set_field", field, value });
+    setErrors((current) => ({ ...current, submit: undefined }));
     setSubmittedInvoiceId(null);
+  };
+
+  const handleAmountChange = (value: string) => {
+    setField("amount", sanitizeAmountInput(value, amountInputDecimals));
+  };
+
+  const handleTokenChange = (value: string) => {
+    setField("tokenId", value);
+    const token = tokenMap.get(value);
+    if (token && form.amount) {
+      setField("amount", sanitizeAmountInput(form.amount, getTokenInputDecimals(token.symbol)));
+    }
+  };
+
+  const goNext = () => {
+    if (step === 1 && !isStep1Valid) {
+      setTouched((prev) => ({ ...prev, payer: true, amount: true, dueDate: true }));
+      return;
+    }
+    if (step === 2 && !isStep2Valid) {
+      setTouched((prev) => ({ ...prev, tokenId: true, discountRate: true }));
+      return;
+    }
+    setStep((current) => Math.min(3, current + 1));
   };
 
   const handleCopyInvoiceId = async () => {
@@ -110,25 +230,12 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateInvoiceForm(
-      { ...form, tokenId: effectiveTokenId },
-      isConnected,
-      selectedToken?.decimals ?? 7,
-      selectedToken?.symbol ?? "token",
-    );
-    if (networkMismatch) {
-      nextErrors.wallet = t("submitForm.walletError", { network: NETWORK_NAME });
-    }
-    if (!selectedToken && !tokensLoading) {
-      nextErrors.tokenId = t("submitForm.noTokensAvailable");
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
+    if (!isFormValid) {
+      setTouched({ payer: true, amount: true, dueDate: true, tokenId: true, discountRate: true, all: true });
       return;
     }
 
-    const amount = parseAmountToUnits(form.amount, selectedToken?.decimals ?? 7);
+    const amount = parseAmountToUnits(form.amount, amountInputDecimals);
     const dueDate = toUnixTimestamp(form.dueDate);
     const discountRate = parseDiscountRateToBps(form.discountRate);
 
@@ -137,48 +244,54 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       return;
     }
 
-    setIsSubmitting(true);
     setErrors({});
     setSubmittedInvoiceId(null);
 
-    const toastId = addToast({ type: "pending", title: "Submitting invoice to Stellar testnet..." });
+    const result = await execute(
+      async (signTx) =>
+        submitInvoiceTransaction({
+          freelancer: address,
+          payer: form.payer.trim(),
+          amount,
+          dueDate,
+          discountRate,
+          signTx,
+          token: selectedToken.contractId,
+          referralCode: referralCode.trim(),
+        }),
+      {
+        title: "Submitting invoice to Stellar testnet...",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Invoice submitted",
+        successMessage: `Invoice is now live on ${NETWORK_NAME}.`,
+      }
+    );
 
-    try {
-      const result = await submitInvoiceTransaction({
-        freelancer: address,
-        payer: form.payer.trim(),
-        amount,
-        dueDate,
-        discountRate,
-        signTx,
-        token: selectedToken.contractId,
-      });
-
-      const invoiceId = result.invoiceId.toString();
-      setSubmittedInvoiceId(invoiceId);
-      setLastTxHash(result.txHash);
-      updateToast(toastId, {
-        type: "success",
-        title: "Invoice submitted",
-        message: `Invoice #${invoiceId} is now live on ${NETWORK_NAME}.`,
-        txHash: result.txHash,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "The transaction did not complete successfully.";
-      setErrors({ submit: message });
-      updateToast(toastId, {
-        type: "error",
-        title: "Submission failed",
-        message,
-      });
-    } finally {
-      setIsSubmitting(false);
+    if (!result) {
+      setErrors({ submit: txError ?? "The transaction did not complete successfully." });
+      return;
     }
+
+    const invoiceId = result.invoiceId.toString();
+    setSubmittedInvoiceId(invoiceId);
+    setLastTxHash(result.txHash);
+
+    // Best-effort per-invoice referral attribution. Never block on failure.
+    const trimmedReferral = referralCode.trim();
+    if (trimmedReferral) {
+      try {
+        window.localStorage.setItem(`iln-referral-${invoiceId}`, trimmedReferral);
+      } catch {
+        // localStorage may be unavailable (private mode); attribution is best-effort.
+      }
+    }
+
+    redirectTimer.current = setTimeout(() => router.push(`/i/${invoiceId}`), 1500);
   };
 
   return (
     <div id="submit-invoice-form" className="bg-surface-container-lowest p-6 sm:p-8 rounded-[28px] shadow-xl border border-outline-variant/15">
+      {signingModal}
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -187,6 +300,15 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
             <p className="text-sm text-on-surface-variant mt-2 max-w-xl">
               {t("submitForm.subtitle")}
             </p>
+            <div className="mt-4">
+              <Link
+                href="/invoices/batch"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+              >
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                Submit multiple invoices (CSV/Batch)
+              </Link>
+            </div>
           </div>
 
           <div className="sm:min-w-[220px]">
@@ -229,9 +351,9 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
           </div>
         </div>
 
-        {errors.wallet || walletError ? (
+        {displayErrors.wallet || walletError ? (
           <div className="rounded-2xl border border-error/15 bg-error-container/70 px-4 py-3 text-sm text-on-error-container">
-            {errors.wallet ?? walletError}
+            {displayErrors.wallet ?? walletError}
           </div>
         ) : null}
 
@@ -252,140 +374,121 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
           </div>
         )}
 
+        <div className="grid gap-3 sm:grid-cols-3">
+          {STEPS.map((item) => {
+            const active = item.id === step;
+            const complete = item.id < step;
+            return (
+              <div
+                key={item.id}
+                className={`rounded-lg border px-4 py-3 ${
+                  active
+                    ? "border-primary bg-primary-container/45"
+                    : complete
+                      ? "border-primary/25 bg-primary/5"
+                      : "border-outline-variant/15 bg-surface-container-low"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                    active || complete ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
+                  }`}>
+                    {complete ? "✓" : item.id}
+                  </span>
+                  <span className="text-sm font-bold">{item.label}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <form className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" onSubmit={handleSubmit}>
           <div className="space-y-5">
-            <Field
-              label={t("submitForm.payerLabel")}
-              tooltip="The Stellar wallet address of the person or company who owes you payment. They'll need to sign a transaction to settle."
-              error={errors.payer}
-              hint={t("submitForm.payerHint")}
-            >
-              <div className="relative">
-                <input
-                  value={form.payer}
-                  onChange={(event) => {
-                    setField("payer", event.target.value);
-                    setAddressBookQuery(event.target.value);
-                    setAddressBookOpen(true);
-                    setHighlightedIndex(-1);
-                  }}
-                  onKeyDown={handleAddressBookKeyDown}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="G..."
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                {addressBookOpen && (
-                  <div className="absolute left-0 right-0 mt-1 z-10 max-h-[200px] overflow-auto border border-surface-dim rounded-xl bg-surface-container-low shadow-lg">
-                    {addressBookQuery ? (
-                      searchAddresses(addressBookQuery).map((entry, index) => (
-                        <div
-                          key={entry.id}
-                          className={`px-4 py-3 text-sm cursor-pointer ${
-                            highlightedIndex === index
-                              ? "bg-primary text-surface-container-lowest"
-                              : "hover:bg-surface-variant/50"
-                          }`}
-                          onClick={() => handleSelectAddress(entry.address)}
-                        >
-                          <div className="flex justify-between">
-                            <span className="font-medium">{entry.nickname}</span>
-                            <span className="text-xs text-on-surface-variant/50">
-                              {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
-                            </span>
+            {step === 1 ? (
+              <>
+                <Field label={t("submitForm.payerLabel")} tooltip="The Stellar wallet address of the person or company who owes you payment. They'll need to sign a transaction to settle." error={displayErrors.payer} errorId="payer-error" hint={t("submitForm.payerHint")}>
+                  <div className="relative">
+                    <input value={form.payer} onBlur={() => handleBlur("payer")} aria-describedby={displayErrors.payer ? "payer-error" : undefined} onChange={(event) => { setField("payer", event.target.value); setAddressBookQuery(event.target.value); setAddressBookOpen(true); setHighlightedIndex(-1); }} onKeyDown={handleAddressBookKeyDown} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="G..." autoComplete="off" spellCheck={false} />
+                    {addressBookOpen && (
+                      <div className="absolute left-0 right-0 mt-1 z-10 max-h-[200px] overflow-auto border border-surface-dim rounded-xl bg-surface-container-low shadow-lg">
+                        {addressBookQuery ? searchAddresses(addressBookQuery).map((entry, index) => (
+                          <div key={entry.id} className={`px-4 py-3 text-sm cursor-pointer ${highlightedIndex === index ? "bg-primary text-surface-container-lowest" : "hover:bg-surface-variant/50"}`} onClick={() => handleSelectAddress(entry.address)}>
+                            <div className="flex justify-between"><span className="font-medium">{entry.nickname}</span><span className="text-xs text-on-surface-variant/50">{entry.address.slice(0, 6)}...{entry.address.slice(-4)}</span></div>
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-3 text-xs text-on-surface-variant">
-                        {t("addressBook.noMatches")}
+                        )) : <div className="px-4 py-3 text-xs text-on-surface-variant">{t("addressBook.noMatches")}</div>}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            </Field>
+                </Field>
 
-            <TokenSelector
-              label={t("submitForm.tokenLabel")}
-              tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM."
-              value={effectiveTokenId}
-              tokens={tokens}
-              error={errors.tokenId}
-              disabled={tokensLoading || isSubmitting}
-              onChange={(value) => setField("tokenId", value)}
-              hint={
-                tokensError
-                  ? tokensError
-                  : tokensLoading
-                    ? t("submitForm.loadingTokens")
-                    : t("submitForm.tokensHint")
-              }
-            />
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field 
-                label={`${t("submitForm.amountLabel")}${selectedToken ? ` (${selectedToken.symbol})` : ""}`} 
-                tooltip="The full value of the invoice in USDC. This is what the payer owes you in total."
-                error={errors.amount}
-              >
-                <input
-                  value={form.amount}
-                  onChange={(event) => setField("amount", event.target.value)}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="5000.00"
-                  inputMode="decimal"
-                />
-              </Field>
-
-              <Field 
-                label="Due date" 
-                tooltip="The date by which the payer must settle. LPs can claim a default if this passes without payment."
-                error={errors.dueDate}
-              >
-                <input
-                  value={form.dueDate}
-                  onChange={(event) => setField("dueDate", event.target.value)}
-                  min={getMinimumDueDate()}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  type="date"
-                />
-              </Field>
-            </div>
-
-            <Field
-              label="Discount rate (%)"
-              tooltip={
-                <>
-                  How much of the invoice value you give up in exchange for instant payment. 300 basis points = 3%. A lower rate attracts more LPs; a higher rate means you receive less upfront.
-                  <div className="mt-2 font-bold text-primary">Typical value: 100–500 bps</div>
-                </>
-              }
-              error={errors.discountRate}
-              hint={t("submitForm.discountRateHint")}
-            >
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
-                <input
-                  value={form.discountRate}
-                  onChange={(event) => setField("discountRate", event.target.value)}
-                  className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="3.00"
-                  inputMode="decimal"
-                />
-                <div className="rounded-2xl bg-primary-container/70 px-4 py-3 text-center text-sm font-bold text-on-primary-container">
-                  {preview.discountRatePercent.toFixed(2)}%
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Field label={`${t("submitForm.amountLabel")}${selectedToken ? ` (${selectedToken.symbol})` : ""}`} tooltip="The full value of the invoice. This is what the payer owes you in total." error={displayErrors.amount} errorId="amount-error">
+                    <input
+                      value={form.amount}
+                      onBlur={() => handleBlur("amount")}
+                      aria-describedby={displayErrors.amount ? "amount-error" : undefined}
+                      onChange={(event) => handleAmountChange(event.target.value)}
+                      className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      placeholder="5000.00"
+                      inputMode="decimal"
+                    />
+                    {selectedToken?.symbol === "XLM" ? (
+                      <p className="mt-2 text-xs text-on-surface-variant" data-testid="xlm-amount-note">
+                        {getXlmPrecisionNote()}
+                      </p>
+                    ) : null}
+                    {amountEntryPreview ? (
+                      <p className="mt-2 text-xs font-medium text-on-surface" data-testid="amount-entry-preview">
+                        {amountEntryPreview}
+                      </p>
+                    ) : null}
+                    {usdEquivalent !== null ? (
+                      <p className="mt-2 text-xs font-medium text-on-surface-variant" data-testid="usd-preview">
+                        ~ ${usdEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                        <span className="ml-1 text-on-surface-variant/60">· Price is approximate</span>
+                      </p>
+                    ) : null}
+                  </Field>
+                  <Field label="Due date" error={displayErrors.dueDate} errorId="due-date-error">
+                    <input aria-label="Due date" value={form.dueDate} onBlur={() => handleBlur("dueDate")} aria-describedby={displayErrors.dueDate ? "due-date-error" : undefined} onChange={(event) => setField("dueDate", event.target.value)} min={getMinimumDueDate()} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" type="date" />
+                  </Field>
                 </div>
-              </div>
-              {form.amount && selectedToken && (
-                <p className="mt-3 text-xs font-medium text-primary bg-primary/5 p-3 rounded-xl border border-primary/10 animate-in fade-in slide-in-from-top-1">
-                  You&apos;ll receive <span className="font-bold">{preview.payoutFormatted} {selectedToken.symbol}</span> instantly if funded at this rate
-                </p>
-              )}
-            </Field>
+                <Field label="Referral code (optional)" tooltip="If someone referred you to the network, enter their referral code here. Optional." hint="Leave blank if you don't have one.">
+                  <input value={referralCode} onChange={(event) => setReferralCode(event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="e.g. ILN-FRIEND" autoComplete="off" spellCheck={false} />
+                </Field>
+              </>
+            ) : null}
+            {step === 2 ? (
+              <>
+                <TokenSelector label={t("submitForm.tokenLabel")} tooltip="The currency for this invoice. Currently supported: USDC, EURC, XLM." value={effectiveTokenId} tokens={tokens} showBalances error={displayErrors.tokenId} disabled={tokensLoading || txLoading} onChange={handleTokenChange} hint={tokensError ? tokensError : tokensLoading ? t("submitForm.loadingTokens") : t("submitForm.tokensHint")} />
+                <Field label="Discount rate (%)" tooltip={<>How much of the invoice value you give up in exchange for instant payment. 300 basis points = 3%. A lower rate attracts more LPs; a higher rate means you receive less upfront.<div className="mt-2 font-bold text-primary">Typical value: 100-500 bps</div></>} error={displayErrors.discountRate} errorId="discount-rate-error" hint={t("submitForm.discountRateHint")}>
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
+                    <input value={form.discountRate} onBlur={() => handleBlur("discountRate")} aria-describedby={displayErrors.discountRate ? "discount-rate-error" : undefined} onChange={(event) => setField("discountRate", event.target.value)} className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="3.00" inputMode="decimal" />
+                    <div className="rounded-2xl bg-primary-container/70 px-4 py-3 text-center text-sm font-bold text-on-primary-container">{preview.discountRatePercent.toFixed(2)}%</div>
+                  </div>
+                  {form.amount && selectedToken && <p className="mt-3 text-xs font-medium text-primary bg-primary/5 p-3 rounded-xl border border-primary/10">LP preview: yield is <span className="font-bold">{preview.discountRatePercent.toFixed(2)}%</span>, earning <span className="font-bold">{preview.yieldFormatted} {selectedToken.symbol}</span>.</p>}
+                </Field>
+              </>
+            ) : null}
 
-            {errors.submit ? (
+            {step === 3 ? (
+              <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">Review & Submit</p>
+                <div className="mt-4 space-y-3 text-sm">
+                  <PreviewRow label="Payer" value={formatMiddle(form.payer)} />
+                  <PreviewRow label="Due date" value={form.dueDate || "-"} />
+                  <PreviewRow label="You will receive" value={`${preview.payoutFormatted} ${selectedToken?.symbol ?? ""}`.trim()} token={selectedToken ?? undefined} accent />
+                  <PreviewRow label="LP yield is" value={`${preview.discountRatePercent.toFixed(2)}%`} />
+                </div>
+                <p className="mt-4 rounded-xl bg-primary/5 p-3 text-xs font-medium text-primary">
+                  Your wallet will ask you to confirm the invoice submission on the final click.
+                </p>
+              </div>
+            ) : null}
+
+            {displayErrors.submit ? (
               <div className="rounded-2xl border border-error/15 bg-error-container/70 px-4 py-3 text-sm text-on-error-container">
-                {errors.submit}
+                {displayErrors.submit}
               </div>
             ) : null}
 
@@ -408,16 +511,32 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                 {lastTxHash ? (
                   <p className="mt-3 text-xs text-on-primary-container/80 break-all">{t("submitForm.txHash")}: {lastTxHash}</p>
                 ) : null}
+                <Link
+                  href={`/i/${submittedInvoiceId}`}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-on-primary-container hover:underline"
+                >
+                  View invoice details
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </Link>
               </div>
             ) : null}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-            >
-              {isSubmitting ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
-            </button>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+              {step > 1 ? (
+                <button type="button" onClick={() => setStep((current) => Math.max(1, current - 1))} className="rounded-2xl border border-outline-variant/20 px-5 py-4 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                  Back
+                </button>
+              ) : null}
+              {step < 3 ? (
+                <button type="button" onClick={goNext} disabled={step === 1 ? !isStep1Valid : !isStep2Valid} className="flex-1 rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  Continue
+                </button>
+              ) : (
+                <button type="submit" disabled={txLoading || !isFormValid} className="flex-1 rounded-2xl bg-primary px-5 py-4 text-sm font-bold text-surface-container-lowest shadow-lg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
+                  {txLoading ? t("submitForm.submitting") : t("submitForm.submitInvoice")}
+                </button>
+              )}
+            </div>
           </div>
 
           <aside className="rounded-[24px] bg-surface-container-low p-5 border border-outline-variant/15 h-fit">
@@ -443,12 +562,14 @@ function Field({
   tooltip,
   hint,
   error,
+  errorId,
   children,
 }: {
   label: string;
   tooltip?: string | ReactNode;
   hint?: string;
   error?: string;
+  errorId?: string;
   children: ReactNode;
 }) {
   return (
@@ -458,9 +579,13 @@ function Field({
           {label}
           {tooltip && <FieldTooltip content={tooltip} />}
         </span>
-        {error ? <span className="text-xs font-bold text-error">{error}</span> : null}
       </div>
       {children}
+      {error ? (
+        <p id={errorId} className="mt-2 text-xs font-bold text-error">
+          {error}
+        </p>
+      ) : null}
       {hint ? <p className="mt-2 text-xs text-on-surface-variant">{hint}</p> : null}
     </label>
   );
@@ -491,4 +616,10 @@ function PreviewRow({
       )}
     </div>
   );
+}
+
+function formatMiddle(value: string) {
+  if (!value) return "-";
+  if (value.length <= 14) return value;
+  return `${value.slice(0, 6)}...${value.slice(-6)}`;
 }

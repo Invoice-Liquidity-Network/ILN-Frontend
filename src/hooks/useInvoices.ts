@@ -4,35 +4,41 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAllInvoices, getInvoice, fundInvoice, submitSignedTransaction, Invoice } from "@/utils/soroban";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { isContractEventStreamingActive } from "@/lib/contract-event-stream-state";
+import { invoiceKeys, QUERY_TIMINGS } from "@/hooks/queries/keys";
 
 const TERMINAL_STATUSES = ["Paid", "Defaulted", "Cancelled"];
 
 export function useInvoices() {
   return useQuery({
-    queryKey: ["invoices"],
+    queryKey: invoiceKeys.all,
     queryFn: getAllInvoices,
+    ...QUERY_TIMINGS.invoices,
     refetchInterval: (query) => {
       const data = query.state.data as Invoice[] | undefined;
-      if (!data) return 15000;
-      
+      if (!data) return isContractEventStreamingActive() ? 60_000 : 15000;
+
       const hasActiveInvoices = data.some(
-        (invoice) => !TERMINAL_STATUSES.includes(invoice.status)
+        (invoice) => !TERMINAL_STATUSES.includes(invoice.status),
       );
-      
-      return hasActiveInvoices ? 15000 : false;
+
+      if (!hasActiveInvoices) return false;
+      return isContractEventStreamingActive() ? 60_000 : 15000;
     },
   });
 }
 
 export function useInvoice(id: bigint | null) {
   return useQuery({
-    queryKey: ["invoice", id?.toString()],
+    queryKey: invoiceKeys.detail(id),
     queryFn: () => (id ? getInvoice(id) : Promise.reject("Invalid ID")),
     enabled: !!id,
+    ...QUERY_TIMINGS.invoiceDetail,
     refetchInterval: (query) => {
       const data = query.state.data as Invoice | undefined;
-      if (!data) return 15000;
-      return TERMINAL_STATUSES.includes(data.status) ? false : 15000;
+      if (!data) return isContractEventStreamingActive() ? 60_000 : 15000;
+      if (TERMINAL_STATUSES.includes(data.status)) return false;
+      return isContractEventStreamingActive() ? 60_000 : 15000;
     },
   });
 }
@@ -51,14 +57,14 @@ export function useFundInvoice() {
     },
     onMutate: async (invoiceId) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ["invoices"] });
+      await queryClient.cancelQueries({ queryKey: invoiceKeys.all });
 
       // Snapshot the previous value
-      const previousInvoices = queryClient.getQueryData<Invoice[]>(["invoices"]);
+      const previousInvoices = queryClient.getQueryData<Invoice[]>(invoiceKeys.all);
 
       // Optimistically update to the new value
       if (previousInvoices) {
-        queryClient.setQueryData<Invoice[]>(["invoices"], (old) =>
+        queryClient.setQueryData<Invoice[]>(invoiceKeys.all, (old) =>
           old?.map((inv) =>
             inv.id === invoiceId ? { ...inv, status: "Funded" } : inv
           )
@@ -69,7 +75,7 @@ export function useFundInvoice() {
     },
     onError: (err, invoiceId, context) => {
       if (context?.previousInvoices) {
-        queryClient.setQueryData(["invoices"], context.previousInvoices);
+        queryClient.setQueryData(invoiceKeys.all, context.previousInvoices);
       }
       addToast({
         type: "error",
@@ -79,7 +85,7 @@ export function useFundInvoice() {
     },
     onSettled: () => {
       // Always refetch after error or success to ensure we're in sync with the chain
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
     },
     onSuccess: () => {
       addToast({

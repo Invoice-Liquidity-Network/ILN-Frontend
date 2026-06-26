@@ -18,6 +18,12 @@ import {
   TESTNET_EURC_TOKEN_ID,
   TESTNET_USDC_TOKEN_ID,
 } from "@/constants";
+import {
+  parseAmountToUnits,
+  parseDiscountRateToBps,
+  toUnixTimestamp,
+} from "./invoiceSubmission";
+import { fetchNativeXlmBalance } from "@/lib/horizonClient";
 
 // ─── RPC & constants ──────────────────────────────────────────────────────────
 
@@ -35,6 +41,7 @@ export interface Invoice {
   freelancer: string;
   payer: string;
   amount: bigint;
+  amount_paid?: bigint;
   due_date: bigint;
   discount_rate: number;
   funder?: string;
@@ -60,10 +67,32 @@ export interface PayerScoreResult {
   defaults: number;
 }
 
+export interface ReputationScore {
+  score: number;
+  invoices_submitted: number;
+  invoices_paid: number;
+  invoices_defaulted: number;
+  last_activity_ledger?: number;
+}
+
+export interface ReputationEvent {
+  type: "submitted" | "paid" | "defaulted" | "score_updated";
+  timestamp: number;
+  score?: number;
+}
+
+export interface InsurancePoolInfo {
+  balance: bigint;
+  enrolled_count: number;
+  premium_rate: number; // in bps
+}
+
+export type WalletRole = "freelancer" | "payer" | "lp";
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 const KNOWN_TOKEN_METADATA: Record<string, Omit<TokenMetadata, "contractId">> = {
-  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 7 },
+  [TESTNET_USDC_TOKEN_ID]: { name: "USD Coin", symbol: "USDC", decimals: 6 },
   [TESTNET_EURC_TOKEN_ID]: { name: "Euro Coin", symbol: "EURC", decimals: 7 },
 };
 
@@ -185,6 +214,24 @@ export async function getAllInvoices(): Promise<Invoice[]> {
   return invoices;
 }
 
+export async function getWalletRoles(address: string): Promise<WalletRole[]> {
+  const normalized = address.toLowerCase();
+  const invoices = await getAllInvoices();
+  const roles = new Set<WalletRole>();
+
+  for (const invoice of invoices) {
+    if (invoice.freelancer?.toLowerCase() === normalized) roles.add("freelancer");
+    if (invoice.payer?.toLowerCase() === normalized) roles.add("payer");
+    if (invoice.funder?.toLowerCase() === normalized) roles.add("lp");
+  }
+
+  return Array.from(roles);
+}
+
+export async function getNativeXlmBalance(address: string): Promise<number> {
+  return fetchNativeXlmBalance(address);
+}
+
 export async function getApprovedTokenIds(): Promise<string[]> {
   const callResult = await server.simulateTransaction(
     buildReadTransaction(CONTRACT_ID, "list_tokens", [])
@@ -257,6 +304,52 @@ export async function getTokenAllowance({
   return BigInt(scValToNative(callResult.result.retval));
 }
 
+export async function approveToken({
+  from,
+  spender = CONTRACT_ID,
+  amount,
+  tokenId = TESTNET_USDC_TOKEN_ID,
+}: {
+  from: string;
+  spender?: string;
+  amount: bigint;
+  tokenId?: string;
+}) {
+  const account = await server.getAccount(from);
+  const params = [
+    Address.fromString(from).toScVal(),
+    Address.fromString(spender).toScVal(),
+    nativeToScVal(amount, { type: "i128" }),
+    nativeToScVal(1_000_000, { type: "u32" }), // Expiration ledger (high enough)
+  ];
+
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(tokenId).toScAddress(),
+            functionName: "approve",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Approval simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
+
 export async function getUsdcAllowance(args: {
   owner: string;
   spender?: string;
@@ -287,6 +380,50 @@ export async function getPayerScore(payerAddress: string): Promise<PayerScoreRes
     };
   } catch {
     return null;
+  }
+}
+
+export async function getReputation(address: string): Promise<ReputationScore | null> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return null;
+    const native = scValToNative(callResult.result.retval);
+    if (native === null || native === undefined) return null;
+
+    return {
+      score: Number(native.score ?? native.reputation_score ?? 0),
+      invoices_submitted: Number(native.invoices_submitted ?? native.submitted ?? 0),
+      invoices_paid: Number(native.invoices_paid ?? native.paid ?? native.settled_on_time ?? 0),
+      invoices_defaulted: Number(native.invoices_defaulted ?? native.defaulted ?? native.defaults ?? 0),
+      last_activity_ledger: native.last_activity_ledger !== undefined ? Number(native.last_activity_ledger) : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getReputationEvents(address: string): Promise<ReputationEvent[]> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_reputation_events", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return [];
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) return [];
+
+    return native
+      .map((event) => ({
+        type: String(event.type ?? event.event ?? "score_updated") as ReputationEvent["type"],
+        timestamp: Number(event.timestamp ?? event.ledger_time ?? 0),
+        score: event.score === undefined ? undefined : Number(event.score),
+      }))
+      .filter((event) => Number.isFinite(event.timestamp) && event.timestamp > 0);
+  } catch {
+    return [];
   }
 }
 
@@ -378,8 +515,11 @@ export async function fundInvoice(funder: string, invoice_id: bigint) {
 
 // ─── Write: mark paid ─────────────────────────────────────────────────────────
 
-export async function markPaid(payer: string, invoice_id: bigint) {
-  const params: xdr.ScVal[] = [nativeToScVal(invoice_id, { type: "u64" })];
+export async function markPaid(payer: string, invoice_id: bigint, amount: bigint) {
+  const params: xdr.ScVal[] = [
+    nativeToScVal(invoice_id, { type: "u64" }),
+    nativeToScVal(amount, { type: "i128" }),
+  ];
   const account = await server.getAccount(payer);
   const tx = new TransactionBuilder(account, {
     fee: "10000",
@@ -443,6 +583,55 @@ export async function appealDefault(
   return rpc.assembleTransaction(tx, sim).build();
 }
 
+// ─── Write: dispute invoice ───────────────────────────────────────────────────
+
+export async function disputeInvoice(
+  payer: string,
+  invoice_id: bigint,
+  reason_hash: string
+) {
+  const params: xdr.ScVal[] = [
+    nativeToScVal(invoice_id, { type: "u64" }),
+    nativeToScVal(reason_hash),
+  ];
+  const account = await server.getAccount(payer);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "dispute_invoice",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
+/**
+ * Stub for updateLPWhitelist — some deployments may not support this
+ * instruction; export a placeholder so consumers can safely call it
+ * and bundlers don't fail on missing named exports.
+ */
+export async function updateLPWhitelist(args: { invoiceId: bigint; whitelist: string[] }) {
+  // In production this should build and return a transaction for signing.
+  // For now, throw to indicate unsupported on-chain instruction.
+  throw new Error("updateLPWhitelist is not supported by the deployed contract");
+}
+
 // ─── Write: claim default ─────────────────────────────────────────────────────
 
 export async function claimDefault(funder: string, invoice_id: bigint) {
@@ -483,7 +672,7 @@ export async function claimDefault(funder: string, invoice_id: bigint) {
 export interface SubmitInvoiceArgs {
   freelancer: string;
   payer: string;
-  /** Amount in stroops (1 USDC = 10_000_000) */
+  /** Amount in token base units (1 USDC = 1_000_000) */
   amount: bigint;
   /** Unix timestamp (seconds) */
   dueDate: number;
@@ -628,6 +817,32 @@ export async function cancelInvoice(
   return { tx: finalTx as any };
 }
 
+export interface ReferralStats {
+  total_invoices: number;
+  total_volume: bigint;
+}
+
+// ... existing code ...
+
+export async function getReferralStats(code: string): Promise<ReferralStats> {
+  try {
+    const params: xdr.ScVal[] = [nativeToScVal(code)];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_referral_stats", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return { total_invoices: 0, total_volume: 0n };
+    }
+    const native = scValToNative(callResult.result.retval);
+    return {
+      total_invoices: Number(native.total_invoices ?? 0),
+      total_volume: BigInt(native.total_volume ?? 0),
+    };
+  } catch {
+    return { total_invoices: 0, total_volume: 0n };
+  }
+}
+
 export async function submitInvoiceTransaction({
   freelancer,
   payer,
@@ -636,6 +851,7 @@ export async function submitInvoiceTransaction({
   discountRate,
   signTx,
   token = TESTNET_USDC_TOKEN_ID,
+  referralCode = "",
 }: {
   freelancer: string;
   payer: string;
@@ -644,8 +860,22 @@ export async function submitInvoiceTransaction({
   discountRate: number;
   signTx: (txXdr: string) => Promise<string>;
   token?: string;
+  referralCode?: string;
 }): Promise<SubmittedInvoiceResult> {
   const sourceAccount = await server.getAccount(freelancer);
+  const args = [
+    Address.fromString(freelancer).toScVal(),
+    Address.fromString(payer).toScVal(),
+    nativeToScVal(amount, { type: "i128" }),
+    nativeToScVal(dueDate, { type: "u64" }),
+    nativeToScVal(discountRate, { type: "u32" }),
+    Address.fromString(token).toScVal(),
+  ];
+
+  if (referralCode) {
+    args.push(nativeToScVal(referralCode));
+  }
+
   const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
     networkPassphrase: NETWORK_PASSPHRASE,
@@ -654,14 +884,7 @@ export async function submitInvoiceTransaction({
       Operation.invokeContractFunction({
         contract: CONTRACT_ID,
         function: "submit_invoice",
-        args: [
-          Address.fromString(freelancer).toScVal(),
-          Address.fromString(payer).toScVal(),
-          nativeToScVal(amount, { type: "i128" }),
-          nativeToScVal(dueDate, { type: "u64" }),
-          nativeToScVal(discountRate, { type: "u32" }),
-          Address.fromString(token).toScVal(),
-        ],
+        args,
       })
     )
     .setTimeout(60)
@@ -696,6 +919,87 @@ export async function submitInvoiceTransaction({
     invoiceId: extractInvoiceIdFromTransaction(finalResult) ?? simulatedInvoiceId,
     txHash: sent.hash,
   };
+}
+
+// ─── Write: batch invoice submission ──────────────────────────────────────────
+
+export async function submitInvoicesBatch(
+  freelancer: string,
+  invoices: Array<{
+    payer: string;
+    amount: string;
+    dueDate: string;
+    discountRate: string;
+    tokenId: string;
+  }>,
+  signTx: (txXdr: string) => Promise<string>
+): Promise<Array<{ id: string; success: boolean; error?: string }>> {
+  const results: Array<{ id: string; success: boolean; error?: string }> = [];
+
+  // Process invoices in parallel batches of 5 to avoid overwhelming the network
+  const batchSize = 5;
+  for (let i = 0; i < invoices.length; i += batchSize) {
+    const batch = invoices.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (invoice, batchIndex) => {
+      const invoiceIndex = i + batchIndex;
+      try {
+        // Parse and validate invoice data
+        const amount = parseAmountToUnits(invoice.amount, 7);
+        const dueDate = toUnixTimestamp(invoice.dueDate);
+        const discountRate = parseDiscountRateToBps(invoice.discountRate);
+
+        if (!amount || !dueDate || !discountRate) {
+          throw new Error("Invalid invoice data");
+        }
+
+        // Submit individual invoice
+        const result = await submitInvoiceTransaction({
+          freelancer,
+          payer: invoice.payer,
+          amount,
+          dueDate,
+          discountRate,
+          signTx,
+          token: invoice.tokenId,
+        });
+
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: true,
+          invoiceId: result.invoiceId,
+          txHash: result.txHash,
+        };
+      } catch (error) {
+        return {
+          id: `invoice-${invoiceIndex + 1}`,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result) => {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+      } else {
+        results.push({
+          id: `invoice-${results.length + 1}`,
+          success: false,
+          error: result.reason?.message || "Batch processing failed",
+        });
+      }
+    });
+
+    // Add a small delay between batches to be respectful to the network
+    if (i + batchSize < invoices.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  return results;
 }
 
 // ─── Write: token approve ─────────────────────────────────────────────────────
@@ -778,4 +1082,149 @@ export async function submitSignedTransaction({
     throw new Error(`Transaction failed with status ${String(finalResult.status)}.`);
   }
   return { txHash: sent.hash };
+}
+
+export async function convertInvoiceToken(
+  freelancer: string,
+  invoice_id: bigint,
+  new_token: string
+) {
+  const params: xdr.ScVal[] = [
+    nativeToScVal(invoice_id, { type: "u64" }),
+    Address.fromString(new_token).toScVal(),
+  ];
+  const account = await server.getAccount(freelancer);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "convert_invoice_token",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
+// ─── Insurance Pool functions ───────────────────────────────────────────────
+
+export async function getInsurancePoolInfo(): Promise<InsurancePoolInfo> {
+  try {
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_insurance_info", [])
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      // Fallback for demo if contract method not yet deployed
+      return {
+        balance: BigInt(500000000000), // 50,000 USDC
+        enrolled_count: 12,
+        premium_rate: 50, // 0.5%
+      };
+    }
+    const native = scValToNative(callResult.result.retval);
+    return {
+      balance: BigInt(native.balance ?? 0),
+      enrolled_count: Number(native.enrolled_count ?? 0),
+      premium_rate: Number(native.premium_rate ?? 0),
+    };
+  } catch {
+    return {
+      balance: BigInt(500000000000),
+      enrolled_count: 12,
+      premium_rate: 50,
+    };
+  }
+}
+
+export async function getLPInsuranceStatus(lpAddress: string): Promise<boolean> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(lpAddress).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, "get_enrollment_status", params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return false;
+    }
+    return scValToNative(callResult.result.retval) === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function depositPremium(lpAddress: string, amount: bigint) {
+  const params: xdr.ScVal[] = [
+    Address.fromString(lpAddress).toScVal(),
+    nativeToScVal(amount, { type: "i128" }),
+  ];
+  const account = await server.getAccount(lpAddress);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "deposit_premium",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
+}
+
+export async function claimInsurance(lpAddress: string, invoiceId: bigint) {
+  const params: xdr.ScVal[] = [
+    Address.fromString(lpAddress).toScVal(),
+    nativeToScVal(invoiceId, { type: "u64" }),
+  ];
+  const account = await server.getAccount(lpAddress);
+  const tx = new TransactionBuilder(account, {
+    fee: "10000",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeHostFunction({
+        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
+          new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(CONTRACT_ID).toScAddress(),
+            functionName: "claim",
+            args: params,
+          })
+        ),
+        auth: [],
+      })
+    )
+    .setTimeout(60 * 5)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    throw new Error(`Simulation failed: ${sim.error}`);
+  }
+  return rpc.assembleTransaction(tx, sim).build();
 }

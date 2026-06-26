@@ -1,8 +1,21 @@
-import { vi } from "vitest";
-import "@testing-library/jest-dom";
-import { axe, toHaveNoViolations } from "jest-axe";
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
+import { server } from './src/mocks/server';
 
+// Vitest provides a global `expect` in tests; declare it for TypeScript here.
+declare const expect: any;
+
+// Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
+
+// Mock ResizeObserver for recharts / other components that use it
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 // Mock matchMedia for testing components that use prefers-reduced-motion
 Object.defineProperty(window, "matchMedia", {
@@ -39,8 +52,8 @@ vi.mock("@tanstack/react-query", () => ({
     getQueryData: vi.fn(),
   })),
   QueryClient: vi.fn(),
-  QueryClientProvider: ({ children }: { children: React.ReactNode }) =>
-    children,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  QueryClientProvider: ({ children }: { children: any }) => children,
 }));
 
 // Mock next/navigation
@@ -98,10 +111,6 @@ vi.mock("react", async () => {
 // Initialize i18n
 import "./src/i18n";
 
-// Mock global fetch
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve([]),
-  } as Response),
-);
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());

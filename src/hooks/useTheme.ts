@@ -1,26 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useTheme as useNextTheme } from "next-themes";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, setTheme: setNextTheme, resolvedTheme } = useNextTheme();
+  const [mounted, setMounted] = useState(false);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    // Read from localStorage or media query on mount
-    const storedTheme = localStorage.getItem("theme");
-    const prefDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    const initialTheme = storedTheme === "dark" || (!storedTheme && prefDark) ? "dark" : "light";
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
+    setMounted(true);
+    return () => clearTimeout(transitionTimerRef.current);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-  };
+  const activeTheme = mounted ? (resolvedTheme ?? theme ?? "light") : "light";
 
-  return { theme, toggleTheme };
+  const applyTransition = useCallback(() => {
+    const el = document.documentElement;
+    clearTimeout(transitionTimerRef.current);
+    el.setAttribute("data-theme-transition", "");
+    transitionTimerRef.current = setTimeout(
+      () => el.removeAttribute("data-theme-transition"),
+      300,
+    );
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    applyTransition();
+    setNextTheme(activeTheme === "dark" ? "light" : "dark");
+  }, [activeTheme, setNextTheme, applyTransition]);
+
+  const setTheme = useCallback(
+    (t: string) => {
+      applyTransition();
+      setNextTheme(t);
+    },
+    [setNextTheme, applyTransition],
+  );
+
+  return {
+    theme: activeTheme,
+    toggleTheme,
+    setTheme,
+    mounted,
+  };
 }

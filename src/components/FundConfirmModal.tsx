@@ -1,16 +1,22 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { useTransaction } from "@/hooks/useTransaction";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   buildApproveTokenTransaction,
+  fundInvoice,
   getTokenAllowance,
   Invoice,
   submitSignedTransaction,
 } from "@/utils/soroban";
 import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
 import { useFundInvoice } from "@/hooks/useInvoices";
+import { getPayerScore, PayerScoreResult } from "@/utils/soroban";
+import { fetchProtocolParameters } from "@/utils/governance";
+import FieldTooltip from "./FieldTooltip";
 
 type FundingStep = "approve" | "fund";
 
@@ -18,19 +24,35 @@ interface FundConfirmModalProps {
   invoice: Invoice | null;
   onClose: () => void;
   onSuccess: () => void;
+  payerScore?: PayerScoreResult | null;
 }
 
-export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundConfirmModalProps) {
+export default function FundConfirmModal({ invoice, onClose, onSuccess, payerScore }: FundConfirmModalProps) {
   const { address, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
+  const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
+  const isApproving = txLoading; // or more specific state if needed
+  const isFunding = txLoading; 
   const { tokens, tokenMap, defaultToken } = useApprovedTokens();
-  
-  const { mutate: fund, isPending: isFunding } = useFundInvoice();
-  const [isApproving, setIsApproving] = useState(false);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(true);
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [protocolFeeBps, setProtocolFeeBps] = useState<number | null>(null);
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
+
+  useEffect(() => {
+    if (invoice && !selectedTokenId) {
+      setSelectedTokenId(invoice.token || defaultToken?.contractId || null);
+    }
+  }, [invoice, selectedTokenId, defaultToken]);
+
+  const selectedToken = useMemo(() => {
+    return selectedTokenId ? tokenMap.get(selectedTokenId) || null : null;
+  }, [selectedTokenId, tokenMap]);
+
+  const isTokenMismatch = !!(invoice && selectedTokenId && invoice.token && selectedTokenId !== invoice.token);
 
   const selectedInvoiceToken = invoice
     ? tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "") ?? defaultToken ?? null
@@ -55,6 +77,20 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
   }, [defaultToken]);
 
   useEffect(() => {
+    let mounted = true;
+    fetchProtocolParameters()
+      .then((p) => {
+        if (mounted) setProtocolFeeBps(p.feeRateBps ?? 0);
+      })
+      .catch(() => {
+        if (mounted) setProtocolFeeBps(0);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!invoice || !address) return;
     void refreshAllowance(invoice, address);
   }, [address, refreshAllowance, invoice]);
@@ -67,58 +103,65 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
 
   const approveToken = async () => {
     if (!address || !selectedInvoiceToken) return;
-    setIsApproving(true);
     setFundingError(null);
 
-    const toastId = addToast({ type: "pending", title: `Approving ${selectedInvoiceToken.symbol}...` });
-    try {
-      const tx = await buildApproveTokenTransaction({
-        owner: address,
-        amount: invoice.amount,
-        tokenId: selectedInvoiceToken.contractId,
-      });
-      const result = await submitSignedTransaction({ tx, signTx });
+    const result = await execute(
+      async (signTx) => {
+        const tx = await buildApproveTokenTransaction({
+          owner: address,
+          amount: invoice.amount,
+          tokenId: selectedTokenId || invoice.token || "",
+        });
+        return submitSignedTransaction({ tx, signTx });
+      },
+      {
+        title: `Approving ${selectedToken?.symbol || "token"}...`,
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: `${selectedToken?.symbol || "Token"} approved`,
+        successMessage: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedToken || selectedInvoiceToken!)}.`,
+      }
+    );
 
-      updateToast(toastId, {
-        type: "success",
-        title: `${selectedInvoiceToken.symbol} approved`,
-        message: `Allowance updated for ${formatTokenAmount(invoice.amount, selectedInvoiceToken)}.`,
-        txHash: result.txHash,
-      });
-
-      setAllowance(invoice.amount);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Approval failed.";
-      setFundingError(message);
-      updateToast(toastId, {
-        type: "error",
-        title: "Approval failed",
-        message,
-      });
-    } finally {
-      setIsApproving(false);
+    if (!result) {
+      setFundingError(txError ?? "Approval failed.");
+      return;
     }
+
+    setAllowance(invoice.amount);
   };
 
   const confirmFunding = async () => {
     if (!address) return;
-    fund(invoice.id, {
-      onSuccess: () => {
-        onSuccess();
+    setFundingError(null);
+
+    const result = await execute(
+      async (signTx) => {
+        const tx = await fundInvoice(address, invoice.id);
+        return submitSignedTransaction({ tx, signTx });
       },
-      onError: (err) => {
-        setFundingError(err instanceof Error ? err.message : "An unknown error occurred");
+      {
+        title: "Funding invoice...",
+        pendingMessage: "Waiting for wallet signature...",
+        successTitle: "Invoice funded successfully!",
+        successMessage: "Your funding transaction is confirmed.",
       }
-    });
+    );
+
+    if (result) {
+      onSuccess();
+    } else {
+      setFundingError(txError ?? "An unknown error occurred");
+    }
   };
 
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
+    <div ref={modalRef} className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      {signingModal}
       {/* Header with Step Tracker */}
       <div className="sticky top-0 bg-surface-container-low border-b border-surface-dim z-10 px-6 py-4 flex items-center justify-between">
-        <h4 className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
+        <h4 id="modal-title" className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
         
         {needsApproval && (
           <div className="flex items-center gap-4">
@@ -140,7 +183,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
           </div>
         )}
 
-        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant">
+        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant" aria-label="Close modal">
           <span className="material-symbols-outlined shrink-0">close</span>
         </button>
       </div>
@@ -148,10 +191,31 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
       {/* Main Content Area */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl bg-surface-container-lowest">
-          
+          <div className="mb-6 space-y-4">
+            <TokenSelector
+              label="Funding token"
+              value={selectedTokenId || ""}
+              tokens={tokens}
+              onChange={(val) => setSelectedTokenId(val)}
+              showBalances
+              hint={isTokenMismatch ? "" : "Funding must match the invoice's denomination."}
+              error={isTokenMismatch ? "Currency mismatch" : undefined}
+            />
+          </div>
+
           {fundingError && (
             <div className="mb-6 rounded-xl border border-error/15 bg-error-container/70 px-4 py-3 text-sm text-on-error-container">
               {fundingError}
+            </div>
+          )}
+
+          {isTokenMismatch && (
+            <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-4 flex items-center gap-4 text-amber-800">
+              <span className="material-symbols-outlined text-amber-600">warning</span>
+              <p className="text-sm font-medium">
+                This invoice is denominated in <strong>{tokenMap.get(invoice.token || "")?.symbol || "another token"}</strong>. 
+                You must fund with <strong>{tokenMap.get(invoice.token || "")?.symbol || "the required token"}</strong>.
+              </p>
             </div>
           )}
 
@@ -160,11 +224,11 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
             <div className="animate-in slide-in-from-right-8 duration-300">
               <div className="mb-8">
                 <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold tracking-wide">1 of 2</span>
-                <h2 className="text-3xl font-bold mt-4 mb-2">Approve {tokenSymbol}</h2>
+                <h2 className="text-3xl font-bold mt-4 mb-2">Approve {selectedToken?.symbol || tokenSymbol}</h2>
                 <p className="text-lg text-on-surface-variant">
                   {isCheckingAllowance 
                     ? "Checking current allowance..."
-                    : `You're authorising ILN to spend ${selectedInvoiceToken ? formatTokenAmount(invoice.amount, selectedInvoiceToken) : invoice.amount.toString()} ${tokenSymbol} from your wallet. This is a one-time approval for this invoice.`}
+                    : `You're authorising ILN to spend ${selectedToken ? formatTokenAmount(invoice.amount, selectedToken) : invoice.amount.toString()} ${selectedToken?.symbol || tokenSymbol} from your wallet. This is a one-time approval.`}
                 </p>
               </div>
 
@@ -223,6 +287,18 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
               </div>
 
               <div className="bg-surface-container-low rounded-2xl p-6 mb-8 border border-outline-variant/20 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between text-base flex-1">
+                    <span className="text-on-surface-variant">Selected Token:</span>
+                    <span className="font-bold">{selectedToken?.symbol || "Unknown"}</span>
+                  </div>
+                  {protocolFeeBps === 0 && (
+                    <span className="ml-4 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wider whitespace-nowrap">
+                      0% Protocol Fee
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex justify-between text-base">
                   <span className="text-on-surface-variant">You will send:</span>
                   <span className="font-bold text-xl">
@@ -265,11 +341,39 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
                     ) : null}
                   </span>
                 </div>
+
+                {protocolFeeBps !== null && protocolFeeBps > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <div className="flex items-center text-on-surface-variant text-sm">
+                      <span>Protocol fee ({protocolFeeBps} bps):</span>
+                      <FieldTooltip content="This fee funds ILN protocol development and the treasury" trigger={
+                        <span className="material-symbols-outlined text-[16px] cursor-help">info</span>
+                      } />
+                    </div>
+                    <span className="font-medium text-on-surface">
+                      ≈ {formatTokenAmount((calculateYield(invoice.amount, invoice.discount_rate) * BigInt(protocolFeeBps)) / 10000n, selectedInvoiceToken!)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-sm border-t border-surface-dim pt-4">
+                  <span className="text-on-surface-variant">Days until due:</span>
+                  <span className="font-bold text-on-surface">
+                    {Math.max(0, Math.ceil((Number(invoice.due_date) - Date.now() / 1000) / 86400))} days
+                  </span>
+                </div>
+
+                {payerScore !== undefined && payerScore !== null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-on-surface-variant">Payer reputation:</span>
+                    <span className="font-bold text-on-surface">{payerScore.score} / 100</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
                 <button
-                  disabled={isFunding}
+                  disabled={isFunding || isTokenMismatch}
                   onClick={confirmFunding}
                   className="px-8 py-4 rounded-xl font-bold text-lg bg-primary text-surface-container-lowest hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 w-full"
                 >
@@ -279,7 +383,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess }: FundCo
                       Funding invoice...
                     </>
                   ) : (
-                    "Fund Invoice"
+                    isTokenMismatch ? "Currency Mismatch" : "Fund Invoice"
                   )}
                 </button>
                 <button
