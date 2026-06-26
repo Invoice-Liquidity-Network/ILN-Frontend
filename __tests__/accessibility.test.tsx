@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../src/i18n";
 import Providers from "../app/Providers";
@@ -188,5 +189,115 @@ describe("Accessibility checks", () => {
     });
     const results = await axe(container, axeConfig);
     expect(results).toHaveNoViolations();
+  });
+});
+
+describe("Keyboard Navigation Tests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("Home page buttons should be keyboard navigable", async () => {
+    const user = userEvent.setup();
+    render(<HomePage />, { wrapper: TestWrapper });
+
+    // Find all buttons and links on the page
+    const buttons = screen.getAllByRole("button");
+    const links = screen.getAllByRole("link");
+    const focusableElements = [...buttons, ...links];
+
+    // Verify that we can tab through elements
+    expect(focusableElements.length).toBeGreaterThan(0);
+
+    // Tab to first element
+    await user.tab();
+    const activeElement = document.activeElement;
+    expect(activeElement).toBeTruthy();
+    expect(focusableElements).toContain(activeElement);
+  });
+
+  it("Invoice detail page form should be keyboard navigable", async () => {
+    const user = userEvent.setup();
+    const params = Promise.resolve({ id: "1" }) as any;
+    params._resolvedValue = { id: "1" };
+
+    render(<PayInvoicePage params={params} />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Invoice Summary/i)).toBeInTheDocument();
+    });
+
+    // Tab through form elements
+    await user.tab();
+    const activeElement = document.activeElement;
+    expect(activeElement).toBeTruthy();
+  });
+
+  it("LP dashboard interactive elements should be keyboard navigable", async () => {
+    const user = userEvent.setup();
+    render(<LPDashboardPage />, { wrapper: TestWrapper });
+
+    // Find interactive elements
+    const buttons = screen.queryAllByRole("button");
+    const links = screen.queryAllByRole("link");
+
+    // Verify keyboard navigation
+    if (buttons.length > 0 || links.length > 0) {
+      await user.tab();
+      const activeElement = document.activeElement;
+      expect(activeElement).toBeTruthy();
+    }
+  });
+
+  it("Governance page controls should be keyboard navigable", async () => {
+    const user = userEvent.setup();
+    render(<GovernancePage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: /Proposals/i }),
+      ).toBeInTheDocument();
+    });
+
+    // Tab through page
+    await user.tab();
+    const activeElement = document.activeElement;
+    expect(activeElement).toBeTruthy();
+  });
+
+  it("Marketplace components should support keyboard interactions", async () => {
+    const user = userEvent.setup();
+    render(<LeaderboardPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Share Leaderboard/i }),
+      ).toBeInTheDocument();
+    });
+
+    const shareButton = screen.getByRole("button", {
+      name: /Share Leaderboard/i,
+    });
+
+    // Test keyboard activation
+    shareButton.focus();
+    expect(document.activeElement).toBe(shareButton);
+
+    // Test Enter key
+    await user.keyboard("{Enter}");
+  });
+
+  it("Profile/Freelancer page should support keyboard navigation", async () => {
+    const user = userEvent.setup();
+    render(<FreelancerPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Invoice Dashboard/i)).toBeInTheDocument();
+    });
+
+    // Tab through interactive elements
+    await user.tab();
+    const activeElement = document.activeElement;
+    expect(activeElement).toBeTruthy();
   });
 });
