@@ -24,11 +24,11 @@ export default function Hero() {
       <style>{HERO_STYLE}</style>
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <div className="z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-lowest/20 rounded-full text-xs font-bold text-on-primary-container mb-6 tracking-wide uppercase">
+          <div className="hero-animate inline-flex items-center gap-2 px-3 py-1 bg-surface-container-lowest/20 rounded-full text-xs font-bold text-on-primary-container mb-6 tracking-wide uppercase" style={{ animationDelay: "0ms" }}>
             <span className="material-symbols-outlined text-[14px]">sensors</span>
             {t("landing.testnetLive")}
           </div>
-          <h1 className="text-5xl lg:text-7xl font-medium text-on-primary-container leading-[1.1] mb-6 font-headline">
+          <h1 className="hero-animate text-5xl lg:text-7xl font-medium text-on-primary-container leading-[1.1] mb-6 font-headline" style={{ animationDelay: "200ms" }}>
             <Trans i18nKey="landing.heroTitle" components={{ strong: <strong /> }} />
           </h1>
           <p className="text-lg text-on-primary-container/80 max-w-xl mb-10 leading-relaxed font-body">
