@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🚀 Getting Started as a Developer
+
+**New to the project?** Start here: [Developer Quickstart Guide](./docs/developer-quickstart.md)
+
+The quickstart guide covers everything you need from a fresh clone to running the app locally, including:
+
+- Prerequisites (Node 20+, pnpm, Stellar CLI, Freighter)
+- Installation and environment setup
+- Running the dev server and tests
+- Connecting to Stellar testnet
+- Common issues and fixes
+
+**Estimated time: 15-30 minutes**
+
 ## Snapshot Tests
 
 The frontend includes Vitest snapshot coverage for the main invoice UI surfaces in `frontend/__tests__`.
