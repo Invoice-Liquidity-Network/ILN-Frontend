@@ -33,7 +33,7 @@ export default function InvoiceQRModal({
     if (!canvasEl) return;
     const dataUrl = canvasEl.toDataURL("image/png");
     const link = document.createElement("a");
-    link.download = `invoice-${invoiceId.toString()}-qr.png`;
+    link.download = `ILN-Invoice-${invoiceId.toString()}-QR.png`;
     link.href = dataUrl;
     link.click();
   }, [invoiceId]);
