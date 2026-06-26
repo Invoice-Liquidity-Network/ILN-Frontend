@@ -4,11 +4,24 @@ import { useTranslation, Trans } from "react-i18next";
 import Link from "next/link";
 import LiveInvoiceTicker from "@/components/LiveInvoiceTicker";
 
+const HERO_STYLE = `
+@keyframes heroFadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-animate {
+    animation: heroFadeInUp 600ms ease both;
+  }
+}
+`;
+
 export default function Hero() {
   const { t } = useTranslation();
 
   return (
     <header className="pt-32 pb-20 px-8 bg-primary-container relative overflow-hidden">
+      <style>{HERO_STYLE}</style>
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <div className="z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-lowest/20 rounded-full text-xs font-bold text-on-primary-container mb-6 tracking-wide uppercase">
