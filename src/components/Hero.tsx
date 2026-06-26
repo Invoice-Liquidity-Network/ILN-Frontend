@@ -46,7 +46,7 @@ export default function Hero() {
           <div className="hero-animate" style={{ animationDelay: "800ms" }}>
             <LiveInvoiceTicker />
           </div>
-          <div className="flex items-center gap-8 text-on-primary-container/60">
+          <div className="hero-animate flex items-center gap-8 text-on-primary-container/60" style={{ animationDelay: "1000ms" }}>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">verified</span>
               <span className="text-xs font-bold uppercase tracking-widest">
