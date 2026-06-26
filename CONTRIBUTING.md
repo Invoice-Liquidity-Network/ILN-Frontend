@@ -77,7 +77,17 @@ If working on Testnet, fund your account using the Friendbot:
 3. Select "Testnet" network
 4. Ensure your account is active on the selected network
 
-### 5. Start Development Server
+### 5. Explore the Component Library with Storybook
+
+All shared UI components are documented in Storybook. Browse them locally:
+
+```bash
+npm run storybook
+```
+
+A Storybook is also deployed to GitHub Pages on every merge to `main` — check the repo's Pages link for the latest published version.
+
+### 6. Start Development Server
 
 ```bash
 npm run dev
