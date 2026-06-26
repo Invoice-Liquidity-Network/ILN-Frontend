@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useLocaleFormatting } from "@/hooks/useLocaleFormatting";
 
 // ── Breakdown types ────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export type BreakdownType = "freelancer" | "lp" | "protocol";
 
 export interface FreelancerBreakdown {
   type: "freelancer";
-  /** Gross invoice amount in USDC cents (7-decimal representation) */
+  /** Gross invoice amount in smallest token units */
   invoiceAmount: bigint;
   /** Discount in basis points (e.g. 300 = 3%) */
   discountBps: number;
@@ -40,17 +41,36 @@ export interface ProtocolBreakdown {
 
 export type AmountBreakdown = FreelancerBreakdown | LPBreakdown | ProtocolBreakdown;
 
+export type AmountToken = "USDC" | "EURC" | "XLM";
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-const DECIMALS = 1_000_000n; // 6-decimal USDC
+const TOKEN_FORMATTING: Record<AmountToken, { decimals: number; currency?: string }> = {
+  USDC: { decimals: 7, currency: "USD" },
+  EURC: { decimals: 7, currency: "EUR" },
+  XLM: { decimals: 7 },
+};
+
+function formatAmount(amount: bigint, token: AmountToken, locale: string): string {
+  const { decimals, currency } = TOKEN_FORMATTING[token];
+  const value = Number(amount) / 10 ** decimals;
+  const options: Intl.NumberFormatOptions = {
+    notation: "compact",
+    minimumFractionDigits: currency ? 2 : 0,
+    maximumFractionDigits: currency ? 2 : decimals,
+  };
+
+  if (currency) {
+    options.style = "currency";
+    options.currency = currency;
+  }
+
+  const formatted = new Intl.NumberFormat(locale, options).format(value);
+  return currency ? formatted : `${formatted} ${token}`;
+}
 
 function bpsOf(amount: bigint, bps: number): bigint {
   return (amount * BigInt(bps)) / 10_000n;
-}
-
-function fmt(usdc: bigint): string {
-  const dollars = Number(usdc) / Number(DECIMALS);
-  return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function bpsToPercent(bps: number): string {
@@ -59,15 +79,19 @@ function bpsToPercent(bps: number): string {
 
 // ── Breakdown table builder ────────────────────────────────────────────────────
 
-function buildRows(breakdown: AmountBreakdown): Array<{ label: string; value: string }> {
+function buildRows(
+  breakdown: AmountBreakdown,
+  token: AmountToken,
+  locale: string,
+): Array<{ label: string; value: string }> {
   if (breakdown.type === "freelancer") {
     const { invoiceAmount, discountBps } = breakdown;
     const discount = bpsOf(invoiceAmount, discountBps);
     const payout = invoiceAmount - discount;
     return [
-      { label: "Invoice amount", value: fmt(invoiceAmount) },
-      { label: `Discount (${bpsToPercent(discountBps)})`, value: `−${fmt(discount)}` },
-      { label: "You receive", value: fmt(payout) },
+      { label: "Invoice amount", value: formatAmount(invoiceAmount, token, locale) },
+      { label: `Discount (${bpsToPercent(discountBps)})`, value: `−${formatAmount(discount, token, locale)}` },
+      { label: "You receive", value: formatAmount(payout, token, locale) },
     ];
   }
 
@@ -76,8 +100,8 @@ function buildRows(breakdown: AmountBreakdown): Array<{ label: string; value: st
     const discount = bpsOf(amountSent, discountBps);
     const netYieldPct = (discountBps / 100).toFixed(2);
     return [
-      { label: "You sent", value: fmt(amountSent) },
-      { label: "Discount earned", value: `+${fmt(discount)}` },
+      { label: "You sent", value: formatAmount(amountSent, token, locale) },
+      { label: "Discount earned", value: `+${formatAmount(discount, token, locale)}` },
       { label: `Net yield`, value: `${netYieldPct}%` },
     ];
   }
@@ -87,9 +111,9 @@ function buildRows(breakdown: AmountBreakdown): Array<{ label: string; value: st
   const fee = bpsOf(discountAmount, protocolFeeBps);
   const lpYield = discountAmount - fee;
   return [
-    { label: "Discount", value: fmt(discountAmount) },
-    { label: `Protocol fee (${bpsToPercent(protocolFeeBps)})`, value: `−${fmt(fee)}` },
-    { label: "LP yield", value: fmt(lpYield) },
+    { label: "Discount", value: formatAmount(discountAmount, token, locale) },
+    { label: `Protocol fee (${bpsToPercent(protocolFeeBps)})`, value: `−${formatAmount(fee, token, locale)}` },
+    { label: "LP yield", value: formatAmount(lpYield, token, locale) },
   ];
 }
 
@@ -97,11 +121,18 @@ function buildRows(breakdown: AmountBreakdown): Array<{ label: string; value: st
 
 interface AmountTooltipProps {
   breakdown: AmountBreakdown;
+  token?: AmountToken;
   children: React.ReactNode;
   className?: string;
 }
 
-export function AmountTooltip({ breakdown, children, className = "" }: AmountTooltipProps) {
+export function AmountTooltip({
+  breakdown,
+  token = "USDC",
+  children,
+  className = "",
+}: AmountTooltipProps) {
+  const { locale } = useLocaleFormatting();
   const [visible, setVisible] = useState(false);
   const wrapperRef = useRef<HTMLSpanElement>(null);
 
@@ -125,7 +156,7 @@ export function AmountTooltip({ breakdown, children, className = "" }: AmountToo
     };
   }, [visible]);
 
-  const rows = buildRows(breakdown);
+  const rows = buildRows(breakdown, token, locale);
 
   return (
     <span
