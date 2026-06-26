@@ -32,6 +32,7 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 import { usePayerScores } from "@/hooks/usePayerScores";
 import RiskBadge from "./RiskBadge";
 import LPPortfolio from "./LPPortfolio";
+import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
@@ -573,14 +574,24 @@ export default function LPDashboard() {
       </div>
 
       {activeTab === "my-funded" ? (
-        <LPPortfolio
-          invoices={myFundedInvoices}
-          isLoading={loading}
-          onClaimDefault={handleClaimDefault}
-          claimingInvoiceId={claimingInvoiceId}
-          tokenMap={tokenMap}
-          defaultToken={defaultToken}
-        />
+        <>
+          <LPPortfolio
+            invoices={myFundedInvoices}
+            isLoading={loading}
+            onClaimDefault={handleClaimDefault}
+            claimingInvoiceId={claimingInvoiceId}
+            tokenMap={tokenMap}
+            defaultToken={defaultToken}
+          />
+          {/* Risk Summary Panel */}
+          <div className="px-6 py-6 border-t border-surface-dim bg-surface-container-lowest">
+            <LPRiskSummaryPanel
+              invoices={myFundedInvoices}
+              payerScores={payerScores}
+              isLoading={loading}
+            />
+          </div>
+        </>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
