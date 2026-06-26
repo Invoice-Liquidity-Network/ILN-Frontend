@@ -31,10 +31,10 @@ export default function Hero() {
           <h1 className="hero-animate text-5xl lg:text-7xl font-medium text-on-primary-container leading-[1.1] mb-6 font-headline" style={{ animationDelay: "200ms" }}>
             <Trans i18nKey="landing.heroTitle" components={{ strong: <strong /> }} />
           </h1>
-          <p className="text-lg text-on-primary-container/80 max-w-xl mb-10 leading-relaxed font-body">
+          <p className="hero-animate text-lg text-on-primary-container/80 max-w-xl mb-10 leading-relaxed font-body" style={{ animationDelay: "400ms" }}>
             {t("landing.heroSubtitle")}
           </p>
-          <div className="flex flex-wrap gap-4 mb-12">
+          <div className="hero-animate flex flex-wrap gap-4 mb-12" style={{ animationDelay: "600ms" }}>
             <Link href="/submit" className="bg-primary text-surface-container-lowest px-8 py-4 rounded-lg font-bold flex items-center gap-2 hover:translate-y-[-2px] transition-transform">
               {t("landing.submitInvoice")}
               <span className="material-symbols-outlined">arrow_forward</span>
@@ -43,7 +43,9 @@ export default function Hero() {
               {t("landing.fundAsLP")}
             </Link>
           </div>
-          <LiveInvoiceTicker />
+          <div className="hero-animate" style={{ animationDelay: "800ms" }}>
+            <LiveInvoiceTicker />
+          </div>
           <div className="flex items-center gap-8 text-on-primary-container/60">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">verified</span>
