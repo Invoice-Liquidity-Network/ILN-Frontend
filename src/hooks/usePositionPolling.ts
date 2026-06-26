@@ -145,11 +145,20 @@ export function usePositionPolling({
       }, getDelay());
     };
 
+    const onActivity = () => { lastActivity.current = Date.now(); };
+
     evaluateInvoices(invoicesRef.current);
     schedule();
 
+    document.addEventListener("mousemove", onActivity, { passive: true });
+    document.addEventListener("keydown", onActivity, { passive: true });
+    document.addEventListener("click", onActivity, { passive: true });
+
     return () => {
       window.clearTimeout(timerId);
+      document.removeEventListener("mousemove", onActivity);
+      document.removeEventListener("keydown", onActivity);
+      document.removeEventListener("click", onActivity);
     };
   }, [address, addToast, addNotification]);
 }
