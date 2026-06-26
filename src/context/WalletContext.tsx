@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { isConnected, getAddress, setAllowed, signTransaction, getNetwork } from "@stellar/freighter-api";
+import { isConnected, getAddress, setAllowed, signTransaction, getNetwork, requestAccess } from "@stellar/freighter-api";
 import { NETWORK_NAME, NETWORK_PASSPHRASE } from "@/constants";
-import { networksMatch, normalizeWalletNetwork } from "@/utils/network";
+import { networksMatch, normalizeWalletNetwork, getMismatchDetails, getConfiguredStellarNetwork, type MismatchDetails } from "@/utils/network";
 import { getWalletRoles, type WalletRole } from "@/utils/soroban";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -27,12 +27,16 @@ interface WalletContextType {
   preferredWalletProvider: WalletProviderName | null;
   error: string | null;
   networkMismatch: boolean;
+  rpcMismatch: boolean;
+  mismatchDetails: MismatchDetails | null;
+  switchingNetwork: boolean;
   walletNetwork: string | null;
   roles: WalletRole[];
   rolesLoading: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   signTx: (txXdr: string) => Promise<string>;
+  switchNetwork: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -84,6 +88,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkMismatch, setNetworkMismatch] = useState(false);
+  const [rpcMismatch, setRpcMismatch] = useState(false);
+  const [mismatchDetails, setMismatchDetails] = useState<MismatchDetails | null>(null);
+  const [switchingNetwork, setSwitchingNetwork] = useState(false);
   const [walletNetwork, setWalletNetwork] = useState<string | null>(null);
   const [roles, setRoles] = useState<WalletRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -98,15 +105,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!network) {
         setWalletNetwork(null);
         setNetworkMismatch(false);
+        setRpcMismatch(false);
+        setMismatchDetails(null);
         return true;
       }
       setWalletNetwork(network);
-      const mismatch = !networksMatch(network);
-      setNetworkMismatch(mismatch);
-      return !mismatch;
+
+      const details = getMismatchDetails(network);
+      setMismatchDetails(details);
+      setNetworkMismatch(details.walletMismatch);
+      setRpcMismatch(details.rpcMismatch);
+
+      return !details.walletMismatch;
     } catch (e) {
       console.error("Failed to get network", e);
       setWalletNetwork(null);
+      setNetworkMismatch(false);
+      setRpcMismatch(false);
+      setMismatchDetails(null);
       return false;
     }
   }, []);
@@ -273,10 +289,48 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const switchNetwork = useCallback(async () => {
+    if (!address) return;
+    setSwitchingNetwork(true);
+    try {
+      const targetNetwork =
+        getConfiguredStellarNetwork() === "mainnet" ? "PUBLIC" : "TESTNET";
+
+      const extension = (window as any).stellar?.freighter || (window as any).freighter;
+      if (extension?.setNetwork) {
+        await extension.setNetwork(targetNetwork);
+        await checkNetwork();
+        if (!networkMismatch) {
+          addToast({ type: "success", title: "Network Switched", message: `Switched to ${NETWORK_NAME}` });
+        }
+        return;
+      }
+
+      await requestAccess();
+      addToast({
+        type: "info",
+        title: "Switch Network",
+        message: `Please switch Freighter to ${NETWORK_NAME} in the extension popup.`,
+      });
+    } catch (e) {
+      console.error("Failed to switch network", e);
+      addToast({
+        type: "error",
+        title: "Switch Failed",
+        message: `Could not switch network. Please manually switch Freighter to ${NETWORK_NAME}.`,
+      });
+    } finally {
+      setSwitchingNetwork(false);
+    }
+  }, [address, networkMismatch, checkNetwork, addToast]);
+
   const disconnect = () => {
     // Clear all in-memory wallet state...
     setAddress(null);
     setNetworkMismatch(false);
+    setRpcMismatch(false);
+    setMismatchDetails(null);
+    setSwitchingNetwork(false);
     setWalletNetwork(null);
     setError(null);
     setRoles([]);
@@ -333,12 +387,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         preferredWalletProvider: selectedProvider,
         error,
         networkMismatch,
+        rpcMismatch,
+        mismatchDetails,
+        switchingNetwork,
         walletNetwork: walletNetwork ? normalizeWalletNetwork(walletNetwork) : null,
         roles,
         rolesLoading,
         connect,
         disconnect,
-        signTx
+        signTx,
+        switchNetwork
       }}
     >
       {children}
