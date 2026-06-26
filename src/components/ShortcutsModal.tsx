@@ -17,6 +17,7 @@ const GROUPS: ShortcutGroup[] = [
     title: "Navigation",
     items: [
       { keys: ["Cmd", "K"], description: "Command palette" },
+      { keys: ["Cmd", "N"], description: "Quick submit" },
       { keys: ["G", "D"], description: "Go to Dashboard" },
       { keys: ["G", "L"], description: "Go to LP" },
       { keys: ["G", "A"], description: "Go to Analytics" },
@@ -34,7 +35,7 @@ const GROUPS: ShortcutGroup[] = [
   {
     title: "General",
     items: [
-      { keys: ["?"], description: "Show shortcuts" },
+      { keys: ["Cmd", "/"], description: "Show shortcuts" },
       { keys: ["Esc"], description: "Close modal/drawer" },
       { keys: ["D"], description: "Toggle dark mode" },
     ],

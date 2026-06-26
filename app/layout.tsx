@@ -14,6 +14,8 @@ import OfflineBanner from "@/components/OfflineBanner";
 import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 import ContractEventSync from "@/components/ContractEventSync";
 import WhatsNewModal from "@/components/modals/WhatsNewModal";
+import KeyboardShortcutsRoot from "@/components/KeyboardShortcutsRoot";
+import QuickSubmitRoot from "@/components/QuickSubmitRoot";
 import Providers from "./Providers";
 
 export const metadata: Metadata = {
@@ -62,31 +64,34 @@ export default function RootLayout({
         </a>
         <I18nProvider>
           <Providers>
-            <ToastProvider>
-              <ContractEventSync />
-              <WalletProvider>
-                <NotificationProvider>
-                  <OfflineBanner />
-                  <NetworkMismatchBanner />
-                  <FABProvider />
-                  <div id="main-content" className="min-h-screen flex flex-col">
-                    <div className="flex-1">
-                      <Suspense fallback={null}>{children}</Suspense>
+            <KeyboardShortcutsRoot>
+              <ToastProvider>
+                <ContractEventSync />
+                <WalletProvider>
+                  <NotificationProvider>
+                    <OfflineBanner />
+                    <NetworkMismatchBanner />
+                    <FABProvider />
+                    <div id="main-content" className="min-h-screen flex flex-col">
+                      <div className="flex-1">
+                        <Suspense fallback={null}>{children}</Suspense>
+                      </div>
                     </div>
-                  </div>
-                  <Suspense fallback={null}>
-                    <OnboardingFlow />
-                  </Suspense>
-                  <Suspense fallback={null}>
-                    <WhatsNewModal />
-                  </Suspense>
-                  <Suspense fallback={null}>
-                    <CommandPalette />
-                  </Suspense>
-                  <FeedbackWidget />
-                </NotificationProvider>
-              </WalletProvider>
-            </ToastProvider>
+                    <Suspense fallback={null}>
+                      <OnboardingFlow />
+                    </Suspense>
+                    <Suspense fallback={null}>
+                      <WhatsNewModal />
+                    </Suspense>
+                    <Suspense fallback={null}>
+                      <CommandPalette />
+                    </Suspense>
+                    <QuickSubmitRoot />
+                    <FeedbackWidget />
+                  </NotificationProvider>
+                </WalletProvider>
+              </ToastProvider>
+            </KeyboardShortcutsRoot>
           </Providers>
         </I18nProvider>
       </body>
