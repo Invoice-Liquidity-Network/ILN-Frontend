@@ -26,6 +26,8 @@ interface InvoiceMarketplaceCardProps {
   payerOracleVerified?: boolean;
   auctionMeta?: AuctionMeta;
   minReputation?: number;
+  isBookmarked?: boolean;
+  onBookmark?: (id: string, bookmarked: boolean) => void;
 }
 
 function yieldPercent(amount: bigint, discountRate: number): string {
@@ -45,6 +47,8 @@ export default function InvoiceMarketplaceCard({
   payerOracleVerified = false,
   auctionMeta,
   minReputation = 0,
+  isBookmarked = false,
+  onBookmark,
 }: InvoiceMarketplaceCardProps) {
   const [override, setOverride] = useState(false);
   const token = tokenMap.get(invoice.token ?? "") ?? defaultToken;
@@ -64,7 +68,20 @@ export default function InvoiceMarketplaceCard({
           <span className="text-lg font-bold text-primary">#{invoice.id.toString()}</span>
           <span className="ml-2 text-xs text-on-surface-variant">{tokenSymbol}</span>
         </div>
-        <RiskBadge risk={payerRisk} score={payerScore} />
+        <div className="flex items-center gap-2">
+          {onBookmark && (
+            <button
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark invoice"}
+              onClick={() => onBookmark(invoice.id.toString(), !isBookmarked)}
+              className="text-on-surface-variant hover:text-primary transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isBookmarked ? "bookmark" : "bookmark_border"}
+              </span>
+            </button>
+          )}
+          <RiskBadge risk={payerRisk} score={payerScore} />
+        </div>
       </div>
 
       <div className="space-y-2 mb-4">
