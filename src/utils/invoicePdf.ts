@@ -17,6 +17,12 @@ export interface InvoicePdfData {
   dueDateFormatted: string;
   /** Canonical invoice URL encoded into the QR code. */
   shareUrl: string;
+  /** Optional free-form notes (max 1000 chars). */
+  notes?: string;
+  /** Optional terms and conditions text. */
+  termsAndConditions?: string;
+  /** Optional Stellar address or instructions for payment. */
+  paymentInstructions?: string;
 }
 
 export interface PdfField {
@@ -78,6 +84,46 @@ export async function buildInvoicePdf(invoice: Invoice, data: InvoicePdfData): P
     doc.text("Scan to view invoice", 547 - 120, margin + 142);
   } catch {
     // A failed QR render must not block the rest of the document.
+  }
+
+  // ── Custom sections ──
+  const pageWidth = 547;
+  const contentWidth = pageWidth - margin;
+
+  function sectionHeader(title: string) {
+    y += 16;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, y, pageWidth, y);
+    y += 16;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20, 83, 45);
+    doc.text(title, margin, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(40, 40, 40);
+  }
+
+  function wrappedText(text: string) {
+    const lines = doc.splitTextToSize(text.trim(), contentWidth);
+    doc.text(lines as string[], margin, y);
+    y += (lines as string[]).length * 14;
+  }
+
+  if (data.paymentInstructions) {
+    sectionHeader("Payment Instructions");
+    wrappedText(data.paymentInstructions);
+  }
+
+  if (data.notes) {
+    sectionHeader("Notes");
+    wrappedText(data.notes.slice(0, 1000));
+  }
+
+  if (data.termsAndConditions) {
+    sectionHeader("Terms & Conditions");
+    wrappedText(data.termsAndConditions);
   }
 
   return doc;
