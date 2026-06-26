@@ -9,7 +9,7 @@ interface LPSettingsModalProps {
 }
 
 export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProps) {
-  const { settings, updateSettings } = useLPSettings();
+  const { settings, updateSettings, updateNotificationPreferences } = useLPSettings();
 
   if (!isOpen) return null;
 
@@ -62,6 +62,60 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
             <p className="text-xs text-amber-800 leading-relaxed">
               This setting is stored locally on this device. It helps you quickly identify and avoid invoices that don't meet your risk criteria without removing them from the marketplace entirely.
             </p>
+          </div>
+
+          <div className="space-y-4 pt-2 border-t border-outline-variant/10">
+            <h4 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant pt-4">
+              Notifications
+            </h4>
+
+            <div className="space-y-3">
+              {(["invoice", "lp", "governance", "reputation"] as const).map((category) => (
+                <label key={category} className="flex items-center justify-between cursor-pointer">
+                  <span className="text-sm text-on-surface capitalize">{category} events</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.notificationPreferences.categories[category]}
+                    onChange={(e) =>
+                      updateNotificationPreferences({
+                        categories: { ...settings.notificationPreferences.categories, [category]: e.target.checked },
+                      })
+                    }
+                    className="w-5 h-5 accent-primary"
+                  />
+                </label>
+              ))}
+            </div>
+
+            <label className="flex items-center justify-between cursor-pointer pt-2">
+              <span className="text-sm text-on-surface">In-app notifications</span>
+              <input
+                type="checkbox"
+                checked={settings.notificationPreferences.inAppEnabled}
+                onChange={(e) => updateNotificationPreferences({ inAppEnabled: e.target.checked })}
+                className="w-5 h-5 accent-primary"
+              />
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm text-on-surface">Email notifications</span>
+              <input
+                type="checkbox"
+                checked={settings.notificationPreferences.emailEnabled}
+                onChange={(e) => updateNotificationPreferences({ emailEnabled: e.target.checked })}
+                className="w-5 h-5 accent-primary"
+              />
+            </label>
+
+            {settings.notificationPreferences.emailEnabled && (
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={settings.notificationPreferences.email}
+                onChange={(e) => updateNotificationPreferences({ email: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/20 bg-surface-container-low text-on-surface text-sm"
+              />
+            )}
           </div>
         </div>
 
