@@ -7,6 +7,7 @@ import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { usePayerScores } from "@/hooks/usePayerScores";
 import { Invoice } from "@/utils/soroban";
 import { calculateYield } from "@/utils/format";
+import { RiskLevel } from "@/utils/risk";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InvoiceMarketplaceCard from "@/components/InvoiceMarketplaceCard";
@@ -16,6 +17,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import PageHeader from "@/components/PageHeader";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 const PAGE_SIZE = 20;
 
 type SortKey = "yield" | "amount" | "due_date";
@@ -28,9 +30,17 @@ export default function MarketplacePage() {
 
   const [sortKey, setSortKey] = useState<SortKey>("yield");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [filterToken, setFilterToken] = useState("");
+  
+  // Advanced Filters
+  const [filterTokens, setFilterTokens] = useState<string[]>([]);
+  const [filterRisks, setFilterRisks] = useState<RiskLevel[]>([]);
+  const [filterMinDiscount, setFilterMinDiscount] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
   const [filterMinYield, setFilterMinYield] = useState("");
   const [filterMaxAmount, setFilterMaxAmount] = useState("");
+
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -49,11 +59,10 @@ export default function MarketplacePage() {
   const filtered = useMemo(() => {
     let result = pendingInvoices;
 
-    if (filterToken) {
-      const tokenUpper = filterToken.toUpperCase();
+    if (filterTokens.length > 0) {
       result = result.filter((inv) => {
         const sym = (tokenMap.get(inv.token ?? "")?.symbol ?? "USDC").toUpperCase();
-        return sym === tokenUpper;
+        return filterTokens.includes(sym);
       });
     }
 
@@ -69,9 +78,31 @@ export default function MarketplacePage() {
     if (maxAmt !== null && Number.isFinite(maxAmt)) {
       result = result.filter((inv) => Number(inv.amount) / 1e6 <= maxAmt);
     }
+    
+    if (filterRisks.length > 0) {
+      result = result.filter((inv) => {
+        const risk = payerRisks.get(inv.payer) ?? "Unknown";
+        return filterRisks.includes(risk);
+      });
+    }
+
+    if (filterMinDiscount) {
+      const minDiscBps = Number(filterMinDiscount) * 100;
+      result = result.filter((inv) => Number(inv.discount_rate) >= minDiscBps);
+    }
+
+    if (filterStartDate) {
+      const start = new Date(filterStartDate).getTime();
+      result = result.filter((inv) => Number(inv.due_date) * 1000 >= start);
+    }
+
+    if (filterEndDate) {
+      const end = new Date(filterEndDate).getTime() + 86400000; // include end of day
+      result = result.filter((inv) => Number(inv.due_date) * 1000 <= end);
+    }
 
     return result;
-  }, [pendingInvoices, filterToken, filterMinYield, filterMaxAmount, tokenMap]);
+  }, [pendingInvoices, filterTokens, filterMinYield, filterMaxAmount, filterRisks, filterMinDiscount, filterStartDate, filterEndDate, tokenMap, payerRisks]);
 
   // Sort
   const sorted = useMemo(() => {
@@ -106,6 +137,25 @@ export default function MarketplacePage() {
     setPage(1);
   };
 
+  const activeFilterCount =
+    (filterTokens.length > 0 ? 1 : 0) +
+    (filterMinYield ? 1 : 0) +
+    (filterMaxAmount ? 1 : 0) +
+    (filterRisks.length > 0 ? 1 : 0) +
+    (Number(filterMinDiscount) > 0 ? 1 : 0) +
+    (filterStartDate || filterEndDate ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setFilterTokens([]);
+    setFilterMinYield("");
+    setFilterMaxAmount("");
+    setFilterRisks([]);
+    setFilterMinDiscount("");
+    setFilterStartDate("");
+    setFilterEndDate("");
+    setPage(1);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-surface-container-lowest">
       <Navbar />
@@ -126,49 +176,32 @@ export default function MarketplacePage() {
           />
         </div>
 
-        {/* Filters & Sort */}
-        <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-end">
-          <div className="space-y-1">
-            <label htmlFor="filter-token" className="text-xs font-bold uppercase text-on-surface-variant">Token</label>
-            <select
-              id="filter-token"
-              value={filterToken}
-              onChange={(e) => { setFilterToken(e.target.value); setPage(1); }}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
+        {/* Filters Toggle & Sort */}
+        <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-end md:justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFiltersOpen((o) => !o)}
+              className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-4 py-2 text-sm font-medium text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors"
             >
-              <option value="">All</option>
-              <option value="USDC">USDC</option>
-              <option value="EURC">EURC</option>
-              <option value="XLM">XLM</option>
-            </select>
+              <span className="material-symbols-outlined text-[20px]">filter_list</span>
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                className="text-xs font-bold uppercase tracking-wide text-primary hover:underline px-2 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                Clear All Filters
+              </button>
+            )}
           </div>
-          <div className="space-y-1">
-            <label htmlFor="filter-min-yield" className="text-xs font-bold uppercase text-on-surface-variant">Min Yield %</label>
-            <input
-              id="filter-min-yield"
-              type="number"
-              min="0"
-              step="0.1"
-              value={filterMinYield}
-              placeholder="e.g. 2.0"
-              onChange={(e) => { setFilterMinYield(e.target.value); setPage(1); }}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-28"
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="filter-max-amount" className="text-xs font-bold uppercase text-on-surface-variant">Max Amount (USDC)</label>
-            <input
-              id="filter-max-amount"
-              type="number"
-              min="0"
-              step="100"
-              value={filterMaxAmount}
-              placeholder="e.g. 10000"
-              onChange={(e) => { setFilterMaxAmount(e.target.value); setPage(1); }}
-              className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-36"
-            />
-          </div>
-          <div className="flex gap-2 ml-auto">
+
+          <div className="flex gap-2">
             {(["yield", "amount", "due_date"] as SortKey[]).map((key) => (
               <button
                 key={key}
@@ -185,6 +218,129 @@ export default function MarketplacePage() {
             ))}
           </div>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {isFiltersOpen && (
+          <div className="mb-6 rounded-xl border border-outline-variant/20 bg-surface-container-low p-5 shadow-sm">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              
+              {/* Token Type */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
+                <div className="flex flex-col gap-2">
+                  {["USDC", "EURC", "XLM"].map((token) => (
+                    <label key={token} className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterTokens.includes(token)}
+                        onChange={(e) => {
+                          if (e.target.checked) setFilterTokens((prev) => [...prev, token]);
+                          else setFilterTokens((prev) => prev.filter((t) => t !== token));
+                          setPage(1);
+                        }}
+                        className="rounded border-outline-variant/50 text-primary focus:ring-primary/40"
+                      />
+                      <span>{token}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Risk Level */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Risk Level</p>
+                <div className="flex flex-col gap-2">
+                  {(["Low", "Medium", "High"] as RiskLevel[]).map((risk) => (
+                    <label key={risk} className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterRisks.includes(risk)}
+                        onChange={(e) => {
+                          if (e.target.checked) setFilterRisks((prev) => [...prev, risk]);
+                          else setFilterRisks((prev) => prev.filter((r) => r !== risk));
+                          setPage(1);
+                        }}
+                        className="rounded border-outline-variant/50 text-primary focus:ring-primary/40"
+                      />
+                      <span>{risk}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discount & Yield */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Min Discount (%)</p>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={filterMinDiscount || "0"}
+                    onChange={(e) => { setFilterMinDiscount(e.target.value); setPage(1); }}
+                    className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-on-surface-variant">
+                    <span>0%</span>
+                    <span className="font-semibold text-on-surface">{filterMinDiscount || "0"}%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Min Yield %</p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={filterMinYield}
+                    placeholder="e.g. 2.0"
+                    onChange={(e) => { setFilterMinYield(e.target.value); setPage(1); }}
+                    className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Due Date & Amount */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Due Date Range</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={filterStartDate}
+                      onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
+                      className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
+                      aria-label="Start Date"
+                    />
+                    <input
+                      type="date"
+                      value={filterEndDate}
+                      onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
+                      className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
+                      aria-label="End Date"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Max Amount (USDC)</p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={filterMaxAmount}
+                    placeholder="e.g. 10000"
+                    onChange={(e) => { setFilterMaxAmount(e.target.value); setPage(1); }}
+                    className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
+                  />
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* Results count */}
         <p className="text-sm text-on-surface-variant mb-4">
