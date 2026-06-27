@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+**/__snapshots__
 
 # next.js
 /.next/
@@ -20,15 +23,26 @@
 # production
 /build
 
+# lighthouse CI
+/.lighthouseci
+
 # misc
 .DS_Store
 *.pem
 
-# debug
+# debug / logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+debug-storybook.log
+build-storybook.log
+
+# tmp files
+*.tmp
+.tmp_*
+/tmp/
 
 # env files (can opt-in for committing if needed)
 .env*
