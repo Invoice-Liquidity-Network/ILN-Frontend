@@ -54,6 +54,7 @@ export default function LPPortfolio({
       id: "id",
       label: "ID",
       isMandatory: true,
+      isKeyColumn: true,
       sortable: true,
       renderCell: (inv) => <span className="font-bold text-primary">#{inv.id.toString()}</span>,
     },
@@ -66,6 +67,7 @@ export default function LPPortfolio({
     {
       id: "amount",
       label: "Amount Funded",
+      isKeyColumn: true,
       sortable: true,
       renderCell: (inv) => <span className="font-bold">{formatUSDC(inv.amount)}</span>,
     },
@@ -85,6 +87,7 @@ export default function LPPortfolio({
       id: "status",
       label: "Status",
       isMandatory: true,
+      isKeyColumn: true,
       sortable: true,
       renderCell: (inv) => (
         <span className="rounded px-2 py-1 text-xs font-bold bg-surface-container-low text-on-surface">
