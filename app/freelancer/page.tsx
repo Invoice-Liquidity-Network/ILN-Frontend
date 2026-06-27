@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import InvoiceFilterBar from "@/components/InvoiceFilterBar";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { applyInvoiceFilters, useInvoiceFilters } from "@/hooks/useInvoiceFilters";
 import {
@@ -76,6 +77,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FreelancerPage() {
+  useDocumentTitle({ pageTitle: "Freelancer Portal" });
   return (
     <Suspense fallback={null}>
       <FreelancerPageContent />

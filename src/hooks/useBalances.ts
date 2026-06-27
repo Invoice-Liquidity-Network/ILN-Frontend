@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import type { ApprovedToken } from "@/hooks/useApprovedTokens";
-import { getTokenBalance } from "@/utils/soroban";
+import { TESTNET_XLM_TOKEN_ID } from "@/constants";
+import { getNativeXlmBalance, getTokenBalance } from "@/utils/soroban";
 import { TX_SUCCESS_EVENT } from "@/utils/txEvents";
 
 export type TokenBalanceMap = Map<string, bigint>;
@@ -23,6 +24,20 @@ export interface UseBalancesResult {
   isLoading: boolean;
   /** Force an immediate refetch. */
   refetch: () => void;
+}
+
+function xlmNumberToUnits(balance: number): bigint {
+  const fixed = balance.toFixed(7);
+  const [whole, fraction = ""] = fixed.split(".");
+  return BigInt(whole) * 10_000_000n + BigInt(fraction.padEnd(7, "0").slice(0, 7));
+}
+
+async function getBalance(address: string, contractId: string): Promise<bigint> {
+  if (contractId === TESTNET_XLM_TOKEN_ID && TESTNET_XLM_TOKEN_ID === "native-xlm") {
+    return xlmNumberToUnits(await getNativeXlmBalance(address));
+  }
+
+  return getTokenBalance(address, contractId);
 }
 
 /**
@@ -63,7 +78,7 @@ export function useBalances(tokens: ApprovedToken[], enabled = true): UseBalance
       const results = await Promise.allSettled(
         ids.map(async (contractId) => ({
           contractId,
-          amount: await getTokenBalance(address, contractId),
+          amount: await getBalance(address, contractId),
         })),
       );
 

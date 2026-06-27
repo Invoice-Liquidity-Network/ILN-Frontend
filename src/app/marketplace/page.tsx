@@ -13,14 +13,17 @@ import InvoiceMarketplaceCard from "@/components/InvoiceMarketplaceCard";
 import FundConfirmModal from "@/components/FundConfirmModal";
 import LPSettingsModal from "@/components/LPSettingsModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PageHeader from "@/components/PageHeader";
 import { useLPSettings } from "@/hooks/useLPSettings";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 const PAGE_SIZE = 20;
 
 type SortKey = "yield" | "amount" | "due_date";
 
 export default function MarketplacePage() {
+  useDocumentTitle({ pageTitle: "Invoice Marketplace" });
   const { isConnected } = useWallet();
-  const { data: allInvoices = [], isLoading: loading } = useInvoices();
+  const { data: allInvoices = [], isLoading: loading, refetch } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();
 
   const [sortKey, setSortKey] = useState<SortKey>("yield");
@@ -107,20 +110,20 @@ export default function MarketplacePage() {
     <div className="min-h-screen flex flex-col bg-surface-container-lowest">
       <Navbar />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Invoice Marketplace</h1>
-            <p className="text-on-surface-variant">
-              Browse pending invoices available for funding. Filter, sort, and fund invoices directly.
-            </p>
-          </div>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
-          >
-            <span className="material-symbols-outlined text-sm">settings</span>
-            Risk Settings
-          </button>
+        <div className="mb-8">
+          <PageHeader
+            title="Invoice Marketplace"
+            description="Browse pending invoices available for funding. Filter, sort, and fund invoices directly."
+            actions={
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+              >
+                <span className="material-symbols-outlined text-sm">settings</span>
+                Risk Settings
+              </button>
+            }
+          />
         </div>
 
         {/* Filters & Sort */}
@@ -188,7 +191,7 @@ export default function MarketplacePage() {
           {sorted.length} invoice{sorted.length !== 1 ? "s" : ""} available
         </p>
 
-        <ErrorBoundary>
+        <ErrorBoundary onRetry={() => void refetch()}>
           {loading && paginated.length === 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (

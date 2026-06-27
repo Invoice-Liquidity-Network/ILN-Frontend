@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from "react";
 
 export default function Navbar() {
   useWallet();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, mounted } = useTheme();
   const { i18n, t } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,12 +38,13 @@ export default function Navbar() {
     { href: "/payer", label: t("nav.payInvoices") },
     { href: "/dashboard", label: t("nav.dashboard") },
     { href: "/analytics", label: t("nav.analytics") },
+    { href: "/referrals", label: "Referrals" },
   ];
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
-        <Link href="/" className="flex min-h-11 items-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
           ILN
         </Link>
         <div className="hidden md:flex items-center gap-8">
@@ -148,7 +149,7 @@ export default function Navbar() {
             aria-label="Toggle dark mode"
           >
             <span className="material-symbols-outlined">
-              {theme === "dark" ? "light_mode" : "dark_mode"}
+              {!mounted ? "dark_mode" : theme === "dark" ? "light_mode" : "dark_mode"}
             </span>
           </button>
 

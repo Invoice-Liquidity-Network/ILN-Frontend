@@ -22,6 +22,9 @@ interface InvoiceTableProps<T> {
   sortKey?: string;
   sortOrder?: "asc" | "desc";
   keyExtractor: (item: T) => string;
+  // Selection
+  selectedKeys?: Set<string>;
+  onSelectionChange?: (keys: Set<string>) => void;
 }
 
 export default function InvoiceTable<T>({
@@ -35,9 +38,12 @@ export default function InvoiceTable<T>({
   sortKey,
   sortOrder,
   keyExtractor,
+  selectedKeys,
+  onSelectionChange,
 }: InvoiceTableProps<T>) {
   const router = useRouter();
   const storageKey = `iln_table_config_${tableId}`;
+  const selectable = selectedKeys !== undefined && onSelectionChange !== undefined;
 
   // State for order and visibility
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
@@ -53,7 +59,6 @@ export default function InvoiceTable<T>({
     if (saved) {
       try {
         const config = JSON.parse(saved);
-        // Merge with current columns (in case columns changed in code)
         const validOrder = config.order.filter((id: string) => columns.some((c) => c.id === id));
         const missingFromOrder = defaultOrder.filter((id) => !validOrder.includes(id));
         
@@ -91,7 +96,7 @@ export default function InvoiceTable<T>({
 
   const handleReset = () => {
     const defaultOrder = columns.map((c) => c.id);
-    const defaultVisible = columns.map((c) => c.id); // All visible by default
+    const defaultVisible = columns.map((c) => c.id);
     setColumnOrder(defaultOrder);
     setVisibleColumns(defaultVisible);
   };
@@ -116,7 +121,33 @@ export default function InvoiceTable<T>({
       .filter((c): c is ColumnDefinition<T> => !!c && visibleColumns.includes(c.id));
   }, [columnOrder, visibleColumns, columns]);
 
-  if (!isInitialised) return null; // Avoid layout shift
+  // Selection helpers
+  const allKeys = useMemo(() => data.map(keyExtractor), [data, keyExtractor]);
+  const allSelected = selectable && allKeys.length > 0 && allKeys.every((k) => selectedKeys!.has(k));
+  const someSelected = selectable && allKeys.some((k) => selectedKeys!.has(k));
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      const next = new Set(selectedKeys);
+      allKeys.forEach((k) => next.delete(k));
+      onSelectionChange(next);
+    } else {
+      const next = new Set(selectedKeys);
+      allKeys.forEach((k) => next.add(k));
+      onSelectionChange(next);
+    }
+  };
+
+  const handleSelectRow = (key: string) => {
+    if (!onSelectionChange || !selectedKeys) return;
+    const next = new Set(selectedKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onSelectionChange(next);
+  };
+
+  if (!isInitialised) return null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,6 +166,20 @@ export default function InvoiceTable<T>({
         <table className="w-full text-left">
           <thead className="bg-surface-container-low">
             <tr>
+              {selectable && (
+                <th className="w-10 px-4 py-4">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all rows"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected && !allSelected;
+                    }}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 cursor-pointer rounded accent-primary"
+                  />
+                </th>
+              )}
               {activeColumns.map((col, idx) => (
                 <th
                   key={col.id}
@@ -145,7 +190,7 @@ export default function InvoiceTable<T>({
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
-                    {idx === 0 && (
+                    {idx === 0 && !selectable && (
                       <div className="group/tooltip relative inline-block ml-1">
                         <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
@@ -174,7 +219,7 @@ export default function InvoiceTable<T>({
           <tbody className="divide-y divide-surface-dim bg-surface-container-lowest/50">
             {isLoading ? (
               <tr>
-                <td colSpan={activeColumns.length} className="px-6 py-12 text-center text-on-surface-variant italic">
+                <td colSpan={activeColumns.length + (selectable ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant italic">
                   <div className="flex flex-col items-center gap-3">
                     <span className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></span>
                     Loading assets...
@@ -183,26 +228,45 @@ export default function InvoiceTable<T>({
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={activeColumns.length} className="px-6 py-12 text-center text-on-surface-variant italic">
+                <td colSpan={activeColumns.length + (selectable ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant italic">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
-                <tr
-                  key={keyExtractor(item)}
-                  tabIndex={0}
-                  role="row"
-                  onKeyDown={(e) => handleKeyDown(e, item, index)}
-                  className="hover:bg-surface-variant/10 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5"
-                >
-                  {activeColumns.map((col) => (
-                    <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ""}`}>
-                      {col.renderCell(item)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              data.map((item, index) => {
+                const key = keyExtractor(item);
+                const isSelected = selectable && selectedKeys!.has(key);
+                return (
+                  <tr
+                    key={key}
+                    tabIndex={0}
+                    role="row"
+                    aria-selected={selectable ? isSelected : undefined}
+                    onKeyDown={(e) => handleKeyDown(e, item, index)}
+                    className={`hover:bg-surface-variant/10 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5 ${
+                      isSelected ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    {selectable && (
+                      <td className="w-10 px-4 py-5">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select row ${key}`}
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(key)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-4 w-4 cursor-pointer rounded accent-primary"
+                        />
+                      </td>
+                    )}
+                    {activeColumns.map((col) => (
+                      <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ""}`}>
+                        {col.renderCell(item)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -210,4 +274,3 @@ export default function InvoiceTable<T>({
     </div>
   );
 }
-

@@ -9,8 +9,15 @@ const meta: Meta<typeof EmptyState> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    connected: {
-      control: { type: 'boolean' },
+    variant: {
+      control: 'select',
+      options: [
+        'wallet-disconnected',
+        'no-invoices',
+        'no-funded-positions',
+        'empty-marketplace',
+        'no-governance-proposals',
+      ],
     },
   },
 };
@@ -18,14 +25,55 @@ const meta: Meta<typeof EmptyState> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const WalletConnected: Story = {
+export const WalletDisconnected: Story = {
   args: {
-    connected: true,
+    variant: 'wallet-disconnected',
   },
 };
 
-export const WalletDisconnected: Story = {
+export const NoInvoices: Story = {
   args: {
-    connected: false,
+    variant: 'no-invoices',
+    action: {
+      label: 'Create Invoice',
+      onClick: () => {},
+    },
+  },
+};
+
+export const NoFundedPositions: Story = {
+  args: {
+    variant: 'no-funded-positions',
+    action: {
+      label: 'Browse Marketplace',
+      onClick: () => {},
+    },
+  },
+};
+
+export const EmptyMarketplace: Story = {
+  args: {
+    variant: 'empty-marketplace',
+    action: {
+      label: 'Refresh',
+      onClick: () => {},
+    },
+  },
+};
+
+export const NoGovernanceProposals: Story = {
+  args: {
+    variant: 'no-governance-proposals',
+  },
+};
+
+export const WithActionButton: Story = {
+  name: 'With Action Button (generic)',
+  args: {
+    variant: 'no-invoices',
+    action: {
+      label: 'Get Started',
+      onClick: () => alert('Action clicked'),
+    },
   },
 };

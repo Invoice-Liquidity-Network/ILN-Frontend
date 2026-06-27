@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   isWalletConnectConfigured,
   getWalletConnectPairingUri,
@@ -11,6 +12,10 @@ interface WalletSelectionModalProps {
   onClose: () => void;
   /** Connect via the Freighter browser extension. */
   onSelectFreighter: () => void;
+  /** Persist the user's choice and switch to WalletConnect pairing. */
+  onSelectWalletConnect: () => void;
+  /** Open the modal directly in the WalletConnect pairing view. */
+  initialWalletConnectView?: boolean;
 }
 
 /**
@@ -21,13 +26,17 @@ interface WalletSelectionModalProps {
 export default function WalletSelectionModal({
   onClose,
   onSelectFreighter,
+  onSelectWalletConnect,
+  initialWalletConnectView = false,
 }: WalletSelectionModalProps) {
-  const [showWalletConnect, setShowWalletConnect] = useState(false);
+  const [showWalletConnect, setShowWalletConnect] = useState(initialWalletConnectView);
   const walletConnectReady = isWalletConnectConfigured();
   const pairingUri = walletConnectReady ? safePairingUri() : null;
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   return (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-label="Select a wallet"
@@ -62,7 +71,10 @@ export default function WalletSelectionModal({
 
             <button
               type="button"
-              onClick={() => setShowWalletConnect(true)}
+              onClick={() => {
+                onSelectWalletConnect();
+                setShowWalletConnect(true);
+              }}
               disabled={!walletConnectReady}
               className="flex w-full items-center justify-between rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-4 text-left font-bold text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
             >

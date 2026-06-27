@@ -10,6 +10,10 @@ vi.mock("../src/utils/soroban", () => ({
   CONTRACT_ID: "CONTRACT_123",
 }));
 
+vi.mock("../src/utils/governance", () => ({
+  fetchProtocolParameters: vi.fn(() => Promise.resolve({ feeRateBps: 50 })),
+}));
+
 vi.mock("../src/utils/format", () => ({
   formatTokenAmount: (v: bigint) => (Number(v) / 10 ** 7).toString(),
   formatAddress: (a: string) => a.slice(0, 4),
@@ -150,5 +154,44 @@ describe("PayerSettlementModal", () => {
     fireEvent.change(input, { target: { value: "2000" } }); // Exceeds 1000
 
     expect(screen.getByText("1000 USDC")).toBeInTheDocument(); // Caps at 1000
+  });
+
+  it("shows protocol fee when non-zero", async () => {
+    render(
+      <PayerSettlementModal
+        invoice={mockInvoice}
+        token={mockToken}
+        isOpen={true}
+        onClose={mockOnClose}
+        onConfirm={mockOnConfirm}
+        submitting={false}
+      />
+    );
+
+    const feeDisplay = await screen.findByTestId("protocol-fee-display");
+    expect(feeDisplay).toBeInTheDocument();
+    expect(feeDisplay).toHaveTextContent("Protocol fee: 50 bps");
+    expect(feeDisplay).toHaveTextContent("0.25");
+  });
+
+  it("shows 0% fee badge when fee is zero", async () => {
+    // Remock governance to return 0
+    const gov = await import("../src/utils/governance");
+    (gov.fetchProtocolParameters as any).mockImplementationOnce(() => Promise.resolve({ feeRateBps: 0 }));
+
+    render(
+      <PayerSettlementModal
+        invoice={mockInvoice}
+        token={mockToken}
+        isOpen={true}
+        onClose={mockOnClose}
+        onConfirm={mockOnConfirm}
+        submitting={false}
+      />
+    );
+
+    const feeDisplay = await screen.findByTestId("protocol-fee-display");
+    expect(feeDisplay).toBeInTheDocument();
+    expect(feeDisplay).toHaveTextContent("0% fee");
   });
 });

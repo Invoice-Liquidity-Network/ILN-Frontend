@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatAsCSV, filterByDateRange } from "../utils/exportData";
+import { formatAsCSV, filterByDateRange } from "@/utils/exportData";
 
 describe("exportData Utils", () => {
   describe("formatAsCSV", () => {
@@ -15,6 +15,16 @@ describe("exportData Utils", () => {
       
       const expected = `id,name,status\n"1","Alice","funded"\n"2","Bob","pending"`;
       expect(formatAsCSV(data)).toBe(expected);
+    });
+
+    it("formats only selected columns when provided", () => {
+      const data = [
+        { id: 1, name: "Alice", status: "funded" },
+        { id: 2, name: "Bob", status: "pending" },
+      ];
+
+      const expected = `id,status\n"1","funded"\n"2","pending"`;
+      expect(formatAsCSV(data, ["id", "status"])).toBe(expected);
     });
 
     it("escapes quotes in values correctly", () => {

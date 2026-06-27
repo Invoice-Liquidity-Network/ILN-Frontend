@@ -6,10 +6,12 @@ import Footer from "@/components/Footer";
 import { useContractStats } from "@/hooks/useContractStats";
 import { useInvoices } from "@/hooks/useInvoices";
 import StatsMetricCards from "@/components/stats/StatsMetricCards";
+import StatsDisputeRateCard from "@/components/stats/StatsDisputeRateCard";
 import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
 import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
 import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PageHeader from "@/components/PageHeader";
 
 function LoadingSkeleton() {
   return (
@@ -40,7 +42,7 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 export default function ProtocolStatsScreen() {
-  const { data: stats, isLoading, error } = useContractStats();
+  const { data: stats, isLoading, error, refetch } = useContractStats();
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices();
 
   return (
@@ -48,14 +50,10 @@ export default function ProtocolStatsScreen() {
       <Navbar />
       <section className="pt-32 pb-16 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex flex-col gap-8">
-          <div>
-            <h1 className="font-headline text-3xl font-bold text-on-surface">
-              Protocol Statistics
-            </h1>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              Live overview of the Invoice Liquidity Network — updates every 60 seconds.
-            </p>
-          </div>
+          <PageHeader
+            title="Protocol Statistics"
+            description="Live overview of the Invoice Liquidity Network — updates every 60 seconds."
+          />
 
           {isLoading && <LoadingSkeleton />}
 
@@ -66,8 +64,10 @@ export default function ProtocolStatsScreen() {
           )}
 
           {!isLoading && !error && stats && (
-            <ErrorBoundary>
+            <ErrorBoundary onRetry={() => void refetch()}>
               <StatsMetricCards stats={stats} />
+
+              <StatsDisputeRateCard metrics={stats.dispute_rate} />
 
               <StatsVolumeChart dailyVolume={stats.daily_volume} />
 

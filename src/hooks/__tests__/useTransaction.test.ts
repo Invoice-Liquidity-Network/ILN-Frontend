@@ -54,4 +54,16 @@ describe("useTransaction", () => {
     await act(async () => { resolve({ txHash: "done" }); });
     expect(result.current.loading).toBe(false);
   });
+
+  it("handles contract mapped errors", async () => {
+    vi.mocked(useWallet).mockReturnValue({ isConnected: true, address: "GTEST", signTx: vi.fn() } as any);
+    vi.mocked(submitSignedTransaction).mockRejectedValue(new Error("InvalidDiscountRate"));
+    const { result } = renderHook(() => useTransaction());
+    
+    let txHash: string | null = "init";
+    await act(async () => { txHash = await result.current.execute(mockTx); });
+    
+    expect(txHash).toBeNull();
+    expect(result.current.error).toBe("InvalidDiscountRate");
+  });
 });

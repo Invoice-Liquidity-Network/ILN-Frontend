@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { useBalances } from "@/hooks/useBalances";
 import { useWallet } from "@/context/WalletContext";
@@ -10,13 +10,25 @@ import { NETWORK_NAME } from "@/constants";
 import TestnetFaucetButton from "./TestnetFaucetButton";
 
 export default function WalletButton() {
-  const { address, isConnected, isInstalled, connect, disconnect, networkMismatch, error } = useWallet();
+  const { address, isConnected, isInstalled, isReconnecting, preferredWalletProvider, connect, disconnect, networkMismatch, error } = useWallet();
   const { tokens } = useApprovedTokens();
   const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
   // Auto-refreshes every 30s and on each successful transaction; tokens that
   // fail to load surface via `unavailable` for the "Add Trustline" prompt.
   const { balances, unavailable, isLoading: isLoadingBalances } = useBalances(tokens);
   const [copied, setCopied] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleCopyAddress = async () => {
     if (!address) return;
@@ -33,12 +45,6 @@ export default function WalletButton() {
     return (
       <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
         <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'}`}></span>
-            <span className={`text-[10px] font-bold uppercase ${networkMismatch ? 'text-error' : 'text-primary'}`}>
-              {networkMismatch ? "Wrong Network" : NETWORK_NAME}
-            </span>
-          </div>
           {!networkMismatch ? (
             <div className="flex flex-wrap justify-end gap-2">
               {isLoadingBalances && balances.size === 0 && unavailable.size === 0 ? (
@@ -74,47 +80,84 @@ export default function WalletButton() {
               )}
             </div>
           ) : null}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-mono text-on-surface-variant">{formatAddress(address!)}</span>
-            <button
-              type="button"
-              onClick={() => void handleCopyAddress()}
-              aria-label="Copy wallet address"
-              title={copied ? "Copied!" : "Copy address"}
-              className="flex h-5 w-5 items-center justify-center rounded text-on-surface-variant hover:bg-surface-variant/50"
-            >
-              <span className="material-symbols-outlined text-[14px]">
-                {copied ? "check" : "content_copy"}
-              </span>
-            </button>
+          <div className="flex items-center gap-2">
+            <TestnetFaucetButton />
+            <div className="relative group" ref={dropdownRef}>
+              <button 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-outline-variant/15 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50
+                  ${dropdownOpen ? 'bg-surface-container' : 'bg-surface-container-low hover:bg-surface-container'}
+                `}
+                title={address!}
+                aria-expanded={dropdownOpen}
+              >
+                <span 
+                  className={`w-2 h-2 rounded-full ${networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'}`} 
+                  aria-label={networkMismatch ? "Wrong network" : "Connected"}
+                />
+                <span className={`text-[10px] font-bold uppercase ${networkMismatch ? 'text-error' : 'text-primary'}`}>
+                  {networkMismatch ? "Wrong Network" : NETWORK_NAME}
+                </span>
+                <span className="text-on-surface-variant/30">|</span>
+                <span className={`text-sm font-mono font-medium ${networkMismatch ? 'text-error' : 'text-on-surface'}`}>
+                  {formatAddress(address!)}
+                </span>
+                <span className="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform duration-200" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                  expand_more
+                </span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 p-2 bg-surface-container-high border border-outline-variant/20 rounded-xl shadow-xl z-[60] flex flex-col min-w-[180px] animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    onClick={() => {
+                      void handleCopyAddress();
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-highest text-sm text-on-surface w-full text-left transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{copied ? "check" : "content_copy"}</span>
+                    {copied ? "Copied!" : "Copy Address"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      disconnect();
+                      setDropdownOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-error-container hover:text-on-error-container text-error text-sm w-full text-left transition-colors mt-1"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">logout</span>
+                    Disconnect
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <TestnetFaucetButton />
         </div>
-        <button
-          onClick={disconnect}
-          className="bg-surface-variant text-on-surface-variant px-4 py-2 rounded-lg text-sm font-bold hover:bg-surface-dim transition-all active:scale-95 border border-outline-variant/10"
-        >
-          Disconnect
-        </button>
       </div>
     );
   }
+
+  const connectionLabel = isReconnecting ? "Reconnecting..." : "Connect Wallet";
 
   return (
     <div className="relative group">
       <button
         onClick={connect}
-        className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-surface-container-lowest shadow-md transition-all duration-150 hover:bg-primary/90 active:scale-95"
+        disabled={isReconnecting}
+        className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-surface-container-lowest shadow-md transition-all duration-150 hover:bg-primary/90 active:scale-95 disabled:cursor-wait disabled:opacity-70"
       >
         <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
-        Connect Wallet
+        {connectionLabel}
       </button>
-      {!isInstalled && (
+      {isReconnecting && (
+        <p className="mt-2 text-xs text-on-surface-variant">Attempting to restore your wallet session…</p>
+      )}
+      {!isInstalled && !isReconnecting && preferredWalletProvider !== "walletconnect" && (
         <a
           href="https://www.freighter.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 block text-right text-[11px] font-medium text-primary hover:underline"
+          className="mt-1 flex min-h-[44px] items-center justify-end text-[11px] font-medium text-primary hover:underline"
         >
           Don&apos;t have Freighter? Install it →
         </a>

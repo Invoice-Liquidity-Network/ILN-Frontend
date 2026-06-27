@@ -34,20 +34,19 @@ export function filterByDateRange<T extends { submittedDate?: string; fundedDate
   });
 }
 
-export function formatAsCSV<T extends Record<string, any>>(data: T[]): string {
+export function formatAsCSV<T extends Record<string, any>>(data: T[], columns?: string[]): string {
   if (!data || data.length === 0) return "";
-  
-  const headers = Object.keys(data[0]);
-  const csvRows = data.map(row => {
-    return headers.map(header => {
+
+  const headers = columns ?? Object.keys(data[0]);
+  const csvRows = data.map((row) => {
+    return headers.map((header) => {
       const val = row[header];
       if (val === null || val === undefined) return '""';
-      // Escape quotes and enclose in quotes
       const strVal = String(val);
       return `"${strVal.replace(/"/g, '""')}"`;
     }).join(",");
   });
-  
+
   return [headers.join(","), ...csvRows].join("\n");
 }
 
@@ -67,12 +66,20 @@ export function downloadFile(content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
-export function exportToCSV<T extends Record<string, any>>(data: T[], filename: string) {
-  const csvContent = formatAsCSV(data);
+export function exportToCSV<T extends Record<string, any>>(data: T[], filename: string, columns?: string[]) {
+  const csvContent = formatAsCSV(data, columns);
   downloadFile(csvContent, filename, "text/csv;charset=utf-8;");
 }
 
-export function exportToJSON<T extends Record<string, any>>(data: T[], filename: string) {
-  const jsonContent = JSON.stringify(data, null, 2);
+export function exportToJSON<T extends Record<string, any>>(data: T[], filename: string, columns?: string[]) {
+  const rows = columns
+    ? data.map((row) =>
+        columns.reduce<Record<string, unknown>>((acc, key) => {
+          if (key in row) acc[key] = row[key];
+          return acc;
+        }, {}),
+      )
+    : data;
+  const jsonContent = JSON.stringify(rows, null, 2);
   downloadFile(jsonContent, filename, "application/json;charset=utf-8;");
 }
