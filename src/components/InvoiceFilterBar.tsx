@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   INVOICE_STATUSES,
   type InvoiceFilters,
@@ -16,6 +16,13 @@ type InvoiceFilterBarProps = {
 };
 
 const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
+const SAVED_FILTERS_KEY = "iln_saved_invoice_filters";
+
+type SavedFilter = {
+  id: string;
+  name: string;
+  filters: InvoiceFilters;
+};
 
 function handleStatusKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
@@ -40,6 +47,61 @@ export default function InvoiceFilterBar({
   className,
 }: InvoiceFilterBarProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
+  const [isSavingFilter, setIsSavingFilter] = useState(false);
+  const [newFilterName, setNewFilterName] = useState("");
+  const savedFiltersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SAVED_FILTERS_KEY);
+      if (stored) {
+        setSavedFilters(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("Failed to load saved filters", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (savedFiltersRef.current && !savedFiltersRef.current.contains(event.target as Node)) {
+        setIsSavedFiltersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const saveFilter = () => {
+    if (!newFilterName.trim() || savedFilters.length >= 10) return;
+
+    const newFilter: SavedFilter = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
+      name: newFilterName.trim(),
+      filters: { ...filters },
+    };
+
+    const updatedFilters = [...savedFilters, newFilter];
+    setSavedFilters(updatedFilters);
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(updatedFilters));
+    setNewFilterName("");
+    setIsSavingFilter(false);
+  };
+
+  const applySavedFilter = (id: string) => {
+    const filter = savedFilters.find((f) => f.id === id);
+    if (filter) {
+      onFiltersChange(filter.filters);
+    }
+  };
+
+  const deleteSavedFilter = (id: string) => {
+    const updatedFilters = savedFilters.filter((f) => f.id !== id);
+    setSavedFilters(updatedFilters);
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(updatedFilters));
+  };
 
   const containerClass = className ? `space-y-3 ${className}` : "space-y-3";
 
@@ -64,7 +126,54 @@ export default function InvoiceFilterBar({
           className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative" ref={savedFiltersRef}>
+            <button
+              type="button"
+              onClick={() => setIsSavedFiltersOpen((current) => !current)}
+              className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 px-3 py-2 text-sm font-medium text-on-surface-variant hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              Saved Filters
+              {savedFilters.length > 0 && (
+                <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-xs font-bold text-on-surface-variant">
+                  {savedFilters.length}
+                </span>
+              )}
+            </button>
+            {isSavedFiltersOpen && (
+              <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-outline-variant/20 bg-surface-container-low p-2 shadow-lg z-10">
+                {savedFilters.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant p-2 text-center">No saved filters.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {savedFilters.map((sf) => (
+                      <li key={sf.id} className="flex items-center justify-between gap-2 p-1 hover:bg-surface-container-high rounded-lg group">
+                        <button
+                          type="button"
+                          className="flex-1 text-left text-sm truncate px-2 py-1"
+                          onClick={() => {
+                            applySavedFilter(sf.id);
+                            setIsSavedFiltersOpen(false);
+                          }}
+                        >
+                          {sf.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSavedFilter(sf.id)}
+                          className="text-on-surface-variant hover:text-error p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                          aria-label={`Delete ${sf.name}`}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => setIsAdvancedOpen((current) => !current)}
@@ -95,7 +204,7 @@ export default function InvoiceFilterBar({
       {isAdvancedOpen ? (
         <div
           id="invoice-filter-advanced"
-          className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4"
+          className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 space-y-4"
         >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
@@ -264,6 +373,53 @@ export default function InvoiceFilterBar({
                 )}
               </div>
             </div>
+          </div>
+          
+          <div className="mt-4 flex items-center gap-4 pt-4 border-t border-outline-variant/20">
+            {isSavingFilter ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={newFilterName}
+                  onChange={(e) => setNewFilterName(e.target.value)}
+                  placeholder="Filter name"
+                  className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-1.5 text-sm"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={saveFilter}
+                  disabled={!newFilterName.trim() || savedFilters.length >= 10}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSavingFilter(false);
+                    setNewFilterName("");
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsSavingFilter(true)}
+                  disabled={savedFilters.length >= 10}
+                  className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/30 px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                >
+                  Save Current Filter
+                </button>
+                {savedFilters.length >= 10 && (
+                  <span className="text-xs text-error">Maximum of 10 saved filters reached.</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : null}
