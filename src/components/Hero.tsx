@@ -9,9 +9,12 @@ const HERO_STYLE = `
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.hero-animate {
+  opacity: 1;
+}
 @media (prefers-reduced-motion: no-preference) {
   .hero-animate {
-    animation: heroFadeInUp 600ms ease both;
+    animation: heroFadeInUp 600ms ease-out both;
   }
 }
 `;
@@ -35,7 +38,7 @@ export default function Hero() {
             {t("landing.heroSubtitle")}
           </p>
           <div className="hero-animate flex flex-wrap gap-4 mb-12" style={{ animationDelay: "600ms" }}>
-            <Link href="/submit" className="bg-primary text-surface-container-lowest px-8 py-4 rounded-lg font-bold flex items-center gap-2 hover:translate-y-[-2px] transition-transform">
+            <Link href="/submit" className="bg-primary text-surface-container-lowest px-8 py-4 rounded-lg font-bold flex items-center gap-2 hover:-translate-y-0.5 transition-transform">
               {t("landing.submitInvoice")}
               <span className="material-symbols-outlined">arrow_forward</span>
             </Link>

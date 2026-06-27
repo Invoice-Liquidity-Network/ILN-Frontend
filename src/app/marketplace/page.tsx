@@ -18,6 +18,7 @@ import PageHeader from "@/components/PageHeader";
 import { useLPSettings } from "@/hooks/useLPSettings";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
+import { useBookmarks } from "@/hooks/useBookmarks";
 const PAGE_SIZE = 20;
 
 type SortKey = "yield" | "amount" | "due_date";
@@ -44,7 +45,9 @@ export default function MarketplacePage() {
   const [page, setPage] = useState(1);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [filterBookmarked, setFilterBookmarked] = useState(false);
   const { settings } = useLPSettings();
+  const { isBookmarked, toggleBookmark, count: bookmarkCount, atLimit } = useBookmarks();
 
   // Filter to Pending only
   const pendingInvoices = useMemo(
@@ -101,8 +104,16 @@ export default function MarketplacePage() {
       result = result.filter((inv) => Number(inv.due_date) * 1000 <= end);
     }
 
+    if (filterBookmarked) {
+      result = result.filter((inv) => isBookmarked(inv.id.toString()));
+    }
+
     return result;
-  }, [pendingInvoices, filterTokens, filterMinYield, filterMaxAmount, filterRisks, filterMinDiscount, filterStartDate, filterEndDate, tokenMap, payerRisks]);
+
+  }, [pendingInvoices, filterTokens, filterMinYield, filterMaxAmount, filterRisks, filterMinDiscount, filterStartDate, filterEndDate, tokenMap, payerRisks, filterBookmarked, isBookmarked]);
+
+  
+
 
   // Sort
   const sorted = useMemo(() => {
@@ -200,8 +211,24 @@ export default function MarketplacePage() {
               </button>
             )}
           </div>
-
-          <div className="flex gap-2">
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-on-surface-variant">Saved</label>
+            <button
+              onClick={() => { setFilterBookmarked((v) => !v); setPage(1); }}
+              title={atLimit ? "Bookmark limit (100) reached" : undefined}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${
+                filterBookmarked
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-outline-variant/30 text-on-surface-variant hover:border-primary/40"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {filterBookmarked ? "bookmark" : "bookmark_border"}
+              </span>
+              Bookmarked{bookmarkCount > 0 ? ` (${bookmarkCount})` : ""}
+            </button>
+          </div>
+          <div className="flex gap-2 ml-auto">
             {(["yield", "amount", "due_date"] as SortKey[]).map((key) => (
               <button
                 key={key}
@@ -383,6 +410,8 @@ export default function MarketplacePage() {
                   onFund={setSelectedInvoice}
                   isWalletConnected={isConnected}
                   minReputation={settings.minReputation}
+                  isBookmarked={isBookmarked(invoice.id.toString())}
+                  onBookmark={toggleBookmark}
                 />
               ))}
             </div>
