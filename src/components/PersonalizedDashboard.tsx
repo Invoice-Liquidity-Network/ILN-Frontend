@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import type { WalletRole } from "@/utils/soroban";
+import ReferralWidget from "./ReferralWidget";
 
 const roleCards: Array<{
   role: WalletRole;
@@ -54,7 +55,7 @@ export default function PersonalizedDashboard() {
           ) : null}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           {roleCards.map((card) => {
             const active = roles.includes(card.role);
             return (
@@ -86,6 +87,8 @@ export default function PersonalizedDashboard() {
             );
           })}
         </div>
+
+        <ReferralWidget />
       </div>
     </section>
   );
