@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import { Invoice, TokenMetadata } from "@/utils/soroban";
@@ -7,6 +9,7 @@ import DueDateCountdown from "./DueDateCountdown";
 import RiskBadge from "./RiskBadge";
 import OracleBadge from "./OracleBadge";
 import AuctionRateTicker from "./AuctionRateTicker";
+import ReputationSparkline from "./ReputationSparkline";
 
 interface AuctionMeta {
   startRate: number;
@@ -86,17 +89,25 @@ export default function InvoiceMarketplaceCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-on-surface-variant mb-4">
-        <span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-on-surface-variant mb-4 gap-3">
+        <div>
           Submitter:{" "}
           <Link href={`/profile/${invoice.freelancer}`} className="text-primary hover:underline font-mono">
             {formatAddress(invoice.freelancer)}
           </Link>
-        </span>
-        {payerScore !== null && (
-          <span>Reputation: <span className="font-bold text-on-surface">{payerScore.score}</span></span>
-        )}
-        <OracleBadge verified={payerOracleVerified} />
+        </div>
+
+        <div className="flex-1 flex items-center justify-center">
+          {payerScore !== null ? (
+            <ReputationSparkline payerAddress={invoice.payer} currentScore={payerScore.score} />
+          ) : (
+            <div className="text-on-surface-variant">Reputation: Unknown</div>
+          )}
+        </div>
+
+        <div className="flex-shrink-0">
+          <OracleBadge verified={payerOracleVerified} />
+        </div>
       </div>
 
       {auctionMeta && (
