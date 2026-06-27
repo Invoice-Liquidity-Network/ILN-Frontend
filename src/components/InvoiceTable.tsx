@@ -25,6 +25,8 @@ interface InvoiceTableProps<T> {
   // Selection
   selectedKeys?: Set<string>;
   onSelectionChange?: (keys: Set<string>) => void;
+  // Stable sort
+  sortedData?: T[];
 }
 
 export default function InvoiceTable<T>({
@@ -40,6 +42,7 @@ export default function InvoiceTable<T>({
   keyExtractor,
   selectedKeys,
   onSelectionChange,
+  sortedData,
 }: InvoiceTableProps<T>) {
   const router = useRouter();
   const storageKey = `iln_table_config_${tableId}`;
@@ -122,7 +125,8 @@ export default function InvoiceTable<T>({
   }, [columnOrder, visibleColumns, columns]);
 
   // Selection helpers
-  const allKeys = useMemo(() => data.map(keyExtractor), [data, keyExtractor]);
+  const displayData = sortedData || data;
+  const allKeys = useMemo(() => displayData.map(keyExtractor), [displayData, keyExtractor]);
   const allSelected = selectable && allKeys.length > 0 && allKeys.every((k) => selectedKeys!.has(k));
   const someSelected = selectable && allKeys.some((k) => selectedKeys!.has(k));
 
@@ -187,6 +191,15 @@ export default function InvoiceTable<T>({
                   className={`px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider ${
                     col.sortable ? "cursor-pointer select-none group" : ""
                   } ${col.headerClassName || ""}`}
+                  aria-sort={
+                    col.sortable && sortKey === col.id
+                      ? sortOrder === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : col.sortable
+                        ? "none"
+                        : undefined
+                  }
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
@@ -207,7 +220,7 @@ export default function InvoiceTable<T>({
                       </div>
                     )}
                     {col.sortable && (
-                      <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
                         {sortKey === col.id ? (sortOrder === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
                       </span>
                     )}
@@ -226,14 +239,14 @@ export default function InvoiceTable<T>({
                   </div>
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : displayData.length === 0 ? (
               <tr>
                 <td colSpan={activeColumns.length + (selectable ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant italic">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => {
+              displayData.map((item, index) => {
                 const key = keyExtractor(item);
                 const isSelected = selectable && selectedKeys!.has(key);
                 return (

@@ -34,7 +34,7 @@ export default function PageHeader({
                         {item.label}
                       </Link>
                     ) : (
-                      <span>{item.label}</span>
+                      <span aria-current="page">{item.label}</span>
                     )}
                     {!isLast && (
                       <span
