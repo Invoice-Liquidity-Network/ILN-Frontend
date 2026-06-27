@@ -10,6 +10,7 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   error: Error | null;
+  componentStack: string | null;
   resetVersion: number;
   copied: boolean;
 }
@@ -17,6 +18,7 @@ interface ErrorBoundaryState {
 export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     error: null,
+    componentStack: null,
     resetVersion: 0,
     copied: false,
   };
@@ -25,23 +27,30 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     return { error, copied: false };
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error(error);
+    this.setState({ componentStack: info.componentStack ?? null });
   }
 
   handleRetry = () => {
     this.props.onRetry?.();
     this.setState((state) => ({
       error: null,
+      componentStack: null,
       resetVersion: state.resetVersion + 1,
       copied: false,
     }));
   };
 
   handleCopy = async () => {
-    const { error } = this.state;
+    const { error, componentStack } = this.state;
     if (!error) return;
-    const text = `${error.message}\n\n${error.stack ?? ""}`.trim();
+    const parts = [
+      `Error: ${error.message}`,
+      error.stack ? `\nStack:\n${error.stack}` : "",
+      componentStack ? `\nComponent tree:${componentStack}` : "",
+    ];
+    const text = parts.filter(Boolean).join("\n").trim();
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -72,7 +81,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
   };
 
   render() {
-    const { error, copied } = this.state;
+    const { error, componentStack, copied } = this.state;
     const isDev = process.env.NODE_ENV === "development";
 
     if (error) {
@@ -119,6 +128,18 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
                 Report issue
               </a>
 
+              {isDev && (
+                <a
+                  href="https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 rounded-xl border border-error/30 px-3 py-2 text-xs font-medium text-on-error-container hover:bg-error/10 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  Docs
+                </a>
+              )}
+
               <button
                 type="button"
                 onClick={this.handleRetry}
@@ -130,9 +151,25 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
           </div>
 
           {isDev && error.stack && (
-            <pre className="overflow-x-auto rounded-xl bg-surface-container-low p-3 text-[10px] text-on-surface-variant font-mono whitespace-pre-wrap max-h-48">
-              {error.stack}
-            </pre>
+            <details open>
+              <summary className="text-xs font-semibold cursor-pointer select-none mb-1">
+                Stack trace
+              </summary>
+              <pre className="overflow-x-auto rounded-xl bg-surface-container-low p-3 text-[10px] text-on-surface-variant font-mono whitespace-pre-wrap max-h-48">
+                {error.stack}
+              </pre>
+            </details>
+          )}
+
+          {isDev && componentStack && (
+            <details>
+              <summary className="text-xs font-semibold cursor-pointer select-none mb-1">
+                Component hierarchy
+              </summary>
+              <pre className="overflow-x-auto rounded-xl bg-surface-container-low p-3 text-[10px] text-on-surface-variant font-mono whitespace-pre-wrap max-h-48">
+                {componentStack.trim()}
+              </pre>
+            </details>
           )}
         </div>
       );
