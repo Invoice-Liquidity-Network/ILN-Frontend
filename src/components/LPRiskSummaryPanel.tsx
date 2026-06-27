@@ -161,7 +161,7 @@ export default function LPRiskSummaryPanel({ invoices, onFilterByRisk }: LPRiskS
             </span>
           </div>
           <div className="text-2xl font-bold mb-1">
-            {formatTokenAmount(riskMetrics.capitalAtRisk, 7, "USDC")}
+            {formatTokenAmount(riskMetrics.capitalAtRisk, { decimals: 7, symbol: "USDC" })}
           </div>
           <div className="text-sm font-medium mb-1">
             Capital at Risk

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearWalletStorage,
+  getStoredWalletProvider,
   WALLET_ADDRESS_STORAGE_KEY,
+  WALLET_PROVIDER_STORAGE_KEY,
 } from "../walletStorage";
 
 describe("clearWalletStorage (#4)", () => {
@@ -26,10 +28,17 @@ describe("clearWalletStorage (#4)", () => {
   it("leaves unrelated keys untouched", () => {
     localStorage.setItem("theme", "dark");
     localStorage.setItem("iln_wallet_address", "GTEST");
+    localStorage.setItem("iln_wallet_provider", "walletconnect");
 
     clearWalletStorage();
 
     expect(localStorage.getItem("theme")).toBe("dark");
     expect(localStorage.getItem("iln_wallet_address")).toBeNull();
+    expect(localStorage.getItem("iln_wallet_provider")).toBeNull();
+  });
+
+  it("returns the stored wallet provider when requested", () => {
+    localStorage.setItem(WALLET_PROVIDER_STORAGE_KEY, "walletconnect");
+    expect(getStoredWalletProvider()).toBe("walletconnect");
   });
 });

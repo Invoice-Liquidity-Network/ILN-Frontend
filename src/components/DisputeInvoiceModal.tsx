@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
 import { useTransaction } from "@/hooks/useTransaction";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { disputeInvoice, Invoice } from "@/utils/soroban";
 import { hashEvidence } from "@/utils/evidence";
 
@@ -18,6 +19,7 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
   const { addToast } = useToast();
   const { execute, loading, error } = useTransaction();
   const [evidence, setEvidence] = useState("");
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   const canSubmit = evidence.trim().length > 0 && !loading;
 
@@ -50,12 +52,12 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+    <div ref={modalRef} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="dispute-title">
       <div className="w-full max-w-lg mx-4 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/20 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-dim">
-          <h4 className="text-xl font-bold">Raise Dispute — Invoice #{invoice.id.toString()}</h4>
-          <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant">
+          <h4 id="dispute-title" className="text-xl font-bold">Raise Dispute — Invoice #{invoice.id.toString()}</h4>
+          <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant" aria-label="Close modal">
             <span className="material-symbols-outlined shrink-0">close</span>
           </button>
         </div>

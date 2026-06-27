@@ -31,7 +31,10 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
 
         <div className="p-6 space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
+            <label
+              htmlFor="lp-min-reputation"
+              className="text-sm font-bold uppercase tracking-widest text-on-surface-variant"
+            >
               Minimum Reputation Threshold
             </label>
             <p className="text-sm text-on-surface-variant mb-4">
@@ -39,6 +42,7 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
             </p>
             <div className="flex items-center gap-4">
               <input
+                id="lp-min-reputation"
                 type="range"
                 min="0"
                 max="100"

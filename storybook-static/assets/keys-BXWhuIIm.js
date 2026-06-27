@@ -1,0 +1,1 @@
+const t={all:["invoices"],detail:e=>["invoice",e==null?void 0:e.toString()],count:["invoice-count"]},s={all:["contract-stats"]},a={parameterUpdates:["parameter-updates"]},c={invoices:{staleTime:15e3,gcTime:5*6e4},invoiceCount:{staleTime:3e4,gcTime:5*6e4},stats:{staleTime:6e4,gcTime:10*6e4},parameterUpdates:{staleTime:5*6e4,gcTime:30*6e4}};export{c as Q,a as g,t as i,s};

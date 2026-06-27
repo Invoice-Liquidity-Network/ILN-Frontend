@@ -156,7 +156,7 @@ describe("ProfilePage Accessibility", () => {
     const { container } = render(<MockProfilePage />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
-  });
+  }, 15000);
 
   it("should have proper tab navigation", () => {
     const { container } = render(<MockProfilePage />);

@@ -162,40 +162,24 @@ export default function GovernanceActivity({ address }: GovernanceActivityProps)
                     className="text-sm font-medium text-primary"
                     aria-expanded={isExpanded}
                   >
-                    {isExpanded ? "Hide details" : "Show details"}
-                  </button>
-                </div>
-              </div>
-
-              {isExpanded && (
-                <div className="mt-4 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-3 text-sm text-on-surface-variant">
-                  {item.kind === "vote" ? (
-                    <>
-                      <p>Proposal #{item.data.proposalId}</p>
-                      <p>Voter: {item.data.voter}</p>
-                      <p>Vote: {item.data.vote}</p>
-                      <p>Weight: {item.data.weight.toLocaleString()} ILN</p>
-                    </>
-                  ) : item.kind === "proposal" ? (
-                    <>
-                      <p>Proposal #{item.data.id}</p>
-                      <p>Status: {item.data.status}</p>
-                      <p>Proposer: {item.data.proposer}</p>
-                      <p>Type: {item.data.type}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p>Proposal #{item.data.proposalId}</p>
-                      <p>Parameter: {item.data.label}</p>
-                      <p>New value: {item.data.newValue}</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                    {vote.vote}
+                  </span>
+                </td>
+                <td className="py-4 text-right whitespace-nowrap">
+                  <span className="text-sm font-mono text-on-surface">
+                    {vote.weight.toLocaleString()} ILN
+                  </span>
+                </td>
+                <td className="py-4 text-right whitespace-nowrap">
+                  <span className="text-xs text-on-surface-variant">
+                    {formatDate(BigInt(vote.timestamp))}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {pageCount > 1 && (
         <div className="mt-8 flex items-center justify-center gap-3">

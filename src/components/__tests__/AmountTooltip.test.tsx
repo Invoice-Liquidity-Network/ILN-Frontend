@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { AmountTooltip } from "../AmountTooltip";
 
-const DECIMALS = 1_000_000n;
+const DECIMALS = 10_000_000n;
 
 describe("AmountTooltip (#163)", () => {
   test("shows tooltip on mouse enter", () => {
@@ -44,6 +44,51 @@ describe("AmountTooltip (#163)", () => {
     expect(content).toHaveTextContent("Invoice amount");
     expect(content).toHaveTextContent("Discount");
     expect(content).toHaveTextContent("You receive");
+  });
+
+  test("formats large USDC amounts with compact notation", () => {
+    render(
+      <AmountTooltip
+        token="USDC"
+        breakdown={{ type: "freelancer", invoiceAmount: 15_000_000_000_000n, discountBps: 300 }}
+      >
+        $14.7M
+      </AmountTooltip>
+    );
+    fireEvent.mouseEnter(screen.getByTestId("amount-tooltip-wrapper"));
+    const content = screen.getByTestId("amount-tooltip-content");
+    expect(content).toHaveTextContent("Invoice amount");
+    expect(content).toHaveTextContent("$1.5M");
+  });
+
+  test("shows EURC currency symbol in tooltip rows", () => {
+    render(
+      <AmountTooltip
+        token="EURC"
+        breakdown={{ type: "freelancer", invoiceAmount: 1_000n * DECIMALS, discountBps: 300 }}
+      >
+        €970.00
+      </AmountTooltip>
+    );
+    fireEvent.mouseEnter(screen.getByTestId("amount-tooltip-wrapper"));
+    const content = screen.getByTestId("amount-tooltip-content");
+    expect(content).toHaveTextContent(/€/);
+    expect(content).toHaveTextContent(/−€/);
+  });
+
+  test("formats XLM amounts with 7 decimal places and suffix", () => {
+    render(
+      <AmountTooltip
+        token="XLM"
+        breakdown={{ type: "freelancer", invoiceAmount: 12_345_678n, discountBps: 100 }}
+      >
+        1.2345678 XLM
+      </AmountTooltip>
+    );
+    fireEvent.mouseEnter(screen.getByTestId("amount-tooltip-wrapper"));
+    const content = screen.getByTestId("amount-tooltip-content");
+    expect(content).toHaveTextContent("1.2345678 XLM");
+    expect(content).toHaveTextContent("−0.0123457 XLM");
   });
 
   test("shows correct LP breakdown rows", () => {

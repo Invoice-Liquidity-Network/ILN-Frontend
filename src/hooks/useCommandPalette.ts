@@ -65,6 +65,11 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     setQuery("");
   }, []);
 
+  const toggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+    setQuery("");
+  }, []);
+
   const executeCommand = useCallback((command: Command) => {
     const updated = [command.id, ...recentCommandIds.filter(id => id !== command.id)].slice(0, MAX_RECENT);
     setRecentCommandIds(updated);
@@ -92,18 +97,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     return commands.filter(cmd => fuzzyMatch(cmd.label, query));
   }, [query, commands, recentCommandIds, router]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setIsOpen(prev => !prev);
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
   return {
     isOpen,
     query,
@@ -112,5 +105,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     executeCommand,
     open,
     close,
+    toggle,
   };
 }

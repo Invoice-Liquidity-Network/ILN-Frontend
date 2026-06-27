@@ -6,8 +6,18 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import ShortcutsModal from "./ShortcutsModal";
 
 export default function CommandPalette() {
-  const { isShortcutsOpen, openShortcuts, closeShortcuts } = useKeyboardShortcuts();
-  const { isOpen, query, setQuery, commands, executeCommand, close } = useCommandPalette(openShortcuts);
+  const {
+    isShortcutsOpen,
+    openShortcuts,
+    closeShortcuts,
+    registerToggleCommandPalette,
+  } = useKeyboardShortcuts();
+  const { isOpen, query, setQuery, commands, executeCommand, close, toggle } = useCommandPalette(openShortcuts);
+
+  useEffect(() => {
+    const unregister = registerToggleCommandPalette(toggle);
+    return unregister;
+  }, [registerToggleCommandPalette, toggle]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);

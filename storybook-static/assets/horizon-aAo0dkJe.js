@@ -1,0 +1,1 @@
+import{S as t,C as r}from"./constants-Blzo2VsG.js";function n(){return t==="mainnet"?"https://horizon.stellar.org":"https://horizon-testnet.stellar.org"}function a(){return`${n()}/transactions?accounts=${r}&cursor=now`}export{a,n as g};

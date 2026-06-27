@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Invoice } from "@/utils/soroban";
-import { tokenAmountToNumber } from "@/utils/format";
+import { useCallback, useMemo } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { Invoice } from '@/utils/soroban';
+import { tokenAmountToNumber } from '@/utils/format';
 
-export const INVOICE_STATUSES = ["Pending", "Funded", "Paid", "Defaulted", "Cancelled"] as const;
+export const INVOICE_STATUSES = ['Pending', 'Funded', 'Paid', 'Defaulted', 'Cancelled'] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
 export type InvoiceFilters = {
@@ -22,16 +22,16 @@ export type InvoiceFilters = {
 };
 
 export const EMPTY_INVOICE_FILTERS: InvoiceFilters = {
-  search: "",
+  search: '',
   statuses: [],
-  minAmount: "",
-  maxAmount: "",
-  startDate: "",
-  endDate: "",
-  token: "",
-  minDiscountBps: "",
-  maxDiscountBps: "",
-  minPayerReputation: "",
+  minAmount: '',
+  maxAmount: '',
+  startDate: '',
+  endDate: '',
+  token: '',
+  minDiscountBps: '',
+  maxDiscountBps: '',
+  minPayerReputation: '',
 };
 
 type UseInvoiceFiltersOptions = {
@@ -50,8 +50,8 @@ function getDateFromUnixSeconds(unixSeconds: bigint): Date {
 
 function dateToInputValue(date: Date): string {
   const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -60,7 +60,11 @@ function cleanStatusList(values: string[]): InvoiceStatus[] {
   return values.filter((value): value is InvoiceStatus => allowed.has(value as InvoiceStatus));
 }
 
-function buildFilterQuery(searchParams: URLSearchParams, namespace: string, filters: InvoiceFilters): URLSearchParams {
+export function buildFilterQuery(
+  searchParams: URLSearchParams,
+  namespace: string,
+  filters: InvoiceFilters
+): URLSearchParams {
   const prefix = `${namespace}_`;
   const next = new URLSearchParams(searchParams.toString());
 
@@ -72,33 +76,38 @@ function buildFilterQuery(searchParams: URLSearchParams, namespace: string, filt
     }
   };
 
-  setOrDelete("search", filters.search);
-  setOrDelete("statuses", filters.statuses.join(","));
-  setOrDelete("minAmount", filters.minAmount);
-  setOrDelete("maxAmount", filters.maxAmount);
-  setOrDelete("startDate", filters.startDate);
-  setOrDelete("endDate", filters.endDate);
-  setOrDelete("token", filters.token);
-  setOrDelete("minDiscountBps", filters.minDiscountBps);
-  setOrDelete("maxDiscountBps", filters.maxDiscountBps);
-  setOrDelete("minPayerReputation", filters.minPayerReputation);
+  setOrDelete('search', filters.search);
+  setOrDelete('statuses', filters.statuses.join(','));
+  setOrDelete('minAmount', filters.minAmount);
+  setOrDelete('maxAmount', filters.maxAmount);
+  setOrDelete('startDate', filters.startDate);
+  setOrDelete('endDate', filters.endDate);
+  setOrDelete('token', filters.token);
+  setOrDelete('minDiscountBps', filters.minDiscountBps);
+  setOrDelete('maxDiscountBps', filters.maxDiscountBps);
+  setOrDelete('minPayerReputation', filters.minPayerReputation);
 
   return next;
 }
 
-function readFiltersFromParams(searchParams: URLSearchParams, namespace: string): InvoiceFilters {
+export function readFiltersFromParams(
+  searchParams: URLSearchParams,
+  namespace: string
+): InvoiceFilters {
   const prefix = `${namespace}_`;
   return {
-    search: searchParams.get(`${prefix}search`) ?? "",
-    statuses: cleanStatusList((searchParams.get(`${prefix}statuses`) ?? "").split(",").filter(Boolean)),
-    minAmount: searchParams.get(`${prefix}minAmount`) ?? "",
-    maxAmount: searchParams.get(`${prefix}maxAmount`) ?? "",
-    startDate: searchParams.get(`${prefix}startDate`) ?? "",
-    endDate: searchParams.get(`${prefix}endDate`) ?? "",
-    token: searchParams.get(`${prefix}token`) ?? "",
-    minDiscountBps: searchParams.get(`${prefix}minDiscountBps`) ?? "",
-    maxDiscountBps: searchParams.get(`${prefix}maxDiscountBps`) ?? "",
-    minPayerReputation: searchParams.get(`${prefix}minPayerReputation`) ?? "",
+    search: searchParams.get(`${prefix}search`) ?? '',
+    statuses: cleanStatusList(
+      (searchParams.get(`${prefix}statuses`) ?? '').split(',').filter(Boolean)
+    ),
+    minAmount: searchParams.get(`${prefix}minAmount`) ?? '',
+    maxAmount: searchParams.get(`${prefix}maxAmount`) ?? '',
+    startDate: searchParams.get(`${prefix}startDate`) ?? '',
+    endDate: searchParams.get(`${prefix}endDate`) ?? '',
+    token: searchParams.get(`${prefix}token`) ?? '',
+    minDiscountBps: searchParams.get(`${prefix}minDiscountBps`) ?? '',
+    maxDiscountBps: searchParams.get(`${prefix}maxDiscountBps`) ?? '',
+    minPayerReputation: searchParams.get(`${prefix}minPayerReputation`) ?? '',
   };
 }
 
@@ -117,10 +126,10 @@ export function countActiveInvoiceFilters(filters: InvoiceFilters): number {
 export function applyInvoiceFilters(
   invoices: Invoice[],
   filters: InvoiceFilters,
-  options?: { 
+  options?: {
     resolveTokenSymbol?: (invoice: Invoice) => string;
     payerScores?: Map<string, { score: number } | null>;
-  },
+  }
 ): Invoice[] {
   const search = filters.search.trim().toLowerCase();
   const minAmount = parseNumeric(filters.minAmount);
@@ -138,7 +147,11 @@ export function applyInvoiceFilters(
       const idValue = invoice.id.toString().toLowerCase();
       const payerValue = invoice.payer.toLowerCase();
       const freelancerValue = invoice.freelancer.toLowerCase();
-      if (!idValue.includes(search) && !payerValue.includes(search) && !freelancerValue.includes(search)) {
+      if (
+        !idValue.includes(search) &&
+        !payerValue.includes(search) &&
+        !freelancerValue.includes(search)
+      ) {
         return false;
       }
     }
@@ -156,7 +169,7 @@ export function applyInvoiceFilters(
     if (end && invoiceDate > end) return false;
 
     if (selectedToken) {
-      const tokenSymbol = options?.resolveTokenSymbol?.(invoice).toUpperCase() ?? "USDC";
+      const tokenSymbol = options?.resolveTokenSymbol?.(invoice).toUpperCase() ?? 'USDC';
       if (tokenSymbol !== selectedToken) return false;
     }
 
@@ -181,7 +194,7 @@ export function useInvoiceFilters({ namespace }: UseInvoiceFiltersOptions) {
   const paramsString = searchParams.toString();
   const filters = useMemo(
     () => readFiltersFromParams(new URLSearchParams(paramsString), namespace),
-    [namespace, paramsString],
+    [namespace, paramsString]
   );
 
   const replaceQuery = useCallback(
@@ -190,15 +203,15 @@ export function useInvoiceFilters({ namespace }: UseInvoiceFiltersOptions) {
       const query = next.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     },
-    [namespace, paramsString, pathname, router],
+    [namespace, paramsString, pathname, router]
   );
 
   const updateFilters = useCallback(
     (updater: InvoiceFilters | ((current: InvoiceFilters) => InvoiceFilters)) => {
-      const next = typeof updater === "function" ? updater(filters) : updater;
+      const next = typeof updater === 'function' ? updater(filters) : updater;
       replaceQuery(next);
     },
-    [filters, replaceQuery],
+    [filters, replaceQuery]
   );
 
   const clearFilters = useCallback(() => {

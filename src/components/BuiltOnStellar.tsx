@@ -29,7 +29,15 @@ export default function BuiltOnStellar() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-headline mb-4">
-            The performance of Stellar
+            <a
+              href="https://stellar.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 hover:text-primary transition-colors"
+            >
+              The performance of Stellar
+              <span className="material-symbols-outlined text-2xl align-middle">open_in_new</span>
+            </a>
           </h2>
           <p className="text-on-surface-variant max-w-2xl mx-auto">
             Leveraging the world's most efficient blockchain for payments and

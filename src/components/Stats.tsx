@@ -1,4 +1,9 @@
-import InvoiceStateDonut from "@/components/InvoiceStateDonut";
+import dynamic from "next/dynamic";
+
+const InvoiceStateDonut = dynamic(() => import("@/components/InvoiceStateDonut"), {
+  ssr: false,
+  loading: () => <div className="p-6 bg-surface-container-low rounded-lg h-[340px] animate-pulse flex items-center justify-center text-sm text-on-surface-variant">Loading chart...</div>,
+});
 
 export default function Stats() {
   const stats = [

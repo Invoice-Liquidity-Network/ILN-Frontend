@@ -3,18 +3,26 @@ import { render, screen } from "@testing-library/react";
 import QuorumProgressBar from "@/components/QuorumProgressBar";
 
 describe("QuorumProgressBar", () => {
-  it("shows quorum not met with red styling context", () => {
+  it("announces pending quorum progress with accessible values", () => {
     render(<QuorumProgressBar votesCast={40_000} quorumRequired={100_000} />);
     expect(screen.getByText(/Quorum: 40\.0K \/ 100\.0K required \(40%\)/)).toBeInTheDocument();
-    const bar = screen.getByRole("progressbar");
-    expect(bar.querySelector(".bg-red-500")).toBeTruthy();
+    const bar = screen.getByRole("progressbar", { name: /quorum progress/i });
+    expect(bar).toHaveAttribute("aria-valuemin", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "100000");
+    expect(bar).toHaveAttribute("aria-valuenow", "40000");
+    expect(bar).toHaveAttribute("aria-valuetext", expect.stringContaining("40%"));
+    expect(screen.getByText(/Quorum pending/i)).toBeInTheDocument();
   });
 
-  it("shows quorum met with green styling context", () => {
+  it("announces quorum met with accessible values", () => {
     render(<QuorumProgressBar votesCast={120_000} quorumRequired={100_000} />);
     expect(screen.getByText(/Quorum: 120\.0K \/ 100\.0K required \(100%\)/)).toBeInTheDocument();
-    const bar = screen.getByRole("progressbar");
-    expect(bar.querySelector(".bg-emerald-500")).toBeTruthy();
+    const bar = screen.getByRole("progressbar", { name: /quorum progress/i });
+    expect(bar).toHaveAttribute("aria-valuemin", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "100000");
+    expect(bar).toHaveAttribute("aria-valuenow", "100000");
+    expect(bar).toHaveAttribute("aria-valuetext", expect.stringContaining("100%"));
+    expect(screen.getByText(/Quorum met/i)).toBeInTheDocument();
   });
 
   it("updates label when votes change", () => {

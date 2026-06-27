@@ -1,6 +1,11 @@
 import type { ContractEventType } from "@/lib/contract-events";
 import type { Invoice } from "@/utils/soroban";
 
+export interface DayActivity {
+  count: number;
+  totalAmount: bigint;
+}
+
 export interface AddressActivityRecord {
   date: string;
   count: number;
@@ -9,32 +14,36 @@ export interface AddressActivityRecord {
 export interface ProfileActivityInput {
   type: ContractEventType | "submit" | "fund" | "paid";
   timestampMs: number;
+  amount?: bigint;
 }
 
 const WEEKS = 52;
 const DAYS_PER_WEEK = 7;
 
 function toUtcDateKey(timestampMs: number): string {
-  const date = new Date(timestampMs);
-  return date.toISOString().slice(0, 10);
+  return new Date(timestampMs).toISOString().slice(0, 10);
 }
 
-/** Aggregate activity counts per UTC day for the last 52 weeks. */
+/** Aggregate activity counts and total amounts per UTC day for the last 52 weeks. */
 export function buildDailyActivityCounts(
   records: ProfileActivityInput[],
   now = Date.now(),
-): Map<string, number> {
-  const counts = new Map<string, number>();
+): Map<string, DayActivity> {
+  const activity = new Map<string, DayActivity>();
   const start = new Date(now);
   start.setUTCDate(start.getUTCDate() - WEEKS * DAYS_PER_WEEK + 1);
 
   for (const record of records) {
     if (record.timestampMs < start.getTime()) continue;
     const key = toUtcDateKey(record.timestampMs);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const existing = activity.get(key) ?? { count: 0, totalAmount: 0n };
+    activity.set(key, {
+      count: existing.count + 1,
+      totalAmount: existing.totalAmount + (record.amount ?? 0n),
+    });
   }
 
-  return counts;
+  return activity;
 }
 
 export function deriveAddressActivityFromInvoices(
@@ -48,13 +57,13 @@ export function deriveAddressActivityFromInvoices(
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) continue;
 
     if (invoice.freelancer === address) {
-      activity.push({ type: "submit", timestampMs });
+      activity.push({ type: "submit", timestampMs, amount: invoice.amount });
     }
     if (invoice.funder === address) {
-      activity.push({ type: "fund", timestampMs });
+      activity.push({ type: "fund", timestampMs, amount: invoice.amount });
     }
     if (invoice.payer === address && invoice.status === "Paid") {
-      activity.push({ type: "paid", timestampMs });
+      activity.push({ type: "paid", timestampMs, amount: invoice.amount });
     }
   }
 
@@ -81,9 +90,9 @@ export function getHeatmapIntensityColor(count: number, maxCount: number): strin
 export { HEATMAP_COLORS };
 
 export function buildHeatmapGrid(
-  counts: Map<string, number>,
+  activity: Map<string, DayActivity>,
   now = Date.now(),
-): { weeks: string[][]; maxCount: number } {
+): { weeks: number[][]; maxCount: number; dayActivity: Map<string, DayActivity> } {
   const totalDays = WEEKS * DAYS_PER_WEEK;
   const days: string[] = [];
   const cursor = new Date(now);
@@ -97,25 +106,34 @@ export function buildHeatmapGrid(
 
   let maxCount = 0;
   const values = days.map((day) => {
-    const count = counts.get(day) ?? 0;
+    const count = activity.get(day)?.count ?? 0;
     maxCount = Math.max(maxCount, count);
-    return String(count);
+    return count;
   });
 
-  const weeks: string[][] = [];
+  const weeks: number[][] = [];
   for (let i = 0; i < values.length; i += DAYS_PER_WEEK) {
     weeks.push(values.slice(i, i + DAYS_PER_WEEK));
   }
 
-  return { weeks, maxCount };
+  return { weeks, maxCount, dayActivity: activity };
 }
 
-export function formatActivityTooltip(count: number, dateKey: string): string {
-  const label = count === 1 ? "1 action" : `${count} actions`;
+export function formatActivityTooltip(activity: DayActivity, dateKey: string): string {
   const formatted = new Date(`${dateKey}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+
+  if (activity.count === 0) return `No activity on ${formatted}`;
+
+  const label = activity.count === 1 ? "1 action" : `${activity.count} actions`;
+
+  if (activity.totalAmount > 0n) {
+    const amount = (Number(activity.totalAmount) / 1e7).toFixed(2);
+    return `${label} on ${formatted} · ${amount} total`;
+  }
+
   return `${label} on ${formatted}`;
 }

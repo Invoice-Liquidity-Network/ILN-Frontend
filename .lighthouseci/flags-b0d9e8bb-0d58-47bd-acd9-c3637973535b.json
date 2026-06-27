@@ -1,0 +1,1 @@
+{"preset":"desktop","throttlingMethod":"simulate","throttling":{"rttMs":40,"throughputKbps":10240,"cpuSlowdownMultiplier":1},"chromeFlags":" --headless=new"}

@@ -1,0 +1,1 @@
+import"./jsx-runtime-EKYJJIwR.js";import{r as o}from"./iframe-Dx6cFdWX.js";import"./index-Cgb9ICXJ.js";import"./AppToaster-CQpUadPt.js";const r=o.createContext(void 0);function a(){const t=o.useContext(r);if(t===void 0)throw new Error("useToast must be used within a ToastProvider");return t}export{a as u};

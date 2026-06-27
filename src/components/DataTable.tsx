@@ -495,6 +495,7 @@ function Pagination({
         <div className="flex items-center gap-2 text-sm">
           <span className="text-on-surface-variant">Show:</span>
           <select
+            aria-label="Rows per page"
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             className="px-2 py-1 rounded border border-outline-variant bg-surface-container-lowest"

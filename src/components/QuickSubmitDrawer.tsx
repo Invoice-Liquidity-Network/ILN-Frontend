@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import SubmitInvoiceForm from "./SubmitInvoiceForm";
 
 interface QuickSubmitDrawerProps {
@@ -58,6 +58,7 @@ export default function QuickSubmitDrawer({ isOpen, onClose }: QuickSubmitDrawer
         role="dialog"
         aria-modal="true"
         aria-label="Quick Invoice Submission"
+        aria-hidden={!isOpen}
         tabIndex={-1}
         className={[
           "fixed bottom-0 left-0 right-0 z-[80]",
@@ -89,7 +90,9 @@ export default function QuickSubmitDrawer({ isOpen, onClose }: QuickSubmitDrawer
 
         {/* Form */}
         <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-          <SubmitInvoiceForm />
+          <Suspense fallback={null}>
+            <SubmitInvoiceForm />
+          </Suspense>
         </div>
       </div>
     </>
