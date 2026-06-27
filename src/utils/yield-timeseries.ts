@@ -1,6 +1,6 @@
 import { Invoice } from "./soroban";
 
-export type YieldRange = 30 | 60 | 90;
+export type YieldRange = 7 | 30 | 90;
 
 export interface YieldDataPoint {
   date: string;
