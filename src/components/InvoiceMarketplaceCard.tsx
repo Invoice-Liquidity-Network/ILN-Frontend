@@ -26,7 +26,6 @@ interface InvoiceMarketplaceCardProps {
   payerRisk: RiskLevel;
   onFund: (invoice: Invoice) => void;
   onQuickFund?: (invoice: Invoice) => void;
-  onQuickFund?: (invoice: Invoice) => void;
   isWalletConnected: boolean;
   payerOracleVerified?: boolean;
   auctionMeta?: AuctionMeta;
