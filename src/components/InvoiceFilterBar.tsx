@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   INVOICE_STATUSES,
+  type DateFilterType,
   type InvoiceFilters,
   type InvoiceStatus,
 } from "@/hooks/useInvoiceFilters";
@@ -16,6 +17,37 @@ type InvoiceFilterBarProps = {
 };
 
 const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
+
+const DATE_TYPE_LABELS: Record<DateFilterType, string> = {
+  due: "Due Date",
+  funded: "Funded Date",
+};
+
+function toDateStr(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getPresetRange(preset: "today" | "week" | "month"): { start: string; end: string } {
+  const now = new Date();
+  const todayStr = toDateStr(now);
+
+  if (preset === "today") {
+    return { start: todayStr, end: todayStr };
+  }
+
+  if (preset === "week") {
+    const weekStart = new Date(now);
+    weekStart.setUTCDate(now.getUTCDate() - now.getUTCDay());
+    return { start: toDateStr(weekStart), end: todayStr };
+  }
+
+  // month
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return { start: toDateStr(monthStart), end: todayStr };
+}
 
 function handleStatusKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
@@ -43,9 +75,20 @@ export default function InvoiceFilterBar({
 
   const containerClass = className ? `space-y-3 ${className}` : "space-y-3";
 
+  const hasDateFilter = Boolean(filters.startDate || filters.endDate);
+
+  function applyPreset(preset: "today" | "week" | "month") {
+    const { start, end } = getPresetRange(preset);
+    onFiltersChange((current) => ({ ...current, startDate: start, endDate: end }));
+  }
+
+  function clearDateFilter() {
+    onFiltersChange((current) => ({ ...current, startDate: "", endDate: "" }));
+  }
+
   return (
     <div className={containerClass}>
-      {/* Screen reader live region — announces filter state changes */}
+      {/* Screen reader live region */}
       <div role="status" aria-live="polite" className="sr-only">
         {activeFilterCount > 0
           ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
@@ -164,12 +207,73 @@ export default function InvoiceFilterBar({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Due Date</p>
+            {/* Date range picker with type selector and quick presets */}
+            <div className="space-y-2 md:col-span-2 lg:col-span-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                  Date Range
+                </p>
+                {hasDateFilter && (
+                  <button
+                    type="button"
+                    onClick={clearDateFilter}
+                    className="text-[11px] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
+                  >
+                    Clear date
+                  </button>
+                )}
+              </div>
+
+              {/* Date type selector */}
+              <div className="flex gap-1 rounded-lg bg-surface-container-high p-0.5">
+                {(["due", "funded"] as DateFilterType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() =>
+                      onFiltersChange((current) => ({ ...current, dateType: type }))
+                    }
+                    className={`flex-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-all ${
+                      filters.dateType === type
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {DATE_TYPE_LABELS[type]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick presets */}
+              <div className="flex gap-1.5">
+                {(["today", "week", "month"] as const).map((preset) => {
+                  const label = preset === "today" ? "Today" : preset === "week" ? "This Week" : "This Month";
+                  const { start, end } = getPresetRange(preset);
+                  const isActive = filters.startDate === start && filters.endDate === end;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => (isActive ? clearDateFilter() : applyPreset(preset))}
+                      className={`flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all ${
+                        isActive
+                          ? "border-primary/50 bg-primary/10 text-primary"
+                          : "border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:border-primary/30 hover:text-primary"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom date inputs */}
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="date"
+                  aria-label={`${DATE_TYPE_LABELS[filters.dateType]} from`}
                   value={filters.startDate}
+                  max={filters.endDate || undefined}
                   onChange={(event) =>
                     onFiltersChange((current) => ({ ...current, startDate: event.target.value }))
                   }
@@ -177,7 +281,9 @@ export default function InvoiceFilterBar({
                 />
                 <input
                   type="date"
+                  aria-label={`${DATE_TYPE_LABELS[filters.dateType]} to`}
                   value={filters.endDate}
+                  min={filters.startDate || undefined}
                   onChange={(event) =>
                     onFiltersChange((current) => ({ ...current, endDate: event.target.value }))
                   }
