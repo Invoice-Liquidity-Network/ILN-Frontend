@@ -36,6 +36,7 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 import { usePayerScores } from "@/hooks/usePayerScores";
 import RiskBadge from "./RiskBadge";
 import LPPortfolio from "./LPPortfolio";
+import LPPortfolioSummary from "./LPPortfolioSummary";
 import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
@@ -703,6 +704,12 @@ export default function LPDashboard() {
       {activeTab === "my-funded" ? (
         <>
           <div className="px-6 pt-4 flex flex-col gap-4">
+            <LPPortfolioSummary
+              invoices={myFundedInvoicesBase}
+              payerRisks={payerRisks}
+              tokenMap={tokenMap}
+              defaultToken={defaultToken}
+            />
             <DynamicYieldAnalyticsChart
               invoices={invoices}
               lpAddress={address ?? ""}
