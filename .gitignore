@@ -57,3 +57,18 @@ next-env.d.ts
 
 fix.md
 
+# generated / one-off summary docs (not canonical project docs)
+IMPLEMENTATION_SUMMARY.md
+IMPLEMENTATION_GUIDE_useWallet.md
+useWallet_SUMMARY.md
+useWallet_QUICK_REFERENCE.md
+
+# storybook static output
+/storybook-static
+
+# turbo cache
+.turbo
+
+# misc artefacts
+.tmp_copilot_test
+
