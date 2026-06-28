@@ -9,7 +9,7 @@ export interface Command {
 }
 
 const RECENT_COMMANDS_KEY = "iln_recent_commands";
-const MAX_RECENT = 5;
+const MAX_RECENT = 10;
 
 function fuzzyMatch(text: string, query: string): boolean {
   const lowerText = text.toLowerCase();
@@ -78,6 +78,11 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     close();
   }, [recentCommandIds, close]);
 
+  const clearHistory = useCallback(() => {
+    setRecentCommandIds([]);
+    localStorage.removeItem(RECENT_COMMANDS_KEY);
+  }, []);
+
   const filteredCommands = useMemo(() => {
     if (!query) {
       return commands.filter(cmd => recentCommandIds.includes(cmd.id));
@@ -106,5 +111,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     open,
     close,
     toggle,
+    clearHistory,
   };
 }
