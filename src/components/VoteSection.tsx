@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Proposal, VoteChoice } from "@/utils/governance";
 import QuorumProgressBar from "./QuorumProgressBar";
 import VoteProgressBar from "./VoteProgressBar";
@@ -83,6 +84,24 @@ export default function VoteSection({
   const total = proposal.votesFor + proposal.votesAgainst + proposal.votesAbstain;
   const quorumReached = total >= proposal.quorumRequired;
   const voteDisabled = !canVote || voteLoading;
+  
+  const [pendingVote, setPendingVote] = useState<VoteChoice | null>(null);
+
+  useEffect(() => {
+    if (!pendingVote) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPendingVote(null);
+      } else if (e.key === "Enter") {
+        onVote(pendingVote);
+        setPendingVote(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingVote, onVote]);
 
   return (
     <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 space-y-6">
@@ -146,13 +165,62 @@ export default function VoteSection({
                   selected={alreadyVoted && userVote === choice}
                   disabled={alreadyVoted || voteDisabled}
                   loading={voteLoading}
-                  onClick={() => onVote(choice)}
+                  onClick={() => setPendingVote(choice)}
                 />
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {pendingVote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest p-6 shadow-2xl">
+            <h3 className="mb-4 text-xl font-bold">Confirm Vote</h3>
+            <div className="mb-6 space-y-4">
+              <p className="text-sm text-on-surface-variant">
+                You are about to cast your vote for proposal <strong>#{proposal.id}</strong>.
+              </p>
+              <div className="rounded-xl bg-surface-container p-4">
+                <span className="text-sm text-on-surface-variant">Your selection:</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <span
+                    className="material-symbols-outlined text-[20px]"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    {VOTE_STYLES[pendingVote].icon}
+                  </span>
+                  <span className={`font-bold ${pendingVote === 'For' ? 'text-emerald-500' : pendingVote === 'Against' ? 'text-red-500' : 'text-on-surface-variant'}`}>
+                    {pendingVote}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-on-surface-variant">
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingVote(null)}
+                className="flex-1 rounded-xl border border-outline-variant py-3 text-sm font-bold hover:bg-surface-variant/50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onVote(pendingVote);
+                  setPendingVote(null);
+                }}
+                className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90"
+              >
+                Confirm Vote
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
