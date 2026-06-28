@@ -28,3 +28,7 @@ export const NFT_METADATA_METHOD = process.env.NEXT_PUBLIC_NFT_METADATA_METHOD |
  * Format: `mint:Minted,mint;transfer:Transfer,transfer;burn:Burned,burn`
  */
 export const NFT_EVENT_HINTS = process.env.NEXT_PUBLIC_NFT_EVENT_HINTS || "";
+
+// ─── Indexer WebSocket Configuration ────────────────────────────────────────────
+
+export const INDEXER_WS_URL = process.env.NEXT_PUBLIC_INDEXER_WS_URL || "ws://localhost:8080/ws";
