@@ -8,6 +8,8 @@ import { tokenAmountToNumber } from '@/utils/format';
 export const INVOICE_STATUSES = ['Pending', 'Funded', 'Paid', 'Defaulted', 'Cancelled'] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
+export type DateFilterType = 'due' | 'funded';
+
 export type InvoiceFilters = {
   search: string;
   statuses: InvoiceStatus[];
@@ -15,6 +17,7 @@ export type InvoiceFilters = {
   maxAmount: string;
   startDate: string;
   endDate: string;
+  dateType: DateFilterType;
   token: string;
   minDiscountBps: string;
   maxDiscountBps: string;
@@ -28,6 +31,7 @@ export const EMPTY_INVOICE_FILTERS: InvoiceFilters = {
   maxAmount: '',
   startDate: '',
   endDate: '',
+  dateType: 'due',
   token: '',
   minDiscountBps: '',
   maxDiscountBps: '',
@@ -82,6 +86,11 @@ export function buildFilterQuery(
   setOrDelete('maxAmount', filters.maxAmount);
   setOrDelete('startDate', filters.startDate);
   setOrDelete('endDate', filters.endDate);
+  if (filters.dateType !== 'due') {
+    next.set(`${prefix}dateType`, filters.dateType);
+  } else {
+    next.delete(`${prefix}dateType`);
+  }
   setOrDelete('token', filters.token);
   setOrDelete('minDiscountBps', filters.minDiscountBps);
   setOrDelete('maxDiscountBps', filters.maxDiscountBps);
@@ -104,6 +113,7 @@ export function readFiltersFromParams(
     maxAmount: searchParams.get(`${prefix}maxAmount`) ?? '',
     startDate: searchParams.get(`${prefix}startDate`) ?? '',
     endDate: searchParams.get(`${prefix}endDate`) ?? '',
+    dateType: (searchParams.get(`${prefix}dateType`) as DateFilterType | null) ?? 'due',
     token: searchParams.get(`${prefix}token`) ?? '',
     minDiscountBps: searchParams.get(`${prefix}minDiscountBps`) ?? '',
     maxDiscountBps: searchParams.get(`${prefix}maxDiscountBps`) ?? '',
@@ -164,9 +174,10 @@ export function applyInvoiceFilters(
     if (minAmount !== null && amountUsdc < minAmount) return false;
     if (maxAmount !== null && amountUsdc > maxAmount) return false;
 
-    const invoiceDate = getDateFromUnixSeconds(invoice.due_date);
-    if (start && invoiceDate < start) return false;
-    if (end && invoiceDate > end) return false;
+    const dateField = filters.dateType === 'funded' ? invoice.funded_at : invoice.due_date;
+    const invoiceDate = dateField !== undefined ? getDateFromUnixSeconds(dateField) : null;
+    if (start && (!invoiceDate || invoiceDate < start)) return false;
+    if (end && (!invoiceDate || invoiceDate > end)) return false;
 
     if (selectedToken) {
       const tokenSymbol = options?.resolveTokenSymbol?.(invoice).toUpperCase() ?? 'USDC';

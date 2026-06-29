@@ -440,6 +440,24 @@ export interface TopPayer {
   total_volume: bigint;
 }
 
+export interface TopFreelancer {
+  address: string;
+  score: number;
+  invoices_submitted: number;
+  invoices_funded: number;
+  total_earned: bigint;
+}
+
+export interface TopLP {
+  address: string;
+  liquidity_provided: bigint;
+  fees_earned: bigint;
+  total_funded: number;
+  score: number;
+}
+
+export type LeaderboardTab = 'payers' | 'freelancers' | 'lps';
+
 export async function getPayerScoresBatch(
   addresses: string[]
 ): Promise<Map<string, PayerScoreResult | null>> {
@@ -478,6 +496,64 @@ export async function getTopPayers(limit = 50): Promise<TopPayer[]> {
     }));
   } catch (error) {
     console.error('Failed to fetch top payers', error);
+    return [];
+  }
+}
+
+export async function getTopFreelancers(limit = 50): Promise<TopFreelancer[]> {
+  try {
+    const params = [nativeToScVal(limit, { type: 'u32' })];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, 'get_top_freelancers', params)
+    );
+
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return [];
+    }
+
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) {
+      return [];
+    }
+
+    return native.map((entry) => ({
+      address: String(entry.address ?? entry.freelancer ?? entry.account ?? ''),
+      score: Number(entry.score ?? 0),
+      invoices_submitted: Number(entry.invoices_submitted ?? entry.submitted ?? 0),
+      invoices_funded: Number(entry.invoices_funded ?? entry.funded ?? 0),
+      total_earned: BigInt(entry.total_earned ?? entry.earned ?? 0),
+    }));
+  } catch (error) {
+    console.error('Failed to fetch top freelancers', error);
+    return [];
+  }
+}
+
+export async function getTopLPs(limit = 50): Promise<TopLP[]> {
+  try {
+    const params = [nativeToScVal(limit, { type: 'u32' })];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, 'get_top_lps', params)
+    );
+
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return [];
+    }
+
+    const native = scValToNative(callResult.result.retval);
+    if (!Array.isArray(native)) {
+      return [];
+    }
+
+    return native.map((entry) => ({
+      address: String(entry.address ?? entry.lp ?? entry.account ?? ''),
+      liquidity_provided: BigInt(entry.liquidity_provided ?? entry.liquidity ?? 0),
+      fees_earned: BigInt(entry.fees_earned ?? entry.fees ?? 0),
+      total_funded: Number(entry.total_funded ?? entry.funded_count ?? 0),
+      score: Number(entry.score ?? 0),
+    }));
+  } catch (error) {
+    console.error('Failed to fetch top LPs', error);
     return [];
   }
 }

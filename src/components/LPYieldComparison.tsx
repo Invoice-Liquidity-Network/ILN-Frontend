@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 import type { Invoice } from "@/utils/soroban";
@@ -16,7 +17,7 @@ import {
   buildTokenYieldComparison,
   formatPremiumBps,
 } from "@/utils/lp-yield-comparison";
-import { buildYieldTimeSeries } from "@/utils/yield-timeseries";
+import { buildYieldTimeSeries, type YieldRange } from "@/utils/yield-timeseries";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
 import { useBalances } from "@/hooks/useBalances";
 import { RiskLevel } from "@/utils/risk";
@@ -31,6 +32,18 @@ interface LPYieldComparisonProps {
 const TOKENS = ["USDC", "EURC", "XLM"] as const;
 type ComparisonToken = (typeof TOKENS)[number];
 
+const RANGE_OPTIONS: { label: string; value: YieldRange }[] = [
+  { label: "7D", value: 7 },
+  { label: "30D", value: 30 },
+  { label: "90D", value: 90 },
+];
+
+const TOKEN_COLORS: Record<string, string> = {
+  USDC: "#6366f1",
+  EURC: "#06b6d4",
+  XLM: "#8b5cf6",
+};
+
 function getTokenRiskProfile(symbol: string): RiskLevel {
   switch (symbol.toUpperCase()) {
     case "USDC":
@@ -43,12 +56,6 @@ function getTokenRiskProfile(symbol: string): RiskLevel {
       return "Unknown";
   }
 }
-
-const TOKEN_COLORS: Record<string, string> = {
-  USDC: "#6366f1",
-  EURC: "#06b6d4",
-  XLM: "#8b5cf6",
-};
 
 function AssetRiskBadge({ risk }: { risk: RiskLevel }) {
   const BADGE_STYLES: Record<RiskLevel, { pill: string; dot: string }> = {
@@ -68,6 +75,25 @@ function AssetRiskBadge({ risk }: { risk: RiskLevel }) {
   );
 }
 
+function exportToCSV(
+  data: { date: string; isoDate: string; USDC: number; EURC: number; XLM: number }[],
+  rangeLabel: string,
+) {
+  const header = "Date,USDC Yield,EURC Yield,XLM Yield,Total\n";
+  const rows = data.map((row) => {
+    const total = (row.USDC + row.EURC + row.XLM).toFixed(6);
+    return `${row.isoDate},${row.USDC.toFixed(6)},${row.EURC.toFixed(6)},${row.XLM.toFixed(6)},${total}`;
+  });
+  const csv = header + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `yield-comparison-${rangeLabel.toLowerCase()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function LPYieldComparison({
   invoices,
   lpAddress,
@@ -75,6 +101,7 @@ export default function LPYieldComparison({
 }: LPYieldComparisonProps) {
   const [tBillYieldPct, setTBillYieldPct] = useState<number | null>(null);
   const [selectedToken, setSelectedToken] = useState<ComparisonToken>("USDC");
+  const [selectedRange, setSelectedRange] = useState<YieldRange>(90);
 
   const { tokens, isLoading: tokensLoading } = useApprovedTokens();
   const { balances, isLoading: balancesLoading } = useBalances(tokens);
@@ -97,25 +124,28 @@ export default function LPYieldComparison({
   const selectedRow = rows.find((r) => r.symbol === selectedToken);
 
   const timeseries = useMemo(() => {
-    return buildYieldTimeSeries(invoices, lpAddress, 90);
-  }, [invoices, lpAddress]);
+    return buildYieldTimeSeries(invoices, lpAddress, selectedRange);
+  }, [invoices, lpAddress, selectedRange]);
 
+  // All tokens on one chart for comparative view
   const chartData = useMemo(() => {
     return timeseries.map((d) => ({
       date: d.date,
-      yield: d[selectedToken] ?? 0,
+      isoDate: d.isoDate,
+      USDC: d.USDC,
+      EURC: d.EURC,
+      XLM: d.XLM,
     }));
-  }, [timeseries, selectedToken]);
+  }, [timeseries]);
 
-  // Compute available liquidity for the selected token
   const selectedTokenMetadata = tokens.find(
     (t) => t.symbol.toUpperCase() === selectedToken
   );
-  
-  const rawBalance = selectedTokenMetadata 
-    ? balances.get(selectedTokenMetadata.contractId) ?? 0n 
+
+  const rawBalance = selectedTokenMetadata
+    ? balances.get(selectedTokenMetadata.contractId) ?? 0n
     : 0n;
-    
+
   const formattedLiquidity = selectedTokenMetadata
     ? formatTokenAmount(rawBalance, selectedTokenMetadata)
     : "0.00";
@@ -130,6 +160,9 @@ export default function LPYieldComparison({
       </div>
     );
   }
+
+  const hasAnyData = chartData.some((d) => d.USDC > 0 || d.EURC > 0 || d.XLM > 0);
+  const rangeLabel = RANGE_OPTIONS.find((o) => o.value === selectedRange)?.label ?? "90D";
 
   return (
     <section
@@ -199,56 +232,120 @@ export default function LPYieldComparison({
             <AssetRiskBadge risk={getTokenRiskProfile(selectedToken)} />
           </div>
           <p className="mt-2 text-xs font-medium text-on-surface-variant">
-            Based on volatility & contract risk
+            Based on volatility &amp; contract risk
           </p>
         </div>
       </div>
 
-      <div>
-        <h3 className="mb-4 text-sm font-bold text-on-surface">Historical Yield (90 Days)</h3>
-        {chartData.every((d) => d.yield === 0) ? (
-          <p className="py-10 text-center text-sm text-on-surface-variant">
-            No historical yield data available for {selectedToken}.
-          </p>
-        ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-outline-variant)"
-                  opacity={0.15}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: "var(--color-on-surface-variant)", fontSize: 12 }}
-                />
-                <YAxis
-                  tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
-                  width={48}
-                  tickFormatter={(v) => v.toFixed(2)}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--color-surface-container)",
-                    border: "1px solid var(--color-outline-variant)",
-                    borderRadius: "0.75rem",
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(4)} ${selectedToken}`, "Yield"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="yield"
-                  stroke={TOKEN_COLORS[selectedToken]}
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: TOKEN_COLORS[selectedToken], strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+      {/* Historical chart header with range selector and export */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-bold text-on-surface">
+          Historical Yield Trends
+        </h3>
+        <div className="flex items-center gap-2">
+          {/* Range selector */}
+          <div className="flex bg-surface-container-high p-0.5 rounded-lg">
+            {RANGE_OPTIONS.map(({ label, value }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSelectedRange(value)}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  selectedRange === value
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        )}
+
+          {/* CSV export */}
+          {hasAnyData && (
+            <button
+              type="button"
+              onClick={() => exportToCSV(chartData, rangeLabel)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors"
+              title="Export comparison data as CSV"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export CSV
+            </button>
+          )}
+        </div>
       </div>
+
+      {!hasAnyData ? (
+        <p className="py-10 text-center text-sm text-on-surface-variant">
+          No historical yield data available for the selected range.
+        </p>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-outline-variant)"
+                opacity={0.15}
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "var(--color-on-surface-variant)", fontSize: 12 }}
+              />
+              <YAxis
+                tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
+                width={48}
+                tickFormatter={(v: number) => v.toFixed(2)}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--color-surface-container)",
+                  border: "1px solid var(--color-outline-variant)",
+                  borderRadius: "0.75rem",
+                }}
+                formatter={(value: number, name: string) => [
+                  `${value.toFixed(4)} ${name}`,
+                  `${name} Yield`,
+                ]}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                formatter={(value) => (
+                  <span style={{ color: TOKEN_COLORS[value] }}>{value}</span>
+                )}
+              />
+              {TOKENS.map((sym) => (
+                <Line
+                  key={sym}
+                  type="monotone"
+                  dataKey={sym}
+                  stroke={TOKEN_COLORS[sym]}
+                  strokeWidth={selectedToken === sym ? 2.5 : 1.5}
+                  strokeOpacity={selectedToken === sym ? 1 : 0.45}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <p className="mt-6 text-xs leading-relaxed text-on-surface-variant">
         T-bill rates ({tBillYieldPct?.toFixed(2)}%) are fetched from U.S. Treasury public data for illustration only and
@@ -258,4 +355,3 @@ export default function LPYieldComparison({
     </section>
   );
 }
-
