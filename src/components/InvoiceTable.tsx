@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,8 @@ export interface ColumnDefinition<T> extends ColumnConfig {
   headerClassName?: string;
   cellClassName?: string;
   sortable?: boolean;
+  /** Show this column in the collapsed mobile (progressive disclosure) summary. */
+  isKeyColumn?: boolean;
 }
 
 interface InvoiceTableProps<T> {
@@ -21,7 +23,7 @@ interface InvoiceTableProps<T> {
   emptyStateNode?: React.ReactNode;
   onSort?: (key: keyof T | string) => void;
   sortKey?: string;
-  sortOrder?: "asc" | "desc";
+  sortOrder?: 'asc' | 'desc';
   keyExtractor: (item: T) => string;
   // Selection
   selectedKeys?: Set<string>;
@@ -38,7 +40,7 @@ export default function InvoiceTable<T>({
   data,
   columns,
   isLoading,
-  emptyMessage = "No data found.",
+  emptyMessage = 'No data found.',
   emptyStateNode,
   onSort,
   sortKey,
@@ -53,6 +55,7 @@ export default function InvoiceTable<T>({
   const router = useRouter();
   const storageKey = `iln_table_config_${tableId}`;
   const selectable = selectedKeys !== undefined && onSelectionChange !== undefined;
+  const isMobile = useMediaQuery(MOBILE_QUERY);
 
   // State for order and visibility
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
@@ -70,11 +73,11 @@ export default function InvoiceTable<T>({
         const config = JSON.parse(saved);
         const validOrder = config.order.filter((id: string) => columns.some((c) => c.id === id));
         const missingFromOrder = defaultOrder.filter((id) => !validOrder.includes(id));
-        
+
         setColumnOrder([...validOrder, ...missingFromOrder]);
         setVisibleColumns(config.visibility || defaultVisible);
       } catch (e) {
-        console.error("Failed to load table config", e);
+        console.error('Failed to load table config', e);
         setColumnOrder(defaultOrder);
         setVisibleColumns(defaultVisible);
       }
@@ -111,15 +114,15 @@ export default function InvoiceTable<T>({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, item: T, index: number) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       router.push(`/i/${keyExtractor(item)}`);
-    } else if (e.key === "ArrowDown") {
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      const nextRow = (e.currentTarget.nextSibling) as HTMLElement;
+      const nextRow = e.currentTarget.nextSibling as HTMLElement;
       nextRow?.focus();
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      const prevRow = (e.currentTarget.previousSibling) as HTMLElement;
+      const prevRow = e.currentTarget.previousSibling as HTMLElement;
       prevRow?.focus();
     }
   };
@@ -133,7 +136,8 @@ export default function InvoiceTable<T>({
   // Selection helpers
   const displayData = sortedData || data;
   const allKeys = useMemo(() => displayData.map(keyExtractor), [displayData, keyExtractor]);
-  const allSelected = selectable && allKeys.length > 0 && allKeys.every((k) => selectedKeys!.has(k));
+  const allSelected =
+    selectable && allKeys.length > 0 && allKeys.every((k) => selectedKeys!.has(k));
   const someSelected = selectable && allKeys.some((k) => selectedKeys!.has(k));
 
   const handleSelectAll = () => {
@@ -158,6 +162,53 @@ export default function InvoiceTable<T>({
   };
 
   if (!isInitialised) return null;
+
+  // Mobile: progressive disclosure — show key columns, expand a row for the rest.
+  if (isMobile) {
+    const flaggedKeyIds = activeColumns.filter((c) => c.isKeyColumn).map((c) => c.id);
+    const keyColumnIds =
+      flaggedKeyIds.length > 0
+        ? flaggedKeyIds
+        : activeColumns
+            .filter((c) => c.label !== '')
+            .slice(0, 3)
+            .map((c) => c.id);
+
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-end px-2">
+          <ColumnCustomiser
+            allColumns={columns}
+            visibleColumns={visibleColumns}
+            columnOrder={columnOrder}
+            onVisibilityChange={handleVisibilityChange}
+            onOrderChange={setColumnOrder}
+            onReset={handleReset}
+          />
+        </div>
+
+        {isLoading ? (
+          <p className="px-4 py-12 text-center text-on-surface-variant italic">Loading assets...</p>
+        ) : displayData.length === 0 ? (
+          <div className="px-4 py-8 text-center text-on-surface-variant">
+            {emptyStateNode ?? emptyMessage}
+          </div>
+        ) : (
+          <ProgressiveDisclosureCards
+            data={displayData}
+            columns={activeColumns.map((col) => ({
+              id: col.id,
+              label: col.label || 'Actions',
+              renderCell: col.renderCell,
+            }))}
+            keyExtractor={keyExtractor}
+            keyColumnIds={keyColumnIds}
+            className="px-2"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -195,15 +246,15 @@ export default function InvoiceTable<T>({
                   key={col.id}
                   onClick={() => col.sortable && onSort?.(col.id)}
                   className={`px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider ${
-                    col.sortable ? "cursor-pointer select-none group" : ""
-                  } ${col.headerClassName || ""}`}
+                    col.sortable ? 'cursor-pointer select-none group' : ''
+                  } ${col.headerClassName || ''}`}
                   aria-sort={
                     col.sortable && sortKey === col.id
-                      ? sortOrder === "asc"
-                        ? "ascending"
-                        : "descending"
+                      ? sortOrder === 'asc'
+                        ? 'ascending'
+                        : 'descending'
                       : col.sortable
-                        ? "none"
+                        ? 'none'
                         : undefined
                   }
                 >
@@ -211,23 +262,38 @@ export default function InvoiceTable<T>({
                     {col.label}
                     {idx === 0 && !selectable && (
                       <div className="group/tooltip relative inline-block ml-1">
-                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">keyboard</span>
+                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 cursor-help">
+                          keyboard
+                        </span>
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-surface-container-highest text-on-surface text-[10px] p-2 rounded shadow-xl w-max z-20 normal-case font-normal border border-outline-variant/20">
-                          <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">Shortcuts</div>
+                          <div className="font-bold mb-1 border-b border-outline-variant/20 pb-1">
+                            Shortcuts
+                          </div>
                           <div className="flex items-center gap-2 mb-1">
-                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↑↓</kbd>
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">
+                              ↑↓
+                            </kbd>
                             <span>Navigate rows</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">↵</kbd>
+                            <kbd className="bg-surface-dim px-1.5 py-0.5 rounded border border-outline-variant/30 min-w-[20px] text-center">
+                              ↵
+                            </kbd>
                             <span>Open detail</span>
                           </div>
                         </div>
                       </div>
                     )}
                     {col.sortable && (
-                      <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
-                        {sortKey === col.id ? (sortOrder === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+                      <span
+                        className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-hidden="true"
+                      >
+                        {sortKey === col.id
+                          ? sortOrder === 'asc'
+                            ? 'arrow_upward'
+                            : 'arrow_downward'
+                          : 'unfold_more'}
                       </span>
                     )}
                   </div>
@@ -243,7 +309,10 @@ export default function InvoiceTable<T>({
           <tbody className="divide-y divide-surface-dim bg-surface-container-lowest/50">
             {isLoading ? (
               <tr>
-                <td colSpan={activeColumns.length + (selectable ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant italic">
+                <td
+                  colSpan={activeColumns.length + (selectable ? 1 : 0)}
+                  className="px-6 py-12 text-center text-on-surface-variant italic"
+                >
                   <div className="flex flex-col items-center gap-3">
                     <span className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></span>
                     Loading assets...
@@ -252,7 +321,10 @@ export default function InvoiceTable<T>({
               </tr>
             ) : displayData.length === 0 ? (
               <tr>
-                <td colSpan={activeColumns.length + (selectable ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant italic">
+                <td
+                  colSpan={activeColumns.length + (selectable ? 1 : 0)}
+                  className="px-6 py-12 text-center text-on-surface-variant italic"
+                >
                   {emptyMessage}
                 </td>
               </tr>
@@ -268,7 +340,7 @@ export default function InvoiceTable<T>({
                     aria-selected={selectable ? isSelected : undefined}
                     onKeyDown={(e) => handleKeyDown(e, item, index)}
                     className={`hover:bg-surface-variant/10 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset focus:bg-primary/5 ${
-                      isSelected ? "bg-primary/5" : ""
+                      isSelected ? 'bg-primary/5' : ''
                     }`}
                   >
                     {selectable && (
@@ -284,7 +356,7 @@ export default function InvoiceTable<T>({
                       </td>
                     )}
                     {activeColumns.map((col) => (
-                      <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ""}`}>
+                      <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ''}`}>
                         {col.renderCell(item)}
                       </td>
                     ))}
