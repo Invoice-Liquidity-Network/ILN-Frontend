@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ColumnCustomiser, { ColumnConfig } from "./ColumnCustomiser";
+import { RowActionsMenu, type RowAction } from "./RowActionsMenu";
 
 export interface ColumnDefinition<T> extends ColumnConfig {
   renderCell: (item: T) => React.ReactNode;
@@ -27,6 +28,9 @@ interface InvoiceTableProps<T> {
   onSelectionChange?: (keys: Set<string>) => void;
   // Stable sort
   sortedData?: T[];
+  // Row actions
+  onRowAction?: (action: string, item: T) => void;
+  rowActions?: (item: T) => RowAction[];
 }
 
 export default function InvoiceTable<T>({
@@ -43,6 +47,8 @@ export default function InvoiceTable<T>({
   selectedKeys,
   onSelectionChange,
   sortedData,
+  onRowAction,
+  rowActions,
 }: InvoiceTableProps<T>) {
   const router = useRouter();
   const storageKey = `iln_table_config_${tableId}`;
@@ -227,6 +233,11 @@ export default function InvoiceTable<T>({
                   </div>
                 </th>
               ))}
+              {rowActions && (
+                <th className="px-4 py-4 w-10">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-dim bg-surface-container-lowest/50">
@@ -277,6 +288,20 @@ export default function InvoiceTable<T>({
                         {col.renderCell(item)}
                       </td>
                     ))}
+                    {rowActions && (
+                      <td className="px-4 py-5">
+                        <RowActionsMenu
+                          actions={rowActions(item).map((action) => ({
+                            ...action,
+                            onClick: () => {
+                              action.onClick();
+                              onRowAction?.(action.label, item);
+                            },
+                          }))}
+                          ariaLabel={`Row actions for ${keyExtractor(item)}`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 );
               })
