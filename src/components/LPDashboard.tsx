@@ -57,6 +57,8 @@ import type { DataTableColumn } from "./DataTable";
 import { NEXT_PUBLIC_INSURANCE_POOL_ENABLED } from "@/constants";
 import InsurancePoolPanel from "./InsurancePoolPanel";
 import { useInsurance } from "@/hooks/useInsurance";
+import LPWidgetLayoutManager from "./LPWidgetLayoutManager";
+import { useLPWidgetLayout } from "@/hooks/useLPWidgetLayout";
 
 type Tab = "discovery" | "my-funded" | "watchlist" | "earnings-history";
 
@@ -90,7 +92,9 @@ export default function LPDashboard() {
   const [riskFilter, setRiskFilter] = useState<"all" | "at-risk" | "disputed">("all");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [overriddenInvoiceIds, setOverriddenInvoiceIds] = useState<string[]>([]);
+  const [isWidgetManagerOpen, setIsWidgetManagerOpen] = useState(false);
   const { settings } = useLPSettings();
+  const { widgets, visibleWidgets, toggleWidget, reorderWidgets, resetLayout, isLoaded: widgetsLoaded } = useLPWidgetLayout(address);
 
   const { filters, setFilters, clearFilters, activeFilterCount } =
     useInvoiceFilters({ namespace: "lpInvoices" });
@@ -692,78 +696,99 @@ export default function LPDashboard() {
           activeFilterCount={activeFilterCount}
         />
         <ExportButton data={filteredInvoices} filenamePrefix="iln-lp-export" />
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
-        >
-          <span className="material-symbols-outlined text-sm">settings</span>
-          Risk Settings
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsWidgetManagerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+          >
+            <span className="material-symbols-outlined text-sm">dashboard_customize</span>
+            Customize Widgets
+          </button>
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/30 hover:bg-surface-variant/20 transition-colors text-sm font-bold"
+          >
+            <span className="material-symbols-outlined text-sm">settings</span>
+            Risk Settings
+          </button>
+        </div>
       </div>
 
       {activeTab === "my-funded" ? (
         <>
-          <div className="px-6 pt-4 flex flex-col gap-4">
-            <LPPortfolioSummary
-              invoices={myFundedInvoicesBase}
-              payerRisks={payerRisks}
-              tokenMap={tokenMap}
-              defaultToken={defaultToken}
-            />
-            <DynamicYieldAnalyticsChart
-              invoices={invoices}
-              lpAddress={address ?? ""}
-              isLoading={loading}
-            />
-            {address ? (
-              <LPYieldComparison
-                invoices={invoices}
-                lpAddress={address}
-                isLoading={loading}
-              />
-            ) : null}
-          </div>
-          <div className="px-6">
-            <LPRiskSummaryPanel 
-              invoices={myFundedInvoicesBase}
-              onFilterByRisk={handleRiskFilter}
-            />
-            {riskFilter !== "all" && (
-              <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">filter_alt</span>
-                  <span className="font-medium">
-                    Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
-                  </span>
-                </div>
-                <button
-                  onClick={() => setRiskFilter("all")}
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Clear filter
-                </button>
+          {widgetsLoaded && (
+            <>
+              <div className="px-6 pt-4 flex flex-col gap-4">
+                {visibleWidgets.some(w => w.id === "portfolio-summary") && (
+                  <LPPortfolioSummary
+                    invoices={myFundedInvoicesBase}
+                    payerRisks={payerRisks}
+                    tokenMap={tokenMap}
+                    defaultToken={defaultToken}
+                  />
+                )}
+                {visibleWidgets.some(w => w.id === "analytics-chart") && (
+                  <DynamicYieldAnalyticsChart
+                    invoices={invoices}
+                    lpAddress={address ?? ""}
+                    isLoading={loading}
+                  />
+                )}
+                {visibleWidgets.some(w => w.id === "yield-comparison") && address && (
+                  <LPYieldComparison
+                    invoices={invoices}
+                    lpAddress={address}
+                    isLoading={loading}
+                  />
+                )}
               </div>
-            )}
-            {NEXT_PUBLIC_INSURANCE_POOL_ENABLED && (
-              <div className="mb-6">
-                <InsurancePoolPanel />
+              <div className="px-6">
+                {visibleWidgets.some(w => w.id === "risk-summary") && (
+                  <LPRiskSummaryPanel
+                    invoices={myFundedInvoicesBase}
+                    onFilterByRisk={handleRiskFilter}
+                  />
+                )}
+                {riskFilter !== "all" && (
+                  <div className="mb-4 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">filter_alt</span>
+                      <span className="font-medium">
+                        Showing {riskFilter === "at-risk" ? "at-risk" : "disputed"} positions only
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setRiskFilter("all")}
+                      className="text-sm text-primary hover:underline font-medium"
+                    >
+                      Clear filter
+                    </button>
+                  </div>
+                )}
+                {NEXT_PUBLIC_INSURANCE_POOL_ENABLED && visibleWidgets.some(w => w.id === "insurance-pool") && (
+                  <div className="mb-6">
+                    <InsurancePoolPanel />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <ErrorBoundary onRetry={() => void refetch()}>
-            <LPPortfolio
-              invoices={myFundedInvoices}
-              isLoading={loading}
-              onClaimDefault={handleClaimDefault}
-              onClaimInsurance={handleClaimInsurance}
-              claimingInvoiceId={claimingInvoiceId}
-              claimingInsuranceId={claimingInsuranceId}
-              tokenMap={tokenMap}
-              defaultToken={defaultToken}
-              onTransfer={(inv) => setTransferInvoice(inv)}
-              isEnrolledInInsurance={isEnrolledInInsurance}
-            />
-          </ErrorBoundary>
+              {visibleWidgets.some(w => w.id === "portfolio-table") && (
+                <ErrorBoundary onRetry={() => void refetch()}>
+                  <LPPortfolio
+                    invoices={myFundedInvoices}
+                    isLoading={loading}
+                    onClaimDefault={handleClaimDefault}
+                    onClaimInsurance={handleClaimInsurance}
+                    claimingInvoiceId={claimingInvoiceId}
+                    claimingInsuranceId={claimingInsuranceId}
+                    tokenMap={tokenMap}
+                    defaultToken={defaultToken}
+                    onTransfer={(inv) => setTransferInvoice(inv)}
+                    isEnrolledInInsurance={isEnrolledInInsurance}
+                  />
+                </ErrorBoundary>
+              )}
+            </>
+          )}
         </>
       ) : activeTab === "earnings-history" ? (
         <LPEarningsHistory
@@ -1027,6 +1052,16 @@ export default function LPDashboard() {
           onSuccess={() => setTransferInvoice(null)}
         />
       )}
+
+      {/* Widget Layout Manager */}
+      <LPWidgetLayoutManager
+        widgets={widgets}
+        onToggleWidget={toggleWidget}
+        onReorderWidgets={reorderWidgets}
+        onResetLayout={resetLayout}
+        isOpen={isWidgetManagerOpen}
+        onClose={() => setIsWidgetManagerOpen(false)}
+      />
     </div>
   );
 }
