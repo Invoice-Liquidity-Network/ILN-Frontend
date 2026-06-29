@@ -83,7 +83,9 @@ export default function InvoiceFilterBar({
   const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
   const [isSavingFilter, setIsSavingFilter] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const savedFiltersRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -105,6 +107,29 @@ export default function InvoiceFilterBar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (document.activeElement === searchInputRef.current) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+
+      if (event.key === "f" || event.key === "F") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        onClearFilters();
+      } else if (event.key === "?") {
+        event.preventDefault();
+        setShowHelpModal(true);
+      } else if (event.key === "Escape") {
+        setShowHelpModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClearFilters]);
 
   const saveFilter = () => {
     if (!newFilterName.trim() || savedFilters.length >= 10) return;
@@ -159,6 +184,7 @@ export default function InvoiceFilterBar({
 
       <div className="flex flex-col gap-3 mb-5 md:flex-row md:items-center">
         <input
+          ref={searchInputRef}
           type="search"
           value={filters.search}
           placeholder="Search by invoice ID, payer, or freelancer address"
@@ -529,6 +555,50 @@ export default function InvoiceFilterBar({
           </div>
         </div>
       ) : null}
+
+      {showHelpModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowHelpModal(false)}
+        >
+          <div
+            className="bg-surface-container-low rounded-2xl border border-outline-variant/30 p-6 max-w-md w-full mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="p-2 hover:bg-surface-container-high rounded-lg transition-colors"
+                aria-label="Close help"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Focus search</span>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">F</kbd>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Reset filters</span>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">R</kbd>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Show shortcuts</span>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">?</kbd>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Close modal</span>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">Esc</kbd>
+              </div>
+            </div>
+            <p className="text-xs text-on-surface-variant mt-4 pt-4 border-t border-outline-variant/20">
+              Shortcuts are disabled when typing in input fields.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
