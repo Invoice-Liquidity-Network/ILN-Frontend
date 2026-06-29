@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import type { WalletRole } from "@/utils/soroban";
 import ReferralWidget from "./ReferralWidget";
@@ -35,10 +36,57 @@ const roleCards: Array<{
   },
 ];
 
+interface Recommendation {
+  id: string;
+  type: "fund" | "reputation" | "yield";
+  title: string;
+  description: string;
+  icon: string;
+  action: string;
+  actionHref?: string;
+}
+
+const RECOMMENDATIONS: Recommendation[] = [
+  {
+    id: "fund-1",
+    type: "fund",
+    title: "Fund These Invoices",
+    description: "You have 3 invoices in your watchlist with competitive rates. Consider funding to diversify your portfolio.",
+    icon: "trending_up",
+    action: "View Opportunities",
+    actionHref: "/lp/marketplace",
+  },
+  {
+    id: "reputation-1",
+    type: "reputation",
+    title: "Improve Reputation",
+    description: "Complete 2 more successful transactions to reach tier 2. This unlocks better rates and higher limits.",
+    icon: "verified_user",
+    action: "View Progress",
+    actionHref: "/settings/reputation",
+  },
+  {
+    id: "yield-1",
+    type: "yield",
+    title: "Optimize Yield",
+    description: "Your current allocation is heavily weighted to short-term invoices. Consider diversifying to longer-term positions.",
+    icon: "show_chart",
+    action: "Rebalance",
+    actionHref: "/lp/portfolio",
+  },
+];
+
 export default function PersonalizedDashboard() {
   const { isConnected, roles, rolesLoading } = useWallet();
+  const [dismissedRecommendations, setDismissedRecommendations] = useState<Set<string>>(new Set());
 
   if (!isConnected) return null;
+
+  const visibleRecommendations = RECOMMENDATIONS.filter((rec) => !dismissedRecommendations.has(rec.id));
+
+  const handleDismissRecommendation = (id: string) => {
+    setDismissedRecommendations((prev) => new Set([...prev, id]));
+  };
 
   return (
     <section className="bg-surface-container-lowest px-8 py-12 border-b border-outline-variant/10">
@@ -87,6 +135,36 @@ export default function PersonalizedDashboard() {
             );
           })}
         </div>
+
+        {visibleRecommendations.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4">Recommended for you</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              {visibleRecommendations.map((rec) => (
+                <div key={rec.id} className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-5 flex flex-col">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="material-symbols-outlined text-2xl text-primary">{rec.icon}</span>
+                    <button
+                      onClick={() => handleDismissRecommendation(rec.id)}
+                      aria-label="Dismiss recommendation"
+                      className="p-1 rounded hover:bg-surface-variant/20 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-lg text-on-surface-variant">close</span>
+                    </button>
+                  </div>
+                  <h4 className="text-sm font-bold mb-1">{rec.title}</h4>
+                  <p className="text-xs text-on-surface-variant mb-4 flex-grow">{rec.description}</p>
+                  <Link
+                    href={rec.actionHref || "#"}
+                    className="text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {rec.action} →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ReferralWidget />
       </div>
