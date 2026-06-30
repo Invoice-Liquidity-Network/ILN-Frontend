@@ -7,6 +7,8 @@ import type { Invoice } from '@/utils/soroban';
 import FieldTooltip from './FieldTooltip';
 import type { ApprovedToken } from '@/hooks/useApprovedTokens';
 import { fetchProtocolParameters } from '@/utils/governance';
+import useMediaQuery, { MOBILE_QUERY } from '@/hooks/useMediaQuery';
+import ProgressiveDisclosureCards, { DisclosureColumn } from './ProgressiveDisclosureCards';
 
 const PAGE_SIZE = 20;
 
@@ -85,24 +87,83 @@ export default function LPEarningsHistory({
     };
   }, []);
 
-  const projections = useMemo(() => computeProjections(paidInvoices), [paidInvoices]);
+  const isMobile = useMediaQuery(MOBILE_QUERY);
 
   const getToken = (invoice: Invoice) =>
     tokenMap.get(invoice.token ?? defaultToken?.contractId ?? '') ?? defaultToken;
 
-  const displayToken = defaultToken ?? { symbol: 'USDC', decimals: 6 };
-
-  const formatProj = (value: number) => formatTokenAmount(BigInt(Math.round(value)), displayToken);
+  // Column config reused by the mobile progressive-disclosure cards.
+  const mobileColumns: DisclosureColumn<Invoice>[] = [
+    {
+      id: 'id',
+      label: 'Invoice ID',
+      renderCell: (inv) => <span className="font-bold text-primary">#{inv.id.toString()}</span>,
+    },
+    {
+      id: 'amount',
+      label: 'Amount Funded',
+      renderCell: (inv) =>
+        formatTokenAmount(inv.amount, getToken(inv) ?? { symbol: 'USDC', decimals: 6 }),
+    },
+    {
+      id: 'earned',
+      label: 'Earned',
+      renderCell: (inv) => (
+        <span className="text-green-600">
+          {formatTokenAmount(
+            calculateYield(inv.amount, inv.discount_rate),
+            getToken(inv) ?? { symbol: 'USDC', decimals: 6 }
+          )}
+        </span>
+      ),
+    },
+    { id: 'payer', label: 'Payer', renderCell: (inv) => formatAddress(inv.payer) },
+    {
+      id: 'settlement',
+      label: 'Settlement Date',
+      renderCell: (inv) => (inv.funded_at ? formatDate(inv.funded_at) : 'N/A'),
+    },
+    {
+      id: 'payout',
+      label: 'Payout Received',
+      renderCell: (inv) =>
+        formatTokenAmount(
+          inv.amount + calculateYield(inv.amount, inv.discount_rate),
+          getToken(inv) ?? { symbol: 'USDC', decimals: 6 }
+        ),
+    },
+    {
+      id: 'fee',
+      label: 'Fee Paid',
+      renderCell: (inv) => {
+        const yieldAmount = calculateYield(inv.amount, inv.discount_rate);
+        const feePaid = protocolFeeBps ? (yieldAmount * BigInt(protocolFeeBps)) / 10000n : 0n;
+        return formatTokenAmount(feePaid, getToken(inv) ?? { symbol: 'USDC', decimals: 6 });
+      },
+    },
+    { id: 'token', label: 'Token', renderCell: (inv) => getToken(inv)?.symbol ?? 'USDC' },
+    {
+      id: 'yield',
+      label: 'Yield %',
+      renderCell: (inv) => `${(inv.discount_rate / 100).toFixed(2)}%`,
+    },
+  ];
 
   const exportData = sortedInvoices.map((invoice) => {
     const token = getToken(invoice);
     const yieldAmount = calculateYield(invoice.amount, invoice.discount_rate);
     const payoutReceived = invoice.amount + yieldAmount;
-    const amountFunded = formatTokenAmount(invoice.amount, token ?? displayToken);
-    const payout = formatTokenAmount(payoutReceived, token ?? displayToken);
-    const earned = formatTokenAmount(yieldAmount, token ?? displayToken);
+    const amountFunded = formatTokenAmount(
+      invoice.amount,
+      token ?? { symbol: 'USDC', decimals: 6 }
+    );
+    const payout = formatTokenAmount(payoutReceived, token ?? { symbol: 'USDC', decimals: 6 });
+    const earned = formatTokenAmount(yieldAmount, token ?? { symbol: 'USDC', decimals: 6 });
     const feePaid = protocolFeeBps
-      ? formatTokenAmount((yieldAmount * BigInt(protocolFeeBps)) / 10000n, token ?? displayToken)
+      ? formatTokenAmount(
+          (yieldAmount * BigInt(protocolFeeBps)) / 10000n,
+          token ?? { symbol: 'USDC', decimals: 6 }
+        )
       : '0';
 
     return {
@@ -239,6 +300,13 @@ export default function LPEarningsHistory({
         <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-outline-variant/50 bg-surface p-8 text-center text-sm text-on-surface-variant">
           No settled earnings history is available yet.
         </div>
+      ) : isMobile ? (
+        <ProgressiveDisclosureCards
+          data={visibleInvoices}
+          columns={mobileColumns}
+          keyExtractor={(inv) => inv.id.toString()}
+          keyColumnIds={['id', 'amount', 'earned']}
+        />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-surface-dim bg-surface-container-lowest">
           <table className="min-w-full border-collapse text-left">
@@ -268,7 +336,7 @@ export default function LPEarningsHistory({
                     <FieldTooltip
                       content="This fee funds ILN protocol development and the treasury"
                       trigger={
-                        <span className="material-symbols-outlined cursor-help text-[14px] normal-case">
+                        <span className="material-symbols-outlined text-[14px] cursor-help normal-case">
                           info
                         </span>
                       }
@@ -302,16 +370,16 @@ export default function LPEarningsHistory({
                       {invoice.funded_at ? formatDate(invoice.funded_at) : 'N/A'}
                     </td>
                     <td className="px-4 py-4 font-medium">
-                      {formatTokenAmount(invoice.amount, token ?? displayToken)}
+                      {formatTokenAmount(invoice.amount, token ?? { symbol: 'USDC', decimals: 6 })}
                     </td>
                     <td className="px-4 py-4 font-medium">
-                      {formatTokenAmount(payoutReceived, token ?? displayToken)}
+                      {formatTokenAmount(payoutReceived, token ?? { symbol: 'USDC', decimals: 6 })}
                     </td>
                     <td className="px-4 py-4 font-medium text-green-600">
-                      {formatTokenAmount(yieldAmount, token ?? displayToken)}
+                      {formatTokenAmount(yieldAmount, token ?? { symbol: 'USDC', decimals: 6 })}
                     </td>
                     <td className="px-4 py-4 font-medium text-on-surface">
-                      {formatTokenAmount(feePaid, token ?? displayToken)}
+                      {formatTokenAmount(feePaid, token ?? { symbol: 'USDC', decimals: 6 })}
                     </td>
                     <td className="px-4 py-4 text-sm text-on-surface">{token?.symbol ?? 'USDC'}</td>
                     <td className="px-4 py-4 text-sm text-on-surface">

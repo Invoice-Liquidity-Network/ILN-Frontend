@@ -28,7 +28,6 @@ export default function InvoiceQRModal({
   const payUrl = `${origin}/pay/${invoiceId.toString()}`;
 
   const downloadPng = useCallback(() => {
-    // QRCodeCanvas renders into a <canvas>; grab its data URL
     const canvasEl = canvasRef.current;
     if (!canvasEl) return;
     const dataUrl = canvasEl.toDataURL("image/png");
@@ -37,6 +36,141 @@ export default function InvoiceQRModal({
     link.href = dataUrl;
     link.click();
   }, [invoiceId]);
+
+  const handlePrint = useCallback(() => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const canvasEl = canvasRef.current;
+    const qrDataUrl = canvasEl?.toDataURL("image/png") || "";
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Invoice QR Code #${invoiceId.toString()}</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              text-align: center;
+            }
+            .header {
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              font-size: 24px;
+              margin: 0 0 10px 0;
+              color: #333;
+            }
+            .qr-section {
+              margin: 30px 0;
+            }
+            .qr-image {
+              max-width: 300px;
+              height: auto;
+              border: 2px solid #e0e0e0;
+              padding: 16px;
+              border-radius: 8px;
+              background: white;
+            }
+            .invoice-details {
+              margin: 30px 0;
+              border-top: 1px solid #e0e0e0;
+              border-bottom: 1px solid #e0e0e0;
+              padding: 20px;
+              text-align: left;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 12px;
+              font-size: 14px;
+            }
+            .detail-label {
+              font-weight: 600;
+              color: #666;
+            }
+            .detail-value {
+              font-weight: 500;
+              color: #333;
+            }
+            .payment-link {
+              margin-top: 20px;
+              padding: 20px;
+              background: #f5f5f5;
+              border-radius: 8px;
+            }
+            .payment-link p {
+              margin: 0 0 10px 0;
+              font-size: 14px;
+              color: #666;
+            }
+            .payment-url {
+              word-break: break-all;
+              font-family: monospace;
+              font-size: 12px;
+              background: white;
+              padding: 10px;
+              border-radius: 4px;
+              border: 1px solid #e0e0e0;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Invoice QR Code</h1>
+              <p style="margin: 0; color: #999;">Invoice #${invoiceId.toString()}</p>
+            </div>
+            <div class="qr-section">
+              <img src="${qrDataUrl}" alt="Invoice QR Code" class="qr-image">
+            </div>
+            <div class="invoice-details">
+              <div class="detail-row">
+                <span class="detail-label">Invoice ID</span>
+                <span class="detail-value">#${invoiceId.toString()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Amount</span>
+                <span class="detail-value">${formatUSDC(amount)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Due Date</span>
+                <span class="detail-value">${formatDate(dueDate)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Freelancer</span>
+                <span class="detail-value">${formatAddress(freelancer)}</span>
+              </div>
+            </div>
+            <div class="payment-link">
+              <p>Payment Link:</p>
+              <div class="payment-url">${payUrl}</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  }, [invoiceId, amount, dueDate, freelancer, payUrl]);
 
   const copyLink = useCallback(async () => {
     try {
@@ -110,22 +244,31 @@ export default function InvoiceQRModal({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 w-full">
+        <div className="flex gap-3 w-full flex-col">
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={downloadPng}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              Download PNG
+            </button>
+            <button
+              onClick={() => void copyLink()}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/30 px-4 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {linkCopied ? "check" : "link"}
+              </span>
+              {linkCopied ? "Copied!" : "Copy link"}
+            </button>
+          </div>
           <button
-            onClick={downloadPng}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-all active:scale-[0.98]"
+            onClick={handlePrint}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/30 px-4 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">download</span>
-            Download PNG
-          </button>
-          <button
-            onClick={() => void copyLink()}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/30 px-4 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {linkCopied ? "check" : "link"}
-            </span>
-            {linkCopied ? "Copied!" : "Copy link"}
+            <span className="material-symbols-outlined text-[18px]">print</span>
+            Print QR Code
           </button>
         </div>
       </div>

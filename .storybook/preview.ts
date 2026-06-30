@@ -1,5 +1,11 @@
 import type { Preview } from '@storybook/react';
+import { createElement } from 'react';
 import '../app/globals.css';
+
+const THEME_BG = {
+  light: { background: '#fff8f3', color: '#1a1a1a' },
+  dark: { background: '#1a1a1a', color: '#ffffff' },
+} as const;
 
 const preview: Preview = {
   parameters: {
@@ -39,6 +45,31 @@ const preview: Preview = {
       },
     },
   },
+  // Apply the active theme to a wrapper element. Tailwind v4 keys dark mode off a
+  // `.dark` ancestor, so toggling the `dark` class (and a matching background)
+  // here makes every story render correctly in both themes — including
+  // per-story `globals: { theme: 'dark' }` variants used for Chromatic review.
+  decorators: [
+    (Story, context) => {
+      const theme: 'light' | 'dark' = context.globals.theme === 'dark' ? 'dark' : 'light';
+      return createElement(
+        'div',
+        {
+          className: theme === 'dark' ? 'dark' : undefined,
+          'data-theme': theme,
+          style: {
+            ...THEME_BG[theme],
+            padding: '2rem',
+            minHeight: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        },
+        createElement(Story)
+      );
+    },
+  ],
 };
 
 export default preview;

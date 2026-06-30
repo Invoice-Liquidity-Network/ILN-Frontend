@@ -1,9 +1,13 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { useState, useEffect } from "react";
 
 export default function HowItWorks() {
   const { t } = useTranslation();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [expandedDetails, setExpandedDetails] = useState<number | null>(null);
 
   const steps = [
     {
@@ -20,6 +24,22 @@ export default function HowItWorks() {
     },
   ];
 
+  useEffect(() => {
+    if (isPaused) return;
+
+    const timer = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [isPaused, steps.length]);
+
+  const handleStepClick = (index: number) => {
+    setCurrentStep(index);
+    setIsPaused(true);
+    setExpandedDetails(expandedDetails === index ? null : index);
+  };
+
   return (
     <section className="bg-surface-container-low py-24 px-8 overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -28,17 +48,77 @@ export default function HowItWorks() {
         </h2>
         <div className="grid md:grid-cols-3 gap-12 relative mb-24">
           {steps.map((step, index) => (
-            <div key={index} className="relative z-10">
-              <div className="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container font-bold mb-6">
+            <div
+              key={index}
+              className="relative z-10 cursor-pointer transition-all duration-300"
+              onClick={() => handleStepClick(index)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleStepClick(index);
+                }
+              }}
+              aria-label={`Step ${index + 1}: ${step.title}`}
+              aria-expanded={expandedDetails === index}
+            >
+              <div
+                className={`w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container font-bold mb-6 transition-all duration-300 transform ${
+                  currentStep === index ? "scale-125 ring-2 ring-primary" : ""
+                } ${expandedDetails === index ? "ring-2 ring-primary scale-110" : ""}`}
+              >
                 {index + 1}
               </div>
-              <h3 className="text-xl font-headline mb-3">{step.title}</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
+              <h3 className="text-xl font-headline mb-3 transition-colors duration-300">
+                {step.title}
+              </h3>
+              <p
+                className={`text-on-surface-variant text-sm leading-relaxed transition-all duration-300 ${
+                  expandedDetails === index ? "opacity-100" : "opacity-75"
+                }`}
+              >
                 {step.description}
               </p>
+              {expandedDetails === index && (
+                <div className="mt-4 p-3 bg-primary-container rounded-lg animate-in fade-in slide-in-from-top-2">
+                  <p className="text-sm text-on-primary-container font-medium">
+                    Click step to explore details
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>
+
+        {!isPaused && (
+          <div className="flex justify-center gap-2 mb-8">
+            {steps.map((_, index) => (
+              <button
+                key={index}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  currentStep === index ? "w-8 bg-primary" : "w-2 bg-on-surface-variant/30"
+                }`}
+                onClick={() => {
+                  setCurrentStep(index);
+                  setIsPaused(true);
+                }}
+                aria-label={`Go to step ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {isPaused && (
+          <div className="flex justify-center mb-8">
+            <button
+              onClick={() => setIsPaused(false)}
+              className="px-4 py-2 bg-primary text-surface-container-lowest rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors"
+            >
+              Resume Auto-Advance
+            </button>
+          </div>
+        )}
 
         <div className="bg-surface-container-highest p-8 md:p-12 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-outline-variant/40">
           <div className="text-center">

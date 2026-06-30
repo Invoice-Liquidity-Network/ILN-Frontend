@@ -2,114 +2,12 @@
 
 import React, { useRef, useState, useId, useEffect, Children, isValidElement } from 'react';
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface OptionItem {
-  value: string;
-  label: string;
-  disabled?: boolean;
-}
-
-export interface SelectProps {
-  value?: string;
-  defaultValue?: string;
-  onChange?: (value: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-  className?: string;
-  'aria-label'?: string;
-  'aria-labelledby'?: string;
-  children?: React.ReactNode;
-  /** Use native <select> instead of custom listbox. Useful in forms. */
-  native?: boolean;
-  name?: string;
-  id?: string;
-  required?: boolean;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function extractOptions(children: React.ReactNode): OptionItem[] {
-  const options: OptionItem[] = [];
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) return;
-    if (child.type === 'option') {
-      const props = child.props as {
-        value?: string;
-        disabled?: boolean;
-        children?: React.ReactNode;
-      };
-      options.push({
-        value: String(props.value ?? ''),
-        label: String(props.children ?? props.value ?? ''),
-        disabled: props.disabled ?? false,
-      });
-    }
-  });
-  return options;
-}
-
-// ── Native select (thin wrapper, unchanged behaviour) ────────────────────────
-
-export const NativeSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({
-  className,
-  children,
-  ...props
-}) => (
-  <select
-    className={
-      `flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ` +
-      (className ?? '')
-    }
-    {...props}
-  >
-    {children}
-  </select>
-);
-
-// ── Custom listbox Select ────────────────────────────────────────────────────
-
-export const Select: React.FC<SelectProps> = ({
-  value: controlledValue,
-  defaultValue,
-  onChange,
-  disabled = false,
-  placeholder = 'Select an option',
-  className = '',
-  'aria-label': ariaLabel,
-  'aria-labelledby': ariaLabelledBy,
-  children,
-  native = false,
-  name,
-  id,
-  required,
-}) => {
-  const uid = useId();
-  const comboId = id ?? uid;
-  const listboxId = `${comboId}-listbox`;
-
-  const options = extractOptions(children);
-  const enabledOptions = options.filter((o) => !o.disabled);
-
-  const [internalValue, setInternalValue] = useState<string>(defaultValue ?? '');
-  const isControlled = controlledValue !== undefined;
-  const selectedValue = isControlled ? controlledValue : internalValue;
-
-  const [open, setOpen] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-
-  const selectedOption = options.find((o) => o.value === selectedValue);
-
-  // Close when clicking outside
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+export const Select: React.FC<SelectProps> = ({ className, children, ...props }) => {
+  return (
+    <select
+      className={
+        `flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d627f] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ` +
+        className
       }
     };
     document.addEventListener('mousedown', handler);
