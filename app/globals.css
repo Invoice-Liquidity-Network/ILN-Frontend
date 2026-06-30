@@ -203,3 +203,14 @@ h1, h2, h3, .serif {
 .animate-donut-grow {
   animation: donut-grow 800ms ease-out both;
 }
+
+/* ─── Checkmark pop animation for copy buttons ───────────────────────────── */
+@keyframes check-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-check-pop {
+  animation: check-pop 300ms ease-out;
+}
