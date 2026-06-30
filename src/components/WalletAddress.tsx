@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { resolveFederatedAddress } from "@/utils/federation";
 import { formatAddress } from "@/utils/format";
@@ -31,6 +31,7 @@ export default function WalletAddress({
   const [resolved, setResolved] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(Boolean(address));
   const [copied, setCopied] = useState(false);
+  const announceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!address) return;
@@ -76,7 +77,15 @@ export default function WalletAddress({
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      if (announceRef.current) {
+        announceRef.current.textContent = "Address copied to clipboard";
+      }
+      window.setTimeout(() => {
+        setCopied(false);
+        if (announceRef.current) {
+          announceRef.current.textContent = "";
+        }
+      }, 1500);
     } catch {
       // Silent failure — clipboard may be unavailable (e.g. insecure context).
     }
@@ -88,15 +97,36 @@ export default function WalletAddress({
         {displayValue}
       </span>
       {!hideCopy && (
-        <button
-          type="button"
-          onClick={handleCopy}
-          aria-label={copied ? "Address copied" : "Copy wallet address"}
-          className="rounded p-1 text-on-surface-variant transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        </button>
+        <span className="relative inline-flex">
+          <button
+            type="button"
+            onClick={handleCopy}
+            aria-label={copied ? "Address copied" : "Copy wallet address"}
+            className="rounded p-1 text-on-surface-variant transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5 animate-check-pop" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {copied && (
+            <span
+              role="tooltip"
+              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-surface-container-highest px-2 py-1 text-xs text-on-surface shadow-lg border border-outline-variant/20 animate-in fade-in zoom-in-95 duration-200"
+            >
+              Copied!
+              <span className="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-surface-container-highest" />
+            </span>
+          )}
+        </span>
       )}
+      <div
+        ref={announceRef}
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      />
     </span>
   );
 }
