@@ -29,6 +29,42 @@ Thank you for your interest in contributing to the Invoice Liquidity Network (IL
 npm install
 ```
 
+The `prepare` script runs `husky` automatically, registering the hooks in `.husky/`.
+
+### What the hooks do
+
+| Hook | Trigger | Action |
+|------|---------|--------|
+| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only |
+| `pre-push` | `git push` | Runs `tsc --noEmit` to catch type errors before the branch is pushed |
+
+Hooks are scoped to staged files via `lint-staged`, so they typically complete in well under 10 seconds.
+
+### Skipping hooks (not recommended)
+
+If you genuinely need to bypass a hook in an emergency:
+
+```bash
+# Skip pre-commit only
+git commit --no-verify -m "your message"
+
+# Skip pre-push only
+git push --no-verify
+```
+
+Do not make a habit of skipping — the same checks run in CI and will block your PR.
+
+### Prettier configuration
+
+Formatting rules live in `.prettierrc.json`. Files and directories excluded from formatting are listed in `.prettierignore`.
+
+To format the entire codebase manually:
+
+```bash
+npx prettier --write .
+```
+
+---
 ### 3. Environment Variables Setup
 
 Copy the example environment file and configure it:
