@@ -13,14 +13,14 @@ export default defineConfig({
     {
       name: "mobile-375",
       use: {
-        ...devices["iPhone SE"],
+        ...devices["Pixel 5"],
         viewport: { width: 375, height: 812 },
       },
     },
     {
       name: "mobile-390",
       use: {
-        ...devices["iPhone 14"],
+        ...devices["Pixel 7"],
         viewport: { width: 390, height: 844 },
       },
     },

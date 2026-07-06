@@ -15,7 +15,7 @@ const ProtocolStatsScreen = dynamic(() => import("@/screens/ProtocolStats"), {
 });
 
 export default function StatsPage() {
-  useDocumentTitle({ pageTitle: "Protocol Statistics | ILN" });
+  useDocumentTitle({ pageTitle: "Protocol Statistics" });
   return (
     <Suspense fallback={null}>
       <ProtocolStatsScreen />

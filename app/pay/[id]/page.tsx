@@ -7,6 +7,7 @@ import { formatAddress } from "@/utils/format";
 import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
 import { useWallet } from "@/context/WalletContext";
 import { useToast } from "@/context/ToastContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { TESTNET_USDC_TOKEN_ID, NETWORK_NAME } from "@/constants";
 import ActivityFeed from "@/components/ActivityFeed";
 import PartialPaymentModal from "@/components/PartialPaymentModal";
@@ -15,6 +16,7 @@ type LoadState = "loading" | "success" | "error";
 
 export default function PayInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  useDocumentTitle({ pageTitle: `Invoice #${id}` });
   const { address, connect, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);

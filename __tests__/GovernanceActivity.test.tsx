@@ -1,67 +1,121 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import GovernanceActivity from "@/components/GovernanceActivity";
-import { fetchVotesForAddress } from "@/utils/governance";
+import { fetchParameterUpdates, fetchProposals, fetchVotesForAddress } from "@/utils/governance";
 
 vi.mock("@/utils/governance", () => ({
   fetchVotesForAddress: vi.fn(),
+  fetchProposals: vi.fn(),
+  fetchParameterUpdates: vi.fn(),
 }));
 
 const mockFetchVotesForAddress = vi.mocked(fetchVotesForAddress);
+const mockFetchProposals = vi.mocked(fetchProposals);
+const mockFetchParameterUpdates = vi.mocked(fetchParameterUpdates);
 
 describe("GovernanceActivity Component", () => {
-  it("renders loading state initially", () => {
-    mockFetchVotesForAddress.mockReturnValue(new Promise(() => {})); // Never resolves
-    render(<GovernanceActivity address="GABC" />);
-    expect(screen.getByRole("heading", { name: /Governance Activity/i })).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("renders 'no activity' state when votes list is empty", async () => {
+  it("renders a helpful empty state when no activity exists", async () => {
     mockFetchVotesForAddress.mockResolvedValue([]);
+    mockFetchProposals.mockResolvedValue([]);
+    mockFetchParameterUpdates.mockResolvedValue([]);
+
     render(<GovernanceActivity address="GABC" />);
+
     expect(await screen.findByText(/No governance activity yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Try a different filter or come back later/i)).toBeInTheDocument();
   });
 
-  it("renders list of votes with correct columns when data is available", async () => {
-    const mockVotes = [
+  it("renders mixed governance activity entries in chronological order", async () => {
+    mockFetchVotesForAddress.mockResolvedValue([
       {
-        proposalId: 1,
-        proposalTitle: "Test Proposal Action",
+        proposalId: 2,
+        proposalTitle: "Vote on quorum",
         voter: "GABC",
         vote: "For" as const,
         weight: 1250,
-        timestamp: 1710000000,
+        timestamp: 1_700_000_000,
       },
-    ];
-    mockFetchVotesForAddress.mockResolvedValue(mockVotes);
+    ]);
+    mockFetchProposals.mockResolvedValue([
+      {
+        id: 3,
+        title: "Proposal created",
+        description: "A new proposal",
+        type: "TextProposal",
+        status: "Active",
+        proposer: "GXYZ",
+        createdAt: 1_701_000_000,
+        votingStartsAt: 1_701_000_000,
+        votingEndsAt: 1_702_000_000,
+        votesFor: 0,
+        votesAgainst: 0,
+        votesAbstain: 0,
+        quorumRequired: 0,
+      },
+    ]);
+    mockFetchParameterUpdates.mockResolvedValue([
+      {
+        id: "4:fee",
+        proposalId: 4,
+        parameter: "fee_rate_bps",
+        label: "Fee rate",
+        newValue: "30",
+        updatedAt: 1_702_000_000,
+      },
+    ]);
 
     render(<GovernanceActivity address="GABC" />);
 
-    expect(await screen.findByText(/Proposal ID/i)).toBeInTheDocument();
-    expect(screen.getByText(/Action/i)).toBeInTheDocument();
-    expect(screen.getByText(/#1/i)).toBeInTheDocument();
-    expect(screen.getByText(/Test Proposal Action/i)).toBeInTheDocument();
-    expect(screen.getByText("For")).toBeInTheDocument();
-    expect(screen.getByText("1,250 ILN")).toBeInTheDocument();
+    const items = await screen.findAllByRole("listitem");
+    expect(items[0]).toHaveTextContent(/Parameter update/i);
+    expect(items[1]).toHaveTextContent(/Proposal created/i);
+    expect(items[2]).toHaveTextContent(/Voted/i);
   });
 
-  it("handles pagination when more than 10 votes", async () => {
-    const mockVotes = Array.from({ length: 15 }).map((_, i) => ({
-      proposalId: i + 1,
-      proposalTitle: `Proposal Action ${i + 1}`,
-      voter: "GABC",
-      vote: "For" as const,
-      weight: 1000,
-      timestamp: 1710000000 + i * 3600,
-    }));
-    mockFetchVotesForAddress.mockResolvedValue(mockVotes);
+  it("filters the feed by activity type and expands details on demand", async () => {
+    mockFetchVotesForAddress.mockResolvedValue([
+      {
+        proposalId: 2,
+        proposalTitle: "Vote on quorum",
+        voter: "GABC",
+        vote: "For" as const,
+        weight: 1250,
+        timestamp: 1_700_000_000,
+      },
+    ]);
+    mockFetchProposals.mockResolvedValue([
+      {
+        id: 3,
+        title: "Proposal created",
+        description: "A new proposal",
+        type: "TextProposal",
+        status: "Active",
+        proposer: "GXYZ",
+        createdAt: 1_701_000_000,
+        votingStartsAt: 1_701_000_000,
+        votingEndsAt: 1_702_000_000,
+        votesFor: 0,
+        votesAgainst: 0,
+        votesAbstain: 0,
+        quorumRequired: 0,
+      },
+    ]);
+    mockFetchParameterUpdates.mockResolvedValue([]);
 
     render(<GovernanceActivity address="GABC" />);
 
-    expect(await screen.findByText(/#1/i)).toBeInTheDocument();
-    expect(screen.getByText(/#10/i)).toBeInTheDocument();
-    expect(screen.queryByText(/#11/i)).not.toBeInTheDocument();
-    
-    expect(screen.getByText(/Page 1 of 2/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Proposal created/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Votes/i }));
+
+    expect(screen.getByText(/Voted/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Proposal created/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
+    expect(screen.getByText(/Vote on quorum/i)).toBeInTheDocument();
   });
 });

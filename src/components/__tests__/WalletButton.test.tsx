@@ -72,8 +72,8 @@ vi.mock("../TestnetFaucetButton", () => ({ default: () => null }));
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const FULL_ADDRESS = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6";
-/** Expected shortened form produced by formatAddress(): "GCCCCC...CCC6" */
-const SHORT_ADDRESS = "GCCCCC...CCC6";
+/** Expected shortened form produced by formatAddress(): "GCCC...CCC6" */
+const SHORT_ADDRESS = "GCCC...CCC6";
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
@@ -168,7 +168,8 @@ describe("WalletButton", () => {
       const writeText = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, { clipboard: { writeText } });
       render(<WalletButton />);
-      fireEvent.click(screen.getByRole("button", { name: /copy wallet address/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(SHORT_ADDRESS) }));
+      fireEvent.click(screen.getByRole("button", { name: /copy address/i }));
       await waitFor(() => expect(writeText).toHaveBeenCalledWith(FULL_ADDRESS));
     });
 
@@ -190,13 +191,15 @@ describe("WalletButton", () => {
       expect(redPulse).toBeNull();
     });
 
-    it("renders a Disconnect button", () => {
+    it("renders a Disconnect button in the dropdown", () => {
       render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(SHORT_ADDRESS) }));
       expect(screen.getByRole("button", { name: /disconnect/i })).toBeInTheDocument();
     });
 
     it("calls disconnect() when the Disconnect button is clicked", () => {
       render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(SHORT_ADDRESS) }));
       fireEvent.click(screen.getByRole("button", { name: /disconnect/i }));
       expect(walletState.disconnect).toHaveBeenCalledOnce();
     });
@@ -240,8 +243,9 @@ describe("WalletButton", () => {
       expect(screen.getByText(SHORT_ADDRESS)).toBeInTheDocument();
     });
 
-    it("still renders the Disconnect button", () => {
+    it("still renders the Disconnect button in the dropdown", () => {
       render(<WalletButton />);
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(SHORT_ADDRESS) }));
       expect(screen.getByRole("button", { name: /disconnect/i })).toBeInTheDocument();
     });
 

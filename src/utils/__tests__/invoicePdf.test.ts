@@ -50,4 +50,26 @@ describe("buildInvoicePdf", () => {
     const bytes = doc.output("arraybuffer");
     expect(bytes.byteLength).toBeGreaterThan(500);
   });
+
+  it("accepts optional custom fields without throwing", async () => {
+    const doc = await buildInvoicePdf(invoice(), {
+      ...data,
+      notes: "Please reference invoice #12.",
+      termsAndConditions: "Payment is due within 30 days.",
+      paymentInstructions: "GDEF... (Stellar USDC)",
+    });
+    const bytes = doc.output("arraybuffer");
+    expect(bytes.byteLength).toBeGreaterThan(500);
+  });
+
+  it("stays under 1 MB with all custom fields populated", async () => {
+    const doc = await buildInvoicePdf(invoice(), {
+      ...data,
+      notes: "N".repeat(1000),
+      termsAndConditions: "T".repeat(2000),
+      paymentInstructions: "GDEF... send USDC",
+    });
+    const bytes = doc.output("arraybuffer");
+    expect(bytes.byteLength).toBeLessThan(1_000_000);
+  });
 });

@@ -4,6 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import { useTransaction } from "@/hooks/useTransaction";
 import TokenSelector, { TokenAmount } from "./TokenSelector";
 import { useApprovedTokens } from "@/hooks/useApprovedTokens";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   buildApproveTokenTransaction,
   fundInvoice,
@@ -14,6 +15,8 @@ import {
 import { formatTokenAmount, formatDate, calculateYield } from "@/utils/format";
 import { useFundInvoice } from "@/hooks/useInvoices";
 import { getPayerScore, PayerScoreResult } from "@/utils/soroban";
+import { fetchProtocolParameters } from "@/utils/governance";
+import FieldTooltip from "./FieldTooltip";
 
 type FundingStep = "approve" | "fund";
 
@@ -36,6 +39,8 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [protocolFeeBps, setProtocolFeeBps] = useState<number | null>(null);
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   useEffect(() => {
     if (invoice && !selectedTokenId) {
@@ -70,6 +75,20 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
       setIsCheckingAllowance(false);
     }
   }, [defaultToken]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchProtocolParameters()
+      .then((p) => {
+        if (mounted) setProtocolFeeBps(p.feeRateBps ?? 0);
+      })
+      .catch(() => {
+        if (mounted) setProtocolFeeBps(0);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!invoice || !address) return;
@@ -138,11 +157,11 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
   const tokenSymbol = selectedInvoiceToken?.symbol ?? "USDC";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200">
+    <div ref={modalRef} className="fixed inset-0 z-[100] flex flex-col bg-surface-container-lowest overflow-y-auto animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       {signingModal}
       {/* Header with Step Tracker */}
       <div className="sticky top-0 bg-surface-container-low border-b border-surface-dim z-10 px-6 py-4 flex items-center justify-between">
-        <h4 className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
+        <h4 id="modal-title" className="text-xl font-bold">Fund Invoice #{invoice.id.toString()}</h4>
         
         {needsApproval && (
           <div className="flex items-center gap-4">
@@ -164,7 +183,7 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
           </div>
         )}
 
-        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant">
+        <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant" aria-label="Close modal">
           <span className="material-symbols-outlined shrink-0">close</span>
         </button>
       </div>
@@ -268,9 +287,16 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
               </div>
 
               <div className="bg-surface-container-low rounded-2xl p-6 mb-8 border border-outline-variant/20 space-y-4">
-                <div className="flex justify-between text-base">
-                  <span className="text-on-surface-variant">Selected Token:</span>
-                  <span className="font-bold">{selectedToken?.symbol || "Unknown"}</span>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between text-base flex-1">
+                    <span className="text-on-surface-variant">Selected Token:</span>
+                    <span className="font-bold">{selectedToken?.symbol || "Unknown"}</span>
+                  </div>
+                  {protocolFeeBps === 0 && (
+                    <span className="ml-4 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wider whitespace-nowrap">
+                      0% Protocol Fee
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex justify-between text-base">
@@ -315,6 +341,20 @@ export default function FundConfirmModal({ invoice, onClose, onSuccess, payerSco
                     ) : null}
                   </span>
                 </div>
+
+                {protocolFeeBps !== null && protocolFeeBps > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <div className="flex items-center text-on-surface-variant text-sm">
+                      <span>Protocol fee ({protocolFeeBps} bps):</span>
+                      <FieldTooltip content="This fee funds ILN protocol development and the treasury" trigger={
+                        <span className="material-symbols-outlined text-[16px] cursor-help">info</span>
+                      } />
+                    </div>
+                    <span className="font-medium text-on-surface">
+                      ≈ {formatTokenAmount((calculateYield(invoice.amount, invoice.discount_rate) * BigInt(protocolFeeBps)) / 10000n, selectedInvoiceToken!)}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between text-sm border-t border-surface-dim pt-4">
                   <span className="text-on-surface-variant">Days until due:</span>

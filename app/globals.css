@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Colors */
   --color-on-tertiary-fixed-variant: #614011;
@@ -62,6 +64,15 @@
   --font-label: "Avenir Next", Manrope, "Segoe UI", sans-serif;
 }
 
+/* z-index layers:
+ * 50   — navbar, dropdowns
+ * 60   — shortcuts modal
+ * 100  — dialogs / modals
+ * 200  — tooltips (must float above open dialogs)
+ * 9999 — onboarding spotlight
+ * 10000 — critical overlays (LP onboarding, feedback widget)
+ */
+
 :root {
   --background: #fff8f3;
   --foreground: #221a0f;
@@ -71,6 +82,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
+}
+
+/* Smooth colour transition when user switches theme */
+[data-theme-transition],
+[data-theme-transition] *,
+[data-theme-transition] *::before,
+[data-theme-transition] *::after {
+  transition-property: color, background-color, border-color;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
 }
 
 @media (max-width: 640px) {
@@ -97,7 +118,8 @@ h1, h2, h3, .serif {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-:root[data-theme="dark"] {
+:root.dark,
+.dark {
   --background: #0f1117;
   --foreground: #e2e8f0;
   --color-background: #0f1117;
@@ -130,12 +152,21 @@ h1, h2, h3, .serif {
   border-radius: 6px;
   background: linear-gradient(
     90deg,
-    var(--color-surface-container-low) 25%,
-    var(--color-surface-container)     50%,
-    var(--color-surface-container-low) 75%
+    var(--color-surface-container-low)  20%,
+    var(--color-surface-container)      40%,
+    var(--color-surface-container-high) 50%,
+    var(--color-surface-container)      60%,
+    var(--color-surface-container-low)  80%
   );
   background-size: 800px 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cell {
+    animation: none;
+    background: var(--color-surface-container);
+  }
 }
 
 /* Pulse animation for urgent countdown timers */
@@ -150,4 +181,36 @@ h1, h2, h3, .serif {
 
 .animate-pulse-fast {
   animation: pulse-fast 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* InvoiceStateDonut entrance animation (800ms, ease-out, respects prefers-reduced-motion via motion-safe: variant) */
+@keyframes donut-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-donut-grow {
+  animation: donut-grow 800ms ease-out both;
+}
+
+/* ─── Checkmark pop animation for copy buttons ───────────────────────────── */
+@keyframes check-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-check-pop {
+  animation: check-pop 300ms ease-out;
 }

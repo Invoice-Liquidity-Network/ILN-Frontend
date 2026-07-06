@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Toaster } from "sonner";
-import { TOAST_AUTO_DISMISS_MS, TOAST_MAX_VISIBLE, TOAST_POSITION } from "@/lib/toast-config";
+import { Toaster } from 'sonner';
+import { TOAST_AUTO_DISMISS_MS, TOAST_MAX_VISIBLE, TOAST_POSITION } from '@/lib/toast-config';
 
 export default function AppToaster() {
   return (
@@ -12,9 +12,10 @@ export default function AppToaster() {
       closeButton
       richColors
       expand={false}
+      gap={8}
       toastOptions={{
         classNames: {
-          toast: "font-sans",
+          toast: 'font-sans',
         },
       }}
     />

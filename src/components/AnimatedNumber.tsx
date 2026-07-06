@@ -21,6 +21,14 @@ export interface AnimatedNumberProps {
   className?: string;
   /** Whether to re-animate when value changes (default: true) */
   reanimateOnChange?: boolean;
+  /** Token symbol for currency display (e.g., '$', '€', 'USDC') */
+  tokenSymbol?: string;
+  /** Position of token symbol: 'prefix' or 'suffix' (default: 'prefix') */
+  symbolPosition?: 'prefix' | 'suffix';
+  /** Decimal places for formatting (default: 2) */
+  decimals?: number;
+  /** Locale for number formatting (default: 'en-US') */
+  locale?: string;
 }
 
 /**
@@ -40,6 +48,10 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   formatter,
   className,
   reanimateOnChange = true,
+  tokenSymbol,
+  symbolPosition = 'prefix',
+  decimals = 2,
+  locale = 'en-US',
 }) => {
   const [displayValue, setDisplayValue] = useState<number>(0);
   const animationFrameRef = useRef<number | null>(null);
@@ -110,11 +122,23 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   }, [value, reanimateOnChange]);
 
   // Format the display value
-  const formattedValue = formatter ? formatter(displayValue) : displayValue.toLocaleString();
+  const formattedValue = formatter
+    ? formatter(displayValue)
+    : displayValue.toLocaleString(locale, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+
+  // Add token symbol if provided
+  const displayWithSymbol = tokenSymbol
+    ? symbolPosition === 'prefix'
+      ? `${tokenSymbol}${formattedValue}`
+      : `${formattedValue}${tokenSymbol}`
+    : formattedValue;
 
   return (
     <span className={className} data-testid="animated-number">
-      {formattedValue}
+      {displayWithSymbol}
     </span>
   );
 };

@@ -28,37 +28,51 @@ export default function QuorumProgressBar({
   }, [votesCast, quorumRequired]);
 
   const quorumMet = votesCast >= quorumRequired;
+  const clampedVotes = Math.max(0, Math.min(votesCast, quorumRequired));
   const pct =
     quorumRequired > 0
-      ? Math.min((votesCast / quorumRequired) * 100, 100)
+      ? Math.min((clampedVotes / quorumRequired) * 100, 100)
       : 0;
   const fillWidth = mounted ? pct : 0;
+  const remainingVotes = Math.max(quorumRequired - votesCast, 0);
+  const statusLabel = quorumMet ? "Quorum met" : "Quorum pending";
+  const screenReaderText = `${pct.toFixed(0)}% complete. ${statusLabel}. ${quorumMet ? "Required quorum reached." : `${formatVotes(remainingVotes)} remaining to reach quorum.`}`;
 
   return (
     <div className={`space-y-2 ${className}`} data-testid="quorum-progress-bar">
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span
-          className={`font-semibold ${quorumMet ? "text-emerald-600" : "text-red-600"}`}
-        >
+        <span className="font-semibold text-on-surface">
           Quorum: {formatVotes(votesCast)} / {formatVotes(quorumRequired)} required (
           {pct.toFixed(0)}%)
         </span>
+        <span
+          className={`inline-flex items-center rounded-full border px-2.5 py-1 font-medium ${
+            quorumMet
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-700"
+          }`}
+        >
+          {quorumMet ? "✓ Quorum met" : "• Quorum pending"}
+        </span>
       </div>
       <div
-        className="h-2.5 w-full overflow-hidden rounded-full bg-surface-container-high"
+        className="h-2.5 w-full overflow-hidden rounded-full border border-outline-variant/20 bg-surface-container-high"
         role="progressbar"
-        aria-valuenow={votesCast}
+        aria-valuenow={clampedVotes}
         aria-valuemin={0}
         aria-valuemax={quorumRequired}
-        aria-label={`Quorum progress: ${pct.toFixed(0)}%`}
+        aria-label="Quorum progress"
+        aria-valuetext={screenReaderText}
+        aria-describedby="quorum-progress-status"
       >
         <div
-          className={`h-full rounded-full transition-[width] duration-700 ease-out ${
-            quorumMet ? "bg-emerald-500" : "bg-red-500"
-          }`}
+          className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
           style={{ width: `${fillWidth}%` }}
         />
       </div>
+      <span id="quorum-progress-status" className="sr-only">
+        {screenReaderText}
+      </span>
     </div>
   );
 }
