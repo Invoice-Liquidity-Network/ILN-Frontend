@@ -1,0 +1,1 @@
+import"./jsx-runtime-EKYJJIwR.js";import{r as o}from"./iframe-Dx6cFdWX.js";import"./WalletContext-BWEqisDy.js";const i=o.createContext(void 0);function c(){const t=o.useContext(i);if(t===void 0)throw new Error("useNotification must be used within a NotificationProvider");return t}export{c as u};

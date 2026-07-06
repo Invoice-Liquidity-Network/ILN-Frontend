@@ -1,12 +1,29 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { useRef } from "react";
 
 export default function Footer() {
   const { t } = useTranslation();
+  const footerRef = useRef<HTMLDivElement>(null);
+
+  const skipToMain = () => {
+    const mainContent = document.querySelector("main");
+    if (mainContent) {
+      mainContent.focus();
+      mainContent.scrollIntoView();
+    }
+  };
 
   return (
-    <footer className="bg-primary-container py-16 px-8">
+    <footer className="bg-primary-container py-16 px-8" ref={footerRef}>
+      <a
+        href="#main-content"
+        onClick={skipToMain}
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded"
+      >
+        Skip to main content
+      </a>
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
@@ -16,80 +33,82 @@ export default function Footer() {
             </p>
             <div className="flex gap-4">
               <a
-                className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors"
+                className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container"
                 href="#"
+                aria-label={t("footer.website") || "Visit our website"}
               >
-                <span className="material-symbols-outlined text-lg">public</span>
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">public</span>
               </a>
               <a
-                className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors"
+                className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container"
                 href="#"
+                aria-label={t("footer.github") || "View our GitHub repository"}
               >
-                <span className="material-symbols-outlined text-lg">
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">
                   terminal
                 </span>
               </a>
             </div>
           </div>
-          <div>
+          <nav>
             <h5 className="text-xs font-bold uppercase tracking-widest text-on-primary-container mb-6">
               {t("footer.network")}
             </h5>
             <ul className="space-y-4 text-sm text-on-primary-container/80">
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.howItWorks")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.forFreelancers")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.forLPs")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.dashboard")}
                 </a>
               </li>
             </ul>
-          </div>
-          <div>
+          </nav>
+          <nav>
             <h5 className="text-xs font-bold uppercase tracking-widest text-on-primary-container mb-6">
               {t("footer.developers")}
             </h5>
             <ul className="space-y-4 text-sm text-on-primary-container/80">
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.documentation")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.githubRepository")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.technicalSpecs")}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors" href="#">
+                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
                   {t("footer.openSourcePolicy")}
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
         <div className="pt-8 border-t border-on-primary-container/10 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container/60">
           <div className="flex items-center gap-4">
             <span>{t("footer.builtOnStellar")}</span>
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>{t("footer.mitLicense")}</span>
           </div>
           <div>{t("footer.copyright")}</div>

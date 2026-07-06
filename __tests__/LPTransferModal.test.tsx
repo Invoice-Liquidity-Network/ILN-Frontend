@@ -5,20 +5,29 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockExecute = vi.fn();
+const mockUseBalances = vi.fn();
 
 vi.mock("@/hooks/useTransaction", () => ({
   useTransaction: () => ({ execute: mockExecute, loading: false, error: null }),
+}));
+
+vi.mock("@/hooks/useBalances", () => ({
+  useBalances: () => mockUseBalances(),
 }));
 
 vi.mock("@/context/WalletContext", () => ({
   useWallet: () => ({ address: "GSELF000000000000000000000000000000000000000000000000000000" }),
 }));
 
+const mockBuild = vi.fn(() => "built-tx");
+const mockSetTimeout = vi.fn(() => ({ build: mockBuild }));
+const mockAddOperation = vi.fn(() => ({ setTimeout: mockSetTimeout }));
+
 vi.mock("@stellar/stellar-sdk", () => ({
-  TransactionBuilder: vi.fn(),
-  Operation: { invokeContractFunction: vi.fn() },
+  TransactionBuilder: vi.fn(() => ({ addOperation: mockAddOperation })),
+  Operation: { invokeContractFunction: vi.fn(() => "invoke-op") },
   Address: { fromString: vi.fn(() => ({ toScVal: vi.fn() })) },
-  nativeToScVal: vi.fn(),
+  nativeToScVal: vi.fn(() => "invoice-id-scval"),
   BASE_FEE: "100",
   rpc: {
     Server: vi.fn(() => ({
@@ -34,6 +43,9 @@ vi.mock("@/constants", () => ({
   CONTRACT_ID: "CTEST",
   NETWORK_PASSPHRASE: "Test SDF Network ; September 2015",
   RPC_URL: "https://soroban-testnet.stellar.org",
+  TESTNET_USDC_TOKEN_ID: "token-usdc",
+  TESTNET_EURC_TOKEN_ID: "token-eurc",
+  TESTNET_XLM_TOKEN_ID: "token-xlm",
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,12 +78,39 @@ function renderModal(onSuccess = vi.fn(), onClose = vi.fn()) {
 describe("LPTransferModal", () => {
   beforeEach(() => {
     mockExecute.mockReset();
+    mockUseBalances.mockReturnValue({
+      balances: new Map([
+        ["token-usdc", 10_000_000_000n],
+        ["token-eurc", 8_000_000_000n],
+        ["token-xlm", 25_000_000_000n],
+      ]),
+      unavailable: new Set(),
+      isLoading: false,
+    });
   });
 
   it("renders the modal with invoice id and ownership warning", () => {
     renderModal();
     expect(screen.getByText(/Transfer LP Position #42/i)).toBeInTheDocument();
     expect(screen.getByText(/permanently reassigns payout ownership/i)).toBeInTheDocument();
+  });
+
+  it("lets the user select USDC, EURC, and XLM and shows token balances", () => {
+    renderModal();
+
+    expect(screen.getByRole("button", { name: /USDC/i })).toBeInTheDocument();
+    expect(screen.getByText("Balance: 1,000 USDC")).toBeInTheDocument();
+    expect(screen.getByText("1,000 USDC")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /USDC/i }));
+    fireEvent.click(screen.getByRole("option", { name: /EURC/i }));
+    expect(screen.getByRole("button", { name: /EURC/i })).toBeInTheDocument();
+    expect(screen.getByText("800 EURC")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /EURC/i }));
+    fireEvent.click(screen.getByRole("option", { name: /XLM/i }));
+    expect(screen.getByRole("button", { name: /XLM/i })).toBeInTheDocument();
+    expect(screen.getByText("2,500 XLM")).toBeInTheDocument();
   });
 
   it("shows a validation error when the address field is empty", async () => {
@@ -97,6 +136,48 @@ describe("LPTransferModal", () => {
     expect(mockExecute).not.toHaveBeenCalled();
   });
 
+  it("validates the selected token minimum", async () => {
+    const smallXlmInvoice = { ...invoice, amount: 5_000_000n, token: "token-xlm" };
+    render(
+      <LPTransferModal invoice={smallXlmInvoice} onClose={vi.fn()} onSuccess={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /USDC/i }));
+    fireEvent.click(screen.getByRole("option", { name: /XLM/i }));
+    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_RECIPIENT } });
+    fireEvent.click(screen.getByRole("button", { name: /Transfer Position/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/XLM transfers require at least 10 XLM/i);
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("prevents submitting when the selected token does not match the invoice token", async () => {
+    renderModal();
+
+    fireEvent.click(screen.getByRole("button", { name: /USDC/i }));
+    fireEvent.click(screen.getByRole("option", { name: /EURC/i }));
+    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_RECIPIENT } });
+    fireEvent.click(screen.getByRole("button", { name: /Transfer Position/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Select the invoice token/i);
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("validates the selected token balance", async () => {
+    mockUseBalances.mockReturnValue({
+      balances: new Map([["token-usdc", 1_000_000n]]),
+      unavailable: new Set(),
+      isLoading: false,
+    });
+    renderModal();
+
+    fireEvent.change(screen.getByPlaceholderText("G..."), { target: { value: VALID_RECIPIENT } });
+    fireEvent.click(screen.getByRole("button", { name: /Transfer Position/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Insufficient USDC balance/i);
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
   it("calls execute and invokes onSuccess with a valid address", async () => {
     mockExecute.mockResolvedValue("tx-hash-abc");
     const onSuccess = vi.fn();
@@ -107,6 +188,10 @@ describe("LPTransferModal", () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     expect(onSuccess).toHaveBeenCalledWith(invoice, VALID_RECIPIENT);
+    expect(mockExecute).toHaveBeenCalledWith(
+      "assembled-tx",
+      "Transfer 0.5 USDC LP position #42",
+    );
   });
 
   it("does not call onSuccess when execute returns null (user rejected)", async () => {

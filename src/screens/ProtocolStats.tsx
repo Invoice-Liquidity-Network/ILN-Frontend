@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { useContractStats } from "@/hooks/useContractStats";
 import { useInvoices } from "@/hooks/useInvoices";
 import StatsMetricCards from "@/components/stats/StatsMetricCards";
+import StatsDisputeRateCard from "@/components/stats/StatsDisputeRateCard";
 import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
 import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
 import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
@@ -41,7 +42,7 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 export default function ProtocolStatsScreen() {
-  const { data: stats, isLoading, error } = useContractStats();
+  const { data: stats, isLoading, error, refetch } = useContractStats();
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices();
 
   return (
@@ -63,8 +64,10 @@ export default function ProtocolStatsScreen() {
           )}
 
           {!isLoading && !error && stats && (
-            <ErrorBoundary>
+            <ErrorBoundary onRetry={() => void refetch()}>
               <StatsMetricCards stats={stats} />
+
+              <StatsDisputeRateCard metrics={stats.dispute_rate} />
 
               <StatsVolumeChart dailyVolume={stats.daily_volume} />
 

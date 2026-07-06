@@ -15,7 +15,7 @@ const LPDashboardPage = dynamic(() => import("@/screens/LPDashboard"), {
 });
 
 export default function LPRoutePage() {
-  useDocumentTitle({ pageTitle: "Fund Invoices" });
+  useDocumentTitle({ pageTitle: "Liquidity Provider Dashboard" });
 
   return (
     <Suspense fallback={null}>
@@ -23,4 +23,3 @@ export default function LPRoutePage() {
     </Suspense>
   );
 }
-

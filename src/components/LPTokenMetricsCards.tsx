@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 import { TokenYieldMetrics, TESTNET_EXCHANGE_RATES, convertToUSD } from "@/utils/per-token-yield";
 import { formatTokenAmount } from "@/utils/format";
 import AnimatedNumber from "./AnimatedNumber";
@@ -136,6 +137,36 @@ export default function LPTokenMetricsCards({
                   </div>
                 )}
               </div>
+
+              {/* Sparkline */}
+              {metric.sparklineData && metric.sparklineData.length > 0 && (
+                <div className="mt-3 h-12">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={metric.sparklineData.map((v, i) => ({ v, i }))}>
+                      <defs>
+                        <linearGradient id={`sparkGrad-${metric.token.contractId}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={metric.sparklineData![metric.sparklineData!.length - 1] >= metric.sparklineData![0] ? '#10b981' : '#ef4444'} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={metric.sparklineData![metric.sparklineData!.length - 1] >= metric.sparklineData![0] ? '#10b981' : '#ef4444'} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Tooltip
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                        formatter={(value: number) => [formatTokenAmount(BigInt(Math.round(value)), { symbol: displaySymbol, decimals: displayDecimals }), 'Value']}
+                        labelFormatter={() => '7-Day Trend'}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="v"
+                        stroke={metric.sparklineData[metric.sparklineData.length - 1] >= metric.sparklineData[0] ? '#10b981' : '#ef4444'}
+                        fill={`url(#sparkGrad-${metric.token.contractId})`}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           );
         })}

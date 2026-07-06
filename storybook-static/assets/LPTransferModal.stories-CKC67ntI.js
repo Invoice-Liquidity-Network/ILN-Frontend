@@ -1,0 +1,7 @@
+import{L as i}from"./LPTransferModal-B_q-KxfD.js";import"./jsx-runtime-EKYJJIwR.js";import"./iframe-Dx6cFdWX.js";import"./preload-helper-Dp1pzeXC.js";import"./useTransaction-EapfsLZi.js";import"./QueryClientProvider-vXDPHYUo.js";import"./soroban-BjTs-Z_E.js";import"./stellar-sdk.min-CAAo20gi.js";import"./constants-Blzo2VsG.js";import"./horizonClient-kL7zlhwC.js";import"./ToastContext-Cfc8Pa2K.js";import"./index-Cgb9ICXJ.js";import"./index-BVZtMyJn.js";import"./index-CNFeyz4D.js";import"./AppToaster-CQpUadPt.js";import"./WalletContext-BWEqisDy.js";import"./navigation-Dlf1v1Jp.js";import"./get-segment-param-uZ6tT2eb.js";import"./_interop_require_default-Dl4696rw.js";import"./WalletSelectionModal-RtvXKZeD.js";import"./index-D2Apc_AJ.js";import"./useFocusTrap-CtyJAkei.js";import"./txEvents-PiNVVoXJ.js";import"./TransactionErrorToast-CEeLy6YM.js";const F={title:"Components/LPTransferModal",component:i,parameters:{layout:"centered"},tags:["autodocs"]},m={id:42n,amount:1000000000n,status:"Funded"},o={args:{invoice:m,onClose:()=>{},onSuccess:(s,n)=>console.log("Transferred to:",n)}};var r,t,e;o.parameters={...o.parameters,docs:{...(r=o.parameters)==null?void 0:r.docs,source:{originalSource:`{
+  args: {
+    invoice: mockInvoice,
+    onClose: () => {},
+    onSuccess: (invoice, newOwner) => console.log('Transferred to:', newOwner)
+  }
+}`,...(e=(t=o.parameters)==null?void 0:t.docs)==null?void 0:e.source}}};const b=["Default"];export{o as Default,b as __namedExportsOrder,F as default};

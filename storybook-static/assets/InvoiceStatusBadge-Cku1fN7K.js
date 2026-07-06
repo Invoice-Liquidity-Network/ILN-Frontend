@@ -1,0 +1,6 @@
+import{j as o}from"./jsx-runtime-EKYJJIwR.js";import{r as a}from"./iframe-Dx6cFdWX.js";const i={Pending:"bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",Funded:"bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200",PartiallyFunded:"bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-200",Paid:"bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200",Defaulted:"bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200",Cancelled:"bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-200"};function g({status:e}){const[t,n]=a.useState(e),[s,r]=a.useState(!1);a.useEffect(()=>{if(e!==t){r(!0);const l=setTimeout(()=>{n(e),r(!1)},300);return()=>clearTimeout(l)}},[e,t]);const d=i[t]||"bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200";return o.jsx("span",{className:`
+        inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold
+        transition-all duration-300 ease-in-out
+        ${d}
+        ${s?"opacity-50 scale-95":"opacity-100 scale-100"}
+      `,children:t})}g.__docgenInfo={description:"",methods:[],displayName:"InvoiceStatusBadge",props:{status:{required:!0,tsType:{name:"string"},description:""}}};export{g as I};

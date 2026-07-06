@@ -6,8 +6,18 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import ShortcutsModal from "./ShortcutsModal";
 
 export default function CommandPalette() {
-  const { isShortcutsOpen, openShortcuts, closeShortcuts } = useKeyboardShortcuts();
-  const { isOpen, query, setQuery, commands, executeCommand, close } = useCommandPalette(openShortcuts);
+  const {
+    isShortcutsOpen,
+    openShortcuts,
+    closeShortcuts,
+    registerToggleCommandPalette,
+  } = useKeyboardShortcuts();
+  const { isOpen, query, setQuery, commands, executeCommand, close, toggle, clearHistory } = useCommandPalette(openShortcuts);
+
+  useEffect(() => {
+    const unregister = registerToggleCommandPalette(toggle);
+    return unregister;
+  }, [registerToggleCommandPalette, toggle]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -69,6 +79,15 @@ export default function CommandPalette() {
                 className="w-full border-none bg-transparent px-4 py-2 text-lg text-gray-900 outline-none placeholder-gray-400 dark:text-gray-100"
               />
             </div>
+
+            {!query && commands.length > 0 && (
+              <div className="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs font-semibold uppercase text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <span>Recent</span>
+                <button onClick={() => { clearHistory(); inputRef.current?.focus(); }} className="hover:text-gray-800 hover:underline dark:hover:text-gray-200 focus:outline-none">
+                  Clear History
+                </button>
+              </div>
+            )}
 
             <div ref={listRef} className="max-h-96 overflow-y-auto">
               {commands.length === 0 ? (

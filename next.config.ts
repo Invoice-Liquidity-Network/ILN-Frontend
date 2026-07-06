@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 // @ts-ignore
 import withPWA from "next-pwa";
 
-const nextConfig: NextConfig = {
+const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
+  turbopack: {},
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
 };
 
 export default withPWA({

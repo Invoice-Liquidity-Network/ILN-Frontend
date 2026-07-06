@@ -11,6 +11,7 @@ import QuorumProgressBar from "@/components/QuorumProgressBar";
 import { GOVERNANCE_ADMIN_ADDRESS } from "@/constants";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useTransaction } from "@/hooks/useTransaction";
 import { hashEvidence } from "@/utils/evidence";
 import {
@@ -88,54 +89,6 @@ function TypePill({ type }: { type: Proposal["type"] }) {
       <span className="material-symbols-outlined text-[14px]">{icon}</span>
       {text}
     </span>
-  );
-}
-
-// ─── Vote button ──────────────────────────────────────────────────────────────
-
-function VoteButton({
-  choice,
-  selected,
-  disabled,
-  onClick,
-}: {
-  choice: VoteChoice;
-  selected: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const styles: Record<VoteChoice, { base: string; active: string; icon: string }> = {
-    For: {
-      base: "border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10",
-      active: "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20",
-      icon: "thumb_up",
-    },
-    Against: {
-      base: "border-red-500/40 text-red-500 hover:bg-red-500/10",
-      active: "bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20",
-      icon: "thumb_down",
-    },
-    Abstain: {
-      base: "border-outline text-on-surface-variant hover:bg-surface-container-high",
-      active: "bg-outline text-white border-outline shadow-lg",
-      icon: "do_not_disturb",
-    },
-  };
-  const s = styles[choice];
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border-2 font-semibold text-sm transition-all duration-200 active:scale-95
-        ${selected ? s.active : s.base}
-        ${disabled ? "opacity-40 cursor-not-allowed" : ""}
-      `}
-    >
-      <span className="material-symbols-outlined text-[22px]" style={selected ? { fontVariationSettings: "'FILL' 1" } : {}}>
-        {s.icon}
-      </span>
-      {choice}
-    </button>
   );
 }
 
@@ -249,6 +202,7 @@ export default function ProposalDetailPage() {
   const [vetoReason, setVetoReason] = useState("");
   const [vetoReasonHash, setVetoReasonHash] = useState("");
   const [isVetoing, setIsVetoing] = useState(false);
+  useDocumentTitle({ pageTitle: proposal?.title ?? `Proposal #${proposalId}` });
 
   const load = useCallback(async () => {
     const data = await fetchProposal(proposalId);

@@ -129,14 +129,42 @@ export function usePositionPolling({
       });
     };
 
-    evaluateInvoices(invoicesRef.current);
+    const lastActivity = { current: Date.now() };
+    let timerId: ReturnType<typeof setTimeout>;
 
-    const interval = window.setInterval(() => {
-      evaluateInvoices(invoicesRef.current);
-    }, 60_000);
+    const getDelay = () => {
+      if (document.hidden) return 5 * 60_000;
+      if (Date.now() - lastActivity.current > 5 * 60_000) return 60_000;
+      return 30_000;
+    };
+
+    const schedule = () => {
+      timerId = window.setTimeout(() => {
+        evaluateInvoices(invoicesRef.current);
+        schedule();
+      }, getDelay());
+    };
+
+    const onActivity = () => { lastActivity.current = Date.now(); };
+    const onVisibility = () => {
+      window.clearTimeout(timerId);
+      schedule();
+    };
+
+    evaluateInvoices(invoicesRef.current);
+    schedule();
+
+    document.addEventListener("mousemove", onActivity, { passive: true });
+    document.addEventListener("keydown", onActivity, { passive: true });
+    document.addEventListener("click", onActivity, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.clearInterval(interval);
+      window.clearTimeout(timerId);
+      document.removeEventListener("mousemove", onActivity);
+      document.removeEventListener("keydown", onActivity);
+      document.removeEventListener("click", onActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [address, addToast, addNotification]);
 }

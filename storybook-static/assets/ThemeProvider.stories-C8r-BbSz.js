@@ -1,0 +1,5 @@
+import{j as o}from"./jsx-runtime-EKYJJIwR.js";import{J as d}from"./index-BrAvG1gW.js";import"./iframe-Dx6cFdWX.js";import"./preload-helper-Dp1pzeXC.js";function a({children:n}){return o.jsx(d,{attribute:"class",defaultTheme:"system",enableSystem:!0,storageKey:"theme",disableTransitionOnChange:!1,children:n})}a.__docgenInfo={description:"",methods:[],displayName:"ThemeProvider",props:{children:{required:!0,tsType:{name:"ReactNode"},description:""}}};const u={title:"Components/ThemeProvider",component:a,parameters:{layout:"centered"},tags:["autodocs"]},e={args:{children:o.jsx("div",{className:"p-4 text-on-surface bg-surface rounded-lg",children:"Themed content"})}};var r,t,s;e.parameters={...e.parameters,docs:{...(r=e.parameters)==null?void 0:r.docs,source:{originalSource:`{
+  args: {
+    children: <div className="p-4 text-on-surface bg-surface rounded-lg">Themed content</div>
+  }
+}`,...(s=(t=e.parameters)==null?void 0:t.docs)==null?void 0:s.source}}};const l=["Default"];export{e as Default,l as __namedExportsOrder,u as default};

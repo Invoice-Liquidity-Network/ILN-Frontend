@@ -1,17 +1,234 @@
-import React from 'react';
+'use client';
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+import React, { useRef, useState, useId, useEffect, Children, isValidElement } from 'react';
 
 export const Select: React.FC<SelectProps> = ({ className, children, ...props }) => {
   return (
     <select
       className={
-        `flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ` +
+        `flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d627f] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ` +
         className
       }
-      {...props}
-    >
-      {children}
-    </select>
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!open || focusedIndex < 0 || !listRef.current) return;
+    const item = listRef.current.children[focusedIndex] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: 'nearest' });
+  }, [focusedIndex, open]);
+
+  // Focus the list when it opens
+  useEffect(() => {
+    if (open && listRef.current) listRef.current.focus();
+  }, [open]);
+
+  function selectValue(val: string) {
+    if (!isControlled) setInternalValue(val);
+    onChange?.(val);
+    setOpen(false);
+    buttonRef.current?.focus();
+  }
+
+  function openList() {
+    if (disabled) return;
+    const currentIdx = enabledOptions.findIndex((o) => o.value === selectedValue);
+    setFocusedIndex(currentIdx >= 0 ? currentIdx : 0);
+    setOpen(true);
+  }
+
+  function handleButtonKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+      case 'ArrowDown':
+      case 'ArrowUp':
+        e.preventDefault();
+        openList();
+        break;
+      default:
+        break;
+    }
+  }
+
+  function handleListKeyDown(e: React.KeyboardEvent<HTMLUListElement>) {
+    const count = enabledOptions.length;
+    if (count === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        // Wrap: last → first
+        setFocusedIndex((i) => (i + 1) % count);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        // Wrap: first → last
+        setFocusedIndex((i) => (i - 1 + count) % count);
+        break;
+
+      case 'Home':
+        e.preventDefault();
+        setFocusedIndex(0);
+        break;
+
+      case 'End':
+        e.preventDefault();
+        setFocusedIndex(count - 1);
+        break;
+
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (focusedIndex >= 0 && focusedIndex < count) {
+          selectValue(enabledOptions[focusedIndex].value);
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        setOpen(false);
+        buttonRef.current?.focus();
+        break;
+
+      case 'Tab':
+        setOpen(false);
+        break;
+
+      default:
+        // Type-ahead: jump to first option starting with pressed key
+        {
+          const char = e.key.toLowerCase();
+          if (char.length === 1) {
+            const match = enabledOptions.findIndex((o) => o.label.toLowerCase().startsWith(char));
+            if (match >= 0) setFocusedIndex(match);
+          }
+        }
+        break;
+    }
+  }
+
+  // ── Native fallback ──────────────────────────────────────────────────────
+  if (native) {
+    return (
+      <NativeSelect
+        id={comboId}
+        name={name}
+        value={selectedValue}
+        onChange={(e) => {
+          if (!isControlled) setInternalValue(e.target.value);
+          onChange?.(e.target.value);
+        }}
+        disabled={disabled}
+        required={required}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        className={className}
+      >
+        {children}
+      </NativeSelect>
+    );
+  }
+
+  // ── Custom listbox ───────────────────────────────────────────────────────
+  const activeDescendant =
+    open && focusedIndex >= 0 ? `${listboxId}-option-${focusedIndex}` : undefined;
+
+  return (
+    <div ref={containerRef} className={`relative w-full ${className}`}>
+      {/* Hidden native input for form submission */}
+      {name && <input type="hidden" name={name} value={selectedValue} required={required} />}
+
+      {/* Combobox button */}
+      <button
+        ref={buttonRef}
+        id={comboId}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={activeDescendant}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-required={required}
+        disabled={disabled}
+        onClick={() => (open ? setOpen(false) : openList())}
+        onKeyDown={handleButtonKeyDown}
+        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
+          {selectedOption?.label ?? placeholder}
+        </span>
+        <span
+          className={`material-symbols-outlined ml-2 shrink-0 text-base text-on-surface-variant transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          expand_more
+        </span>
+      </button>
+
+      {/* Listbox dropdown */}
+      {open && (
+        <ul
+          ref={listRef}
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel ?? 'Options'}
+          tabIndex={-1}
+          onKeyDown={handleListKeyDown}
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-background py-1 text-sm shadow-lg focus:outline-none"
+        >
+          {options.map((option) => {
+            const enabledIdx = enabledOptions.indexOf(option);
+            const isFocused = enabledIdx === focusedIndex && !option.disabled;
+            const isSelected = option.value === selectedValue;
+
+            return (
+              <li
+                key={option.value}
+                id={`${listboxId}-option-${enabledIdx}`}
+                role="option"
+                aria-selected={isSelected}
+                aria-disabled={option.disabled}
+                onClick={() => {
+                  if (!option.disabled) selectValue(option.value);
+                }}
+                onMouseEnter={() => {
+                  if (!option.disabled) setFocusedIndex(enabledIdx);
+                }}
+                className={[
+                  'flex cursor-default select-none items-center px-3 py-2 transition-colors',
+                  option.disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
+                  isFocused && !option.disabled
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground hover:bg-accent',
+                  isSelected ? 'font-bold' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {isSelected && (
+                  <span
+                    className="material-symbols-outlined mr-2 text-sm text-primary"
+                    aria-hidden="true"
+                  >
+                    check
+                  </span>
+                )}
+                {!isSelected && <span className="mr-6" aria-hidden="true" />}
+                {option.label}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 };
+
+export default Select;

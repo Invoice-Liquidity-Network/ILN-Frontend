@@ -99,7 +99,7 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
           {/* Total Voting Power */}
           <div className="mb-4">
             <div className="text-2xl font-bold text-primary mb-1">
-              {formatTokenAmount(BigInt(votingPower * 1e7), 7, "ILN")}
+              {formatTokenAmount(BigInt(votingPower * 1e7), { symbol: "ILN", decimals: 7 })}
             </div>
             <div className="text-sm text-on-surface-variant">
               Total voting weight
@@ -111,7 +111,7 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
             <div className="flex justify-between items-center">
               <span className="text-on-surface-variant">Your balance:</span>
               <span className="font-medium">
-                {formatTokenAmount(BigInt(ownBalance * 1e7), 7, "ILN")}
+                {formatTokenAmount(BigInt(ownBalance * 1e7), { symbol: "ILN", decimals: 7 })}
               </span>
             </div>
             
@@ -119,7 +119,7 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
               <div className="flex justify-between items-center">
                 <span className="text-on-surface-variant">Delegated to you:</span>
                 <span className="font-medium text-green-600">
-                  +{formatTokenAmount(BigInt(delegationInfo.incomingDelegations * 1e7), 7, "ILN")}
+                  +{formatTokenAmount(BigInt(delegationInfo.incomingDelegations * 1e7), { symbol: "ILN", decimals: 7 })}
                 </span>
               </div>
             )}

@@ -10,6 +10,7 @@ import React, {
   useMemo,
 } from "react";
 import { useWallet } from "@/context/WalletContext";
+import { useLPSettings } from "@/hooks/useLPSettings";
 import {
   MAX_NOTIFICATIONS,
   notificationsStorageKey,
@@ -88,6 +89,7 @@ function applyReadState(
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { address } = useWallet();
+  const { settings } = useLPSettings();
   const [notifications, setNotificationsState] = useState<NotificationItem[]>(
     [],
   );
@@ -167,11 +169,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         `${notification.category}-${notification.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       const newNotification: NotificationItem = {
+        ...notification,
         id: stableId,
         createdAt: new Date().toISOString(),
         read: readMap[stableId] ?? false,
-        ...notification,
       };
+
+      const prefs = settings.notificationPreferences;
+      const categoryAllowed = prefs.categories[notification.category] ?? true;
+
+      if (!prefs.inAppEnabled || !categoryAllowed) {
+        return newNotification;
+      }
 
       setNotificationsState((prev) => {
         const withoutDuplicate = prev.filter((n) => n.id !== stableId);
@@ -185,7 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       return newNotification;
     },
-    [readMap, persistNotifications],
+    [readMap, persistNotifications, settings],
   );
 
   const markAsRead = useCallback(

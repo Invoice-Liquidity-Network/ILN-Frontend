@@ -1,0 +1,1 @@
+import{j as o}from"./jsx-runtime-EKYJJIwR.js";import{T as t}from"./index-Cgb9ICXJ.js";const s=3,e=5e3,r="bottom-right";function a(){return o.jsx(t,{position:r,visibleToasts:s,duration:e,closeButton:!0,richColors:!0,expand:!1,toastOptions:{classNames:{toast:"font-sans"}}})}a.__docgenInfo={description:"",methods:[],displayName:"AppToaster"};export{a as A};

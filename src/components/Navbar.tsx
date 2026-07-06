@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from "react";
 
 export default function Navbar() {
   useWallet();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, mounted } = useTheme();
   const { i18n, t } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -44,7 +44,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
-        <Link href="/" className="flex min-h-11 items-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
           ILN
         </Link>
         <div className="hidden md:flex items-center gap-8">
@@ -149,7 +149,7 @@ export default function Navbar() {
             aria-label="Toggle dark mode"
           >
             <span className="material-symbols-outlined">
-              {theme === "dark" ? "light_mode" : "dark_mode"}
+              {!mounted ? "dark_mode" : theme === "dark" ? "light_mode" : "dark_mode"}
             </span>
           </button>
 
@@ -159,11 +159,14 @@ export default function Navbar() {
         </div>
 
       </div>
-      {mobileOpen ? (
-        <div
-          id="mobile-navigation"
-          className="border-t border-outline-variant/15 bg-background/95 px-6 py-4 shadow-lg md:hidden"
-        >
+      <div
+        id="mobile-navigation"
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-out ${
+          mobileOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+        aria-hidden={!mobileOpen}
+      >
+        <div className="border-t border-outline-variant/15 bg-background/95 px-6 py-4 shadow-lg">
           <div className="flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link
@@ -180,7 +183,7 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-      ) : null}
+      </div>
     </nav>
   );
 }

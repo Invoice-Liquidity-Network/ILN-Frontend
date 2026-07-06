@@ -129,7 +129,7 @@ export default function DueDateCountdown({
         {/* Tooltip */}
         {isTooltipVisible && (
           <div
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-dim text-on-surface text-xs rounded-lg shadow-lg border border-outline-variant/20 whitespace-nowrap z-50"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-dim text-on-surface text-xs rounded-lg shadow-lg border border-outline-variant/20 whitespace-nowrap z-[200]"
             role="tooltip"
           >
             <div className="font-semibold mb-0.5">Due Date</div>

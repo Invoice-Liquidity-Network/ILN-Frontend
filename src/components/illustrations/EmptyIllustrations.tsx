@@ -2,7 +2,7 @@ import React from 'react';
 
 export function FreelancerEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" {...props}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-label="No invoices illustration" {...props}>
       {/* Abstract document / invoice */}
       <circle cx="100" cy="100" r="90" className="fill-surface-variant opacity-20" />
       <rect x="70" y="60" width="60" height="80" rx="8" className="fill-primary opacity-10 stroke-primary" strokeWidth="4" />
@@ -16,7 +16,7 @@ export function FreelancerEmptyIllustration(props: React.SVGProps<SVGSVGElement>
 
 export function LPDiscoveryEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" {...props}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-label="Empty marketplace illustration" {...props}>
       {/* Abstract search / discovery */}
       <circle cx="100" cy="100" r="90" className="fill-surface-variant opacity-20" />
       <circle cx="90" cy="90" r="30" className="stroke-primary opacity-20" strokeWidth="6" />
@@ -30,7 +30,7 @@ export function LPDiscoveryEmptyIllustration(props: React.SVGProps<SVGSVGElement
 
 export function LPPortfolioEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" {...props}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-label="No funded positions illustration" {...props}>
       {/* Abstract portfolio chart / growth */}
       <circle cx="100" cy="100" r="90" className="fill-surface-variant opacity-20" />
       <path d="M60 140h80" className="stroke-on-surface-variant opacity-30" strokeWidth="4" strokeLinecap="round" />
@@ -44,7 +44,7 @@ export function LPPortfolioEmptyIllustration(props: React.SVGProps<SVGSVGElement
 
 export function PayerEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" {...props}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-label="No payments illustration" {...props}>
       {/* Abstract payment / handshake */}
       <circle cx="100" cy="100" r="90" className="fill-surface-variant opacity-20" />
       <circle cx="100" cy="100" r="45" className="stroke-primary opacity-20" strokeWidth="4" strokeDasharray="8 8" />
@@ -56,7 +56,7 @@ export function PayerEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
 
 export function NotificationsEmptyIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" {...props}>
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-label="No governance proposals illustration" {...props}>
       {/* Abstract bell / alerts */}
       <circle cx="100" cy="100" r="90" className="fill-surface-variant opacity-20" />
       <path d="M100 60c-15 0 -25 10 -25 25v20l-10 15v5h70v-5l-10 -15v-20c0 -15 -10 -25 -25 -25z" className="fill-primary opacity-10 stroke-primary" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />

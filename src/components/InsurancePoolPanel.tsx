@@ -71,7 +71,7 @@ export default function InsurancePoolPanel() {
         <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/5">
           <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Pool Balance</p>
           <p className="text-xl font-headline">
-            {poolInfo ? formatTokenAmount(poolInfo.balance, defaultToken) : "0"}
+            {poolInfo ? formatTokenAmount(poolInfo.balance, defaultToken ?? undefined) : "0"}
             <span className="text-xs ml-1 text-on-surface-variant font-sans">{defaultToken?.symbol}</span>
           </p>
         </div>

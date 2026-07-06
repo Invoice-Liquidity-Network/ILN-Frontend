@@ -27,7 +27,8 @@ export function formatUSD(amount: bigint, decimals = 7): string {
 
 export function formatAddress(address: string): string {
   if (!address) return "";
-  return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+  if (address.length <= 8) return address;
+  return address.substring(0, 4) + "..." + address.substring(address.length - 4);
 }
 
 export function formatDate(timestamp: bigint): string {

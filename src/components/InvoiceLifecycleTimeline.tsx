@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState, KeyboardEvent } from "react";
+
 /**
  * Single-invoice lifecycle timeline: Pending → Funded → Paid, with the current
  * step highlighted. Terminal off-happy-path states (Cancelled, Defaulted) are
@@ -51,8 +53,34 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
       return { label, state, tone };
     });
 
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>, index: number) => {
+    let nextIndex = index;
+
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      nextIndex = (index + 1) % steps.length;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      nextIndex = (index - 1 + steps.length) % steps.length;
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      nextIndex = 0;
+    } else if (e.key === "End") {
+      e.preventDefault();
+      nextIndex = steps.length - 1;
+    }
+
+    if (nextIndex !== index) {
+      setFocusedIndex(nextIndex);
+      itemRefs.current[nextIndex]?.focus();
+    }
+  };
+
   return (
-    <ol className="flex items-center" aria-label="Invoice lifecycle status">
+    <ol className="flex items-center" aria-label="Invoice lifecycle status" role="list">
       {steps.map((step, index) => {
         const reached = step.state === "done" || step.state === "current";
         const dotColour =
@@ -61,16 +89,35 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
             : reached
               ? "bg-primary text-on-primary"
               : "bg-surface-container-high text-on-surface-variant";
+              
         return (
-          <li key={step.label} className="flex flex-1 items-center last:flex-none">
-            <div className="flex flex-col items-center gap-1.5">
+          <li key={step.label} className="flex flex-1 items-center last:flex-none" role="listitem">
+            <div
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+              className="flex flex-col items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest rounded-lg p-1"
+              tabIndex={index === focusedIndex ? 0 : -1}
+              onFocus={() => setFocusedIndex(index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              aria-current={step.state === "current" ? "step" : undefined}
+            >
+              <span className="sr-only">
+                {step.state === "done"
+                  ? "Completed step: "
+                  : step.state === "current"
+                    ? "Current step: "
+                    : "Upcoming step: "}
+                Invoice {step.label.toLowerCase()}
+              </span>
               <span
-                aria-current={step.state === "current" ? "step" : undefined}
+                aria-hidden="true"
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${dotColour}`}
               >
                 {step.state === "done" ? "✓" : index + 1}
               </span>
               <span
+                aria-hidden="true"
                 className={`text-xs font-bold ${reached ? "text-on-surface" : "text-on-surface-variant"}`}
               >
                 {step.label}

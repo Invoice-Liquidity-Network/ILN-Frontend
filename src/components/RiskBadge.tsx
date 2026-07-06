@@ -9,10 +9,22 @@ interface RiskBadgeProps {
 }
 
 const BADGE_STYLES: Record<RiskLevel, { pill: string; dot: string }> = {
-  Low:     { pill: "bg-green-500/10 text-green-600 border-green-500/30",  dot: "bg-green-500" },
-  Medium:  { pill: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30", dot: "bg-yellow-500" },
-  High:    { pill: "bg-red-500/10 text-red-600 border-red-500/30",        dot: "bg-red-500" },
-  Unknown: { pill: "bg-gray-400/10 text-gray-500 border-gray-400/30",     dot: "bg-gray-400" },
+  Low: {
+    pill: "bg-green-500/10 text-green-600 border-green-500/30 dark:text-green-400",
+    dot: "bg-green-500",
+  },
+  Medium: {
+    pill: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30 dark:text-yellow-400",
+    dot: "bg-yellow-500",
+  },
+  High: {
+    pill: "bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400",
+    dot: "bg-red-500",
+  },
+  Unknown: {
+    pill: "bg-gray-400/10 text-gray-500 border-gray-400/30 dark:text-gray-400",
+    dot: "bg-gray-400",
+  },
 };
 
 export default function RiskBadge({ risk, score }: RiskBadgeProps) {
@@ -48,7 +60,7 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
       {open && (
         <div
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-surface-container-highest rounded-xl shadow-xl border border-outline-variant p-4 text-sm animate-in fade-in zoom-in duration-150"
+          className="absolute z-[200] bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-surface-container-highest rounded-xl shadow-xl border border-outline-variant p-4 text-sm animate-in fade-in zoom-in duration-150"
         >
           {/* Caret */}
           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-surface-container-highest border-r border-b border-outline-variant rotate-45" />
@@ -63,11 +75,11 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Settled on time</span>
-                <span className="font-bold text-green-600">{score.settled_on_time}</span>
+                <span className="font-bold text-green-600 dark:text-green-400">{score.settled_on_time}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Defaults</span>
-                <span className="font-bold text-red-500">{score.defaults}</span>
+                <span className="font-bold text-red-500 dark:text-red-400">{score.defaults}</span>
               </div>
               {/* Score bar */}
               <div className="mt-3 h-1.5 bg-surface-dim rounded-full overflow-hidden">
