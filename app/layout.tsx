@@ -14,8 +14,6 @@ import OfflineBanner from "@/components/OfflineBanner";
 import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 import ContractEventSync from "@/components/ContractEventSync";
 import WhatsNewModal from "@/components/modals/WhatsNewModal";
-import KeyboardShortcutsRoot from "@/components/KeyboardShortcutsRoot";
-import QuickSubmitRoot from "@/components/QuickSubmitRoot";
 import Providers from "./Providers";
 
 export const metadata: Metadata = {
@@ -36,8 +34,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3d627f" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#3d627f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ILN" />
@@ -54,44 +51,52 @@ export default function RootLayout({
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width, viewport-fit=cover"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var localTheme = localStorage.getItem('theme');
+                  var prefTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (localTheme === 'dark' || (!localTheme && prefTheme)) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                  } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className="antialiased bg-background text-foreground transition-colors duration-300 selection:bg-primary-container selection:text-on-primary-container">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:font-medium"
-        >
-          Skip to main content
-        </a>
         <I18nProvider>
           <Providers>
-            <KeyboardShortcutsRoot>
-              <ToastProvider>
-                <ContractEventSync />
-                <WalletProvider>
-                  <NotificationProvider>
-                    <OfflineBanner />
-                    <NetworkMismatchBanner />
-                    <FABProvider />
-                    <div id="main-content" className="min-h-screen flex flex-col">
-                      <div className="flex-1">
-                        <Suspense fallback={null}>{children}</Suspense>
-                      </div>
+            <ToastProvider>
+              <ContractEventSync />
+              <WalletProvider>
+                <NotificationProvider>
+                  <OfflineBanner />
+                  <NetworkMismatchBanner />
+                  <FABProvider />
+                  <div className="min-h-screen flex flex-col">
+                    <div className="flex-1">
+                      <Suspense fallback={null}>{children}</Suspense>
                     </div>
-                    <Suspense fallback={null}>
-                      <OnboardingFlow />
-                    </Suspense>
-                    <Suspense fallback={null}>
-                      <WhatsNewModal />
-                    </Suspense>
-                    <Suspense fallback={null}>
-                      <CommandPalette />
-                    </Suspense>
-                    <QuickSubmitRoot />
-                    <FeedbackWidget />
-                  </NotificationProvider>
-                </WalletProvider>
-              </ToastProvider>
-            </KeyboardShortcutsRoot>
+                  </div>
+                  <Suspense fallback={null}>
+                    <OnboardingFlow />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <WhatsNewModal />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <CommandPalette />
+                  </Suspense>
+                  <FeedbackWidget />
+                </NotificationProvider>
+              </WalletProvider>
+            </ToastProvider>
           </Providers>
         </I18nProvider>
       </body>

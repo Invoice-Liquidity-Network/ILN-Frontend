@@ -150,7 +150,7 @@ export default function GovernanceActivity({ address }: GovernanceActivityProps)
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-on-surface">{getActivityLabel(item)}</p>
-                  <p className="mt-1 text-xs text-on-surface-variant">{formatDate(item.timestamp)}</p>
+                  <p className="mt-1 text-xs text-on-surface-variant">                    {formatDate(BigInt(item.timestamp))}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-medium text-on-surface-variant">
@@ -162,24 +162,14 @@ export default function GovernanceActivity({ address }: GovernanceActivityProps)
                     className="text-sm font-medium text-primary"
                     aria-expanded={isExpanded}
                   >
-                    {vote.vote}
-                  </span>
-                </td>
-                <td className="py-4 text-right whitespace-nowrap">
-                  <span className="text-sm font-mono text-on-surface">
-                    {vote.weight.toLocaleString()} ILN
-                  </span>
-                </td>
-                <td className="py-4 text-right whitespace-nowrap">
-                  <span className="text-xs text-on-surface-variant">
-                    {formatDate(BigInt(vote.timestamp))}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    {isExpanded ? "Less" : "More"}
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
       {pageCount > 1 && (
         <div className="mt-8 flex items-center justify-center gap-3">

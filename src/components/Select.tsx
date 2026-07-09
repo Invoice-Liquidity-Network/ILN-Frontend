@@ -2,14 +2,76 @@
 
 import React, { useRef, useState, useId, useEffect, Children, isValidElement } from 'react';
 
-export const Select: React.FC<SelectProps> = ({ className, children, ...props }) => {
+type SelectOption = {
+  value: string;
+  label: string;
+  disabled?: boolean;
+};
+
+type SelectProps = {
+  id?: string;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+  required?: boolean;
+  name?: string;
+  placeholder?: string;
+  className?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  native?: boolean;
+  children?: React.ReactNode;
+  options?: SelectOption[];
+};
+
+function NativeSelect({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children?: React.ReactNode }) {
   return (
-    <select
-      className={
-        `flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d627f] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ` +
-        className
+    <select className={className} {...props}>
+      {children}
+    </select>
+  );
+}
+
+export const Select: React.FC<SelectProps> = ({
+  id,
+  value,
+  defaultValue,
+  onChange,
+  disabled = false,
+  required = false,
+  name,
+  placeholder = 'Select...',
+  className,
+  ariaLabel,
+  ariaLabelledBy,
+  native = false,
+  children,
+  options: optionsProp,
+}) => {
+  const comboId = useId();
+  const listboxId = `${comboId}-listbox`;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const isControlled = value !== undefined;
+  const [internalValue, setInternalValue] = useState(defaultValue ?? '');
+  const selectedValue = isControlled ? value : internalValue;
+
+  const [open, setOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const parsedOptions: SelectOption[] = optionsProp ?? [];
+  const enabledOptions = parsedOptions.filter((o) => !o.disabled);
+  const selectedOption = parsedOptions.find((o) => o.value === selectedValue);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
       }
-    };
+    }
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
@@ -28,7 +90,10 @@ export const Select: React.FC<SelectProps> = ({ className, children, ...props })
 
   function selectValue(val: string) {
     if (!isControlled) setInternalValue(val);
-    onChange?.(val);
+    const syntheticEvent = {
+      target: { value: val },
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange?.(syntheticEvent);
     setOpen(false);
     buttonRef.current?.focus();
   }
@@ -113,15 +178,18 @@ export const Select: React.FC<SelectProps> = ({ className, children, ...props })
   }
 
   // ── Native fallback ──────────────────────────────────────────────────────
-  if (native) {
+  const hasNativeOptions = Children.toArray(children).some(
+    (child) => isValidElement(child) && child.type === 'option'
+  );
+  if (native || hasNativeOptions) {
     return (
       <NativeSelect
-        id={comboId}
+        id={id ?? comboId}
         name={name}
         value={selectedValue}
         onChange={(e) => {
           if (!isControlled) setInternalValue(e.target.value);
-          onChange?.(e.target.value);
+          onChange?.(e);
         }}
         disabled={disabled}
         required={required}
@@ -183,7 +251,7 @@ export const Select: React.FC<SelectProps> = ({ className, children, ...props })
           onKeyDown={handleListKeyDown}
           className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-background py-1 text-sm shadow-lg focus:outline-none"
         >
-          {options.map((option) => {
+          {parsedOptions.map((option) => {
             const enabledIdx = enabledOptions.indexOf(option);
             const isFocused = enabledIdx === focusedIndex && !option.disabled;
             const isSelected = option.value === selectedValue;

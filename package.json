@@ -15,7 +15,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "chromatic --exit-zero-on-changes",
-    "prepare": "husky"
+    "prepare": "husky",
     "generate:changelog": "npx git-cliff --config .gitcliff.toml"
   },
   "dependencies": {

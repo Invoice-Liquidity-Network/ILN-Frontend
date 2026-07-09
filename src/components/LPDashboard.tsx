@@ -37,7 +37,6 @@ import { usePayerScores } from "@/hooks/usePayerScores";
 import RiskBadge from "./RiskBadge";
 import LPPortfolio from "./LPPortfolio";
 import LPPortfolioSummary from "./LPPortfolioSummary";
-import LPRiskSummaryPanel from "./LPRiskSummaryPanel";
 import { RISK_SORT_ORDER } from "@/utils/risk";
 import { ExportButton } from "./ExportButton";
 import YieldCalculator from "./YieldCalculator";
@@ -288,31 +287,8 @@ export default function LPDashboard() {
   const discoveryInvoices = sortedInvoices.filter(
     (i) => i.status === "Pending",
   );
-  const myFundedInvoices = sortedInvoices.filter((i) => i.funder === address);
 
-  const sortedInvoices = useMemo(() => [...filteredInvoices].sort((a: any, b: any) => {
-    if (sortKey === "risk") {
-      const ra = RISK_SORT_ORDER[payerRisks.get(a.payer) ?? "Unknown"];
-      const rb = RISK_SORT_ORDER[payerRisks.get(b.payer) ?? "Unknown"];
-      return sortOrder === "asc" ? ra - rb : rb - ra;
-    }
-    if (sortKey === "yield") {
-      const ay = calculateYield(a.amount, a.discount_rate);
-      const by = calculateYield(b.amount, b.discount_rate);
-      if (ay < by) return sortOrder === "asc" ? -1 : 1;
-      if (ay > by) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    }
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  }), [filteredInvoices, sortKey, sortOrder, payerRisks]);
-
-  const discoveryInvoices = sortedInvoices.filter(i => i.status === "Pending");
-  
-  const myFundedInvoicesBase = sortedInvoices.filter(i => i.funder === address);
+  const myFundedInvoicesBase = sortedInvoices.filter((i) => i.funder === address);
   const myFundedInvoices = useMemo(() => {
     if (riskFilter === "all") return myFundedInvoicesBase;
     
