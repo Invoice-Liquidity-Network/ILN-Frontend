@@ -9,7 +9,7 @@ on:
 jobs:
   lighthouse:
     name: Lighthouse CI
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-nursca
     steps:
       - uses: actions/checkout@v4
 

@@ -9,7 +9,7 @@ on:
 jobs:
   contract-tests:
     name: Mocked Stellar SDK Contract Tests
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-nursca
     steps:
       - uses: actions/checkout@v4
 

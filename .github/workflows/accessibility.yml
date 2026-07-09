@@ -9,7 +9,7 @@ on:
 jobs:
   axe-tests:
     name: jest-axe Accessibility
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-nursca
     steps:
       - uses: actions/checkout@v4
 

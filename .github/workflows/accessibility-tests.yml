@@ -8,7 +8,7 @@ on:
 
 jobs:
   accessibility:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-nursca
 
     strategy:
       matrix:
