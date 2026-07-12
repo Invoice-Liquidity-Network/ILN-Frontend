@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -10,10 +10,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-} from "recharts";
+} from 'recharts';
 
-type TimeRange = "7d" | "30d" | "90d" | "all";
-type ActivityType = "all" | "submissions" | "funding" | "payments";
+type TimeRange = '7d' | '30d' | '90d' | 'all';
+type ActivityType = 'all' | 'submissions' | 'funding' | 'payments';
 
 interface ActivityPoint {
   period: string;
@@ -27,37 +27,37 @@ interface ProfileActivityChartProps {
 }
 
 const CHART_TICK_STYLE = {
-  fill: "#64748b",
+  fill: '#64748b',
   fontSize: 11,
 };
 
 const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: "7d", label: "7 Days" },
-  { value: "30d", label: "30 Days" },
-  { value: "90d", label: "90 Days" },
-  { value: "all", label: "All Time" },
+  { value: '7d', label: '7 Days' },
+  { value: '30d', label: '30 Days' },
+  { value: '90d', label: '90 Days' },
+  { value: 'all', label: 'All Time' },
 ];
 
 const ACTIVITY_TYPES: { value: ActivityType; label: string; color: string }[] = [
-  { value: "all", label: "All Activity", color: "#0ea5e9" },
-  { value: "submissions", label: "Submissions", color: "#8b5cf6" },
-  { value: "funding", label: "Funding", color: "#10b981" },
-  { value: "payments", label: "Payments", color: "#f59e0b" },
+  { value: 'all', label: 'All Activity', color: '#0ea5e9' },
+  { value: 'submissions', label: 'Submissions', color: '#8b5cf6' },
+  { value: 'funding', label: 'Funding', color: '#10b981' },
+  { value: 'payments', label: 'Payments', color: '#f59e0b' },
 ];
 
 export default function ProfileActivityChart({ data }: ProfileActivityChartProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
-  const [activityType, setActivityType] = useState<ActivityType>("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [activityType, setActivityType] = useState<ActivityType>('all');
   const chartRef = useRef<HTMLDivElement>(null);
 
   const filterDataByTimeRange = (data: ActivityPoint[], range: TimeRange): ActivityPoint[] => {
-    if (range === "all") return data;
+    if (range === 'all') return data;
     const days = parseInt(range);
     return data.slice(-days);
   };
 
   const filterDataByActivityType = (data: ActivityPoint[], type: ActivityType): ActivityPoint[] => {
-    if (type === "all") return data;
+    if (type === 'all') return data;
     return data.map((point) => ({
       period: point.period,
       [type]: point[type],
@@ -71,30 +71,30 @@ export default function ProfileActivityChart({ data }: ProfileActivityChartProps
 
   const handleExportAsPNG = () => {
     if (!chartRef.current) return;
-    
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const svgElement = chartRef.current.querySelector("svg");
+    const svgElement = chartRef.current.querySelector('svg');
     if (!svgElement) return;
 
     const svgData = new XMLSerializer().serializeToString(svgElement);
     const img = new Image();
-    
+
     img.onload = () => {
       canvas.width = svgElement.clientWidth * 2;
       canvas.height = svgElement.clientHeight * 2;
       ctx.scale(2, 2);
       ctx.drawImage(img, 0, 0);
-      
-      const link = document.createElement("a");
+
+      const link = document.createElement('a');
       link.download = `activity-chart-${timeRange}-${activityType}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = canvas.toDataURL('image/png');
       link.click();
     };
-    
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   if (data.length === 0) {
@@ -110,7 +110,7 @@ export default function ProfileActivityChart({ data }: ProfileActivityChartProps
             Track your submissions, funding, and payments over time.
           </p>
         </div>
-        
+
         <div className="flex flex-wrap gap-3">
           <div className="flex gap-2">
             {TIME_RANGES.map((range) => (
@@ -119,15 +119,15 @@ export default function ProfileActivityChart({ data }: ProfileActivityChartProps
                 onClick={() => setTimeRange(range.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   timeRange === range.value
-                    ? "bg-primary text-on-primary"
-                    : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 {range.label}
               </button>
             ))}
           </div>
-          
+
           <div className="flex gap-2">
             {ACTIVITY_TYPES.map((type) => (
               <button
@@ -135,15 +135,15 @@ export default function ProfileActivityChart({ data }: ProfileActivityChartProps
                 onClick={() => setActivityType(type.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   activityType === type.value
-                    ? "bg-primary text-on-primary"
-                    : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 {type.label}
               </button>
             ))}
           </div>
-          
+
           <button
             onClick={handleExportAsPNG}
             className="px-3 py-1.5 text-xs font-medium rounded-md bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors flex items-center gap-1"
@@ -161,16 +161,20 @@ export default function ProfileActivityChart({ data }: ProfileActivityChartProps
             <XAxis dataKey="period" tick={CHART_TICK_STYLE} axisLine={false} tickLine={false} />
             <YAxis tick={CHART_TICK_STYLE} axisLine={false} tickLine={false} />
             <Tooltip
-              contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+              contentStyle={{
+                borderRadius: '12px',
+                border: 'none',
+                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+              }}
             />
             <Legend />
-            {activityType === "all" || activityType === "submissions" ? (
+            {activityType === 'all' || activityType === 'submissions' ? (
               <Bar dataKey="submissions" stackId="activity" fill="#8b5cf6" name="Submissions" />
             ) : null}
-            {activityType === "all" || activityType === "funding" ? (
+            {activityType === 'all' || activityType === 'funding' ? (
               <Bar dataKey="funding" stackId="activity" fill="#10b981" name="Funding" />
             ) : null}
-            {activityType === "all" || activityType === "payments" ? (
+            {activityType === 'all' || activityType === 'payments' ? (
               <Bar dataKey="payments" stackId="activity" fill="#f59e0b" name="Payments" />
             ) : null}
           </BarChart>

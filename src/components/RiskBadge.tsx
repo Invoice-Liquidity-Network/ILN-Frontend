@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from "react";
-import { RiskLevel, PayerScore } from "@/utils/risk";
+import React, { useState, useRef, useEffect } from 'react';
+import { RiskLevel, PayerScore } from '@/utils/risk';
 
 interface RiskBadgeProps {
   risk: RiskLevel;
@@ -10,20 +10,20 @@ interface RiskBadgeProps {
 
 const BADGE_STYLES: Record<RiskLevel, { pill: string; dot: string }> = {
   Low: {
-    pill: "bg-green-500/10 text-green-600 border-green-500/30 dark:text-green-400",
-    dot: "bg-green-500",
+    pill: 'bg-green-500/10 text-green-600 border-green-500/30 dark:text-green-400',
+    dot: 'bg-green-500',
   },
   Medium: {
-    pill: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30 dark:text-yellow-400",
-    dot: "bg-yellow-500",
+    pill: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30 dark:text-yellow-400',
+    dot: 'bg-yellow-500',
   },
   High: {
-    pill: "bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400",
-    dot: "bg-red-500",
+    pill: 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400',
+    dot: 'bg-red-500',
   },
   Unknown: {
-    pill: "bg-gray-400/10 text-gray-500 border-gray-400/30 dark:text-gray-400",
-    dot: "bg-gray-400",
+    pill: 'bg-gray-400/10 text-gray-500 border-gray-400/30 dark:text-gray-400',
+    dot: 'bg-gray-400',
   },
 };
 
@@ -39,8 +39,8 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
   const { pill, dot } = BADGE_STYLES[risk];
@@ -75,7 +75,9 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Settled on time</span>
-                <span className="font-bold text-green-600 dark:text-green-400">{score.settled_on_time}</span>
+                <span className="font-bold text-green-600 dark:text-green-400">
+                  {score.settled_on_time}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Defaults</span>
@@ -85,14 +87,20 @@ export default function RiskBadge({ risk, score }: RiskBadgeProps) {
               <div className="mt-3 h-1.5 bg-surface-dim rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    risk === "Low" ? "bg-green-500" : risk === "Medium" ? "bg-yellow-500" : "bg-red-500"
+                    risk === 'Low'
+                      ? 'bg-green-500'
+                      : risk === 'Medium'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
                   }`}
                   style={{ width: `${score.score}%` }}
                 />
               </div>
             </div>
           ) : (
-            <p className="text-on-surface-variant italic">No on-chain history found for this payer.</p>
+            <p className="text-on-surface-variant italic">
+              No on-chain history found for this payer.
+            </p>
           )}
 
           <p className="text-[10px] text-on-surface-variant mt-3 border-t border-outline-variant pt-2">

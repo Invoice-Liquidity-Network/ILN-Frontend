@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Papa from "papaparse";
-import { Download, Loader2 } from "lucide-react";
-import { downloadFile } from "@/utils/exportData";
+import React, { useState } from 'react';
+import Papa from 'papaparse';
+import { Download, Loader2 } from 'lucide-react';
+import { downloadFile } from '@/utils/exportData';
 
 interface BatchExportButtonProps<T extends Record<string, unknown>> {
   selectedItems: T[];
@@ -30,8 +30,8 @@ export function BatchExportButton<T extends Record<string, unknown>>({
     try {
       const rows = selectedItems.map(serialize);
       const csv = Papa.unparse(rows, { header: true });
-      const dateStr = new Date().toISOString().split("T")[0];
-      downloadFile(csv, `${filenamePrefix}-batch-${dateStr}.csv`, "text/csv;charset=utf-8;");
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadFile(csv, `${filenamePrefix}-batch-${dateStr}.csv`, 'text/csv;charset=utf-8;');
     } finally {
       setIsExporting(false);
     }
@@ -42,9 +42,9 @@ export function BatchExportButton<T extends Record<string, unknown>>({
     setIsExporting(true);
     try {
       // Dynamic import keeps jspdf out of the initial bundle
-      const { default: jsPDF } = await import("jspdf");
-      const dateStr = new Date().toISOString().split("T")[0];
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const { default: jsPDF } = await import('jspdf');
+      const dateStr = new Date().toISOString().split('T')[0];
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const marginLeft = 14;
@@ -55,11 +55,11 @@ export function BatchExportButton<T extends Record<string, unknown>>({
         if (index > 0) doc.addPage();
 
         doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
+        doc.setFont('helvetica', 'bold');
         doc.text(`Invoice Export — ${filenamePrefix}`, marginLeft, 20);
 
         doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
+        doc.setFont('helvetica', 'normal');
         doc.setTextColor(120);
         doc.text(`Generated: ${dateStr}`, marginLeft, 27);
         doc.setTextColor(0);
@@ -69,14 +69,14 @@ export function BatchExportButton<T extends Record<string, unknown>>({
 
         doc.setFontSize(10);
         Object.entries(flat).forEach(([key, value]) => {
-          const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-          const valStr = value === null || value === undefined ? "—" : String(value);
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          const valStr = value === null || value === undefined ? '—' : String(value);
 
-          doc.setFont("helvetica", "bold");
+          doc.setFont('helvetica', 'bold');
           const labelWidth = doc.getTextWidth(`${label}: `);
           doc.text(`${label}: `, marginLeft, y);
 
-          doc.setFont("helvetica", "normal");
+          doc.setFont('helvetica', 'normal');
           const lines = doc.splitTextToSize(valStr, maxWidth - labelWidth);
           doc.text(lines, marginLeft + labelWidth, y);
 
@@ -103,9 +103,7 @@ export function BatchExportButton<T extends Record<string, unknown>>({
 
   return (
     <div className="flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-sm">
-      <span className="font-medium text-primary">
-        {count} selected
-      </span>
+      <span className="font-medium text-primary">{count} selected</span>
 
       <div className="h-4 w-px bg-primary/20" />
 
@@ -141,19 +139,16 @@ export function BatchExportButton<T extends Record<string, unknown>>({
 }
 
 /** Recursively flatten an object, converting bigints to strings */
-function flattenItem(
-  obj: Record<string, unknown>,
-  prefix = "",
-): Record<string, unknown> {
+function flattenItem(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
     const key = prefix ? `${prefix}_${k}` : k;
-    if (typeof v === "bigint") {
+    if (typeof v === 'bigint') {
       result[key] = v.toString();
-    } else if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+    } else if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
       Object.assign(result, flattenItem(v as Record<string, unknown>, key));
     } else if (Array.isArray(v)) {
-      result[key] = v.map((el) => (typeof el === "bigint" ? el.toString() : el)).join(", ");
+      result[key] = v.map((el) => (typeof el === 'bigint' ? el.toString() : el)).join(', ');
     } else {
       result[key] = v;
     }

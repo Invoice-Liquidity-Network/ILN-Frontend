@@ -46,11 +46,15 @@ const columns: DataTableColumn<SampleItem>[] = [
     label: 'Status',
     sortable: false,
     renderCell: (item) => (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${
-        item.status === 'Active' ? 'bg-green-100 text-green-800' :
-        item.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-        'bg-red-100 text-red-800'
-      }`}>
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${
+          item.status === 'Active'
+            ? 'bg-green-100 text-green-800'
+            : item.status === 'Pending'
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
+        }`}
+      >
         {item.status}
       </span>
     ),

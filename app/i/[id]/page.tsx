@@ -1,35 +1,35 @@
-"use client";
+'use client';
 
-import { use, useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import ActivityFeed from "@/components/ActivityFeed";
-import CancelInvoiceButton from "@/components/CancelInvoiceButton";
-import DynamicInvoicePdfButton from "@/components/DynamicInvoicePdfButton";
-import ShareInvoiceButton from "@/components/ShareInvoiceButton";
-import MarkPaidButton from "@/components/MarkPaidButton";
-import LPTransferModal from "@/components/LPTransferModal";
-import FundConfirmModal from "@/components/FundConfirmModal";
-import DisputeInvoiceModal from "@/components/DisputeInvoiceModal";
-import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
-import InvoiceLifecycleTimeline from "@/components/InvoiceLifecycleTimeline";
-import InvoiceNftCard from "@/components/InvoiceNftCard";
-import LPWhitelistManager from "@/components/invoices/LPWhitelistManager";
-import { useWallet } from "@/context/WalletContext";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
-import { getInvoice, type Invoice } from "@/utils/soroban";
-import { NEXT_PUBLIC_NFT_ENABLED } from "@/constants";
+import { use, useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import ActivityFeed from '@/components/ActivityFeed';
+import CancelInvoiceButton from '@/components/CancelInvoiceButton';
+import DynamicInvoicePdfButton from '@/components/DynamicInvoicePdfButton';
+import ShareInvoiceButton from '@/components/ShareInvoiceButton';
+import MarkPaidButton from '@/components/MarkPaidButton';
+import LPTransferModal from '@/components/LPTransferModal';
+import FundConfirmModal from '@/components/FundConfirmModal';
+import DisputeInvoiceModal from '@/components/DisputeInvoiceModal';
+import InvoiceStatusBadge from '@/components/InvoiceStatusBadge';
+import InvoiceLifecycleTimeline from '@/components/InvoiceLifecycleTimeline';
+import InvoiceNftCard from '@/components/InvoiceNftCard';
+import LPWhitelistManager from '@/components/invoices/LPWhitelistManager';
+import { useWallet } from '@/context/WalletContext';
+import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import { formatAddress, formatDate, formatUSDC } from '@/utils/format';
+import { getInvoice, type Invoice } from '@/utils/soroban';
+import { NEXT_PUBLIC_NFT_ENABLED } from '@/constants';
 
-type LoadState = "loading" | "success" | "error";
+type LoadState = 'loading' | 'success' | 'error';
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { address, connect } = useWallet();
   const { tokenMap, defaultToken } = useApprovedTokens();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [loadState, setLoadState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showFund, setShowFund] = useState(false);
@@ -38,12 +38,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 
   const fetchInvoice = useCallback(async () => {
     try {
-      setLoadState("loading");
+      setLoadState('loading');
       setInvoice(await getInvoice(invoiceId));
-      setLoadState("success");
+      setLoadState('success');
     } catch {
-      setError("Failed to load invoice details.");
-      setLoadState("error");
+      setError('Failed to load invoice details.');
+      setLoadState('error');
     }
   }, [invoiceId]);
 
@@ -51,7 +51,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     void fetchInvoice();
   }, [fetchInvoice]);
 
-  if (loadState === "loading") {
+  if (loadState === 'loading') {
     return (
       <main className="min-h-screen">
         <Navbar />
@@ -62,20 +62,22 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  if (loadState === "error" || !invoice) {
+  if (loadState === 'error' || !invoice) {
     return (
       <main className="min-h-screen">
         <Navbar />
         <section className="px-4 pt-32 text-center">
           <h1 className="text-2xl font-headline">Invoice Not Found</h1>
-          <p className="mt-2 text-on-surface-variant">{error || "The requested invoice does not exist."}</p>
+          <p className="mt-2 text-on-surface-variant">
+            {error || 'The requested invoice does not exist.'}
+          </p>
         </section>
       </main>
     );
   }
 
   const tokenSymbol =
-    tokenMap.get(invoice.token ?? defaultToken?.contractId ?? "")?.symbol ?? "USDC";
+    tokenMap.get(invoice.token ?? defaultToken?.contractId ?? '')?.symbol ?? 'USDC';
 
   return (
     <main className="min-h-screen">
@@ -84,7 +86,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         <div className="mx-auto max-w-4xl">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Invoice Detail</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
+                Invoice Detail
+              </p>
               <h1 className="mt-2 text-3xl font-headline">Invoice #{invoice.id.toString()}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -113,7 +117,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <>
                   {/* Each action self-guards on role + status, so only the
                       button relevant to the connected wallet renders. */}
-                  {invoice.status === "Pending" &&
+                  {invoice.status === 'Pending' &&
                   invoice.freelancer.toLowerCase() !== address.toLowerCase() &&
                   invoice.payer.toLowerCase() !== address.toLowerCase() ? (
                     <button
@@ -135,7 +139,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     walletAddress={address}
                     onPaid={(paid) => setInvoice(paid)}
                   />
-                  {invoice.status === "Funded" && invoice.payer.toLowerCase() === address.toLowerCase() ? (
+                  {invoice.status === 'Funded' &&
+                  invoice.payer.toLowerCase() === address.toLowerCase() ? (
                     <button
                       type="button"
                       onClick={() => setShowDispute(true)}
@@ -146,7 +151,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   ) : null}
                   {invoice.funder &&
                   invoice.funder.toLowerCase() === address.toLowerCase() &&
-                  invoice.status === "Funded" ? (
+                  invoice.status === 'Funded' ? (
                     <button
                       type="button"
                       onClick={() => setShowTransfer(true)}
@@ -179,10 +184,22 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <dl className="mt-6 grid gap-4 text-sm">
-              <DetailRow label="Freelancer" href={`/profile/${invoice.freelancer}`} value={formatAddress(invoice.freelancer)} />
-              <DetailRow label="Payer" href={`/profile/${invoice.payer}`} value={formatAddress(invoice.payer)} />
+              <DetailRow
+                label="Freelancer"
+                href={`/profile/${invoice.freelancer}`}
+                value={formatAddress(invoice.freelancer)}
+              />
+              <DetailRow
+                label="Payer"
+                href={`/profile/${invoice.payer}`}
+                value={formatAddress(invoice.payer)}
+              />
               {invoice.funder ? (
-                <DetailRow label="Liquidity Provider" href={`/profile/${invoice.funder}`} value={formatAddress(invoice.funder)} />
+                <DetailRow
+                  label="Liquidity Provider"
+                  href={`/profile/${invoice.funder}`}
+                  value={formatAddress(invoice.funder)}
+                />
               ) : null}
               <DetailRow label="Face value" value={formatUSDC(invoice.amount)} strong />
               <DetailRow label="Discount" value={`${(invoice.discount_rate / 100).toFixed(2)}%`} />
@@ -258,7 +275,7 @@ function DetailRow({
   return (
     <div className="flex items-center justify-between gap-4 border-b border-outline-variant/10 pb-3 last:border-b-0">
       <dt className="text-on-surface-variant">{label}</dt>
-      <dd className={strong ? "font-bold" : "font-mono text-sm"}>
+      <dd className={strong ? 'font-bold' : 'font-mono text-sm'}>
         {href ? (
           <Link href={href} className="text-primary hover:underline">
             {value}

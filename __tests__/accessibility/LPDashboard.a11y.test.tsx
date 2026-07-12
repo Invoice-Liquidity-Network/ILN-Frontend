@@ -1,32 +1,32 @@
-import { render } from "@testing-library/react";
-import { axe } from "jest-axe";
-import { describe, it, expect, vi } from "vitest";
-import LPDashboard from "@/components/LPDashboard";
+import { render } from '@testing-library/react';
+import { axe } from 'jest-axe';
+import { describe, it, expect, vi } from 'vitest';
+import LPDashboard from '@/components/LPDashboard';
 
 // Mock all the dependencies
-vi.mock("@/context/WalletContext", () => ({
+vi.mock('@/context/WalletContext', () => ({
   useWallet: () => ({
-    address: "GTEST123",
+    address: 'GTEST123',
     isConnected: true,
     connect: vi.fn(),
     disconnect: vi.fn(),
   }),
 }));
 
-vi.mock("@/context/ToastContext", () => ({
+vi.mock('@/context/ToastContext', () => ({
   useToast: () => ({
     addToast: vi.fn(),
     updateToast: vi.fn(),
   }),
 }));
 
-vi.mock("@/context/NotificationContext", () => ({
+vi.mock('@/context/NotificationContext', () => ({
   useNotification: () => ({
     addNotification: vi.fn(),
   }),
 }));
 
-vi.mock("@/hooks/useTransaction", () => ({
+vi.mock('@/hooks/useTransaction', () => ({
   useTransaction: () => ({
     execute: vi.fn(),
     loading: false,
@@ -34,14 +34,14 @@ vi.mock("@/hooks/useTransaction", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useApprovedTokens", () => ({
+vi.mock('@/hooks/useApprovedTokens', () => ({
   useApprovedTokens: () => ({
     tokenMap: new Map(),
-    defaultToken: { symbol: "USDC", address: "CUSDC123" },
+    defaultToken: { symbol: 'USDC', address: 'CUSDC123' },
   }),
 }));
 
-vi.mock("@/hooks/useInvoices", () => ({
+vi.mock('@/hooks/useInvoices', () => ({
   useInvoices: () => ({
     data: [],
     isLoading: false,
@@ -49,11 +49,11 @@ vi.mock("@/hooks/useInvoices", () => ({
   }),
 }));
 
-vi.mock("@/hooks/usePositionPolling", () => ({
+vi.mock('@/hooks/usePositionPolling', () => ({
   usePositionPolling: vi.fn(),
 }));
 
-vi.mock("@/hooks/useInvoiceFilters", () => ({
+vi.mock('@/hooks/useInvoiceFilters', () => ({
   useInvoiceFilters: () => ({
     filters: {},
     setFilters: vi.fn(),
@@ -63,7 +63,7 @@ vi.mock("@/hooks/useInvoiceFilters", () => ({
   applyInvoiceFilters: vi.fn(() => []),
 }));
 
-vi.mock("@/hooks/useWatchlist", () => ({
+vi.mock('@/hooks/useWatchlist', () => ({
   useWatchlist: () => ({
     watchlist: [],
     toggleWatchlist: vi.fn(),
@@ -71,53 +71,53 @@ vi.mock("@/hooks/useWatchlist", () => ({
   }),
 }));
 
-vi.mock("@/hooks/usePayerScores", () => ({
+vi.mock('@/hooks/usePayerScores', () => ({
   usePayerScores: () => ({
     scores: new Map(),
     isLoading: false,
   }),
 }));
 
-vi.mock("@/hooks/useLPSettings", () => ({
+vi.mock('@/hooks/useLPSettings', () => ({
   useLPSettings: () => ({
     settings: {
-      riskTolerance: "medium",
+      riskTolerance: 'medium',
       autoFunding: false,
     },
   }),
 }));
 
-vi.mock("react-i18next", () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
-    i18n: { language: "en" },
+    i18n: { language: 'en' },
   }),
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
   }),
 }));
 
-describe("LPDashboard Accessibility", () => {
-  it("should not have any accessibility violations", async () => {
+describe('LPDashboard Accessibility', () => {
+  it('should not have any accessibility violations', async () => {
     const { container } = render(<LPDashboard />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("should have proper tab navigation structure", () => {
+  it('should have proper tab navigation structure', () => {
     const { container } = render(<LPDashboard />);
-    
+
     // Check for tab buttons — only validate ARIA if tabs are present
     const tabButtons = container.querySelectorAll('[role="tab"]');
     if (tabButtons.length > 0) {
       // Each tab should have proper ARIA attributes
       tabButtons.forEach((tab) => {
-        expect(tab).toHaveAttribute("aria-selected");
-        expect(tab).toHaveAttribute("aria-controls");
+        expect(tab).toHaveAttribute('aria-selected');
+        expect(tab).toHaveAttribute('aria-controls');
       });
     } else {
       // With empty data the component may not render tabs; verify navigation region exists
@@ -127,20 +127,20 @@ describe("LPDashboard Accessibility", () => {
     }
   });
 
-  it("should have accessible table structure", () => {
+  it('should have accessible table structure', () => {
     const { container } = render(<LPDashboard />);
-    
-    const tables = container.querySelectorAll("table");
+
+    const tables = container.querySelectorAll('table');
     // Only validate header scope if tables are present (empty data may render no table)
     if (tables.length > 0) {
       tables.forEach((table) => {
         // Tables should have headers
-        const headers = table.querySelectorAll("th");
+        const headers = table.querySelectorAll('th');
         expect(headers.length).toBeGreaterThan(0);
-        
+
         // Headers should have proper scope
         headers.forEach((header) => {
-          expect(header).toHaveAttribute("scope");
+          expect(header).toHaveAttribute('scope');
         });
       });
     } else {
@@ -149,17 +149,17 @@ describe("LPDashboard Accessibility", () => {
     }
   });
 
-  it("should have proper button accessibility", () => {
+  it('should have proper button accessibility', () => {
     const { container } = render(<LPDashboard />);
-    
-    const buttons = container.querySelectorAll("button");
+
+    const buttons = container.querySelectorAll('button');
     buttons.forEach((button) => {
       // Buttons should have accessible names
-      const hasAccessibleName = 
+      const hasAccessibleName =
         button.textContent?.trim() ||
-        button.getAttribute("aria-label") ||
-        button.getAttribute("aria-labelledby");
-      
+        button.getAttribute('aria-label') ||
+        button.getAttribute('aria-labelledby');
+
       expect(hasAccessibleName).toBeTruthy();
     });
   });

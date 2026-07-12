@@ -1,31 +1,31 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { vi, describe, it, beforeEach, expect } from "vitest";
-import ProposalDetailPage from "../app/governance/[id]/page";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@/context/WalletContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useToast } from "@/context/ToastContext";
-import { fetchProposal, executeProposal } from "@/utils/governance";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, beforeEach, expect } from 'vitest';
+import ProposalDetailPage from '../app/governance/[id]/page';
+import { useRouter } from 'next/navigation';
+import { useWallet } from '@/context/WalletContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useToast } from '@/context/ToastContext';
+import { fetchProposal, executeProposal } from '@/utils/governance';
 
-vi.mock("next/navigation", () => ({
-  useParams: vi.fn(() => ({ id: "3" })),
+vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({ id: '3' })),
   useRouter: vi.fn(() => ({ replace: vi.fn() })),
 }));
 
-vi.mock("@/context/WalletContext", () => ({
+vi.mock('@/context/WalletContext', () => ({
   useWallet: vi.fn(),
 }));
 
-vi.mock("@/hooks/useTransaction", () => ({
+vi.mock('@/hooks/useTransaction', () => ({
   useTransaction: vi.fn(),
 }));
 
-vi.mock("@/context/ToastContext", () => ({
+vi.mock('@/context/ToastContext', () => ({
   useToast: vi.fn(),
 }));
 
-vi.mock("@/utils/governance", async () => {
-  const actual = await vi.importActual<typeof import("@/utils/governance")>("@/utils/governance");
+vi.mock('@/utils/governance', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/governance')>('@/utils/governance');
   return {
     ...actual,
     fetchProposal: vi.fn(),
@@ -39,15 +39,15 @@ const mockUseToast = useToast as unknown as vi.Mock;
 const mockFetchProposal = fetchProposal as unknown as vi.Mock;
 const mockExecuteProposal = executeProposal as unknown as vi.Mock;
 const mockExecute = vi.fn(async (operation: any) => {
-  return operation(async () => "signed-xdr");
+  return operation(async () => 'signed-xdr');
 });
 
 const baseProposal = {
   id: 3,
-  title: "Enable EURC Support",
-  description: "Enable EURC token support for invoices.",
-  type: "ProtocolUpgrade" as const,
-  proposer: "GCZX...1234",
+  title: 'Enable EURC Support',
+  description: 'Enable EURC token support for invoices.',
+  type: 'ProtocolUpgrade' as const,
+  proposer: 'GCZX...1234',
   createdAt: Math.floor(Date.now() / 1000) - 14 * 86400,
   votingStartsAt: Math.floor(Date.now() / 1000) - 14 * 86400,
   votingEndsAt: Math.floor(Date.now() / 1000) - 7 * 86400,
@@ -57,22 +57,22 @@ const baseProposal = {
   quorumRequired: 100000,
   parameterChanges: [
     {
-      parameter: "accepted_tokens",
-      currentValue: "[USDC]",
-      newValue: "[USDC, EURC]",
+      parameter: 'accepted_tokens',
+      currentValue: '[USDC]',
+      newValue: '[USDC, EURC]',
     },
   ],
 };
 
 function setupMocks() {
   mockUseWallet.mockReturnValue({
-    address: "GABCD...WXYZ",
+    address: 'GABCD...WXYZ',
     isConnected: true,
     connect: vi.fn(),
-    signTx: vi.fn().mockResolvedValue("signed-xdr"),
+    signTx: vi.fn().mockResolvedValue('signed-xdr'),
   });
   mockUseToast.mockReturnValue({
-    addToast: vi.fn(() => "toast-id"),
+    addToast: vi.fn(() => 'toast-id'),
     updateToast: vi.fn(),
   });
   mockUseTransaction.mockReturnValue({
@@ -87,12 +87,12 @@ beforeEach(() => {
   setupMocks();
 });
 
-describe("Governance proposal detail page timelock execution", () => {
-  it("shows timelock countdown for a passed proposal before expiry", async () => {
+describe('Governance proposal detail page timelock execution', () => {
+  it('shows timelock countdown for a passed proposal before expiry', async () => {
     const now = Math.floor(Date.now() / 1000);
     mockFetchProposal.mockResolvedValue({
       ...baseProposal,
-      status: "Passed",
+      status: 'Passed',
       executableAfter: now + 5 * 86400,
     });
 
@@ -102,45 +102,45 @@ describe("Governance proposal detail page timelock execution", () => {
       expect(screen.getByText(/Timelock expires in/i)).toBeDefined();
     });
 
-    expect(screen.queryByRole("button", { name: /Execute Proposal/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Execute Proposal/i })).toBeNull();
   });
 
-  it("shows execute button when timelock has expired", async () => {
+  it('shows execute button when timelock has expired', async () => {
     const now = Math.floor(Date.now() / 1000);
     mockFetchProposal.mockResolvedValue({
       ...baseProposal,
-      status: "Passed",
+      status: 'Passed',
       executableAfter: now - 3600,
     });
 
     render(<ProposalDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Execute Proposal/i })).toBeDefined();
+      expect(screen.getByRole('button', { name: /Execute Proposal/i })).toBeDefined();
     });
 
     expect(screen.getByText(/Timelock expired/i)).toBeDefined();
   });
 
-  it("executes a passed proposal after timelock expiry and updates to Executed", async () => {
+  it('executes a passed proposal after timelock expiry and updates to Executed', async () => {
     const now = Math.floor(Date.now() / 1000);
     mockFetchProposal
       .mockResolvedValueOnce({
         ...baseProposal,
-        status: "Passed",
+        status: 'Passed',
         executableAfter: now - 3600,
       })
       .mockResolvedValueOnce({
         ...baseProposal,
-        status: "Executed",
+        status: 'Executed',
         executableAfter: now - 3600,
       });
 
-    mockExecuteProposal.mockResolvedValue("tx-hash-123");
+    mockExecuteProposal.mockResolvedValue('tx-hash-123');
 
     render(<ProposalDetailPage />);
 
-    const executeButton = await screen.findByRole("button", { name: /Execute Proposal/i });
+    const executeButton = await screen.findByRole('button', { name: /Execute Proposal/i });
     fireEvent.click(executeButton);
 
     await waitFor(() => {
@@ -149,10 +149,10 @@ describe("Governance proposal detail page timelock execution", () => {
     });
   });
 
-  it("renders already executed state for a previously executed proposal", async () => {
+  it('renders already executed state for a previously executed proposal', async () => {
     mockFetchProposal.mockResolvedValue({
       ...baseProposal,
-      status: "Executed",
+      status: 'Executed',
       executableAfter: Math.floor(Date.now() / 1000) - 86400,
     });
 
@@ -163,6 +163,6 @@ describe("Governance proposal detail page timelock execution", () => {
       expect(screen.getByText(/accepted tokens updated to \[USDC, EURC\]/i)).toBeDefined();
     });
 
-    expect(screen.queryByRole("button", { name: /Execute Proposal/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Execute Proposal/i })).toBeNull();
   });
 });

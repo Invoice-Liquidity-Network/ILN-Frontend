@@ -1,5 +1,5 @@
-import React, { type ReactNode } from "react";
-import Link from "next/link";
+import React, { type ReactNode } from 'react';
+import Link from 'next/link';
 
 export interface BreadcrumbItem {
   label: string;
@@ -13,12 +13,7 @@ export interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export default function PageHeader({
-  title,
-  description,
-  breadcrumbs,
-  actions,
-}: PageHeaderProps) {
+export default function PageHeader({ title, description, breadcrumbs, actions }: PageHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
@@ -37,10 +32,7 @@ export default function PageHeader({
                       <span aria-current="page">{item.label}</span>
                     )}
                     {!isLast && (
-                      <span
-                        className="material-symbols-outlined text-[14px]"
-                        aria-hidden="true"
-                      >
+                      <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                         chevron_right
                       </span>
                     )}
@@ -59,11 +51,7 @@ export default function PageHeader({
           </p>
         )}
       </div>
-      {actions && (
-        <div className="flex items-center gap-3 shrink-0 md:justify-end">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex items-center gap-3 shrink-0 md:justify-end">{actions}</div>}
     </div>
   );
 }

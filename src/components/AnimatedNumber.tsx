@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
 /**
  * Easing function: ease-out cubic
@@ -61,16 +61,16 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
 
   // Check for reduced motion preference on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       reducedMotionRef.current = mediaQuery.matches;
 
       const handleChange = (e: MediaQueryListEvent) => {
         reducedMotionRef.current = e.matches;
       };
 
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, []);
 
@@ -84,7 +84,8 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     const progress = Math.min(elapsed / duration, 1);
     const easedProgress = easeOutCubic(progress);
 
-    const currentValue = previousValueRef.current + (value - previousValueRef.current) * easedProgress;
+    const currentValue =
+      previousValueRef.current + (value - previousValueRef.current) * easedProgress;
     setDisplayValue(currentValue);
 
     if (progress < 1) {

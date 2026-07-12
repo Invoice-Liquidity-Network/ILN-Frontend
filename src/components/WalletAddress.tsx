@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { Copy, Check } from "lucide-react";
-import { resolveFederatedAddress } from "@/utils/federation";
-import { formatAddress } from "@/utils/format";
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { resolveFederatedAddress } from '@/utils/federation';
+import { formatAddress } from '@/utils/format';
 
 export interface WalletAddressProps {
   address: string;
@@ -25,7 +25,7 @@ export interface WalletAddressProps {
 export default function WalletAddress({
   address,
   hideCopy = false,
-  className = "",
+  className = '',
   truncate = formatAddress,
 }: WalletAddressProps) {
   const [resolved, setResolved] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function WalletAddress({
   }
 
   const isFederated =
-    typeof resolved === "string" && resolved.includes("*") && resolved !== address;
+    typeof resolved === 'string' && resolved.includes('*') && resolved !== address;
   const displayValue = isFederated ? resolved! : truncate(address);
 
   const handleCopy = async () => {
@@ -78,12 +78,12 @@ export default function WalletAddress({
       await navigator.clipboard.writeText(address);
       setCopied(true);
       if (announceRef.current) {
-        announceRef.current.textContent = "Address copied to clipboard";
+        announceRef.current.textContent = 'Address copied to clipboard';
       }
       window.setTimeout(() => {
         setCopied(false);
         if (announceRef.current) {
-          announceRef.current.textContent = "";
+          announceRef.current.textContent = '';
         }
       }, 1500);
     } catch {
@@ -101,7 +101,7 @@ export default function WalletAddress({
           <button
             type="button"
             onClick={handleCopy}
-            aria-label={copied ? "Address copied" : "Copy wallet address"}
+            aria-label={copied ? 'Address copied' : 'Copy wallet address'}
             className="rounded p-1 text-on-surface-variant transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {copied ? (
@@ -121,12 +121,7 @@ export default function WalletAddress({
           )}
         </span>
       )}
-      <div
-        ref={announceRef}
-        role="status"
-        aria-live="polite"
-        className="sr-only"
-      />
+      <div ref={announceRef} role="status" aria-live="polite" className="sr-only" />
     </span>
   );
 }

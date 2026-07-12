@@ -5,6 +5,7 @@ A React hook for wallet connection with Stellar SEP-10 authentication support.
 ## Overview
 
 The `useWallet()` hook provides a clean, type-safe interface for:
+
 - Connecting to Stellar wallets (Freighter, WalletConnect)
 - Performing SEP-10 authentication flow automatically on first connect
 - Managing authentication tokens (JWT) securely in memory
@@ -79,7 +80,7 @@ const { signTransaction, isConnected } = useWallet();
 
 async function submitTransaction() {
   if (!isConnected) {
-    alert("Please connect your wallet");
+    alert('Please connect your wallet');
     return;
   }
 
@@ -88,7 +89,7 @@ async function submitTransaction() {
     // Submit signed transaction to network
     await submitToNetwork(signedTx);
   } catch (error) {
-    console.error("Failed to sign transaction:", error);
+    console.error('Failed to sign transaction:', error);
   }
 }
 ```
@@ -99,7 +100,7 @@ async function submitTransaction() {
 const { jwt } = useWallet();
 
 async function fetchUserData() {
-  const response = await fetch("/api/user/profile", {
+  const response = await fetch('/api/user/profile', {
     headers: {
       Authorization: `Bearer ${jwt}`,
     },
@@ -144,9 +145,11 @@ The hook expects these endpoints to be available:
 Generates a SEP-10 challenge transaction.
 
 **Query Parameters:**
+
 - `account` (required): Public key of the user's wallet
 
 **Response:**
+
 ```json
 {
   "challenge": "AAAAAgAAAAA..."
@@ -158,6 +161,7 @@ Generates a SEP-10 challenge transaction.
 Verifies the signed challenge and returns a JWT token.
 
 **Request Body:**
+
 ```json
 {
   "account": "G...",
@@ -166,6 +170,7 @@ Verifies the signed challenge and returns a JWT token.
 ```
 
 **Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIs..."
@@ -183,15 +188,15 @@ async function handleConnect() {
   try {
     await connect();
   } catch (error) {
-    if (error.message.includes("challenge")) {
+    if (error.message.includes('challenge')) {
       // SEP-10 authentication failed
-      console.error("Authentication failed:", error);
-    } else if (error.message.includes("not installed")) {
+      console.error('Authentication failed:', error);
+    } else if (error.message.includes('not installed')) {
       // Wallet not installed
-      console.error("Wallet not installed:", error);
+      console.error('Wallet not installed:', error);
     } else {
       // Other connection error
-      console.error("Connection failed:", error);
+      console.error('Connection failed:', error);
     }
   }
 }
@@ -231,7 +236,8 @@ JWT_SECRET_KEY=your-jwt-secret
 
 ## Testing
 
-See [useWallet.test.ts](./\_\_tests\_\_/useWallet.test.ts) for comprehensive test examples including:
+See [useWallet.test.ts](./__tests__/useWallet.test.ts) for comprehensive test examples including:
+
 - Initial state validation
 - Connection flow with SEP-10
 - Disconnect and JWT cleanup

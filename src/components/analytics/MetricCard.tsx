@@ -1,5 +1,5 @@
-import React from "react";
-import FieldTooltip from "@/components/FieldTooltip";
+import React from 'react';
+import FieldTooltip from '@/components/FieldTooltip';
 
 interface MetricCardProps {
   id: string;
@@ -27,8 +27,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
       id={id}
       className={`relative flex flex-col gap-3 rounded-[20px] border p-5 transition-shadow hover:shadow-lg ${
         accent
-          ? "border-primary/30 bg-primary-container/10"
-          : "border-outline-variant/15 bg-surface-container-lowest"
+          ? 'border-primary/30 bg-primary-container/10'
+          : 'border-outline-variant/15 bg-surface-container-lowest'
       }`}
     >
       {badge && <div className="absolute top-4 right-4">{badge}</div>}
@@ -36,7 +36,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
         <span
           aria-hidden="true"
           className={`material-symbols-outlined text-xl ${
-            accent ? "text-primary" : "text-on-surface-variant"
+            accent ? 'text-primary' : 'text-on-surface-variant'
           }`}
           style={{ fontVariationSettings: "'FILL' 1" }}
         >
@@ -47,13 +47,20 @@ const MetricCard: React.FC<MetricCardProps> = ({
             {label}
           </span>
           {tooltip && (
-            <FieldTooltip content={tooltip} trigger={
-              <span className="material-symbols-outlined text-[14px] cursor-help text-on-surface-variant">info</span>
-            } />
+            <FieldTooltip
+              content={tooltip}
+              trigger={
+                <span className="material-symbols-outlined text-[14px] cursor-help text-on-surface-variant">
+                  info
+                </span>
+              }
+            />
           )}
         </div>
       </div>
-      <p className={`font-headline text-2xl font-bold ${accent ? "text-primary" : "text-on-surface"}`}>
+      <p
+        className={`font-headline text-2xl font-bold ${accent ? 'text-primary' : 'text-on-surface'}`}
+      >
         {value}
       </p>
       {sub && <p className="text-xs text-on-surface-variant">{sub}</p>}

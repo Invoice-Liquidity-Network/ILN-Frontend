@@ -35,6 +35,7 @@ export const Full: Story = {
   args: {
     message: 'Transaction failed due to network congestion.',
     remediation: 'Please wait a few minutes and try again.',
-    technicalDetails: 'Error: tx_too_late\nCode: -32000\nDetails: The transaction deadline has passed.',
+    technicalDetails:
+      'Error: tx_too_late\nCode: -32000\nDetails: The transaction deadline has passed.',
   },
 };

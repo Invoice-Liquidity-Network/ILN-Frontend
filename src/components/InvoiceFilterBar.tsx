@@ -1,23 +1,25 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 import {
   INVOICE_STATUSES,
   type DateFilterType,
   type InvoiceFilters,
   type InvoiceStatus,
-} from "@/hooks/useInvoiceFilters";
+} from '@/hooks/useInvoiceFilters';
 
 type InvoiceFilterBarProps = {
   filters: InvoiceFilters;
-  onFiltersChange: (updater: InvoiceFilters | ((current: InvoiceFilters) => InvoiceFilters)) => void;
+  onFiltersChange: (
+    updater: InvoiceFilters | ((current: InvoiceFilters) => InvoiceFilters)
+  ) => void;
   onClearFilters: () => void;
   activeFilterCount: number;
   className?: string;
 };
 
-const TOKEN_OPTIONS = ["USDC", "EURC", "XLM"] as const;
-const SAVED_FILTERS_KEY = "iln_saved_invoice_filters";
+const TOKEN_OPTIONS = ['USDC', 'EURC', 'XLM'] as const;
+const SAVED_FILTERS_KEY = 'iln_saved_invoice_filters';
 
 type SavedFilter = {
   id: string;
@@ -26,26 +28,26 @@ type SavedFilter = {
 };
 
 const DATE_TYPE_LABELS: Record<DateFilterType, string> = {
-  due: "Due Date",
-  funded: "Funded Date",
+  due: 'Due Date',
+  funded: 'Funded Date',
 };
 
 function toDateStr(date: Date): string {
   const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function getPresetRange(preset: "today" | "week" | "month"): { start: string; end: string } {
+function getPresetRange(preset: 'today' | 'week' | 'month'): { start: string; end: string } {
   const now = new Date();
   const todayStr = toDateStr(now);
 
-  if (preset === "today") {
+  if (preset === 'today') {
     return { start: todayStr, end: todayStr };
   }
 
-  if (preset === "week") {
+  if (preset === 'week') {
     const weekStart = new Date(now);
     weekStart.setUTCDate(now.getUTCDate() - now.getUTCDay());
     return { start: toDateStr(weekStart), end: todayStr };
@@ -57,15 +59,15 @@ function getPresetRange(preset: "today" | "week" | "month"): { start: string; en
 }
 
 function handleStatusKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
   e.preventDefault();
   const boxes = Array.from(
-    e.currentTarget.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    e.currentTarget.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
   );
   const idx = boxes.indexOf(document.activeElement as HTMLInputElement);
   if (idx === -1) return;
   const next =
-    e.key === "ArrowDown" || e.key === "ArrowRight"
+    e.key === 'ArrowDown' || e.key === 'ArrowRight'
       ? (idx + 1) % boxes.length
       : (idx - 1 + boxes.length) % boxes.length;
   boxes[next]?.focus();
@@ -82,7 +84,7 @@ export default function InvoiceFilterBar({
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
   const [isSavingFilter, setIsSavingFilter] = useState(false);
-  const [newFilterName, setNewFilterName] = useState("");
+  const [newFilterName, setNewFilterName] = useState('');
   const [showHelpModal, setShowHelpModal] = useState(false);
   const savedFiltersRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +96,7 @@ export default function InvoiceFilterBar({
         setSavedFilters(JSON.parse(stored));
       }
     } catch (e) {
-      console.error("Failed to load saved filters", e);
+      console.error('Failed to load saved filters', e);
     }
   }, []);
 
@@ -104,31 +106,32 @@ export default function InvoiceFilterBar({
         setIsSavedFiltersOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (document.activeElement === searchInputRef.current) return;
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+        return;
 
-      if (event.key === "f" || event.key === "F") {
+      if (event.key === 'f' || event.key === 'F') {
         event.preventDefault();
         searchInputRef.current?.focus();
-      } else if (event.key === "r" || event.key === "R") {
+      } else if (event.key === 'r' || event.key === 'R') {
         event.preventDefault();
         onClearFilters();
-      } else if (event.key === "?") {
+      } else if (event.key === '?') {
         event.preventDefault();
         setShowHelpModal(true);
-      } else if (event.key === "Escape") {
+      } else if (event.key === 'Escape') {
         setShowHelpModal(false);
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClearFilters]);
 
   const saveFilter = () => {
@@ -143,7 +146,7 @@ export default function InvoiceFilterBar({
     const updatedFilters = [...savedFilters, newFilter];
     setSavedFilters(updatedFilters);
     localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(updatedFilters));
-    setNewFilterName("");
+    setNewFilterName('');
     setIsSavingFilter(false);
   };
 
@@ -160,17 +163,17 @@ export default function InvoiceFilterBar({
     localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(updatedFilters));
   };
 
-  const containerClass = className ? `space-y-3 ${className}` : "space-y-3";
+  const containerClass = className ? `space-y-3 ${className}` : 'space-y-3';
 
   const hasDateFilter = Boolean(filters.startDate || filters.endDate);
 
-  function applyPreset(preset: "today" | "week" | "month") {
+  function applyPreset(preset: 'today' | 'week' | 'month') {
     const { start, end } = getPresetRange(preset);
     onFiltersChange((current) => ({ ...current, startDate: start, endDate: end }));
   }
 
   function clearDateFilter() {
-    onFiltersChange((current) => ({ ...current, startDate: "", endDate: "" }));
+    onFiltersChange((current) => ({ ...current, startDate: '', endDate: '' }));
   }
 
   return (
@@ -178,8 +181,8 @@ export default function InvoiceFilterBar({
       {/* Screen reader live region */}
       <div role="status" aria-live="polite" className="sr-only">
         {activeFilterCount > 0
-          ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
-          : "No filters applied"}
+          ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} applied`
+          : 'No filters applied'}
       </div>
 
       <div className="flex flex-col gap-3 mb-5 md:flex-row md:items-center">
@@ -212,11 +215,16 @@ export default function InvoiceFilterBar({
             {isSavedFiltersOpen && (
               <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-outline-variant/20 bg-surface-container-low p-2 shadow-lg z-10">
                 {savedFilters.length === 0 ? (
-                  <p className="text-sm text-on-surface-variant p-2 text-center">No saved filters.</p>
+                  <p className="text-sm text-on-surface-variant p-2 text-center">
+                    No saved filters.
+                  </p>
                 ) : (
                   <ul className="space-y-1">
                     {savedFilters.map((sf) => (
-                      <li key={sf.id} className="flex items-center justify-between gap-2 p-1 hover:bg-surface-container-high rounded-lg group">
+                      <li
+                        key={sf.id}
+                        className="flex items-center justify-between gap-2 p-1 hover:bg-surface-container-high rounded-lg group"
+                      >
                         <button
                           type="button"
                           className="flex-1 text-left text-sm truncate px-2 py-1"
@@ -290,7 +298,10 @@ export default function InvoiceFilterBar({
                 onKeyDown={handleStatusKeyDown}
               >
                 {INVOICE_STATUSES.map((status) => (
-                  <label key={status} className="inline-flex items-center gap-2 text-xs text-on-surface">
+                  <label
+                    key={status}
+                    className="inline-flex items-center gap-2 text-xs text-on-surface"
+                  >
                     <input
                       type="checkbox"
                       checked={filters.statuses.includes(status)}
@@ -313,7 +324,9 @@ export default function InvoiceFilterBar({
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Amount (USDC)</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Amount (USDC)
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -361,17 +374,15 @@ export default function InvoiceFilterBar({
 
               {/* Date type selector */}
               <div className="flex gap-1 rounded-lg bg-surface-container-high p-0.5">
-                {(["due", "funded"] as DateFilterType[]).map((type) => (
+                {(['due', 'funded'] as DateFilterType[]).map((type) => (
                   <button
                     key={type}
                     type="button"
-                    onClick={() =>
-                      onFiltersChange((current) => ({ ...current, dateType: type }))
-                    }
+                    onClick={() => onFiltersChange((current) => ({ ...current, dateType: type }))}
                     className={`flex-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-all ${
                       filters.dateType === type
-                        ? "bg-primary text-white shadow-sm"
-                        : "text-on-surface-variant hover:text-on-surface"
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     {DATE_TYPE_LABELS[type]}
@@ -381,8 +392,9 @@ export default function InvoiceFilterBar({
 
               {/* Quick presets */}
               <div className="flex gap-1.5">
-                {(["today", "week", "month"] as const).map((preset) => {
-                  const label = preset === "today" ? "Today" : preset === "week" ? "This Week" : "This Month";
+                {(['today', 'week', 'month'] as const).map((preset) => {
+                  const label =
+                    preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : 'This Month';
                   const { start, end } = getPresetRange(preset);
                   const isActive = filters.startDate === start && filters.endDate === end;
                   return (
@@ -392,8 +404,8 @@ export default function InvoiceFilterBar({
                       onClick={() => (isActive ? clearDateFilter() : applyPreset(preset))}
                       className={`flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all ${
                         isActive
-                          ? "border-primary/50 bg-primary/10 text-primary"
-                          : "border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:border-primary/30 hover:text-primary"
+                          ? 'border-primary/50 bg-primary/10 text-primary'
+                          : 'border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant hover:border-primary/30 hover:text-primary'
                       }`}
                     >
                       {label}
@@ -428,11 +440,15 @@ export default function InvoiceFilterBar({
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Token
+              </p>
               <select
                 aria-label="Token filter"
                 value={filters.token}
-                onChange={(event) => onFiltersChange((current) => ({ ...current, token: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((current) => ({ ...current, token: event.target.value }))
+                }
                 className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
               >
                 <option value="">All</option>
@@ -445,7 +461,9 @@ export default function InvoiceFilterBar({
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Discount (bps)</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                Discount (bps)
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -455,7 +473,10 @@ export default function InvoiceFilterBar({
                   value={filters.minDiscountBps}
                   placeholder="Min"
                   onChange={(event) =>
-                    onFiltersChange((current) => ({ ...current, minDiscountBps: event.target.value }))
+                    onFiltersChange((current) => ({
+                      ...current,
+                      minDiscountBps: event.target.value,
+                    }))
                   }
                   className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
                 />
@@ -467,7 +488,10 @@ export default function InvoiceFilterBar({
                   value={filters.maxDiscountBps}
                   placeholder="Max"
                   onChange={(event) =>
-                    onFiltersChange((current) => ({ ...current, maxDiscountBps: event.target.value }))
+                    onFiltersChange((current) => ({
+                      ...current,
+                      maxDiscountBps: event.target.value,
+                    }))
                   }
                   className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm"
                 />
@@ -485,16 +509,19 @@ export default function InvoiceFilterBar({
                   min="0"
                   max="100"
                   step="5"
-                  value={filters.minPayerReputation || "0"}
+                  value={filters.minPayerReputation || '0'}
                   onChange={(event) =>
-                    onFiltersChange((current) => ({ ...current, minPayerReputation: event.target.value }))
+                    onFiltersChange((current) => ({
+                      ...current,
+                      minPayerReputation: event.target.value,
+                    }))
                   }
                   className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
                 />
                 <div className="flex justify-between text-xs text-on-surface-variant">
                   <span>0</span>
                   <span className="font-semibold text-on-surface">
-                    {filters.minPayerReputation || "0"}
+                    {filters.minPayerReputation || '0'}
                   </span>
                   <span>100</span>
                 </div>
@@ -506,7 +533,7 @@ export default function InvoiceFilterBar({
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4 flex items-center gap-4 pt-4 border-t border-outline-variant/20">
             {isSavingFilter ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -530,7 +557,7 @@ export default function InvoiceFilterBar({
                   type="button"
                   onClick={() => {
                     setIsSavingFilter(false);
-                    setNewFilterName("");
+                    setNewFilterName('');
                   }}
                   className="rounded-lg px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest"
                 >
@@ -578,19 +605,27 @@ export default function InvoiceFilterBar({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-on-surface-variant">Focus search</span>
-                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">F</kbd>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">
+                  F
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-on-surface-variant">Reset filters</span>
-                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">R</kbd>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">
+                  R
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-on-surface-variant">Show shortcuts</span>
-                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">?</kbd>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">
+                  ?
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-on-surface-variant">Close modal</span>
-                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">Esc</kbd>
+                <kbd className="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant/30 text-xs font-mono">
+                  Esc
+                </kbd>
               </div>
             </div>
             <p className="text-xs text-on-surface-variant mt-4 pt-4 border-t border-outline-variant/20">

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import type { Invoice } from "@/utils/soroban";
-import { formatAddress, tokenAmountToNumber } from "@/utils/format";
+import { useState, useMemo } from 'react';
+import type { Invoice } from '@/utils/soroban';
+import { formatAddress, tokenAmountToNumber } from '@/utils/format';
 
 const TWEET_MAX_CHARS = 280;
 
@@ -33,7 +33,7 @@ function buildLPTweet(invoice: Invoice, shareUrl: string): string {
   const settlementDays = Math.max(1, Math.round((now - fundedAt) / 86400));
   return (
     `Earned ${yieldAmount} USDC yield on Invoice #${invoice.id.toString()} ` +
-    `via @ILNProtocol on @stellar — ${rate}% return in ${settlementDays} day${settlementDays !== 1 ? "s" : ""}. ` +
+    `via @ILNProtocol on @stellar — ${rate}% return in ${settlementDays} day${settlementDays !== 1 ? 's' : ''}. ` +
     shareUrl
   );
 }
@@ -44,7 +44,7 @@ function truncateTweet(text: string, shareUrl: string): string {
   const urlLength = shareUrl.length;
   const maxBody = TWEET_MAX_CHARS - urlLength - 4; // 4 = " ..." + space
   const truncated = text.slice(0, text.indexOf(shareUrl)).trimEnd();
-  return truncated.slice(0, maxBody) + "... " + shareUrl;
+  return truncated.slice(0, maxBody) + '... ' + shareUrl;
 }
 
 export default function ShareButton({ invoice, userAddress, baseUrl }: ShareButtonProps) {
@@ -54,7 +54,7 @@ export default function ShareButton({ invoice, userAddress, baseUrl }: ShareButt
   const isLP = !!invoice.funder && userAddress === invoice.funder;
 
   const shareUrl = useMemo(() => {
-    const origin = baseUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
+    const origin = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '');
     return `${origin}/pay/${invoice.id.toString()}`;
   }, [invoice.id, baseUrl]);
 
@@ -78,7 +78,7 @@ export default function ShareButton({ invoice, userAddress, baseUrl }: ShareButt
     }
   };
 
-  if (invoice.status !== "Paid") return null;
+  if (invoice.status !== 'Paid') return null;
   if (!isFreelancer && !isLP) return null;
 
   return (
@@ -106,12 +106,12 @@ export default function ShareButton({ invoice, userAddress, baseUrl }: ShareButt
         className="inline-flex items-center gap-1.5 rounded-2xl border border-outline-variant/30 px-4 py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-high transition-all"
       >
         <span className="material-symbols-outlined text-[16px]">
-          {copied ? "check" : "content_copy"}
+          {copied ? 'check' : 'content_copy'}
         </span>
-        {copied ? "Copied!" : "Copy text"}
+        {copied ? 'Copied!' : 'Copy text'}
       </button>
       <span
-        className={`text-xs font-mono ${charCount > TWEET_MAX_CHARS ? "text-red-500" : "text-on-surface-variant/60"}`}
+        className={`text-xs font-mono ${charCount > TWEET_MAX_CHARS ? 'text-red-500' : 'text-on-surface-variant/60'}`}
         aria-label="Character count"
       >
         {charCount}/{TWEET_MAX_CHARS}

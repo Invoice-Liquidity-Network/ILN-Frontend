@@ -14,11 +14,13 @@ This PR implements four major feature improvements to the ILN-Frontend:
 ### 1. WebSocket Support for Contract Events (#407)
 
 **Files Modified:**
+
 - `src/constants.ts` - Added `INDEXER_WS_URL` configuration
 - `src/lib/indexer-websocket.ts` - New WebSocket connection manager with reconnection logic and event buffering
 - `src/hooks/useContractEvents.ts` - Enhanced to support WebSocket with automatic fallback to polling
 
 **Features:**
+
 - WebSocket connection to indexer for real-time event streaming
 - Automatic reconnection on disconnect (max 3 attempts with exponential backoff)
 - Event buffering during disconnect (max 100 events)
@@ -27,6 +29,7 @@ This PR implements four major feature improvements to the ILN-Frontend:
 - Status updates for connection state
 
 **Acceptance Criteria Met:**
+
 - ✅ WebSocket connects successfully
 - ✅ Reconnection works with exponential backoff
 - ✅ Events aren't lost during disconnect (buffering)
@@ -35,9 +38,11 @@ This PR implements four major feature improvements to the ILN-Frontend:
 ### 2. Toast Swipe-to-Dismiss on Mobile (#404)
 
 **Files Modified:**
+
 - `src/components/Toast.tsx` - Added touch gesture support for mobile swipe-to-dismiss
 
 **Features:**
+
 - Swipe right to dismiss toast notifications
 - Visual feedback during swipe (opacity and translation)
 - 50% width threshold for dismiss
@@ -46,6 +51,7 @@ This PR implements four major feature improvements to the ILN-Frontend:
 - Gradient overlay showing dismiss progress
 
 **Acceptance Criteria Met:**
+
 - ✅ Swipe gesture works on mobile
 - ✅ Visual feedback is clear (opacity reduction, translation)
 - ✅ Threshold works correctly (50% width)
@@ -54,9 +60,11 @@ This PR implements four major feature improvements to the ILN-Frontend:
 ### 3. InvoiceFilterBar Keyboard Shortcuts (#406)
 
 **Files Modified:**
+
 - `src/components/InvoiceFilterBar.tsx` - Added keyboard shortcut support and help modal
 
 **Features:**
+
 - **F** - Focus search input
 - **R** - Reset all filters
 - **?** - Show shortcuts help modal
@@ -66,6 +74,7 @@ This PR implements four major feature improvements to the ILN-Frontend:
 - No conflicts with browser shortcuts
 
 **Acceptance Criteria Met:**
+
 - ✅ Shortcuts work from any state
 - ✅ Help modal shows shortcuts
 - ✅ No conflicts with browser shortcuts
@@ -74,10 +83,12 @@ This PR implements four major feature improvements to the ILN-Frontend:
 ### 4. Enhanced Leaderboard Page (#405)
 
 **Files Modified:**
+
 - `src/utils/soroban.ts` - Added `TopFreelancer`, `TopLP` interfaces and `getTopFreelancers`, `getTopLPs` functions
 - `app/leaderboard/page.tsx` - Complete redesign with tab interface, pagination, and search
 
 **Features:**
+
 - Tab interface for Payers/Freelancers/LPs rankings
 - Rank, address, and metrics columns for each category
 - Pagination (20 items per page)
@@ -91,6 +102,7 @@ This PR implements four major feature improvements to the ILN-Frontend:
   - **LPs**: Score, Liquidity Provided, Fees Earned, Total Funded
 
 **Acceptance Criteria Met:**
+
 - ✅ Rankings display correctly for all categories
 - ✅ Pagination works (20 per page)
 - ✅ Search filters results by address
@@ -108,6 +120,7 @@ None. All changes are additive and backward-compatible.
 ## Configuration
 
 New environment variable available:
+
 - `NEXT_PUBLIC_INDEXER_WS_URL` - WebSocket URL for indexer (defaults to `ws://localhost:8080/ws`)
 
 ## Checklist

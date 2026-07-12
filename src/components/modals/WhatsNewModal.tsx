@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import Link from "next/link";
-import { useWhatsNew } from "@/hooks/useWhatsNew";
+import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useWhatsNew } from '@/hooks/useWhatsNew';
 
 export default function WhatsNewModal() {
   const { isOpen, dismiss, items, currentVersion } = useWhatsNew();
@@ -14,12 +14,12 @@ export default function WhatsNewModal() {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         dismiss();
       }
-      
+
       // Basic focus trap
-      if (e.key === "Tab") {
+      if (e.key === 'Tab') {
         if (!dialogRef.current) return;
         const focusableElements = dialogRef.current.querySelectorAll(
           'a[href], button, textarea, input, select'
@@ -41,13 +41,13 @@ export default function WhatsNewModal() {
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    
+    document.addEventListener('keydown', handleKeyDown);
+
     // Auto-focus the primary button on open
     gotItBtnRef.current?.focus();
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, dismiss]);
 
@@ -55,9 +55,9 @@ export default function WhatsNewModal() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div 
+      <div
         ref={dialogRef}
-        role="dialog" 
+        role="dialog"
         aria-modal="true"
         aria-labelledby="whats-new-title"
         className="w-full max-w-md overflow-hidden rounded-3xl bg-surface shadow-2xl flex flex-col max-h-[90vh]"
@@ -68,7 +68,10 @@ export default function WhatsNewModal() {
             🎉
           </div>
           <h2 id="whats-new-title" className="text-xl font-headline font-bold text-on-surface">
-            What's New in <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-sm text-primary">{currentVersion}</span>
+            What's New in{' '}
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-sm text-primary">
+              {currentVersion}
+            </span>
           </h2>
         </div>
 
@@ -77,7 +80,9 @@ export default function WhatsNewModal() {
           <ul className="flex flex-col gap-6">
             {items.map((item) => (
               <li key={item.id} className="flex items-start gap-4">
-                <span className="text-2xl leading-none" aria-hidden="true">{item.icon}</span>
+                <span className="text-2xl leading-none" aria-hidden="true">
+                  {item.icon}
+                </span>
                 <div className="flex flex-col">
                   <h3 className="text-base font-bold text-on-surface">{item.title}</h3>
                   <p className="mt-1 text-sm text-on-surface-variant leading-relaxed">
@@ -91,7 +96,7 @@ export default function WhatsNewModal() {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-outline-variant/20 flex flex-col gap-4">
-          <Link 
+          <Link
             href="/changelog"
             onClick={dismiss}
             className="text-sm font-medium text-primary hover:underline self-center"

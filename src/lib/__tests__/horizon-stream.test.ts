@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { connectHorizonTransactionStream } from "@/lib/horizon-stream";
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { connectHorizonTransactionStream } from '@/lib/horizon-stream';
 
 class MockEventSource {
   static instances: MockEventSource[] = [];
@@ -14,11 +14,11 @@ class MockEventSource {
   close = vi.fn();
 }
 
-describe("horizon-stream", () => {
+describe('horizon-stream', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     MockEventSource.instances = [];
-    vi.stubGlobal("EventSource", MockEventSource);
+    vi.stubGlobal('EventSource', MockEventSource);
   });
 
   afterEach(() => {
@@ -26,7 +26,7 @@ describe("horizon-stream", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reconnects with back-off after stream errors", () => {
+  it('reconnects with back-off after stream errors', () => {
     const onStatusChange = vi.fn();
     const handle = connectHorizonTransactionStream({
       onEvent: vi.fn(),
@@ -39,7 +39,7 @@ describe("horizon-stream", () => {
     vi.advanceTimersByTime(1200);
 
     expect(MockEventSource.instances.length).toBeGreaterThan(1);
-    expect(onStatusChange).toHaveBeenCalledWith("disconnected");
+    expect(onStatusChange).toHaveBeenCalledWith('disconnected');
 
     handle.close();
   });

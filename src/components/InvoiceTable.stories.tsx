@@ -14,7 +14,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const columns = [
-  { id: 'id', label: 'ID', isMandatory: true, renderCell: (item: any) => <span className="font-mono">#{item.id}</span> },
+  {
+    id: 'id',
+    label: 'ID',
+    isMandatory: true,
+    renderCell: (item: any) => <span className="font-mono">#{item.id}</span>,
+  },
   { id: 'amount', label: 'Amount', renderCell: (item: any) => <span>{item.amount}</span> },
   { id: 'status', label: 'Status', renderCell: (item: any) => <span>{item.status}</span> },
 ];

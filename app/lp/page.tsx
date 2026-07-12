@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import dynamic from "next/dynamic";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-const LPDashboardPage = dynamic(() => import("@/screens/LPDashboard"), {
+const LPDashboardPage = dynamic(() => import('@/screens/LPDashboard'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen bg-surface-container flex flex-col items-center justify-center text-on-surface-variant font-medium gap-3">
@@ -15,7 +15,7 @@ const LPDashboardPage = dynamic(() => import("@/screens/LPDashboard"), {
 });
 
 export default function LPRoutePage() {
-  useDocumentTitle({ pageTitle: "Liquidity Provider Dashboard" });
+  useDocumentTitle({ pageTitle: 'Liquidity Provider Dashboard' });
 
   return (
     <Suspense fallback={null}>

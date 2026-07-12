@@ -1,24 +1,24 @@
-import type { Metadata } from "next";
-import React, { Suspense } from "react";
-import "./globals.css";
-import I18nProvider from "@/components/I18nProvider";
-import { ToastProvider } from "@/context/ToastContext";
-import { WalletProvider } from "@/context/WalletContext";
-import { NotificationProvider } from "@/context/NotificationContext";
-import NotificationEventPoller from "@/components/NotificationEventPoller";
-import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
-import FABProvider from "@/components/FABProvider";
-import FeedbackWidget from "@/components/FeedbackWidget";
-import CommandPalette from "@/components/CommandPalette";
-import OfflineBanner from "@/components/OfflineBanner";
-import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
-import ContractEventSync from "@/components/ContractEventSync";
-import WhatsNewModal from "@/components/modals/WhatsNewModal";
-import Providers from "./Providers";
+import type { Metadata } from 'next';
+import React, { Suspense } from 'react';
+import './globals.css';
+import I18nProvider from '@/components/I18nProvider';
+import { ToastProvider } from '@/context/ToastContext';
+import { WalletProvider } from '@/context/WalletContext';
+import { NotificationProvider } from '@/context/NotificationContext';
+import NotificationEventPoller from '@/components/NotificationEventPoller';
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import FABProvider from '@/components/FABProvider';
+import FeedbackWidget from '@/components/FeedbackWidget';
+import CommandPalette from '@/components/CommandPalette';
+import OfflineBanner from '@/components/OfflineBanner';
+import NetworkMismatchBanner from '@/components/NetworkMismatchBanner';
+import ContractEventSync from '@/components/ContractEventSync';
+import WhatsNewModal from '@/components/modals/WhatsNewModal';
+import Providers from './Providers';
 
 export const metadata: Metadata = {
-  title: "ILN | Invoice Liquidity Network",
-  description: "An open-source invoice factoring protocol on Stellar.",
+  title: 'ILN | Invoice Liquidity Network',
+  description: 'An open-source invoice factoring protocol on Stellar.',
 };
 
 export default function RootLayout({
@@ -38,10 +38,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ILN" />
-        <meta
-          name="description"
-          content="Decentralized invoice factoring on Stellar"
-        />
+        <meta name="description" content="Decentralized invoice factoring on Stellar" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />

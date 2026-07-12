@@ -71,6 +71,7 @@ The reports will be saved in the `.lighthouseci/` directory.
 ### Understanding the Reports
 
 Each HTML report shows:
+
 - **Performance Score**: Overall performance rating (0-100)
 - **Core Web Vitals**: LCP, FID, CLS with pass/fail status
 - **Opportunities**: Suggestions to improve performance

@@ -10,11 +10,7 @@
  * @param locale - The locale to use (required)
  * @returns Formatted currency string
  */
-export function formatCurrency(
-  amount: number,
-  currency: string = 'USD',
-  locale: string
-): string {
+export function formatCurrency(amount: number, currency: string = 'USD', locale: string): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
@@ -45,11 +41,7 @@ export function formatNumber(
  * @param locale - The locale to use (required)
  * @returns Formatted percentage string
  */
-export function formatPercentage(
-  value: number,
-  decimals: number = 2,
-  locale: string
-): string {
+export function formatPercentage(value: number, decimals: number = 2, locale: string): string {
   return new Intl.NumberFormat(locale, {
     style: 'percent',
     minimumFractionDigits: decimals,

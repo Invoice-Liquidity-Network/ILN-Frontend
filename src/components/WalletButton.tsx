@@ -1,16 +1,26 @@
-"use client";
+'use client';
 
-import { useMemo, useState, useRef, useEffect } from "react";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
-import { useBalances } from "@/hooks/useBalances";
-import { useWallet } from "@/context/WalletContext";
-import { TokenAmount } from "./TokenSelector";
-import { formatAddress, formatTokenAmount } from "@/utils/format";
-import { NETWORK_NAME } from "@/constants";
-import TestnetFaucetButton from "./TestnetFaucetButton";
+import { useMemo, useState, useRef, useEffect } from 'react';
+import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import { useBalances } from '@/hooks/useBalances';
+import { useWallet } from '@/context/WalletContext';
+import { TokenAmount } from './TokenSelector';
+import { formatAddress, formatTokenAmount } from '@/utils/format';
+import { NETWORK_NAME } from '@/constants';
+import TestnetFaucetButton from './TestnetFaucetButton';
 
 export default function WalletButton() {
-  const { address, isConnected, isInstalled, isReconnecting, preferredWalletProvider, connect, disconnect, networkMismatch, error } = useWallet();
+  const {
+    address,
+    isConnected,
+    isInstalled,
+    isReconnecting,
+    preferredWalletProvider,
+    connect,
+    disconnect,
+    networkMismatch,
+    error,
+  } = useWallet();
   const { tokens } = useApprovedTokens();
   const allowedTokens = useMemo(() => tokens.filter((token) => token.isAllowed), [tokens]);
   // Auto-refreshes every 30s and on each successful transaction; tokens that
@@ -26,8 +36,8 @@ export default function WalletButton() {
         setDropdownOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleCopyAddress = async () => {
@@ -83,7 +93,7 @@ export default function WalletButton() {
           <div className="flex items-center gap-2">
             <TestnetFaucetButton />
             <div className="relative group" ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-outline-variant/15 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50
                   ${dropdownOpen ? 'bg-surface-container' : 'bg-surface-container-low hover:bg-surface-container'}
@@ -91,18 +101,25 @@ export default function WalletButton() {
                 title={address!}
                 aria-expanded={dropdownOpen}
               >
-                <span 
-                  className={`w-2 h-2 rounded-full ${networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'}`} 
-                  aria-label={networkMismatch ? "Wrong network" : "Connected"}
+                <span
+                  className={`w-2 h-2 rounded-full ${networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'}`}
+                  aria-label={networkMismatch ? 'Wrong network' : 'Connected'}
                 />
-                <span className={`text-[10px] font-bold uppercase ${networkMismatch ? 'text-error' : 'text-primary'}`}>
-                  {networkMismatch ? "Wrong Network" : NETWORK_NAME}
+                <span
+                  className={`text-[10px] font-bold uppercase ${networkMismatch ? 'text-error' : 'text-primary'}`}
+                >
+                  {networkMismatch ? 'Wrong Network' : NETWORK_NAME}
                 </span>
                 <span className="text-on-surface-variant/30">|</span>
-                <span className={`text-sm font-mono font-medium ${networkMismatch ? 'text-error' : 'text-on-surface'}`}>
+                <span
+                  className={`text-sm font-mono font-medium ${networkMismatch ? 'text-error' : 'text-on-surface'}`}
+                >
                   {formatAddress(address!)}
                 </span>
-                <span className="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform duration-200" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                <span
+                  className="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform duration-200"
+                  style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }}
+                >
                   expand_more
                 </span>
               </button>
@@ -115,8 +132,10 @@ export default function WalletButton() {
                     }}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-highest text-sm text-on-surface w-full text-left transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[16px]">{copied ? "check" : "content_copy"}</span>
-                    {copied ? "Copied!" : "Copy Address"}
+                    <span className="material-symbols-outlined text-[16px]">
+                      {copied ? 'check' : 'content_copy'}
+                    </span>
+                    {copied ? 'Copied!' : 'Copy Address'}
                   </button>
                   <button
                     onClick={() => {
@@ -137,7 +156,7 @@ export default function WalletButton() {
     );
   }
 
-  const connectionLabel = isReconnecting ? "Reconnecting..." : "Connect Wallet";
+  const connectionLabel = isReconnecting ? 'Reconnecting...' : 'Connect Wallet';
 
   return (
     <div className="relative group">
@@ -150,9 +169,11 @@ export default function WalletButton() {
         {connectionLabel}
       </button>
       {isReconnecting && (
-        <p className="mt-2 text-xs text-on-surface-variant">Attempting to restore your wallet session…</p>
+        <p className="mt-2 text-xs text-on-surface-variant">
+          Attempting to restore your wallet session…
+        </p>
       )}
-      {!isInstalled && !isReconnecting && preferredWalletProvider !== "walletconnect" && (
+      {!isInstalled && !isReconnecting && preferredWalletProvider !== 'walletconnect' && (
         <a
           href="https://www.freighter.app/"
           target="_blank"

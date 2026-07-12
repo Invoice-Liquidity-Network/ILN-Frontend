@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useTranslation } from "react-i18next";
-import { useWallet } from "@/context/WalletContext";
-import { useTheme } from "@/hooks/useTheme";
-import WalletButton from "./WalletButton";
-import NotificationBell from "./NotificationBell";
-import { useState, useRef, useEffect } from "react";
+import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
+import { useWallet } from '@/context/WalletContext';
+import { useTheme } from '@/hooks/useTheme';
+import WalletButton from './WalletButton';
+import NotificationBell from './NotificationBell';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar() {
   useWallet();
@@ -22,8 +22,8 @@ export default function Navbar() {
         setLangOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const changeLanguage = (lng: string) => {
@@ -31,20 +31,23 @@ export default function Navbar() {
     setLangOpen(false);
   };
 
-  const currentLang = i18n.language === "es" ? "es" : "en";
+  const currentLang = i18n.language === 'es' ? 'es' : 'en';
   const navLinks = [
-    { href: "/freelancer", label: t("nav.forFreelancers") },
-    { href: "/governance", label: t("nav.governance") },
-    { href: "/payer", label: t("nav.payInvoices") },
-    { href: "/dashboard", label: t("nav.dashboard") },
-    { href: "/analytics", label: t("nav.analytics") },
-    { href: "/referrals", label: "Referrals" },
+    { href: '/freelancer', label: t('nav.forFreelancers') },
+    { href: '/governance', label: t('nav.governance') },
+    { href: '/payer', label: t('nav.payInvoices') },
+    { href: '/dashboard', label: t('nav.dashboard') },
+    { href: '/analytics', label: t('nav.analytics') },
+    { href: '/referrals', label: 'Referrals' },
   ];
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
-        <Link href="/" className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
+        <Link
+          href="/"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity"
+        >
           ILN
         </Link>
         <div className="hidden md:flex items-center gap-8">
@@ -55,37 +58,37 @@ export default function Navbar() {
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="/freelancer"
           >
-            {t("nav.forFreelancers")}
+            {t('nav.forFreelancers')}
           </Link>
           <a
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="#for-lps"
           >
-            {t("nav.forLPs")}
+            {t('nav.forLPs')}
           </a>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="/governance"
           >
-            {t("nav.governance")}
+            {t('nav.governance')}
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="/payer"
           >
-            {t("nav.payInvoices")}
+            {t('nav.payInvoices')}
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="/dashboard"
           >
-            {t("nav.dashboard")}
+            {t('nav.dashboard')}
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
             href="/analytics"
           >
-            {t("nav.analytics")}
+            {t('nav.analytics')}
           </Link>
           {/* <a
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
@@ -99,13 +102,11 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen((open) => !open)}
             className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface-variant transition-colors md:hidden"
-            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
           >
-            <span className="material-symbols-outlined">
-              {mobileOpen ? "close" : "menu"}
-            </span>
+            <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
 
           <NotificationBell />
@@ -114,7 +115,7 @@ export default function Navbar() {
             <button
               onClick={() => setLangOpen(!langOpen)}
               className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
-              aria-label={t("language.select")}
+              aria-label={t('language.select')}
               aria-expanded={langOpen}
             >
               <span className="material-symbols-outlined">globe</span>
@@ -122,22 +123,26 @@ export default function Navbar() {
             {langOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50">
                 <button
-                  onClick={() => changeLanguage("en")}
+                  onClick={() => changeLanguage('en')}
                   className={`w-full px-4 py-3 text-sm text-left hover:bg-surface-variant transition-colors flex items-center gap-3 ${
-                    currentLang === "en" ? "bg-primary-container text-on-primary-container font-bold" : "text-on-surface-variant"
+                    currentLang === 'en'
+                      ? 'bg-primary-container text-on-primary-container font-bold'
+                      : 'text-on-surface-variant'
                   }`}
                 >
                   <span className="text-base">🇺🇸</span>
-                  {t("language.en")}
+                  {t('language.en')}
                 </button>
                 <button
-                  onClick={() => changeLanguage("es")}
+                  onClick={() => changeLanguage('es')}
                   className={`w-full px-4 py-3 text-sm text-left hover:bg-surface-variant transition-colors flex items-center gap-3 ${
-                    currentLang === "es" ? "bg-primary-container text-on-primary-container font-bold" : "text-on-surface-variant"
+                    currentLang === 'es'
+                      ? 'bg-primary-container text-on-primary-container font-bold'
+                      : 'text-on-surface-variant'
                   }`}
                 >
                   <span className="text-base">🇪🇸</span>
-                  {t("language.es")}
+                  {t('language.es')}
                 </button>
               </div>
             )}
@@ -149,7 +154,7 @@ export default function Navbar() {
             aria-label="Toggle dark mode"
           >
             <span className="material-symbols-outlined">
-              {!mounted ? "dark_mode" : theme === "dark" ? "light_mode" : "dark_mode"}
+              {!mounted ? 'dark_mode' : theme === 'dark' ? 'light_mode' : 'dark_mode'}
             </span>
           </button>
 
@@ -157,7 +162,6 @@ export default function Navbar() {
             <WalletButton />
           </div>
         </div>
-
       </div>
       <div
         id="mobile-navigation"

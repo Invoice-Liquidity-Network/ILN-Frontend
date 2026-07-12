@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { Invoice, TokenMetadata } from "@/utils/soroban";
-import { formatAddress, formatTokenAmount, calculateYield } from "@/utils/format";
-import { RiskLevel, PayerScore } from "@/utils/risk";
-import DueDateCountdown from "./DueDateCountdown";
-import RiskBadge from "./RiskBadge";
-import OracleBadge from "./OracleBadge";
-import AuctionRateTicker from "./AuctionRateTicker";
-import ReputationSparkline from "./ReputationSparkline";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Invoice, TokenMetadata } from '@/utils/soroban';
+import { formatAddress, formatTokenAmount, calculateYield } from '@/utils/format';
+import { RiskLevel, PayerScore } from '@/utils/risk';
+import DueDateCountdown from './DueDateCountdown';
+import RiskBadge from './RiskBadge';
+import OracleBadge from './OracleBadge';
+import AuctionRateTicker from './AuctionRateTicker';
+import ReputationSparkline from './ReputationSparkline';
 
 interface AuctionMeta {
   startRate: number;
@@ -38,7 +38,7 @@ interface InvoiceMarketplaceCardProps {
 }
 
 function yieldPercent(amount: bigint, discountRate: number): string {
-  if (amount === 0n) return "0.00";
+  if (amount === 0n) return '0.00';
   const yieldAmount = calculateYield(amount, discountRate);
   return ((Number(yieldAmount) / Number(amount)) * 100).toFixed(2);
 }
@@ -59,13 +59,16 @@ export default function InvoiceMarketplaceCard({
   onBookmark,
 }: InvoiceMarketplaceCardProps) {
   const [override, setOverride] = useState(false);
-  const token = tokenMap.get(invoice.token ?? "") ?? defaultToken;
-  const tokenSymbol = token?.symbol ?? "USDC";
+  const token = tokenMap.get(invoice.token ?? '') ?? defaultToken;
+  const tokenSymbol = token?.symbol ?? 'USDC';
 
   const isBelowThreshold = !!(payerScore && payerScore.score < minReputation && !override);
 
   return (
-    <article data-testid="invoice-card" className={`group invoice rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 hover:border-primary/30 hover:shadow-md transition-all relative ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+    <article
+      data-testid="invoice-card"
+      className={`group invoice rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 hover:border-primary/30 hover:shadow-md transition-all relative ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}
+    >
       {isBelowThreshold && (
         <div className="absolute inset-x-0 h-full w-full z-10 flex flex-col items-center justify-center bg-surface-container-lowest/40 backdrop-blur-[1px] rounded-2xl pointer-events-none">
           {/* We use pointer-events-none so users can still click the buttons below if they are reachable, but we will make them reachable by z-index */}
@@ -78,7 +81,10 @@ export default function InvoiceMarketplaceCard({
         </div>
         <div className="flex items-center gap-2">
           {onToggleCompare && (
-            <label className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-surface-variant transition-colors cursor-pointer" aria-label={isSelected ? "Remove from comparison" : "Add to comparison"}>
+            <label
+              className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-surface-variant transition-colors cursor-pointer"
+              aria-label={isSelected ? 'Remove from comparison' : 'Add to comparison'}
+            >
               <input
                 type="checkbox"
                 checked={!!isSelected}
@@ -89,12 +95,12 @@ export default function InvoiceMarketplaceCard({
           )}
           {onBookmark && (
             <button
-              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark invoice"}
+              aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark invoice'}
               onClick={() => onBookmark(invoice.id.toString(), !isBookmarked)}
               className="text-on-surface-variant hover:text-primary transition-colors"
             >
               <span className="material-symbols-outlined text-[20px]">
-                {isBookmarked ? "bookmark" : "bookmark_border"}
+                {isBookmarked ? 'bookmark' : 'bookmark_border'}
               </span>
             </button>
           )}
@@ -105,7 +111,9 @@ export default function InvoiceMarketplaceCard({
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm">
           <span className="text-on-surface-variant">Amount</span>
-          <span className="font-bold">{token ? formatTokenAmount(invoice.amount, token) : invoice.amount.toString()}</span>
+          <span className="font-bold">
+            {token ? formatTokenAmount(invoice.amount, token) : invoice.amount.toString()}
+          </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-on-surface-variant">Discount</span>
@@ -113,7 +121,9 @@ export default function InvoiceMarketplaceCard({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-on-surface-variant">Effective Yield</span>
-          <span className="font-bold text-green-600">{yieldPercent(invoice.amount, invoice.discount_rate)}%</span>
+          <span className="font-bold text-green-600">
+            {yieldPercent(invoice.amount, invoice.discount_rate)}%
+          </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-on-surface-variant">Due Date</span>
@@ -123,8 +133,11 @@ export default function InvoiceMarketplaceCard({
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-on-surface-variant mb-4 gap-3">
         <div>
-          Submitter:{" "}
-          <Link href={`/profile/${invoice.freelancer}`} className="text-primary hover:underline font-mono">
+          Submitter:{' '}
+          <Link
+            href={`/profile/${invoice.freelancer}`}
+            className="text-primary hover:underline font-mono"
+          >
             {formatAddress(invoice.freelancer)}
           </Link>
         </div>

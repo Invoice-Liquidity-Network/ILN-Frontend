@@ -158,7 +158,10 @@ describe('PayInvoicePage', () => {
     await waitFor(() => {
       expect(soroban.markPaid).toHaveBeenCalledWith('GPAYER', 1n, 500000000n); // 50 USDC in stroops
       expect(soroban.submitSignedTransaction).toHaveBeenCalled();
-      expect(mockToast.updateToast).toHaveBeenCalledWith('toast-id', expect.objectContaining({ type: 'success' }));
+      expect(mockToast.updateToast).toHaveBeenCalledWith(
+        'toast-id',
+        expect.objectContaining({ type: 'success' })
+      );
     });
   });
 

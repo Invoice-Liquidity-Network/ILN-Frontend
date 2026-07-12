@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Download, Columns3 } from "lucide-react";
-import { exportToCSV, exportToJSON, filterByDateRange, DateRange } from "@/utils/exportData";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Download, Columns3 } from 'lucide-react';
+import { exportToCSV, exportToJSON, filterByDateRange, DateRange } from '@/utils/exportData';
 import {
   deriveExportColumns,
   loadStoredColumnSelection,
   pickDataColumns,
   saveStoredColumnSelection,
   type ExportColumn,
-} from "@/utils/exportColumns";
+} from '@/utils/exportColumns';
 
 interface ExportButtonProps<T extends Record<string, any>> {
   data: T[];
@@ -22,18 +22,21 @@ export function ExportButton<T extends Record<string, any>>({
   filenamePrefix,
   columns: columnsProp,
 }: ExportButtonProps<T>) {
-  const [range, setRange] = useState<DateRange>("all");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [range, setRange] = useState<DateRange>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [columnsOpen, setColumnsOpen] = useState(false);
   const columnsRef = useRef<HTMLDivElement>(null);
 
   const availableColumns = useMemo(
     () => columnsProp ?? deriveExportColumns(data),
-    [columnsProp, data],
+    [columnsProp, data]
   );
 
-  const availableKeys = useMemo(() => availableColumns.map((column) => column.key), [availableColumns]);
+  const availableKeys = useMemo(
+    () => availableColumns.map((column) => column.key),
+    [availableColumns]
+  );
 
   const [selectedColumns, setSelectedColumns] = useState<string[]>(availableKeys);
 
@@ -61,8 +64,8 @@ export function ExportButton<T extends Record<string, any>>({
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [columnsOpen]);
 
   const allSelected = selectedColumns.length === availableKeys.length;
@@ -70,7 +73,7 @@ export function ExportButton<T extends Record<string, any>>({
 
   const toggleColumn = (key: string) => {
     setSelectedColumns((current) =>
-      current.includes(key) ? current.filter((column) => column !== key) : [...current, key],
+      current.includes(key) ? current.filter((column) => column !== key) : [...current, key]
     );
   };
 
@@ -82,7 +85,7 @@ export function ExportButton<T extends Record<string, any>>({
     setSelectedColumns([]);
   };
 
-  const handleExport = (format: "csv" | "json") => {
+  const handleExport = (format: 'csv' | 'json') => {
     if (selectedColumns.length === 0) return;
 
     const customStart = startDate ? new Date(startDate) : undefined;
@@ -90,10 +93,10 @@ export function ExportButton<T extends Record<string, any>>({
     const filtered = filterByDateRange(data, range, customStart, customEnd);
     const projected = pickDataColumns(filtered, selectedColumns);
 
-    const dateStr = new Date().toISOString().split("T")[0];
+    const dateStr = new Date().toISOString().split('T')[0];
     const filename = `${filenamePrefix}-${dateStr}.${format}`;
 
-    if (format === "csv") {
+    if (format === 'csv') {
       exportToCSV(projected, filename, selectedColumns);
     } else {
       exportToJSON(projected, filename, selectedColumns);
@@ -131,7 +134,7 @@ export function ExportButton<T extends Record<string, any>>({
                 onClick={allSelected ? handleDeselectAll : handleSelectAll}
                 className="text-xs font-semibold text-primary hover:underline"
               >
-                {allSelected ? "Deselect all" : "Select all"}
+                {allSelected ? 'Deselect all' : 'Select all'}
               </button>
             </div>
 
@@ -170,7 +173,7 @@ export function ExportButton<T extends Record<string, any>>({
         <option value="custom">Custom range</option>
       </select>
 
-      {range === "custom" && (
+      {range === 'custom' && (
         <div className="flex items-center gap-2">
           <input
             type="date"
@@ -196,7 +199,7 @@ export function ExportButton<T extends Record<string, any>>({
         <button
           type="button"
           disabled={noneSelected}
-          onClick={() => handleExport("csv")}
+          onClick={() => handleExport('csv')}
           className="flex items-center gap-1.5 rounded-md bg-surface-container-high px-3 py-1.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Download className="h-3.5 w-3.5" /> CSV
@@ -204,7 +207,7 @@ export function ExportButton<T extends Record<string, any>>({
         <button
           type="button"
           disabled={noneSelected}
-          onClick={() => handleExport("json")}
+          onClick={() => handleExport('json')}
           className="flex items-center gap-1.5 rounded-md bg-surface-container-high px-3 py-1.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Download className="h-3.5 w-3.5" /> JSON

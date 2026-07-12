@@ -25,7 +25,7 @@
  * the same wallet this reduces 9 RPC calls to 3 (−67 %).
  */
 
-import { STELLAR_NETWORK } from "@/constants";
+import { STELLAR_NETWORK } from '@/constants';
 
 // ─── TTLs ─────────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ const cache = new Map<string, CacheEntry<unknown>>();
 export async function dedupedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,
-  ttlMs: number,
+  ttlMs: number
 ): Promise<T> {
   // 1. Cache hit
   const cached = cache.get(key) as CacheEntry<T> | undefined;
@@ -88,7 +88,7 @@ export async function dedupedFetch<T>(
     (err: unknown) => {
       inFlight.delete(key);
       throw err;
-    },
+    }
   );
 
   inFlight.set(key, promise);
@@ -148,9 +148,9 @@ const pendingAccountFetches = new Map<
 let batchTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getHorizonBase(): string {
-  return STELLAR_NETWORK === "mainnet"
-    ? "https://horizon.stellar.org"
-    : "https://horizon-testnet.stellar.org";
+  return STELLAR_NETWORK === 'mainnet'
+    ? 'https://horizon.stellar.org'
+    : 'https://horizon-testnet.stellar.org';
 }
 
 function flushAccountBatch(): void {
@@ -233,7 +233,7 @@ export function fetchHorizonAccount(address: string): Promise<HorizonAccountData
  */
 export async function fetchNativeXlmBalance(address: string): Promise<number> {
   const account = await fetchHorizonAccount(address);
-  const native = account.balances.find((b) => b.asset_type === "native");
+  const native = account.balances.find((b) => b.asset_type === 'native');
   return Number(native?.balance ?? 0);
 }
 
@@ -246,8 +246,8 @@ export async function fetchHomeDomain(address: string): Promise<string | null> {
     `home_domain:${address}`,
     async () => {
       const account = await fetchHorizonAccount(address);
-      return (account.home_domain ?? account.homeDomain) ?? null;
+      return account.home_domain ?? account.homeDomain ?? null;
     },
-    TTL.FEDERATION,
+    TTL.FEDERATION
   );
 }

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { useWallet } from "@/context/WalletContext";
-import type { NotificationCategory } from "@/context/NotificationContext";
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useWallet } from '@/context/WalletContext';
+import type { NotificationCategory } from '@/context/NotificationContext';
 
-const SETTINGS_KEY = "iln-lp-settings";
+const SETTINGS_KEY = 'iln-lp-settings';
 
 export interface NotificationPreferences {
   categories: Record<NotificationCategory, boolean>;
@@ -26,7 +26,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   },
   inAppEnabled: true,
   emailEnabled: false,
-  email: "",
+  email: '',
 };
 
 const DEFAULT_SETTINGS: LPSettings = {
@@ -58,7 +58,7 @@ export function useLPSettings() {
         });
       }
     } catch (e) {
-      console.error("Failed to load LP settings", e);
+      console.error('Failed to load LP settings', e);
     } finally {
       setIsLoaded(true);
     }
@@ -87,7 +87,7 @@ export function useLPSettings() {
 
       if (updatedPrefs.emailEnabled && updatedPrefs.email && address) {
         supabase
-          .from("reminder_preferences")
+          .from('reminder_preferences')
           .upsert({
             address,
             email: updatedPrefs.email,
@@ -96,22 +96,22 @@ export function useLPSettings() {
           })
           .then(({ error }: { error: { message: string } | null }) => {
             if (error) {
-              console.error("Failed to sync email preference to Supabase", error);
+              console.error('Failed to sync email preference to Supabase', error);
             }
           });
       } else if (!updatedPrefs.emailEnabled && address) {
         supabase
-          .from("reminder_preferences")
+          .from('reminder_preferences')
           .update({ enabled: false, updated_at: new Date().toISOString() })
-          .eq("address", address)
+          .eq('address', address)
           .then(({ error }: { error: { message: string } | null }) => {
             if (error) {
-              console.error("Failed to sync email preference to Supabase", error);
+              console.error('Failed to sync email preference to Supabase', error);
             }
           });
       }
     },
-    [settings, address],
+    [settings, address]
   );
 
   return {

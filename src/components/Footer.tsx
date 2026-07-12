@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useTranslation } from "react-i18next";
-import { useRef } from "react";
+import { useTranslation } from 'react-i18next';
+import { useRef } from 'react';
 
 export default function Footer() {
   const { t } = useTranslation();
   const footerRef = useRef<HTMLDivElement>(null);
 
   const skipToMain = () => {
-    const mainContent = document.querySelector("main");
+    const mainContent = document.querySelector('main');
     if (mainContent) {
       mainContent.focus();
       mainContent.scrollIntoView();
@@ -29,20 +29,22 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="text-2xl font-bold text-primary mb-6">ILN</div>
             <p className="text-on-primary-container/70 max-w-xs mb-8 font-body text-sm leading-relaxed">
-              {t("footer.tagline")}
+              {t('footer.tagline')}
             </p>
             <div className="flex gap-4">
               <a
                 className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container"
                 href="#"
-                aria-label={t("footer.website") || "Visit our website"}
+                aria-label={t('footer.website') || 'Visit our website'}
               >
-                <span className="material-symbols-outlined text-lg" aria-hidden="true">public</span>
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                  public
+                </span>
               </a>
               <a
                 className="w-10 h-10 rounded-full bg-on-primary-container/10 flex items-center justify-center text-on-primary-container hover:bg-on-primary-container/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container"
                 href="#"
-                aria-label={t("footer.github") || "View our GitHub repository"}
+                aria-label={t('footer.github') || 'View our GitHub repository'}
               >
                 <span className="material-symbols-outlined text-lg" aria-hidden="true">
                   terminal
@@ -52,54 +54,78 @@ export default function Footer() {
           </div>
           <nav>
             <h5 className="text-xs font-bold uppercase tracking-widest text-on-primary-container mb-6">
-              {t("footer.network")}
+              {t('footer.network')}
             </h5>
             <ul className="space-y-4 text-sm text-on-primary-container/80">
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.howItWorks")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.howItWorks')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.forFreelancers")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.forFreelancers')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.forLPs")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.forLPs')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.dashboard")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.dashboard')}
                 </a>
               </li>
             </ul>
           </nav>
           <nav>
             <h5 className="text-xs font-bold uppercase tracking-widest text-on-primary-container mb-6">
-              {t("footer.developers")}
+              {t('footer.developers')}
             </h5>
             <ul className="space-y-4 text-sm text-on-primary-container/80">
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.documentation")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.documentation')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.githubRepository")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.githubRepository')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.technicalSpecs")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.technicalSpecs')}
                 </a>
               </li>
               <li>
-                <a className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1" href="#">
-                  {t("footer.openSourcePolicy")}
+                <a
+                  className="hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-primary-container focus:rounded px-1"
+                  href="#"
+                >
+                  {t('footer.openSourcePolicy')}
                 </a>
               </li>
             </ul>
@@ -107,11 +133,11 @@ export default function Footer() {
         </div>
         <div className="pt-8 border-t border-on-primary-container/10 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container/60">
           <div className="flex items-center gap-4">
-            <span>{t("footer.builtOnStellar")}</span>
+            <span>{t('footer.builtOnStellar')}</span>
             <span aria-hidden="true">•</span>
-            <span>{t("footer.mitLicense")}</span>
+            <span>{t('footer.mitLicense')}</span>
           </div>
-          <div>{t("footer.copyright")}</div>
+          <div>{t('footer.copyright')}</div>
         </div>
       </div>
     </footer>

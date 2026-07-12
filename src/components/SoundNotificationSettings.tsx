@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useSoundNotifications } from "@/hooks/useSoundNotifications";
+import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 
 export default function SoundNotificationSettings() {
   const { enabled, volume, muted, setEnabled, setVolume, setMuted, playSound } =
@@ -21,12 +21,12 @@ export default function SoundNotificationSettings() {
           aria-checked={enabled}
           onClick={() => setEnabled(!enabled)}
           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
-            enabled ? "bg-primary" : "bg-surface-variant"
+            enabled ? 'bg-primary' : 'bg-surface-variant'
           }`}
         >
           <span
             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
-              enabled ? "translate-x-5" : "translate-x-0"
+              enabled ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
         </button>
@@ -44,12 +44,12 @@ export default function SoundNotificationSettings() {
           disabled={!enabled}
           onClick={() => setMuted(!muted)}
           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-            muted ? "bg-primary" : "bg-surface-variant"
+            muted ? 'bg-primary' : 'bg-surface-variant'
           }`}
         >
           <span
             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
-              muted ? "translate-x-5" : "translate-x-0"
+              muted ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
         </button>
@@ -88,7 +88,7 @@ export default function SoundNotificationSettings() {
       <div className="flex gap-2">
         <button
           disabled={!enabled || muted}
-          onClick={() => playSound("success")}
+          onClick={() => playSound('success')}
           className="flex items-center gap-1.5 rounded-xl border border-outline-variant/30 px-3 py-2 text-xs font-bold text-on-surface hover:bg-surface-variant/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span className="material-symbols-outlined text-[14px] text-green-600">check_circle</span>
@@ -96,7 +96,7 @@ export default function SoundNotificationSettings() {
         </button>
         <button
           disabled={!enabled || muted}
-          onClick={() => playSound("alert")}
+          onClick={() => playSound('alert')}
           className="flex items-center gap-1.5 rounded-xl border border-outline-variant/30 px-3 py-2 text-xs font-bold text-on-surface hover:bg-surface-variant/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span className="material-symbols-outlined text-[14px] text-amber-500">warning</span>

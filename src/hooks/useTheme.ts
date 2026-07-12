@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useTheme as useNextTheme } from "next-themes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useTheme as useNextTheme } from 'next-themes';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useTheme() {
   const { theme, setTheme: setNextTheme, resolvedTheme, systemTheme } = useNextTheme();
@@ -12,40 +12,37 @@ export function useTheme() {
   useEffect(() => {
     setMounted(true);
 
-    const mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQueryListRef.current = mediaQueryList;
 
     const handleMediaQueryChange = (e: MediaQueryListEvent) => {
-      if (theme === "system" || !theme) {
-        const newTheme = e.matches ? "dark" : "light";
+      if (theme === 'system' || !theme) {
+        const newTheme = e.matches ? 'dark' : 'light';
         applyTransition();
         setNextTheme(newTheme);
       }
     };
 
-    mediaQueryList.addEventListener("change", handleMediaQueryChange);
+    mediaQueryList.addEventListener('change', handleMediaQueryChange);
 
     return () => {
-      mediaQueryList.removeEventListener("change", handleMediaQueryChange);
+      mediaQueryList.removeEventListener('change', handleMediaQueryChange);
       clearTimeout(transitionTimerRef.current);
     };
   }, [theme, setNextTheme]);
 
-  const activeTheme = mounted ? (resolvedTheme ?? theme ?? "light") : "light";
+  const activeTheme = mounted ? (resolvedTheme ?? theme ?? 'light') : 'light';
 
   const applyTransition = useCallback(() => {
     const el = document.documentElement;
     clearTimeout(transitionTimerRef.current);
-    el.setAttribute("data-theme-transition", "");
-    transitionTimerRef.current = setTimeout(
-      () => el.removeAttribute("data-theme-transition"),
-      300,
-    );
+    el.setAttribute('data-theme-transition', '');
+    transitionTimerRef.current = setTimeout(() => el.removeAttribute('data-theme-transition'), 300);
   }, []);
 
   const toggleTheme = useCallback(() => {
     applyTransition();
-    setNextTheme(activeTheme === "dark" ? "light" : "dark");
+    setNextTheme(activeTheme === 'dark' ? 'light' : 'dark');
   }, [activeTheme, setNextTheme, applyTransition]);
 
   const setTheme = useCallback(
@@ -53,7 +50,7 @@ export function useTheme() {
       applyTransition();
       setNextTheme(t);
     },
-    [setNextTheme, applyTransition],
+    [setNextTheme, applyTransition]
   );
 
   return {

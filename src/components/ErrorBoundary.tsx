@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -47,21 +47,21 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     if (!error) return;
     const parts = [
       `Error: ${error.message}`,
-      error.stack ? `\nStack:\n${error.stack}` : "",
-      componentStack ? `\nComponent tree:${componentStack}` : "",
+      error.stack ? `\nStack:\n${error.stack}` : '',
+      componentStack ? `\nComponent tree:${componentStack}` : '',
     ];
-    const text = parts.filter(Boolean).join("\n").trim();
+    const text = parts.filter(Boolean).join('\n').trim();
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
         // Fallback for browsers without Clipboard API
-        const el = document.createElement("textarea");
+        const el = document.createElement('textarea');
         el.value = text;
-        el.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+        el.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
         document.body.appendChild(el);
         el.select();
-        document.execCommand("copy");
+        document.execCommand('copy');
         document.body.removeChild(el);
       }
       this.setState({ copied: true });
@@ -73,16 +73,14 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   buildFeedbackUrl = () => {
     const { error } = this.state;
-    if (!error) return "/";
-    const summary = encodeURIComponent(
-      `[Error Report] ${error.message.slice(0, 120)}`
-    );
+    if (!error) return '/';
+    const summary = encodeURIComponent(`[Error Report] ${error.message.slice(0, 120)}`);
     return `/?feedback=true&category=Bug&description=${summary}`;
   };
 
   render() {
     const { error, componentStack, copied } = this.state;
-    const isDev = process.env.NODE_ENV === "development";
+    const isDev = process.env.NODE_ENV === 'development';
 
     if (error) {
       return (
@@ -92,12 +90,10 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-2 min-w-0">
-              <span className="material-symbols-outlined text-error shrink-0 mt-0.5">
-                error
-              </span>
+              <span className="material-symbols-outlined text-error shrink-0 mt-0.5">error</span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold">
-                  {this.props.fallbackMessage ?? "Something went wrong loading this section."}
+                  {this.props.fallbackMessage ?? 'Something went wrong loading this section.'}
                 </p>
                 {isDev && (
                   <p className="mt-1 text-xs text-on-error-container/70 font-mono break-all">
@@ -115,9 +111,9 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
                 className="flex items-center gap-1 rounded-xl border border-error/30 px-3 py-2 text-xs font-medium text-on-error-container hover:bg-error/10 transition-colors"
               >
                 <span className="material-symbols-outlined text-[14px]">
-                  {copied ? "check" : "content_copy"}
+                  {copied ? 'check' : 'content_copy'}
                 </span>
-                {copied ? "Copied" : "Copy"}
+                {copied ? 'Copied' : 'Copy'}
               </button>
 
               <a

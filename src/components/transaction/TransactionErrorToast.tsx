@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export interface TransactionErrorToastProps {
   message: string;
@@ -14,12 +14,8 @@ export function TransactionErrorToast({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm opacity-90">{message}</p>
-      
-      {remediation && (
-        <p className="text-sm opacity-90 font-medium">
-          {remediation}
-        </p>
-      )}
+
+      {remediation && <p className="text-sm opacity-90 font-medium">{remediation}</p>}
 
       {technicalDetails && (
         <details className="mt-2 group">

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -9,7 +9,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from 'recharts';
 import {
   ReputationEventType,
   ReputationRange,
@@ -17,24 +17,24 @@ import {
   ReputationUpdatedEvent,
   buildReputationHistory,
   hasEnoughReputationHistory,
-} from "@/utils/reputation-history";
+} from '@/utils/reputation-history';
 
 const RANGES: Array<{ value: ReputationRange; label: string }> = [
-  { value: "30d", label: "30 days" },
-  { value: "90d", label: "90 days" },
-  { value: "all", label: "All time" },
+  { value: '30d', label: '30 days' },
+  { value: '90d', label: '90 days' },
+  { value: 'all', label: 'All time' },
 ];
 
 const EVENT_COLORS: Record<ReputationEventType, string> = {
-  paid: "#22c55e",
-  defaulted: "#ef4444",
-  decay: "#f97316",
+  paid: '#22c55e',
+  defaulted: '#ef4444',
+  decay: '#f97316',
 };
 
 const EVENT_LABELS: Record<ReputationEventType, string> = {
-  paid: "Payment received",
-  defaulted: "Invoice defaulted",
-  decay: "Score decay",
+  paid: 'Payment received',
+  defaulted: 'Invoice defaulted',
+  decay: 'Score decay',
 };
 
 function AnnotationDot(props: {
@@ -50,25 +50,12 @@ function AnnotationDot(props: {
     return <circle cx={cx} cy={cy} r={4} fill="var(--color-primary, #3d627f)" />;
   }
 
-  const color = EVENT_COLORS[payload.eventType] ?? "var(--color-primary, #3d627f)";
-  return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={6}
-      fill={color}
-      stroke="white"
-      strokeWidth={1.5}
-    />
-  );
+  const color = EVENT_COLORS[payload.eventType] ?? 'var(--color-primary, #3d627f)';
+  return <circle cx={cx} cy={cy} r={6} fill={color} stroke="white" strokeWidth={1.5} />;
 }
 
-export default function ReputationHistoryChart({
-  events,
-}: {
-  events: ReputationUpdatedEvent[];
-}) {
-  const [range, setRange] = useState<ReputationRange>("90d");
+export default function ReputationHistoryChart({ events }: { events: ReputationUpdatedEvent[] }) {
+  const [range, setRange] = useState<ReputationRange>('90d');
   const [showAnnotations, setShowAnnotations] = useState(true);
   const points = useMemo(() => buildReputationHistory(events, range), [events, range]);
 
@@ -88,8 +75,8 @@ export default function ReputationHistoryChart({
               onClick={() => setRange(option.value)}
               className={`rounded-lg px-3 py-2 text-xs font-bold ${
                 range === option.value
-                  ? "bg-primary text-white"
-                  : "bg-surface-container text-on-surface-variant"
+                  ? 'bg-primary text-white'
+                  : 'bg-surface-container text-on-surface-variant'
               }`}
             >
               {option.label}
@@ -100,26 +87,31 @@ export default function ReputationHistoryChart({
             aria-pressed={showAnnotations}
             className={`rounded-lg px-3 py-2 text-xs font-bold ${
               showAnnotations
-                ? "bg-secondary-container text-on-surface"
-                : "bg-surface-container text-on-surface-variant"
+                ? 'bg-secondary-container text-on-surface'
+                : 'bg-surface-container text-on-surface-variant'
             }`}
           >
-            {showAnnotations ? "Hide annotations" : "Show annotations"}
+            {showAnnotations ? 'Hide annotations' : 'Show annotations'}
           </button>
         </div>
       </div>
 
       {showAnnotations && (
         <div className="mb-4 flex flex-wrap gap-4">
-          {(Object.entries(EVENT_COLORS) as [ReputationEventType, string][]).map(([type, color]) => (
-            <span key={type} className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+          {(Object.entries(EVENT_COLORS) as [ReputationEventType, string][]).map(
+            ([type, color]) => (
               <span
-                className="inline-block h-3 w-3 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              {EVENT_LABELS[type]}
-            </span>
-          ))}
+                key={type}
+                className="flex items-center gap-1.5 text-xs text-on-surface-variant"
+              >
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                {EVENT_LABELS[type]}
+              </span>
+            )
+          )}
         </div>
       )}
 

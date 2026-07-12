@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { NETWORK_NAME, NFT_CONTRACT_ID } from "@/constants";
-import { formatAddress } from "@/utils/format";
-import { useInvoiceNft } from "@/hooks/useInvoiceNft";
-import type { InvoiceNftState, InvoiceNftTransfer } from "@/lib/invoice-nft";
+import Link from 'next/link';
+import { NETWORK_NAME, NFT_CONTRACT_ID } from '@/constants';
+import { formatAddress } from '@/utils/format';
+import { useInvoiceNft } from '@/hooks/useInvoiceNft';
+import type { InvoiceNftState, InvoiceNftTransfer } from '@/lib/invoice-nft';
 
 function getExplorerNetworkPath() {
   return NETWORK_NAME.toLowerCase();
@@ -19,7 +19,7 @@ function getTxUrl(txHash: string) {
 }
 
 function fallbackSvgDataUri(tokenId: bigint) {
-  const seed = tokenId.toString().slice(-6).padStart(6, "0");
+  const seed = tokenId.toString().slice(-6).padStart(6, '0');
   const a = Number(seed.slice(0, 2));
   const b = Number(seed.slice(2, 4));
   const c = Number(seed.slice(4, 6));
@@ -44,26 +44,30 @@ function fallbackSvgDataUri(tokenId: bigint) {
       <text x="50%" y="54%" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" font-size="44" fill="rgba(255,255,255,0.92)">Invoice NFT</text>
       <text x="50%" y="62%" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas" font-size="22" fill="rgba(255,255,255,0.88)">Token #${tokenId.toString()}</text>
     </svg>
-  `).replace(/%0A/g, "");
+  `).replace(/%0A/g, '');
   return `data:image/svg+xml;charset=utf-8,${svg}`;
 }
 
 function renderTransferRow(transfer: InvoiceNftTransfer) {
   const when =
-    typeof transfer.timestamp === "number" ? new Date(transfer.timestamp).toLocaleString() : null;
-  const label = transfer.from && transfer.to
-    ? `${formatAddress(transfer.from)} → ${formatAddress(transfer.to)}`
-    : transfer.to
-      ? `To ${formatAddress(transfer.to)}`
-      : transfer.from
-        ? `From ${formatAddress(transfer.from)}`
-        : "Token activity";
+    typeof transfer.timestamp === 'number' ? new Date(transfer.timestamp).toLocaleString() : null;
+  const label =
+    transfer.from && transfer.to
+      ? `${formatAddress(transfer.from)} → ${formatAddress(transfer.to)}`
+      : transfer.to
+        ? `To ${formatAddress(transfer.to)}`
+        : transfer.from
+          ? `From ${formatAddress(transfer.from)}`
+          : 'Token activity';
 
   return (
-    <li key={transfer.txHash} className="flex items-start justify-between gap-3 border-b border-outline-variant/10 py-3 last:border-b-0">
+    <li
+      key={transfer.txHash}
+      className="flex items-start justify-between gap-3 border-b border-outline-variant/10 py-3 last:border-b-0"
+    >
       <div className="min-w-0">
         <p className="truncate font-mono text-sm text-on-surface">{label}</p>
-        <p className="mt-1 text-xs text-on-surface-variant">{when ?? "Unknown time"}</p>
+        <p className="mt-1 text-xs text-on-surface-variant">{when ?? 'Unknown time'}</p>
       </div>
       <a
         href={getTxUrl(transfer.txHash)}
@@ -92,15 +96,16 @@ function NftBody({
   state: InvoiceNftState;
   onRetry: () => void;
 }) {
-  if (state.status === "none") return null;
+  if (state.status === 'none') return null;
 
   const imageUrl = state.metadata?.image ?? fallbackSvgDataUri(state.tokenId);
   const name = state.metadata?.name ?? `Invoice #${invoiceId.toString()} NFT`;
-  const description = state.metadata?.description ?? "Composability receipt for the invoice position.";
+  const description =
+    state.metadata?.description ?? 'Composability receipt for the invoice position.';
 
-  const isPaid = invoiceStatus === "Paid";
-  const isBurned = state.status === "burned";
-  const burnPending = isPaid && state.status === "minted" && !state.burnTxHash;
+  const isPaid = invoiceStatus === 'Paid';
+  const isBurned = state.status === 'burned';
+  const burnPending = isPaid && state.status === 'minted' && !state.burnTxHash;
 
   const isLpReceipt =
     Boolean(walletAddress) &&
@@ -143,10 +148,14 @@ function NftBody({
         <div className="flex-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Invoice NFT</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
+                Invoice NFT
+              </p>
               {isBurned ? (
                 <p className="mt-1 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-sm font-bold text-amber-600">
-                  <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
+                  <span className="material-symbols-outlined text-[18px]">
+                    local_fire_department
+                  </span>
                   NFT Burned
                 </p>
               ) : null}
@@ -159,7 +168,9 @@ function NftBody({
             {isLpReceipt ? (
               <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
                 <p className="font-bold">Your NFT claim receipt</p>
-                <p className="mt-1 text-xs">This NFT represents your claim on the invoice position.</p>
+                <p className="mt-1 text-xs">
+                  This NFT represents your claim on the invoice position.
+                </p>
               </div>
             ) : null}
           </div>
@@ -168,19 +179,35 @@ function NftBody({
             <DetailRow label="Token ID" value={state.tokenId.toString()} />
             <DetailRow
               label="Current Holder"
-              value={state.currentHolder ? formatAddress(state.currentHolder) : "Unknown"}
+              value={state.currentHolder ? formatAddress(state.currentHolder) : 'Unknown'}
               href={state.currentHolder ? `/profile/${state.currentHolder}` : undefined}
-              externalHref={state.currentHolder ? `https://stellar.expert/explorer/${getExplorerNetworkPath()}/account/${state.currentHolder}` : undefined}
+              externalHref={
+                state.currentHolder
+                  ? `https://stellar.expert/explorer/${getExplorerNetworkPath()}/account/${state.currentHolder}`
+                  : undefined
+              }
             />
             <DetailRow
               label="Mint Date"
-              value={typeof state.mintDate === "number" ? new Date(state.mintDate).toLocaleString() : "Unknown"}
+              value={
+                typeof state.mintDate === 'number'
+                  ? new Date(state.mintDate).toLocaleString()
+                  : 'Unknown'
+              }
             />
             {state.mintTxHash ? (
-              <DetailRow label="Mint Tx" value={state.mintTxHash.slice(0, 10) + "…"} externalHref={getTxUrl(state.mintTxHash)} />
+              <DetailRow
+                label="Mint Tx"
+                value={state.mintTxHash.slice(0, 10) + '…'}
+                externalHref={getTxUrl(state.mintTxHash)}
+              />
             ) : null}
             {state.burnTxHash ? (
-              <DetailRow label="Burn Tx" value={state.burnTxHash.slice(0, 10) + "…"} externalHref={getTxUrl(state.burnTxHash)} />
+              <DetailRow
+                label="Burn Tx"
+                value={state.burnTxHash.slice(0, 10) + '…'}
+                externalHref={getTxUrl(state.burnTxHash)}
+              />
             ) : null}
           </dl>
 
@@ -231,12 +258,12 @@ export default function InvoiceNftCard({
 
   if (!state) return null;
 
-  if (state.status === "error") {
+  if (state.status === 'error') {
     return (
       <section className="mt-8 rounded-3xl border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Invoice NFT</p>
         <p className="mt-2 text-sm text-error">Unable to load NFT right now.</p>
-        <p className="mt-1 text-xs text-on-surface-variant">{state.error ?? "Unknown error"}</p>
+        <p className="mt-1 text-xs text-on-surface-variant">{state.error ?? 'Unknown error'}</p>
         <button
           type="button"
           onClick={reload}

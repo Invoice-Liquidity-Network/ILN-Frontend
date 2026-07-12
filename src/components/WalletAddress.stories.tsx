@@ -77,10 +77,7 @@ export const InlineList: Story = {
         truncate={(a) => a.slice(0, 6) + '...' + a.slice(-4)}
         hideCopy
       />
-      <WalletAddress
-        address="alice*example.com"
-        truncate={(a) => a}
-      />
+      <WalletAddress address="alice*example.com" truncate={(a) => a} />
     </div>
   ),
 };

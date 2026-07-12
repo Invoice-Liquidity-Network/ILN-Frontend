@@ -1,17 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useRef } from "react";
-import { useWallet } from "@/context/WalletContext";
-import {
-  useNotification,
-  type NotificationItem,
-} from "@/context/NotificationContext";
-import { MAX_NOTIFICATIONS } from "@/utils/notificationHelpers";
-import NotificationDrawer from "./NotificationDrawer";
+import { useEffect, useState, useRef } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useNotification, type NotificationItem } from '@/context/NotificationContext';
+import { MAX_NOTIFICATIONS } from '@/utils/notificationHelpers';
+import NotificationDrawer from './NotificationDrawer';
 
 interface ExternalNotification {
   id: string;
-  category?: NotificationItem["category"];
+  category?: NotificationItem['category'];
   type: string;
   title: string;
   message: string;
@@ -23,19 +20,18 @@ interface ExternalNotification {
 function mergeNotifications(
   existing: NotificationItem[],
   incoming: ExternalNotification[],
-  isRead: (id: string) => boolean,
+  isRead: (id: string) => boolean
 ): NotificationItem[] {
   const map = new Map(existing.map((notification) => [notification.id, notification]));
 
   incoming.forEach((notification) => {
     const category =
-      notification.category ??
-      (notification.type === "proposal" ? "governance" : "invoice");
-    const href = notification.href ?? "/dashboard";
+      notification.category ?? (notification.type === 'proposal' ? 'governance' : 'invoice');
+    const href = notification.href ?? '/dashboard';
     map.set(notification.id, {
       id: notification.id,
       category,
-      type: notification.type as NotificationItem["type"],
+      type: notification.type as NotificationItem['type'],
       title: notification.title,
       message: notification.message,
       href,
@@ -45,10 +41,7 @@ function mergeNotifications(
   });
 
   return Array.from(map.values())
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, MAX_NOTIFICATIONS);
 }
 
@@ -105,22 +98,20 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
         className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
-        <span className="material-symbols-outlined text-on-surface-variant">
-          notifications
-        </span>
+        <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
 
         {unreadCount > 0 && (
           <span
             aria-hidden
             className={`absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error ${
-              isPulsing ? "animate-pulse" : ""
+              isPulsing ? 'animate-pulse' : ''
             }`}
           >
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>

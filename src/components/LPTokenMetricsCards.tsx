@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
-import { TokenYieldMetrics, TESTNET_EXCHANGE_RATES, convertToUSD } from "@/utils/per-token-yield";
-import { formatTokenAmount } from "@/utils/format";
-import AnimatedNumber from "./AnimatedNumber";
+import React, { useState } from 'react';
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
+import { TokenYieldMetrics, TESTNET_EXCHANGE_RATES, convertToUSD } from '@/utils/per-token-yield';
+import { formatTokenAmount } from '@/utils/format';
+import AnimatedNumber from './AnimatedNumber';
 
 interface LPTokenMetricsCardsProps {
   metrics: TokenYieldMetrics[];
@@ -33,21 +33,22 @@ export default function LPTokenMetricsCards({
             Show in USD equivalent (Testnet Rates)
           </label>
           <span className="text-xs text-on-surface-variant italic">
-            Approximate rates: {Object.entries(TESTNET_EXCHANGE_RATES)
+            Approximate rates:{' '}
+            {Object.entries(TESTNET_EXCHANGE_RATES)
               .map(([token, rate]) => `1 ${token} = ${rate} USD`)
-              .join(", ")}
+              .join(', ')}
           </span>
         </div>
         <button
           id="usd-toggle"
           onClick={onToggleUSD}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            showUSDEquivalent ? "bg-primary" : "bg-surface-container"
+            showUSDEquivalent ? 'bg-primary' : 'bg-surface-container'
           }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-on-primary transition-transform ${
-              showUSDEquivalent ? "translate-x-6" : "translate-x-1"
+              showUSDEquivalent ? 'translate-x-6' : 'translate-x-1'
             }`}
           />
         </button>
@@ -68,7 +69,7 @@ export default function LPTokenMetricsCards({
             ? convertToUSD(metric.pendingYield, metric.token)
             : metric.pendingYield;
 
-          const displaySymbol = showUSDEquivalent ? "USD" : metric.token.symbol;
+          const displaySymbol = showUSDEquivalent ? 'USD' : metric.token.symbol;
           const displayDecimals = showUSDEquivalent ? 6 : metric.token.decimals;
 
           return (
@@ -144,20 +145,59 @@ export default function LPTokenMetricsCards({
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metric.sparklineData.map((v, i) => ({ v, i }))}>
                       <defs>
-                        <linearGradient id={`sparkGrad-${metric.token.contractId}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={metric.sparklineData![metric.sparklineData!.length - 1] >= metric.sparklineData![0] ? '#10b981' : '#ef4444'} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={metric.sparklineData![metric.sparklineData!.length - 1] >= metric.sparklineData![0] ? '#10b981' : '#ef4444'} stopOpacity={0} />
+                        <linearGradient
+                          id={`sparkGrad-${metric.token.contractId}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={
+                              metric.sparklineData![metric.sparklineData!.length - 1] >=
+                              metric.sparklineData![0]
+                                ? '#10b981'
+                                : '#ef4444'
+                            }
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={
+                              metric.sparklineData![metric.sparklineData!.length - 1] >=
+                              metric.sparklineData![0]
+                                ? '#10b981'
+                                : '#ef4444'
+                            }
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                       </defs>
                       <Tooltip
-                        contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
-                        formatter={(value: number) => [formatTokenAmount(BigInt(Math.round(value)), { symbol: displaySymbol, decimals: displayDecimals }), 'Value']}
+                        contentStyle={{
+                          fontSize: 12,
+                          borderRadius: 8,
+                          border: '1px solid #e2e8f0',
+                        }}
+                        formatter={(value: number) => [
+                          formatTokenAmount(BigInt(Math.round(value)), {
+                            symbol: displaySymbol,
+                            decimals: displayDecimals,
+                          }),
+                          'Value',
+                        ]}
                         labelFormatter={() => '7-Day Trend'}
                       />
                       <Area
                         type="monotone"
                         dataKey="v"
-                        stroke={metric.sparklineData[metric.sparklineData.length - 1] >= metric.sparklineData[0] ? '#10b981' : '#ef4444'}
+                        stroke={
+                          metric.sparklineData[metric.sparklineData.length - 1] >=
+                          metric.sparklineData[0]
+                            ? '#10b981'
+                            : '#ef4444'
+                        }
                         fill={`url(#sparkGrad-${metric.token.contractId})`}
                         strokeWidth={2}
                         dot={false}

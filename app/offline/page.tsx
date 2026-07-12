@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 export default function OfflinePage() {
   const [isOnline, setIsOnline] = useState(false);
@@ -13,12 +13,12 @@ export default function OfflinePage() {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -40,12 +40,12 @@ export default function OfflinePage() {
         </div>
 
         <h1 className="mb-4 font-headline text-2xl font-bold text-on-surface">
-          {isOnline ? "Connection Restored" : "You're Offline"}
+          {isOnline ? 'Connection Restored' : "You're Offline"}
         </h1>
 
         <p className="mb-8 text-on-surface-variant">
           {isOnline
-            ? "Your internet connection has been restored. You can now access all features."
+            ? 'Your internet connection has been restored. You can now access all features.'
             : "Some features may not be available while you're offline. You can still view cached invoices and your portfolio."}
         </p>
 
@@ -80,8 +80,9 @@ export default function OfflinePage() {
 
         <div className="mt-8 text-xs text-on-surface-variant">
           <p>
-            Status: <span className={isOnline ? "text-primary" : "text-error"}>
-              {isOnline ? "Online" : "Offline"}
+            Status:{' '}
+            <span className={isOnline ? 'text-primary' : 'text-error'}>
+              {isOnline ? 'Online' : 'Offline'}
             </span>
           </p>
         </div>

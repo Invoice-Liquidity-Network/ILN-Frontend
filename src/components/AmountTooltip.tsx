@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * AmountTooltip — Issue #163
@@ -12,15 +12,15 @@
  *   </AmountTooltip>
  */
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import { useLocaleFormatting } from "@/hooks/useLocaleFormatting";
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocaleFormatting } from '@/hooks/useLocaleFormatting';
 
 // ── Breakdown types ────────────────────────────────────────────────────────────
 
-export type BreakdownType = "freelancer" | "lp" | "protocol";
+export type BreakdownType = 'freelancer' | 'lp' | 'protocol';
 
 export interface FreelancerBreakdown {
-  type: "freelancer";
+  type: 'freelancer';
   /** Gross invoice amount in smallest token units */
   invoiceAmount: bigint;
   /** Discount in basis points (e.g. 300 = 3%) */
@@ -28,26 +28,26 @@ export interface FreelancerBreakdown {
 }
 
 export interface LPBreakdown {
-  type: "lp";
+  type: 'lp';
   amountSent: bigint;
   discountBps: number;
 }
 
 export interface ProtocolBreakdown {
-  type: "protocol";
+  type: 'protocol';
   discountAmount: bigint;
   protocolFeeBps: number;
 }
 
 export type AmountBreakdown = FreelancerBreakdown | LPBreakdown | ProtocolBreakdown;
 
-export type AmountToken = "USDC" | "EURC" | "XLM";
+export type AmountToken = 'USDC' | 'EURC' | 'XLM';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const TOKEN_FORMATTING: Record<AmountToken, { decimals: number; currency?: string }> = {
-  USDC: { decimals: 7, currency: "USD" },
-  EURC: { decimals: 7, currency: "EUR" },
+  USDC: { decimals: 7, currency: 'USD' },
+  EURC: { decimals: 7, currency: 'EUR' },
   XLM: { decimals: 7 },
 };
 
@@ -55,13 +55,13 @@ function formatAmount(amount: bigint, token: AmountToken, locale: string): strin
   const { decimals, currency } = TOKEN_FORMATTING[token];
   const value = Number(amount) / 10 ** decimals;
   const options: Intl.NumberFormatOptions = {
-    notation: "compact",
+    notation: 'compact',
     minimumFractionDigits: currency ? 2 : 0,
     maximumFractionDigits: currency ? 2 : decimals,
   };
 
   if (currency) {
-    options.style = "currency";
+    options.style = 'currency';
     options.currency = currency;
   }
 
@@ -82,26 +82,29 @@ function bpsToPercent(bps: number): string {
 function buildRows(
   breakdown: AmountBreakdown,
   token: AmountToken,
-  locale: string,
+  locale: string
 ): Array<{ label: string; value: string }> {
-  if (breakdown.type === "freelancer") {
+  if (breakdown.type === 'freelancer') {
     const { invoiceAmount, discountBps } = breakdown;
     const discount = bpsOf(invoiceAmount, discountBps);
     const payout = invoiceAmount - discount;
     return [
-      { label: "Invoice amount", value: formatAmount(invoiceAmount, token, locale) },
-      { label: `Discount (${bpsToPercent(discountBps)})`, value: `−${formatAmount(discount, token, locale)}` },
-      { label: "You receive", value: formatAmount(payout, token, locale) },
+      { label: 'Invoice amount', value: formatAmount(invoiceAmount, token, locale) },
+      {
+        label: `Discount (${bpsToPercent(discountBps)})`,
+        value: `−${formatAmount(discount, token, locale)}`,
+      },
+      { label: 'You receive', value: formatAmount(payout, token, locale) },
     ];
   }
 
-  if (breakdown.type === "lp") {
+  if (breakdown.type === 'lp') {
     const { amountSent, discountBps } = breakdown;
     const discount = bpsOf(amountSent, discountBps);
     const netYieldPct = (discountBps / 100).toFixed(2);
     return [
-      { label: "You sent", value: formatAmount(amountSent, token, locale) },
-      { label: "Discount earned", value: `+${formatAmount(discount, token, locale)}` },
+      { label: 'You sent', value: formatAmount(amountSent, token, locale) },
+      { label: 'Discount earned', value: `+${formatAmount(discount, token, locale)}` },
       { label: `Net yield`, value: `${netYieldPct}%` },
     ];
   }
@@ -111,9 +114,12 @@ function buildRows(
   const fee = bpsOf(discountAmount, protocolFeeBps);
   const lpYield = discountAmount - fee;
   return [
-    { label: "Discount", value: formatAmount(discountAmount, token, locale) },
-    { label: `Protocol fee (${bpsToPercent(protocolFeeBps)})`, value: `−${formatAmount(fee, token, locale)}` },
-    { label: "LP yield", value: formatAmount(lpYield, token, locale) },
+    { label: 'Discount', value: formatAmount(discountAmount, token, locale) },
+    {
+      label: `Protocol fee (${bpsToPercent(protocolFeeBps)})`,
+      value: `−${formatAmount(fee, token, locale)}`,
+    },
+    { label: 'LP yield', value: formatAmount(lpYield, token, locale) },
   ];
 }
 
@@ -128,9 +134,9 @@ interface AmountTooltipProps {
 
 export function AmountTooltip({
   breakdown,
-  token = "USDC",
+  token = 'USDC',
   children,
-  className = "",
+  className = '',
 }: AmountTooltipProps) {
   const { locale } = useLocaleFormatting();
   const [visible, setVisible] = useState(false);
@@ -148,11 +154,11 @@ export function AmountTooltip({
         setVisible(false);
       }
     };
-    document.addEventListener("mousedown", onOutside);
-    document.addEventListener("touchstart", onOutside);
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('touchstart', onOutside);
     return () => {
-      document.removeEventListener("mousedown", onOutside);
-      document.removeEventListener("touchstart", onOutside);
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('touchstart', onOutside);
     };
   }, [visible]);
 
@@ -180,7 +186,7 @@ export function AmountTooltip({
               {rows.map(({ label, value }, i) => (
                 <tr
                   key={i}
-                  className={i === rows.length - 1 ? "font-semibold border-t border-gray-100" : ""}
+                  className={i === rows.length - 1 ? 'font-semibold border-t border-gray-100' : ''}
                 >
                   <td className="py-0.5 pr-4 text-gray-600 whitespace-nowrap">{label}</td>
                   <td className="py-0.5 text-right whitespace-nowrap">{value}</td>

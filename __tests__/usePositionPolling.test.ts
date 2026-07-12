@@ -1,15 +1,18 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { usePositionPolling } from "@/hooks/usePositionPolling";
-import type { Invoice } from "@/utils/soroban";
-import type { ToastMessage } from "@/context/ToastContext";
-import type { NotificationItem } from "@/context/NotificationContext";
+import { renderHook, waitFor } from '@testing-library/react';
+import { usePositionPolling } from '@/hooks/usePositionPolling';
+import type { Invoice } from '@/utils/soroban';
+import type { ToastMessage } from '@/context/ToastContext';
+import type { NotificationItem } from '@/context/NotificationContext';
 
-describe("usePositionPolling", () => {
-  const mockToast = jest.fn<string, [Omit<ToastMessage, "id">]>((toast) => {
+describe('usePositionPolling', () => {
+  const mockToast = jest.fn<string, [Omit<ToastMessage, 'id'>]>((toast) => {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 
-  const mockNotification = jest.fn<NotificationItem, [Omit<NotificationItem, "createdAt" | "read">]>((notification) => {
+  const mockNotification = jest.fn<
+    NotificationItem,
+    [Omit<NotificationItem, 'createdAt' | 'read'>]
+  >((notification) => {
     return {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
@@ -20,15 +23,15 @@ describe("usePositionPolling", () => {
 
   const baseInvoice: Invoice = {
     id: 1n,
-    status: "Funded",
-    freelancer: "GFREELANCER1",
-    payer: "GPAYER1",
+    status: 'Funded',
+    freelancer: 'GFREELANCER1',
+    payer: 'GPAYER1',
     amount: 1_000_000n, // 1 USDC
     due_date: Math.floor(Date.now() / 1000) + 86400, // Tomorrow
     discount_rate: 5, // 5% = 50000 basis points
-    funder: "GFUNDER1",
+    funder: 'GFUNDER1',
     funded_at: Math.floor(Date.now() / 1000),
-    token: "CUSDC",
+    token: 'CUSDC',
   };
 
   beforeEach(() => {
@@ -41,8 +44,8 @@ describe("usePositionPolling", () => {
     jest.useRealTimers();
   });
 
-  it("should notify on Funded → Paid transition", () => {
-    const invoices = [{ ...baseInvoice, status: "Funded" }];
+  it('should notify on Funded → Paid transition', () => {
+    const invoices = [{ ...baseInvoice, status: 'Funded' }];
 
     const { rerender } = renderHook(
       ({ invoices: inv, address, addToast, addNotification }) =>
@@ -50,41 +53,41 @@ describe("usePositionPolling", () => {
       {
         initialProps: {
           invoices,
-          address: "GFUNDER1",
+          address: 'GFUNDER1',
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
     expect(mockToast).not.toHaveBeenCalled();
     expect(mockNotification).not.toHaveBeenCalled();
 
     // Simulate invoice state change to "Paid"
-    const updatedInvoices = [{ ...baseInvoice, status: "Paid" }];
+    const updatedInvoices = [{ ...baseInvoice, status: 'Paid' }];
     rerender({
       invoices: updatedInvoices,
-      address: "GFUNDER1",
+      address: 'GFUNDER1',
       addToast: mockToast,
       addNotification: mockNotification,
     });
 
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "success",
-        title: expect.stringContaining("paid"),
-      }),
+        type: 'success',
+        title: expect.stringContaining('paid'),
+      })
     );
     expect(mockNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "settled",
-        title: expect.stringContaining("paid"),
-      }),
+        type: 'settled',
+        title: expect.stringContaining('paid'),
+      })
     );
   });
 
-  it("should notify on Funded → Defaulted transition", () => {
-    const invoices = [{ ...baseInvoice, status: "Funded" }];
+  it('should notify on Funded → Defaulted transition', () => {
+    const invoices = [{ ...baseInvoice, status: 'Funded' }];
 
     const { rerender } = renderHook(
       ({ invoices: inv, address, addToast, addNotification }) =>
@@ -92,37 +95,37 @@ describe("usePositionPolling", () => {
       {
         initialProps: {
           invoices,
-          address: "GFUNDER1",
+          address: 'GFUNDER1',
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
-    const updatedInvoices = [{ ...baseInvoice, status: "Defaulted" }];
+    const updatedInvoices = [{ ...baseInvoice, status: 'Defaulted' }];
     rerender({
       invoices: updatedInvoices,
-      address: "GFUNDER1",
+      address: 'GFUNDER1',
       addToast: mockToast,
       addNotification: mockNotification,
     });
 
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "error",
-        title: expect.stringContaining("expired"),
-      }),
+        type: 'error',
+        title: expect.stringContaining('expired'),
+      })
     );
     expect(mockNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "expired",
-        title: expect.stringContaining("expired"),
-      }),
+        type: 'expired',
+        title: expect.stringContaining('expired'),
+      })
     );
   });
 
-  it("should notify on Funded → Cancelled transition (disputed)", () => {
-    const invoices = [{ ...baseInvoice, status: "Funded" }];
+  it('should notify on Funded → Cancelled transition (disputed)', () => {
+    const invoices = [{ ...baseInvoice, status: 'Funded' }];
 
     const { rerender } = renderHook(
       ({ invoices: inv, address, addToast, addNotification }) =>
@@ -130,38 +133,38 @@ describe("usePositionPolling", () => {
       {
         initialProps: {
           invoices,
-          address: "GFUNDER1",
+          address: 'GFUNDER1',
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
-    const updatedInvoices = [{ ...baseInvoice, status: "Cancelled" }];
+    const updatedInvoices = [{ ...baseInvoice, status: 'Cancelled' }];
     rerender({
       invoices: updatedInvoices,
-      address: "GFUNDER1",
+      address: 'GFUNDER1',
       addToast: mockToast,
       addNotification: mockNotification,
     });
 
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "error",
-        title: expect.stringContaining("disputed"),
-      }),
+        type: 'error',
+        title: expect.stringContaining('disputed'),
+      })
     );
     expect(mockNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "disputed",
-        title: expect.stringContaining("disputed"),
-      }),
+        type: 'disputed',
+        title: expect.stringContaining('disputed'),
+      })
     );
   });
 
-  it("should notify once when invoice expires (due date passed)", () => {
+  it('should notify once when invoice expires (due date passed)', () => {
     const pastDue = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-    const invoices = [{ ...baseInvoice, due_date: pastDue, status: "Funded" }];
+    const invoices = [{ ...baseInvoice, due_date: pastDue, status: 'Funded' }];
 
     renderHook(
       ({ invoices: inv, address, addToast, addNotification }) =>
@@ -169,11 +172,11 @@ describe("usePositionPolling", () => {
       {
         initialProps: {
           invoices,
-          address: "GFUNDER1",
+          address: 'GFUNDER1',
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
     // Simulate polling interval
@@ -184,8 +187,8 @@ describe("usePositionPolling", () => {
     expect(mockNotification).toHaveBeenCalledTimes(1);
   });
 
-  it("should not notify for invoices not funded by the current address", () => {
-    const invoices = [{ ...baseInvoice, status: "Funded", funder: "GOTHER_FUNDER" }];
+  it('should not notify for invoices not funded by the current address', () => {
+    const invoices = [{ ...baseInvoice, status: 'Funded', funder: 'GOTHER_FUNDER' }];
 
     renderHook(
       ({ invoices: inv, address, addToast, addNotification }) =>
@@ -193,18 +196,18 @@ describe("usePositionPolling", () => {
       {
         initialProps: {
           invoices,
-          address: "GFUNDER1",
+          address: 'GFUNDER1',
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
     expect(mockToast).not.toHaveBeenCalled();
     expect(mockNotification).not.toHaveBeenCalled();
   });
 
-  it("should not notify when address is null", () => {
+  it('should not notify when address is null', () => {
     const invoices = [baseInvoice];
 
     renderHook(
@@ -217,7 +220,7 @@ describe("usePositionPolling", () => {
           addToast: mockToast,
           addNotification: mockNotification,
         },
-      },
+      }
     );
 
     expect(mockToast).not.toHaveBeenCalled();

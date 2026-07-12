@@ -1,4 +1,4 @@
-import { Invoice } from "./soroban";
+import { Invoice } from './soroban';
 
 export type YieldRange = 7 | 30 | 90;
 
@@ -12,7 +12,7 @@ export interface YieldDataPoint {
   cumulative: number;
 }
 
-const TOKEN_SYMBOLS = ["USDC", "EURC", "XLM"] as const;
+const TOKEN_SYMBOLS = ['USDC', 'EURC', 'XLM'] as const;
 type TokenSymbol = (typeof TOKEN_SYMBOLS)[number];
 
 function weekStart(ts: number): string {
@@ -23,11 +23,11 @@ function weekStart(ts: number): string {
 }
 
 function tokenSymbolFromId(tokenId: string | undefined): TokenSymbol {
-  if (!tokenId) return "USDC";
+  if (!tokenId) return 'USDC';
   const upper = tokenId.toUpperCase();
-  if (upper.includes("EURC")) return "EURC";
-  if (upper.includes("XLM")) return "XLM";
-  return "USDC";
+  if (upper.includes('EURC')) return 'EURC';
+  if (upper.includes('XLM')) return 'XLM';
+  return 'USDC';
 }
 
 /**
@@ -37,16 +37,16 @@ function tokenSymbolFromId(tokenId: string | undefined): TokenSymbol {
 export function buildYieldTimeSeries(
   invoices: Invoice[],
   lpAddress: string,
-  days: YieldRange,
+  days: YieldRange
 ): YieldDataPoint[] {
   const cutoff = Math.floor(Date.now() / 1000) - days * 86400;
 
   const paid = invoices.filter(
     (inv) =>
       inv.funder === lpAddress &&
-      inv.status === "Paid" &&
+      inv.status === 'Paid' &&
       inv.funded_at !== undefined &&
-      Number(inv.funded_at) >= cutoff,
+      Number(inv.funded_at) >= cutoff
   );
 
   const buckets = new Map<string, Record<TokenSymbol, number>>();
@@ -59,7 +59,7 @@ export function buildYieldTimeSeries(
     const symbol = tokenSymbolFromId(inv.token);
     const yieldRaw = (Number(inv.amount) * inv.discount_rate) / 10_000;
     // Convert from smallest unit (7 decimals for EURC/XLM, 6 for USDC)
-    const decimals = symbol === "USDC" ? 6 : 7;
+    const decimals = symbol === 'USDC' ? 6 : 7;
     buckets.get(key)![symbol] += yieldRaw / 10 ** decimals;
   }
 
@@ -69,10 +69,10 @@ export function buildYieldTimeSeries(
   return sorted.map(([isoDate, tokens]) => {
     const weekTotal = tokens.USDC + tokens.EURC + tokens.XLM;
     cumulative += weekTotal;
-    const label = new Date(isoDate).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
+    const label = new Date(isoDate).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
     });
     return { date: label, isoDate, ...tokens, cumulative };
   });
@@ -84,15 +84,15 @@ export function buildYieldTimeSeries(
 export function calcAvgWeeklyYieldPct(
   invoices: Invoice[],
   lpAddress: string,
-  days: YieldRange,
+  days: YieldRange
 ): number {
   const cutoff = Math.floor(Date.now() / 1000) - days * 86400;
   const paid = invoices.filter(
     (inv) =>
       inv.funder === lpAddress &&
-      inv.status === "Paid" &&
+      inv.status === 'Paid' &&
       inv.funded_at !== undefined &&
-      Number(inv.funded_at) >= cutoff,
+      Number(inv.funded_at) >= cutoff
   );
   if (paid.length === 0) return 0;
 

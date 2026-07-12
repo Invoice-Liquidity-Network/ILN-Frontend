@@ -14,14 +14,14 @@
  *  - "Cancel" button closes the modal without calling any contract function.
  */
 
-import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import LPDashboard from "../LPDashboard";
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import LPDashboard from '../LPDashboard';
 
 // ─── Stable mock handles ─────────────────────────────────────────────────────
 
-const addToast = vi.fn(() => "toast-id");
+const addToast = vi.fn(() => 'toast-id');
 const updateToast = vi.fn();
 const getAllInvoices = vi.fn();
 const getTokenAllowance = vi.fn();
@@ -31,7 +31,7 @@ const submitSignedTransaction = vi.fn();
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
-vi.mock("../../hooks/useInvoices", () => ({
+vi.mock('../../hooks/useInvoices', () => ({
   useInvoices: vi.fn(),
   useFundInvoice: vi.fn(() => ({
     mutate: vi.fn((id, { onSuccess, onError }) => {
@@ -41,29 +41,29 @@ vi.mock("../../hooks/useInvoices", () => ({
   })),
 }));
 
-import { useInvoices, useFundInvoice } from "@/hooks/useInvoices";
+import { useInvoices, useFundInvoice } from '@/hooks/useInvoices';
 
-vi.mock("@stellar/freighter-api", () => ({
+vi.mock('@stellar/freighter-api', () => ({
   isConnected: vi.fn().mockResolvedValue(false),
   getAddress: vi.fn().mockResolvedValue({ address: null }),
   setAllowed: vi.fn().mockResolvedValue(false),
-  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: "signed-xdr" }),
-  getNetwork: vi.fn().mockResolvedValue({ network: "TESTNET" }),
+  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: 'signed-xdr' }),
+  getNetwork: vi.fn().mockResolvedValue({ network: 'TESTNET' }),
 }));
 
-vi.mock("../../context/WalletContext", () => ({
+vi.mock('../../context/WalletContext', () => ({
   useWallet: () => ({
-    address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6",
+    address: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6',
     connect: vi.fn(),
-    signTx: vi.fn().mockResolvedValue("signed-xdr"),
+    signTx: vi.fn().mockResolvedValue('signed-xdr'),
   }),
 }));
 
-vi.mock("../../context/ToastContext", () => ({
+vi.mock('../../context/ToastContext', () => ({
   useToast: () => ({ addToast, updateToast }),
 }));
 
-vi.mock("../../utils/soroban", () => ({
+vi.mock('../../utils/soroban', () => ({
   getAllInvoices: (...args: unknown[]) => getAllInvoices(...args),
   getTokenAllowance: (...args: unknown[]) => getTokenAllowance(...args),
   buildApproveTokenTransaction: (...args: unknown[]) => buildApproveTokenTransaction(...args),
@@ -72,21 +72,26 @@ vi.mock("../../utils/soroban", () => ({
   getPayerScoresBatch: vi.fn().mockResolvedValue(new Map()),
 }));
 
-vi.mock("../../hooks/useApprovedTokens", () => ({
+vi.mock('../../hooks/useApprovedTokens', () => ({
   useApprovedTokens: () => ({
-    tokens: [{ symbol: "USDC", contractId: "TESTNET_USDC_TOKEN_ID", decimals: 7 }],
-    tokenMap: new Map([["TESTNET_USDC_TOKEN_ID", { symbol: "USDC", contractId: "TESTNET_USDC_TOKEN_ID", decimals: 7 }]]),
-    defaultToken: { symbol: "USDC", contractId: "TESTNET_USDC_TOKEN_ID", decimals: 7 },
-  })
+    tokens: [{ symbol: 'USDC', contractId: 'TESTNET_USDC_TOKEN_ID', decimals: 7 }],
+    tokenMap: new Map([
+      [
+        'TESTNET_USDC_TOKEN_ID',
+        { symbol: 'USDC', contractId: 'TESTNET_USDC_TOKEN_ID', decimals: 7 },
+      ],
+    ]),
+    defaultToken: { symbol: 'USDC', contractId: 'TESTNET_USDC_TOKEN_ID', decimals: 7 },
+  }),
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
   }),
-  usePathname: () => "",
+  usePathname: () => '',
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -100,18 +105,18 @@ vi.mock("next/navigation", () => ({
  */
 const mockInvoice = {
   id: 7n,
-  freelancer: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-  payer: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
-  amount: 10_000_000_000n,  // 1,000 USDC in stroops
+  freelancer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+  payer: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY',
+  amount: 10_000_000_000n, // 1,000 USDC in stroops
   due_date: 1_900_000_000n, // far-future unix timestamp
-  discount_rate: 300,       // 3.00 %
-  status: "Pending",
+  discount_rate: 300, // 3.00 %
+  status: 'Pending',
   funder: null,
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-describe("FundConfirmModal (via LPDashboard)", () => {
+describe('FundConfirmModal (via LPDashboard)', () => {
   beforeEach(() => {
     addToast.mockClear();
     updateToast.mockClear();
@@ -128,43 +133,37 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
   // ── Yield calculation display ─────────────────────────────────────────────
 
-  describe("yield calculation display", () => {
-    it("shows the invoice face value (amount sent) correctly", async () => {
+  describe('yield calculation display', () => {
+    it('shows the invoice face value (amount sent) correctly', async () => {
       getTokenAllowance.mockResolvedValue(10_000_000_000n); // sufficient allowance
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument());
 
       // "You will send" row – 1,000 USDC
       expect(screen.getAllByText(/1,000/i).length).toBeGreaterThanOrEqual(1);
     });
 
-    it("shows the freelancer payout (amount − yield) correctly", async () => {
+    it('shows the freelancer payout (amount − yield) correctly', async () => {
       getTokenAllowance.mockResolvedValue(10_000_000_000n);
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument());
 
       expect(screen.getByText(/970/i)).toBeInTheDocument();
     });
 
-    it("shows the LP yield (discount) correctly", async () => {
+    it('shows the LP yield (discount) correctly', async () => {
       getTokenAllowance.mockResolvedValue(10_000_000_000n);
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText(/Fund Invoice #7/i)).toBeInTheDocument());
 
       // 1000 × 3% = 30 USDC  →  300_000_000 stroops → "30 USDC"
       expect(screen.getAllByText(/30 USDC/i)[0]).toBeInTheDocument();
@@ -175,20 +174,20 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
   // ── Confirm (Fund) button – sufficient allowance path ────────────────────
 
-  describe("when allowance is already sufficient", () => {
+  describe('when allowance is already sufficient', () => {
     beforeEach(() => {
       getTokenAllowance.mockResolvedValue(10_000_000_000n); // equal to invoice amount
     });
 
     it("renders the 'Fund Invoice' action button, not 'Approve USDC'", async () => {
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
 
       await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Fund Invoice" })).toBeInTheDocument(),
+        expect(screen.getByRole('button', { name: 'Fund Invoice' })).toBeInTheDocument()
       );
 
-      expect(screen.queryByRole("button", { name: "Approve USDC" })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Approve USDC' })).not.toBeInTheDocument();
     });
 
     it("calls fundInvoice and submitSignedTransaction when 'Fund Invoice' is clicked", async () => {
@@ -196,39 +195,38 @@ describe("FundConfirmModal (via LPDashboard)", () => {
       (useFundInvoice as any).mockReturnValue({ mutate, isPending: false });
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund Invoice' }));
 
       await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
-      expect(mutate).toHaveBeenCalledWith(
-        mockInvoice.id,
-        expect.any(Object)
-      );
+      expect(mutate).toHaveBeenCalledWith(mockInvoice.id, expect.any(Object));
     });
 
-    it("fires a success toast after a successful fund call", async () => {
+    it('fires a success toast after a successful fund call', async () => {
       (useFundInvoice as any).mockReturnValue({
         mutate: vi.fn((id, { onSuccess }) => onSuccess()),
-        isPending: false
+        isPending: false,
       });
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund Invoice' }));
 
       // Note: useFundInvoice internal logic handles showToast now
       // but the component might still have its own onsuccess logic
     });
 
-    it("shows an error message in the modal when fundInvoice rejects", async () => {
+    it('shows an error message in the modal when fundInvoice rejects', async () => {
       (useFundInvoice as any).mockReturnValue({
-        mutate: vi.fn((id, { onError }) => onError(new Error("Contract revert: insufficient balance"))),
-        isPending: false
+        mutate: vi.fn((id, { onError }) =>
+          onError(new Error('Contract revert: insufficient balance'))
+        ),
+        isPending: false,
       });
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Fund Invoice" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund Invoice' }));
 
       await waitFor(() => {
         expect(screen.getByText(/Contract revert: insufficient balance/)).toBeInTheDocument();
@@ -238,54 +236,54 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
   // ── Approve button – insufficient allowance path ──────────────────────────
 
-  describe("when allowance is insufficient", () => {
+  describe('when allowance is insufficient', () => {
     beforeEach(() => {
       getTokenAllowance.mockResolvedValue(0n);
     });
 
     it("renders 'Approve USDC' action button in step-1 state", async () => {
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
 
       await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Approve USDC" })).toBeInTheDocument(),
+        expect(screen.getByRole('button', { name: 'Approve USDC' })).toBeInTheDocument()
       );
     });
 
-    it("calls buildApproveTokenTransaction and submitSignedTransaction on approve", async () => {
-      buildApproveTokenTransaction.mockResolvedValue("approve-tx-xdr");
-      submitSignedTransaction.mockResolvedValue({ txHash: "approve-hash" });
+    it('calls buildApproveTokenTransaction and submitSignedTransaction on approve', async () => {
+      buildApproveTokenTransaction.mockResolvedValue('approve-tx-xdr');
+      submitSignedTransaction.mockResolvedValue({ txHash: 'approve-hash' });
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() => expect(buildApproveTokenTransaction).toHaveBeenCalledTimes(1));
       expect(submitSignedTransaction).toHaveBeenCalledTimes(1);
     });
 
-    it("fires a success toast after a successful approve call", async () => {
-      buildApproveTokenTransaction.mockResolvedValue("approve-tx-xdr");
-      submitSignedTransaction.mockResolvedValue({ txHash: "approve-hash" });
+    it('fires a success toast after a successful approve call', async () => {
+      buildApproveTokenTransaction.mockResolvedValue('approve-tx-xdr');
+      submitSignedTransaction.mockResolvedValue({ txHash: 'approve-hash' });
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() =>
         expect(updateToast).toHaveBeenCalledWith(
-          "toast-id",
-          expect.objectContaining({ type: "success", title: "USDC approved" }),
-        ),
+          'toast-id',
+          expect.objectContaining({ type: 'success', title: 'USDC approved' })
+        )
       );
     });
 
-    it("shows the funding-error message when approval fails", async () => {
-      buildApproveTokenTransaction.mockRejectedValue(new Error("User rejected tx"));
+    it('shows the funding-error message when approval fails', async () => {
+      buildApproveTokenTransaction.mockRejectedValue(new Error('User rejected tx'));
 
       render(<LPDashboard />);
-      fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Approve USDC" }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() => {
         expect(screen.getByText(/User rejected tx/)).toBeInTheDocument();
@@ -295,16 +293,14 @@ describe("FundConfirmModal (via LPDashboard)", () => {
 
   // ── Cancel button ─────────────────────────────────────────────────────────
 
-  it("closes the modal without calling any contract function when Cancel is clicked", async () => {
+  it('closes the modal without calling any contract function when Cancel is clicked', async () => {
     getTokenAllowance.mockResolvedValue(0n);
 
     render(<LPDashboard />);
-    fireEvent.click(await screen.findByRole("button", { name: "Fund" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Fund Invoice #7/i)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Fund Invoice #7/i)).not.toBeInTheDocument());
 
     expect(fundInvoice).not.toHaveBeenCalled();
     expect(buildApproveTokenTransaction).not.toHaveBeenCalled();

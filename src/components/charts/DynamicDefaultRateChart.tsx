@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
 
-const DefaultRateChart = dynamic(() => import("./DefaultRateChart"), {
+const DefaultRateChart = dynamic(() => import('./DefaultRateChart'), {
   ssr: false,
   loading: () => (
     <div className="flex h-64 items-center justify-center rounded-xl bg-surface-container">

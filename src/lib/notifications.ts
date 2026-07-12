@@ -1,6 +1,6 @@
 export interface WalletNotification {
   id: string;
-  category: "invoice" | "lp" | "governance" | "reputation";
+  category: 'invoice' | 'lp' | 'governance' | 'reputation';
   type: string;
   title: string;
   message: string;
@@ -9,9 +9,7 @@ export interface WalletNotification {
   read: boolean;
 }
 
-export async function getNotifications(
-  address: string,
-): Promise<WalletNotification[]> {
+export async function getNotifications(address: string): Promise<WalletNotification[]> {
   const apiBase = process.env.NOTIFICATION_API;
 
   if (!apiBase) {
@@ -19,11 +17,11 @@ export async function getNotifications(
   }
 
   const res = await fetch(`${apiBase}/notifications/${address}`, {
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch notifications");
+    throw new Error('Failed to fetch notifications');
   }
 
   return res.json();

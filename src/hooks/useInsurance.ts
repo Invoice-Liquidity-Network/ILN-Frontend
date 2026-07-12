@@ -1,10 +1,6 @@
-import { useState, useEffect } from "react";
-import { 
-  getInsurancePoolInfo, 
-  getLPInsuranceStatus, 
-  InsurancePoolInfo 
-} from "@/utils/soroban";
-import { useWallet } from "@/context/WalletContext";
+import { useState, useEffect } from 'react';
+import { getInsurancePoolInfo, getLPInsuranceStatus, InsurancePoolInfo } from '@/utils/soroban';
+import { useWallet } from '@/context/WalletContext';
 
 export function useInsurance() {
   const { address } = useWallet();
@@ -22,7 +18,7 @@ export function useInsurance() {
       setPoolInfo(info);
       setIsEnrolled(status);
     } catch (error) {
-      console.error("Failed to fetch insurance info", error);
+      console.error('Failed to fetch insurance info', error);
     } finally {
       setIsLoading(false);
     }

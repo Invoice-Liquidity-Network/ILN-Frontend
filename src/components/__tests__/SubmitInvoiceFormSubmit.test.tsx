@@ -8,19 +8,19 @@
  *  - On success the freelancer is redirected to the invoice detail page
  */
 
-import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useRouter } from "next/navigation";
-import SubmitInvoiceForm from "../SubmitInvoiceForm";
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useRouter } from 'next/navigation';
+import SubmitInvoiceForm from '../SubmitInvoiceForm';
 
-const addToast = vi.fn(() => "toast-id-1");
+const addToast = vi.fn(() => 'toast-id-1');
 const updateToast = vi.fn();
 const submitInvoiceTransaction = vi.fn();
 const getTokenBalance = vi.fn().mockResolvedValue(0n);
 
 const walletState = {
-  address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6",
+  address: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6',
   isConnected: true,
   isInstalled: true,
   error: null as string | null,
@@ -30,61 +30,61 @@ const walletState = {
   signTx: vi.fn(),
 };
 
-vi.mock("@stellar/freighter-api", () => ({
+vi.mock('@stellar/freighter-api', () => ({
   isConnected: vi.fn().mockResolvedValue(false),
   getAddress: vi.fn().mockResolvedValue({ address: null }),
   setAllowed: vi.fn().mockResolvedValue(false),
-  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: "signed-xdr" }),
-  getNetwork: vi.fn().mockResolvedValue({ network: "TESTNET" }),
+  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: 'signed-xdr' }),
+  getNetwork: vi.fn().mockResolvedValue({ network: 'TESTNET' }),
 }));
 
-vi.mock("../../context/ToastContext", () => ({
+vi.mock('../../context/ToastContext', () => ({
   useToast: () => ({ addToast, updateToast }),
 }));
 
-vi.mock("../../context/WalletContext", () => ({
+vi.mock('../../context/WalletContext', () => ({
   useWallet: () => ({ ...walletState }),
 }));
 
-vi.mock("../../utils/soroban", () => ({
+vi.mock('../../utils/soroban', () => ({
   submitInvoiceTransaction: (...args: unknown[]) => submitInvoiceTransaction(...args),
   getTokenBalance: (...args: unknown[]) => getTokenBalance(...args),
 }));
 
-const TOKEN = { symbol: "USDC", decimals: 7, contractId: "TOKEN_ID", isAllowed: true };
-vi.mock("../../hooks/useApprovedTokens", () => ({
+const TOKEN = { symbol: 'USDC', decimals: 7, contractId: 'TOKEN_ID', isAllowed: true };
+vi.mock('../../hooks/useApprovedTokens', () => ({
   useApprovedTokens: () => ({
     tokens: [TOKEN],
-    tokenMap: new Map([["TOKEN_ID", TOKEN]]),
+    tokenMap: new Map([['TOKEN_ID', TOKEN]]),
     defaultToken: TOKEN,
     isLoading: false,
     error: null,
   }),
 }));
 
-const VALID_STELLAR_PAYER = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+const VALID_STELLAR_PAYER = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
 const push = vi.fn();
 
 function advanceToReviewAndSubmit() {
   // Step 1 — invoice details
-  fireEvent.change(screen.getByPlaceholderText("G..."), {
+  fireEvent.change(screen.getByPlaceholderText('G...'), {
     target: { value: VALID_STELLAR_PAYER },
   });
-  fireEvent.change(screen.getByPlaceholderText("5000.00"), {
-    target: { value: "5000" },
+  fireEvent.change(screen.getByPlaceholderText('5000.00'), {
+    target: { value: '5000' },
   });
   fireEvent.change(screen.getByLabelText(/due date/i), {
-    target: { value: "2030-01-01" },
+    target: { value: '2030-01-01' },
   });
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  fireEvent.click(screen.getByRole('button', { name: /continue/i }));
   // Step 2 — token & rate (defaults are valid)
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  fireEvent.click(screen.getByRole('button', { name: /continue/i }));
   // Step 3 — review & submit
-  fireEvent.click(screen.getByRole("button", { name: /submit invoice/i }));
+  fireEvent.click(screen.getByRole('button', { name: /submit invoice/i }));
 }
 
-describe("SubmitInvoiceForm — submission, referral & redirect (#11)", () => {
+describe('SubmitInvoiceForm — submission, referral & redirect (#11)', () => {
   beforeEach(() => {
     addToast.mockClear();
     updateToast.mockClear();
@@ -101,42 +101,42 @@ describe("SubmitInvoiceForm — submission, referral & redirect (#11)", () => {
     } as unknown as ReturnType<typeof useRouter>);
   });
 
-  it("renders the optional referral code field", () => {
+  it('renders the optional referral code field', () => {
     render(<SubmitInvoiceForm />);
     expect(screen.getByLabelText(/referral code/i)).toBeInTheDocument();
   });
 
-  it("submits, shows the returned invoice ID, and links to the detail page", async () => {
-    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 99n, txHash: "deadbeef" });
+  it('submits, shows the returned invoice ID, and links to the detail page', async () => {
+    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 99n, txHash: 'deadbeef' });
     render(<SubmitInvoiceForm />);
 
     advanceToReviewAndSubmit();
 
-    expect(await screen.findByText("#99")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: /view invoice details/i });
-    expect(link).toHaveAttribute("href", "/i/99");
+    expect(await screen.findByText('#99')).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /view invoice details/i });
+    expect(link).toHaveAttribute('href', '/i/99');
   });
 
-  it("persists a referral code as per-invoice attribution on success", async () => {
-    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 7n, txHash: "abc123" });
+  it('persists a referral code as per-invoice attribution on success', async () => {
+    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 7n, txHash: 'abc123' });
     render(<SubmitInvoiceForm />);
 
-    fireEvent.change(screen.getByPlaceholderText("e.g. ILN-FRIEND"), {
-      target: { value: "ILN-FRIEND" },
+    fireEvent.change(screen.getByPlaceholderText('e.g. ILN-FRIEND'), {
+      target: { value: 'ILN-FRIEND' },
     });
     advanceToReviewAndSubmit();
 
-    await screen.findByText("#7");
-    expect(localStorage.getItem("iln-referral-7")).toBe("ILN-FRIEND");
+    await screen.findByText('#7');
+    expect(localStorage.getItem('iln-referral-7')).toBe('ILN-FRIEND');
   });
 
-  it("redirects to the new invoice detail page after a successful submit", async () => {
-    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 42n, txHash: "feed" });
+  it('redirects to the new invoice detail page after a successful submit', async () => {
+    submitInvoiceTransaction.mockResolvedValue({ invoiceId: 42n, txHash: 'feed' });
     render(<SubmitInvoiceForm />);
 
     advanceToReviewAndSubmit();
-    await screen.findByText("#42");
+    await screen.findByText('#42');
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/i/42"), { timeout: 2500 });
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/i/42'), { timeout: 2500 });
   });
 });

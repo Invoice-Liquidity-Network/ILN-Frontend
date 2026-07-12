@@ -1,13 +1,13 @@
-import { STELLAR_NETWORK, RPC_URL, NETWORK_NAME } from "@/constants";
+import { STELLAR_NETWORK, RPC_URL, NETWORK_NAME } from '@/constants';
 
 /** Normalize Freighter / wallet network strings to `testnet` | `mainnet`. */
 export function normalizeWalletNetwork(network: string): string {
   const value = network.trim().toUpperCase();
-  if (value === "PUBLIC" || value === "MAINNET" || value === "MAIN") {
-    return "mainnet";
+  if (value === 'PUBLIC' || value === 'MAINNET' || value === 'MAIN') {
+    return 'mainnet';
   }
-  if (value === "TESTNET" || value === "TEST" || value === "FUTURENET") {
-    return "testnet";
+  if (value === 'TESTNET' || value === 'TEST' || value === 'FUTURENET') {
+    return 'testnet';
   }
   return network.trim().toLowerCase();
 }
@@ -16,24 +16,23 @@ export function getConfiguredStellarNetwork(): string {
   return STELLAR_NETWORK.trim().toLowerCase();
 }
 
-export function networksMatch(walletNetwork: string, appNetwork = getConfiguredStellarNetwork()): boolean {
+export function networksMatch(
+  walletNetwork: string,
+  appNetwork = getConfiguredStellarNetwork()
+): boolean {
   return normalizeWalletNetwork(walletNetwork) === appNetwork.toLowerCase();
 }
 
 export function formatNetworkLabel(network: string): string {
   const normalized = normalizeWalletNetwork(network);
-  return normalized === "mainnet" ? "Mainnet" : "Testnet";
+  return normalized === 'mainnet' ? 'Mainnet' : 'Testnet';
 }
 
 /**
  * Known Soroban RPC URLs grouped by network.
  */
 const KNOWN_RPC_URLS: Record<string, RegExp[]> = {
-  testnet: [
-    /soroban-testnet\.stellar\.org/i,
-    /rpc-testnet\.stellar\.org/i,
-    /testnet\.soroban/i,
-  ],
+  testnet: [/soroban-testnet\.stellar\.org/i, /rpc-testnet\.stellar\.org/i, /testnet\.soroban/i],
   mainnet: [
     /soroban\.stellar\.org/i,
     /rpc\.stellar\.org/i,

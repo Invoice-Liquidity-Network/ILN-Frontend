@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import PageHeader from "@/components/PageHeader";
-import MetricCard from "@/components/analytics/MetricCard";
-import { useWallet } from "@/context/WalletContext";
-import { generateReferralCode, getReferralLink } from "@/utils/referrals";
-import { useReferralStats } from "@/hooks/useReferralStats";
-import { formatUSDC } from "@/utils/format";
-import { toast } from "sonner";
+import { useEffect, useState } from 'react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import PageHeader from '@/components/PageHeader';
+import MetricCard from '@/components/analytics/MetricCard';
+import { useWallet } from '@/context/WalletContext';
+import { generateReferralCode, getReferralLink } from '@/utils/referrals';
+import { useReferralStats } from '@/hooks/useReferralStats';
+import { formatUSDC } from '@/utils/format';
+import { toast } from 'sonner';
 
-type SharePlatform = "x" | "telegram" | "whatsapp" | "email";
+type SharePlatform = 'x' | 'telegram' | 'whatsapp' | 'email';
 
 function shareUrl(platform: SharePlatform, link: string): string {
   const text = `Join the Invoice Liquidity Network and get instant payment for your invoices! Use my referral link: ${link}`;
   switch (platform) {
-    case "x":
+    case 'x':
       return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    case "telegram":
+    case 'telegram':
       return `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ILN and get paid instantly!`)}`;
-    case "whatsapp":
+    case 'whatsapp':
       return `https://wa.me/?text=${encodeURIComponent(text)}`;
-    case "email":
-      return `mailto:?subject=${encodeURIComponent("Join Invoice Liquidity Network")}&body=${encodeURIComponent(
+    case 'email':
+      return `mailto:?subject=${encodeURIComponent('Join Invoice Liquidity Network')}&body=${encodeURIComponent(
         `Hi,\n\nI've been using Invoice Liquidity Network to get paid instantly for my work. You should check it out!\n\nUse my referral link to get started: ${link}`
       )}`;
   }
@@ -38,11 +38,15 @@ interface ReferralHistoryEntry {
 
 export default function ReferralsDashboard() {
   const { address, isConnected, connect } = useWallet();
-  const [referralCode, setReferralCode] = useState<string>("");
-  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const [history, setHistory] = useState<ReferralHistoryEntry[]>([]);
 
-  const { data: stats, isLoading: statsLoading, error: statsError } = useReferralStats(referralCode);
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useReferralStats(referralCode);
 
   useEffect(() => {
     async function init() {
@@ -62,8 +66,8 @@ export default function ReferralsDashboard() {
         entries.push({
           invoiceId: BigInt(i + 1),
           address: `Referred User #${i + 1}`,
-          date: new Date(Date.now() - i * 604800000).toISOString().split("T")[0],
-          status: i % 5 === 0 ? "Pending" : "Settled",
+          date: new Date(Date.now() - i * 604800000).toISOString().split('T')[0],
+          status: i % 5 === 0 ? 'Pending' : 'Settled',
         });
       }
       setHistory(entries);
@@ -72,24 +76,24 @@ export default function ReferralsDashboard() {
     }
   }, [referralCode, stats]);
 
-  const handleCopy = async (type: "code" | "link") => {
-    const text = type === "code" ? referralCode : getReferralLink(referralCode);
+  const handleCopy = async (type: 'code' | 'link') => {
+    const text = type === 'code' ? referralCode : getReferralLink(referralCode);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
-      toast.success(type === "code" ? "Code copied!" : "Link copied to clipboard");
+      toast.success(type === 'code' ? 'Code copied!' : 'Link copied to clipboard');
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      toast.error("Failed to copy. Please copy manually.");
+      toast.error('Failed to copy. Please copy manually.');
     }
   };
 
   const handleShare = (platform: SharePlatform) => {
     const link = getReferralLink(referralCode);
-    if (platform === "email") {
+    if (platform === 'email') {
       window.location.href = shareUrl(platform, link);
     } else {
-      window.open(shareUrl(platform, link), "_blank", "noopener,noreferrer");
+      window.open(shareUrl(platform, link), '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -128,10 +132,7 @@ export default function ReferralsDashboard() {
           <PageHeader
             title="Referral Dashboard"
             description="Share your unique referral link and earn rewards for every new user you bring to ILN."
-            breadcrumbs={[
-              { label: "Home", href: "/" },
-              { label: "Referrals" },
-            ]}
+            breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Referrals' }]}
           />
 
           {/* Stats Grid */}
@@ -141,19 +142,19 @@ export default function ReferralsDashboard() {
               icon="qr_code_scanner"
               label="Your Referral Code"
               value={
-                <span className="font-mono text-xl tracking-wider">{referralCode || "..."}</span>
+                <span className="font-mono text-xl tracking-wider">{referralCode || '...'}</span>
               }
               sub="Derived deterministically from your wallet address."
               accent
               badge={
                 <button
-                  onClick={() => handleCopy("code")}
+                  onClick={() => handleCopy('code')}
                   className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/25 transition-colors"
                 >
                   <span className="material-symbols-outlined text-[14px]">
-                    {copied === "code" ? "check" : "content_copy"}
+                    {copied === 'code' ? 'check' : 'content_copy'}
                   </span>
-                  {copied === "code" ? "Copied" : "Copy"}
+                  {copied === 'code' ? 'Copied' : 'Copy'}
                 </button>
               }
             />
@@ -161,14 +162,14 @@ export default function ReferralsDashboard() {
               id="total-invoices"
               icon="description"
               label="Total Referrals"
-              value={statsLoading ? "..." : totalInvoices}
+              value={statsLoading ? '...' : totalInvoices}
               sub="Invoices submitted with your referral code."
             />
             <MetricCard
               id="total-volume"
               icon="payments"
               label="Total Volume"
-              value={statsLoading ? "..." : formatUSDC(totalVolume)}
+              value={statsLoading ? '...' : formatUSDC(totalVolume)}
               sub="Total value of referred invoices."
               accent
             />
@@ -198,19 +199,19 @@ export default function ReferralsDashboard() {
                   className="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm font-mono truncate"
                 />
                 <button
-                  onClick={() => handleCopy("link")}
+                  onClick={() => handleCopy('link')}
                   className="bg-primary text-surface px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">
-                    {copied === "link" ? "check" : "link"}
+                    {copied === 'link' ? 'check' : 'link'}
                   </span>
-                  {copied === "link" ? "Copied!" : "Copy Link"}
+                  {copied === 'link' ? 'Copied!' : 'Copy Link'}
                 </button>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => handleShare("x")}
+                  onClick={() => handleShare('x')}
                   className="inline-flex items-center gap-2 bg-[#000] text-white px-5 py-3 rounded-xl text-sm font-bold hover:opacity-90 transition-all active:scale-[0.97]"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white" aria-hidden="true">
@@ -219,21 +220,21 @@ export default function ReferralsDashboard() {
                   Share on X
                 </button>
                 <button
-                  onClick={() => handleShare("telegram")}
+                  onClick={() => handleShare('telegram')}
                   className="inline-flex items-center gap-2 bg-[#0088cc] text-white px-5 py-3 rounded-xl text-sm font-bold hover:opacity-90 transition-all"
                 >
                   <span className="material-symbols-outlined text-[18px]">send</span>
                   Telegram
                 </button>
                 <button
-                  onClick={() => handleShare("whatsapp")}
+                  onClick={() => handleShare('whatsapp')}
                   className="inline-flex items-center gap-2 bg-[#25D366] text-white px-5 py-3 rounded-xl text-sm font-bold hover:opacity-90 transition-all"
                 >
                   <span className="material-symbols-outlined text-[18px]">chat</span>
                   WhatsApp
                 </button>
                 <button
-                  onClick={() => handleShare("email")}
+                  onClick={() => handleShare('email')}
                   className="inline-flex items-center gap-2 bg-surface-container-high text-on-surface px-5 py-3 rounded-xl text-sm font-bold hover:bg-surface-variant transition-all border border-outline-variant/20"
                 >
                   <span className="material-symbols-outlined text-[18px]">mail</span>
@@ -304,25 +305,21 @@ export default function ReferralsDashboard() {
                         <td className="px-5 py-3.5 text-sm font-mono">
                           #{entry.invoiceId.toString()}
                         </td>
-                        <td className="px-5 py-3.5 text-sm font-mono">
-                          {entry.address}
-                        </td>
+                        <td className="px-5 py-3.5 text-sm font-mono">{entry.address}</td>
                         <td className="px-5 py-3.5 text-sm text-on-surface-variant">
                           {entry.date}
                         </td>
                         <td className="px-5 py-3.5">
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                              entry.status === "Settled"
-                                ? "bg-success/10 text-success"
-                                : "bg-warning/10 text-warning"
+                              entry.status === 'Settled'
+                                ? 'bg-success/10 text-success'
+                                : 'bg-warning/10 text-warning'
                             }`}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
-                                entry.status === "Settled"
-                                  ? "bg-success"
-                                  : "bg-warning"
+                                entry.status === 'Settled' ? 'bg-success' : 'bg-warning'
                               }`}
                             />
                             {entry.status}
@@ -349,8 +346,13 @@ export default function ReferralsDashboard() {
             </div>
             <ul className="text-sm text-on-surface-variant space-y-3 list-disc pl-5">
               <li>Share your unique referral link with freelancers or payers.</li>
-              <li>When they submit an invoice using your link, the referral code is recorded on-chain.</li>
-              <li>You receive a portion of the protocol fees as a reward for every successful settlement.</li>
+              <li>
+                When they submit an invoice using your link, the referral code is recorded on-chain.
+              </li>
+              <li>
+                You receive a portion of the protocol fees as a reward for every successful
+                settlement.
+              </li>
               <li>Rewards are automatically sent to your connected wallet.</li>
             </ul>
           </div>

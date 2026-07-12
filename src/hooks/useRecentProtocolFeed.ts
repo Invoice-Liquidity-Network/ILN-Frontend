@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchRecentProtocolContractEvents } from "@/lib/fetch-protocol-contract-events";
-import { buildProtocolFeedItems } from "@/utils/protocol-feed";
-import { getAllInvoices } from "@/utils/soroban";
+import { useQuery } from '@tanstack/react-query';
+import { fetchRecentProtocolContractEvents } from '@/lib/fetch-protocol-contract-events';
+import { buildProtocolFeedItems } from '@/utils/protocol-feed';
+import { getAllInvoices } from '@/utils/soroban';
 
-export const PROTOCOL_FEED_QUERY_KEY = ["protocol-recent-feed"] as const;
+export const PROTOCOL_FEED_QUERY_KEY = ['protocol-recent-feed'] as const;
 
 const POLL_INTERVAL_MS = 60_000;
 

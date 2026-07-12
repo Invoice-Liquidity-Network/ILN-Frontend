@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { use, useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { getInvoice, type Invoice } from "@/utils/soroban";
-import { formatUsdcFromStroops } from "@/utils/invoiceSubmission";
-import { formatAddress } from "@/utils/format";
-import { useWallet } from "@/context/WalletContext";
+import { use, useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { getInvoice, type Invoice } from '@/utils/soroban';
+import { formatUsdcFromStroops } from '@/utils/invoiceSubmission';
+import { formatAddress } from '@/utils/format';
+import { useWallet } from '@/context/WalletContext';
 
-type LoadState = "loading" | "success" | "error";
+type LoadState = 'loading' | 'success' | 'error';
 
 export default function DisputePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { address, connect } = useWallet();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [loadState, setLoadState] = useState<LoadState>('loading');
 
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +25,13 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
 
   const fetchInvoice = useCallback(async () => {
     try {
-      setLoadState("loading");
+      setLoadState('loading');
       const data = await getInvoice(invoiceId);
       setInvoice(data);
-      setLoadState("success");
+      setLoadState('success');
     } catch (err) {
       console.error(err);
-      setLoadState("error");
+      setLoadState('error');
     }
   }, [invoiceId]);
 
@@ -44,7 +44,7 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
     if (!inputFiles) return;
     const arr = Array.from(inputFiles);
     if (arr.length > 5) {
-      setError("You can upload up to 5 files.");
+      setError('You can upload up to 5 files.');
       return;
     }
     for (const f of arr) {
@@ -52,7 +52,7 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
         setError(`File ${f.name} exceeds 10MB limit.`);
         return;
       }
-      const accept = ["image/", "application/pdf"];
+      const accept = ['image/', 'application/pdf'];
       if (!accept.some((a) => f.type.startsWith(a))) {
         setError(`File ${f.name} must be an image or PDF.`);
         return;
@@ -64,7 +64,7 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
 
   const validate = () => {
     if (reason.trim().length < 20) {
-      setError("Reason must be at least 20 characters.");
+      setError('Reason must be at least 20 characters.');
       return false;
     }
     return true;
@@ -79,28 +79,28 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
 
     try {
       const form = new FormData();
-      form.append("invoiceId", id.toString());
-      form.append("reason", reason.trim());
-      files.forEach((f, i) => form.append("evidence", f, f.name));
+      form.append('invoiceId', id.toString());
+      form.append('reason', reason.trim());
+      files.forEach((f, i) => form.append('evidence', f, f.name));
 
-      const res = await fetch("/dispute", { method: "POST", body: form });
+      const res = await fetch('/dispute', { method: 'POST', body: form });
       if (!res.ok) {
         const body = await res.text();
-        throw new Error(body || "Failed to submit dispute");
+        throw new Error(body || 'Failed to submit dispute');
       }
       const json = await res.json();
       // Expect backend to return { referenceId: string }
-      setSuccessRef(json.referenceId || json.reference || "unknown");
-      setReason("");
+      setSuccessRef(json.referenceId || json.reference || 'unknown');
+      setReason('');
       setFiles([]);
     } catch (err: any) {
-      setError(err?.message || "Submission failed.");
+      setError(err?.message || 'Submission failed.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loadState === "loading") {
+  if (loadState === 'loading') {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-outline-variant/30 border-t-primary" />
@@ -108,7 +108,7 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
     );
   }
 
-  if (loadState === "error" || !invoice) {
+  if (loadState === 'error' || !invoice) {
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md text-center">
@@ -125,11 +125,17 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
       <main className="min-h-screen px-4 py-12">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-6 text-center">
-            <span className="material-symbols-outlined text-4xl text-emerald-500">check_circle</span>
+            <span className="material-symbols-outlined text-4xl text-emerald-500">
+              check_circle
+            </span>
             <h2 className="mt-3 text-xl font-semibold">Dispute submitted</h2>
-            <p className="mt-2 text-sm text-on-surface-variant">Reference ID: <span className="font-mono">{successRef}</span></p>
+            <p className="mt-2 text-sm text-on-surface-variant">
+              Reference ID: <span className="font-mono">{successRef}</span>
+            </p>
             <div className="mt-4">
-              <Link href={`/pay/${invoice.id}`} className="text-primary hover:underline">Return to invoice</Link>
+              <Link href={`/pay/${invoice.id}`} className="text-primary hover:underline">
+                Return to invoice
+              </Link>
             </div>
           </div>
         </div>
@@ -141,31 +147,52 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
     <main className="min-h-screen px-4 py-12">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex flex-col gap-1">
-          <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Submit a Dispute</p>
-          <h1 className="font-headline text-3xl sm:text-4xl">Dispute Invoice #{invoice.id.toString()}</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">
+            Submit a Dispute
+          </p>
+          <h1 className="font-headline text-3xl sm:text-4xl">
+            Dispute Invoice #{invoice.id.toString()}
+          </h1>
         </div>
 
         {/* Order summary */}
         <section className="rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl mb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant mb-4">Invoice Summary</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant mb-4">
+            Invoice Summary
+          </p>
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
               <span className="text-sm text-on-surface-variant font-medium">Amount Due</span>
-              <span className="text-2xl font-bold text-on-surface">{formatUsdcFromStroops(invoice.amount)} USDC</span>
+              <span className="text-2xl font-bold text-on-surface">
+                {formatUsdcFromStroops(invoice.amount)} USDC
+              </span>
             </div>
             <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
               <span className="text-sm text-on-surface-variant font-medium">Freelancer</span>
-              <Link href={`/profile/${invoice.freelancer}`} className="text-sm font-mono text-primary hover:underline">{formatAddress(invoice.freelancer)}</Link>
+              <Link
+                href={`/profile/${invoice.freelancer}`}
+                className="text-sm font-mono text-primary hover:underline"
+              >
+                {formatAddress(invoice.freelancer)}
+              </Link>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-on-surface-variant font-medium">Payer</span>
-              <Link href={`/profile/${invoice.payer}`} className="text-sm font-mono text-primary hover:underline">{formatAddress(invoice.payer)}</Link>
+              <Link
+                href={`/profile/${invoice.payer}`}
+                className="text-sm font-mono text-primary hover:underline"
+              >
+                {formatAddress(invoice.payer)}
+              </Link>
             </div>
           </div>
         </section>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 space-y-4"
+        >
           <label className="block">
             <span className="text-sm font-semibold">Reason for dispute</span>
             <textarea
@@ -192,7 +219,9 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
             {files.length > 0 && (
               <ul className="mt-2 text-sm space-y-1">
                 {files.map((f) => (
-                  <li key={f.name} className="font-mono">{f.name} — {(f.size / 1024 / 1024).toFixed(2)} MB</li>
+                  <li key={f.name} className="font-mono">
+                    {f.name} — {(f.size / 1024 / 1024).toFixed(2)} MB
+                  </li>
                 ))}
               </ul>
             )}
@@ -201,7 +230,13 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           {!address ? (
-            <button type="button" onClick={connect} className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white">Connect wallet to submit</button>
+            <button
+              type="button"
+              onClick={connect}
+              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white"
+            >
+              Connect wallet to submit
+            </button>
           ) : (
             <div className="flex gap-3">
               <button
@@ -209,9 +244,14 @@ export default function DisputePage({ params }: { params: Promise<{ id: string }
                 disabled={submitting}
                 className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
               >
-                {submitting ? "Submitting…" : "Submit Dispute"}
+                {submitting ? 'Submitting…' : 'Submit Dispute'}
               </button>
-              <Link href={`/pay/${invoice.id}`} className="flex-1 text-center rounded-xl border border-outline-variant/20 py-3 text-sm font-bold">Cancel</Link>
+              <Link
+                href={`/pay/${invoice.id}`}
+                className="flex-1 text-center rounded-xl border border-outline-variant/20 py-3 text-sm font-bold"
+              >
+                Cancel
+              </Link>
             </div>
           )}
         </form>

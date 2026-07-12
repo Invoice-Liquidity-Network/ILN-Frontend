@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import type { ApprovedToken } from "@/hooks/useApprovedTokens";
-import { TESTNET_XLM_TOKEN_ID } from "@/constants";
-import { getNativeXlmBalance, getTokenBalance } from "@/utils/soroban";
-import { TX_SUCCESS_EVENT } from "@/utils/txEvents";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import type { ApprovedToken } from '@/hooks/useApprovedTokens';
+import { TESTNET_XLM_TOKEN_ID } from '@/constants';
+import { getNativeXlmBalance, getTokenBalance } from '@/utils/soroban';
+import { TX_SUCCESS_EVENT } from '@/utils/txEvents';
 
 export type TokenBalanceMap = Map<string, bigint>;
 
@@ -28,12 +28,12 @@ export interface UseBalancesResult {
 
 function xlmNumberToUnits(balance: number): bigint {
   const fixed = balance.toFixed(7);
-  const [whole, fraction = ""] = fixed.split(".");
-  return BigInt(whole) * 10_000_000n + BigInt(fraction.padEnd(7, "0").slice(0, 7));
+  const [whole, fraction = ''] = fixed.split('.');
+  return BigInt(whole) * 10_000_000n + BigInt(fraction.padEnd(7, '0').slice(0, 7));
 }
 
 async function getBalance(address: string, contractId: string): Promise<bigint> {
-  if (contractId === TESTNET_XLM_TOKEN_ID && TESTNET_XLM_TOKEN_ID === "native-xlm") {
+  if (contractId === TESTNET_XLM_TOKEN_ID && TESTNET_XLM_TOKEN_ID === 'native-xlm') {
     return xlmNumberToUnits(await getNativeXlmBalance(address));
   }
 
@@ -57,10 +57,10 @@ export function useBalances(tokens: ApprovedToken[], enabled = true): UseBalance
 
   const balanceTokenIds = useMemo(
     () => tokens.filter((token) => token.isAllowed).map((token) => token.contractId),
-    [tokens],
+    [tokens]
   );
   // Stable string key so the load callback isn't recreated on every render.
-  const tokenKey = balanceTokenIds.join(",");
+  const tokenKey = balanceTokenIds.join(',');
 
   const refetch = useCallback(async () => {
     if (!enabled || !address || !isConnected || networkMismatch || tokenKey.length === 0) {
@@ -72,21 +72,21 @@ export function useBalances(tokens: ApprovedToken[], enabled = true): UseBalance
       return;
     }
 
-    const ids = tokenKey.split(",");
+    const ids = tokenKey.split(',');
     if (mountedRef.current) setIsLoading(true);
     try {
       const results = await Promise.allSettled(
         ids.map(async (contractId) => ({
           contractId,
           amount: await getBalance(address, contractId),
-        })),
+        }))
       );
 
       if (!mountedRef.current) return;
       const nextBalances = new Map<string, bigint>();
       const nextUnavailable = new Set<string>();
       results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
+        if (result.status === 'fulfilled') {
           nextBalances.set(result.value.contractId, result.value.amount);
         } else {
           nextUnavailable.add(ids[index]);
@@ -105,14 +105,14 @@ export function useBalances(tokens: ApprovedToken[], enabled = true): UseBalance
 
     const interval = setInterval(() => void refetch(), BALANCE_REFRESH_INTERVAL_MS);
     const onTxSuccess = () => void refetch();
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       window.addEventListener(TX_SUCCESS_EVENT, onTxSuccess);
     }
 
     return () => {
       mountedRef.current = false;
       clearInterval(interval);
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         window.removeEventListener(TX_SUCCESS_EVENT, onTxSuccess);
       }
     };

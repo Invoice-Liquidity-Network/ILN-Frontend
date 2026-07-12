@@ -1,21 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  type TooltipProps,
-} from "recharts";
-import FieldTooltip from "@/components/FieldTooltip";
-import type { DisputeRateMetrics } from "@/utils/dispute-rate";
+import React from 'react';
+import { LineChart, Line, ResponsiveContainer, Tooltip, type TooltipProps } from 'recharts';
+import FieldTooltip from '@/components/FieldTooltip';
+import type { DisputeRateMetrics } from '@/utils/dispute-rate';
 import {
   DISPUTE_RATE_TOOLTIP,
   formatDisputeRatePercent,
   getDisputeRateColor,
   getDisputeRateColorClasses,
-} from "@/utils/dispute-rate";
+} from '@/utils/dispute-rate';
 
 function SparklineTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
@@ -56,7 +50,7 @@ export default function StatsDisputeRateCard({ metrics }: Props) {
         </p>
         <p className="text-xs text-on-surface-variant">Last 30 days</p>
         <p className="text-xs text-on-surface-variant/80">
-          {metrics.disputed30d.toLocaleString()} disputed / {metrics.funded30d.toLocaleString()}{" "}
+          {metrics.disputed30d.toLocaleString()} disputed / {metrics.funded30d.toLocaleString()}{' '}
           funded
         </p>
       </div>
@@ -64,7 +58,10 @@ export default function StatsDisputeRateCard({ metrics }: Props) {
       <div className="h-20 w-full sm:h-16 sm:w-56" aria-label="Dispute rate trend over 90 days">
         {hasTrend ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metrics.dailyTrend90d} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+            <LineChart
+              data={metrics.dailyTrend90d}
+              margin={{ top: 4, right: 4, left: 4, bottom: 4 }}
+            >
               <Tooltip content={<SparklineTooltip />} />
               <Line
                 type="monotone"

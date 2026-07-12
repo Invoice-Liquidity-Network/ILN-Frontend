@@ -1,9 +1,9 @@
 ---
 name: Design Feedback
 about: Flag a visual or UX issue with a specific component
-title: "[Design]: "
+title: '[Design]: '
 labels: design
-assignees: ""
+assignees: ''
 ---
 
 ## Component Name

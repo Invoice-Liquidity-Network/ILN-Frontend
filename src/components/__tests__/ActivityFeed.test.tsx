@@ -45,8 +45,8 @@ describe('ActivityFeed', () => {
         type: 'funded',
         timestamp: Date.now() - 1800000,
         actor: 'GDEF5678901234567890123456789012345678901234567890123456',
-        data: { amount: '5000000000' }
-      }
+        data: { amount: '5000000000' },
+      },
     ];
 
     (global.fetch as any).mockResolvedValue({
@@ -70,7 +70,7 @@ describe('ActivityFeed', () => {
         type: 'submitted',
         timestamp: Date.now() - 3600000,
         actor: 'GABC12345678901234567890123456789012345678901234567890123456',
-      }
+      },
     ];
 
     (global.fetch as any).mockResolvedValue({

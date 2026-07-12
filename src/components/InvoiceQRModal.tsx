@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useRef, useState, useCallback } from "react";
-import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
-import { formatAddress, formatDate, formatUSDC } from "@/utils/format";
+import { useRef, useState, useCallback } from 'react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
+import { formatAddress, formatDate, formatUSDC } from '@/utils/format';
 
 interface InvoiceQRModalProps {
   invoiceId: bigint;
@@ -24,25 +24,25 @@ export default function InvoiceQRModal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const origin = baseUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
+  const origin = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '');
   const payUrl = `${origin}/pay/${invoiceId.toString()}`;
 
   const downloadPng = useCallback(() => {
     const canvasEl = canvasRef.current;
     if (!canvasEl) return;
-    const dataUrl = canvasEl.toDataURL("image/png");
-    const link = document.createElement("a");
+    const dataUrl = canvasEl.toDataURL('image/png');
+    const link = document.createElement('a');
     link.download = `ILN-Invoice-${invoiceId.toString()}-QR.png`;
     link.href = dataUrl;
     link.click();
   }, [invoiceId]);
 
   const handlePrint = useCallback(() => {
-    const printWindow = window.open("", "_blank");
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     const canvasEl = canvasRef.current;
-    const qrDataUrl = canvasEl?.toDataURL("image/png") || "";
+    const qrDataUrl = canvasEl?.toDataURL('image/png') || '';
 
     const html = `
       <!DOCTYPE html>
@@ -205,13 +205,7 @@ export default function InvoiceQRModal({
         <h2 className="text-lg font-bold text-on-surface">Scan to pay this invoice</h2>
 
         {/* Hidden canvas used for PNG download */}
-        <QRCodeCanvas
-          ref={canvasRef}
-          value={payUrl}
-          size={240}
-          includeMargin
-          className="hidden"
-        />
+        <QRCodeCanvas ref={canvasRef} value={payUrl} size={240} includeMargin className="hidden" />
 
         {/* Visible SVG QR code */}
         <div className="rounded-2xl border border-outline-variant/20 p-4 bg-white">
@@ -258,9 +252,9 @@ export default function InvoiceQRModal({
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/30 px-4 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all"
             >
               <span className="material-symbols-outlined text-[18px]">
-                {linkCopied ? "check" : "link"}
+                {linkCopied ? 'check' : 'link'}
               </span>
-              {linkCopied ? "Copied!" : "Copy link"}
+              {linkCopied ? 'Copied!' : 'Copy link'}
             </button>
           </div>
           <button

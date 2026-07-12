@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import { fetchInvoiceNftState, type InvoiceNftState } from "@/lib/invoice-nft";
+import { useCallback, useEffect, useState } from 'react';
+import { fetchInvoiceNftState, type InvoiceNftState } from '@/lib/invoice-nft';
 
 export function useInvoiceNft(invoiceId: bigint, enabled: boolean) {
   const [state, setState] = useState<InvoiceNftState | null>(null);
@@ -24,4 +24,3 @@ export function useInvoiceNft(invoiceId: bigint, enabled: boolean) {
 
   return { state, loading, reload: load };
 }
-

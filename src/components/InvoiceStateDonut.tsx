@@ -18,7 +18,10 @@ interface InvoiceStateDonutProps {
   filteredStates?: string[];
 }
 
-export default function InvoiceStateDonut({ onStateFilter, filteredStates = [] }: InvoiceStateDonutProps) {
+export default function InvoiceStateDonut({
+  onStateFilter,
+  filteredStates = [],
+}: InvoiceStateDonutProps) {
   const { counts, total, loading } = useInvoiceStateCounts();
 
   if (loading) return <div className="rounded-lg bg-surface-container-low p-6">Loading...</div>;
@@ -37,9 +40,8 @@ export default function InvoiceStateDonut({ onStateFilter, filteredStates = [] }
     onStateFilter?.(next);
   };
 
-  const filteredData = filteredStates.length > 0
-    ? data.filter((d) => filteredStates.includes(d.name))
-    : data;
+  const filteredData =
+    filteredStates.length > 0 ? data.filter((d) => filteredStates.includes(d.name)) : data;
 
   return (
     <div className="motion-safe:animate-donut-grow rounded-lg bg-surface-container-low p-6">

@@ -1,13 +1,13 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import PageHeader from "./PageHeader";
-import React from "react";
+import type { Meta, StoryObj } from '@storybook/react';
+import PageHeader from './PageHeader';
+import React from 'react';
 
 const meta: Meta<typeof PageHeader> = {
-  title: "Components/PageHeader",
+  title: 'Components/PageHeader',
   component: PageHeader,
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   parameters: {
-    layout: "padded",
+    layout: 'padded',
   },
 };
 
@@ -16,20 +16,20 @@ type Story = StoryObj<typeof PageHeader>;
 
 export const Default: Story = {
   args: {
-    title: "Dashboard",
+    title: 'Dashboard',
   },
 };
 
 export const WithDescription: Story = {
   args: {
-    title: "Dashboard",
-    description: "Manage invoices, liquidity, and protocol activity.",
+    title: 'Dashboard',
+    description: 'Manage invoices, liquidity, and protocol activity.',
   },
 };
 
 export const WithActions: Story = {
   args: {
-    title: "Marketplace",
+    title: 'Marketplace',
     actions: (
       <button className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm">
         Submit Invoice
@@ -40,23 +40,23 @@ export const WithActions: Story = {
 
 export const WithBreadcrumbs: Story = {
   args: {
-    title: "Invoice Details",
+    title: 'Invoice Details',
     breadcrumbs: [
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Invoices", href: "/invoices" },
-      { label: "Invoice #42" },
+      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Invoices', href: '/invoices' },
+      { label: 'Invoice #42' },
     ],
   },
 };
 
 export const FullExample: Story = {
   args: {
-    title: "Invoice Details",
-    description: "Review invoice information and track payment status.",
+    title: 'Invoice Details',
+    description: 'Review invoice information and track payment status.',
     breadcrumbs: [
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Invoices", href: "/invoices" },
-      { label: "Invoice #42" },
+      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Invoices', href: '/invoices' },
+      { label: 'Invoice #42' },
     ],
     actions: (
       <div className="flex gap-2">

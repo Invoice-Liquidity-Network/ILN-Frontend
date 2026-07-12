@@ -48,6 +48,10 @@ export const WithTooltip: Story = {
     label: 'Protocol Fees',
     value: '$12,500',
     tooltip: 'Fees collected by the protocol',
-    badge: <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">0% FEE</span>,
+    badge: (
+      <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+        0% FEE
+      </span>
+    ),
   },
 };

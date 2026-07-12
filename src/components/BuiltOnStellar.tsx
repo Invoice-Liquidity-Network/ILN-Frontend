@@ -1,26 +1,24 @@
 export default function BuiltOnStellar() {
   const features = [
     {
-      icon: "payments",
-      title: "Native USDC",
-      description: "Settle instantly in a regulated, liquid dollar stablecoin.",
+      icon: 'payments',
+      title: 'Native USDC',
+      description: 'Settle instantly in a regulated, liquid dollar stablecoin.',
     },
     {
-      icon: "speed",
-      title: "Near-zero Fees",
-      description:
-        "Transactions cost fractions of a cent, maximizing your margins.",
+      icon: 'speed',
+      title: 'Near-zero Fees',
+      description: 'Transactions cost fractions of a cent, maximizing your margins.',
     },
     {
-      icon: "bolt",
-      title: "Fast Finality",
-      description: "Transactions are confirmed in seconds with 100% finality.",
+      icon: 'bolt',
+      title: 'Fast Finality',
+      description: 'Transactions are confirmed in seconds with 100% finality.',
     },
     {
-      icon: "terminal",
-      title: "Soroban",
-      description:
-        "Powered by Stellar's high-performance WASM smart contracts.",
+      icon: 'terminal',
+      title: 'Soroban',
+      description: "Powered by Stellar's high-performance WASM smart contracts.",
     },
   ];
 
@@ -40,8 +38,7 @@ export default function BuiltOnStellar() {
             </a>
           </h2>
           <p className="text-on-surface-variant max-w-2xl mx-auto">
-            Leveraging the world's most efficient blockchain for payments and
-            asset issuance.
+            Leveraging the world's most efficient blockchain for payments and asset issuance.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

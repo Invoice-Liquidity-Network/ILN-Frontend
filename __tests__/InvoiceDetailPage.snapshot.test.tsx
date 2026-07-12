@@ -1,21 +1,21 @@
-import React from "react";
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import type { Invoice } from "../utils/soroban";
-import { formatAddress, formatDate, formatUSDC } from "../utils/format";
-import { allInvoiceFixtures } from "./fixtures/invoices";
+import React from 'react';
+import { render } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import type { Invoice } from '../utils/soroban';
+import { formatAddress, formatDate, formatUSDC } from '../utils/format';
+import { allInvoiceFixtures } from './fixtures/invoices';
 
 function InvoiceDetailPageSnapshot({ invoice }: { invoice: Invoice }) {
   const statusTone =
-    invoice.status === "Pending"
-      ? "bg-amber-100 text-amber-800"
-      : invoice.status === "Funded"
-        ? "bg-blue-100 text-blue-800"
-        : invoice.status === "PartiallyFunded"
-          ? "bg-sky-100 text-sky-800"
-          : invoice.status === "Paid"
-            ? "bg-emerald-100 text-emerald-800"
-            : "bg-red-100 text-red-800";
+    invoice.status === 'Pending'
+      ? 'bg-amber-100 text-amber-800'
+      : invoice.status === 'Funded'
+        ? 'bg-blue-100 text-blue-800'
+        : invoice.status === 'PartiallyFunded'
+          ? 'bg-sky-100 text-sky-800'
+          : invoice.status === 'Paid'
+            ? 'bg-emerald-100 text-emerald-800'
+            : 'bg-red-100 text-red-800';
 
   return (
     <article className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm">
@@ -55,13 +55,13 @@ function InvoiceDetailPageSnapshot({ invoice }: { invoice: Invoice }) {
   );
 }
 
-describe("Invoice detail snapshots", () => {
+describe('Invoice detail snapshots', () => {
   it.each(allInvoiceFixtures.map((invoice) => [invoice.status, invoice] as const))(
-    "matches the detail view for %s status",
+    'matches the detail view for %s status',
     (_status, invoice) => {
-    const { asFragment } = render(<InvoiceDetailPageSnapshot invoice={invoice} />);
+      const { asFragment } = render(<InvoiceDetailPageSnapshot invoice={invoice} />);
 
-    expect(asFragment()).toMatchSnapshot();
-    },
+      expect(asFragment()).toMatchSnapshot();
+    }
   );
 });

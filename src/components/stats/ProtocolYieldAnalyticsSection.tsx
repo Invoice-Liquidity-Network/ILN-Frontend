@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   LineChart,
@@ -8,32 +8,22 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
-import type { Invoice } from "@/utils/soroban";
+} from 'recharts';
+import type { Invoice } from '@/utils/soroban';
 import {
   buildProtocolYieldTrend,
   computeProtocolYieldMetrics,
-} from "@/utils/protocol-yield-analytics";
+} from '@/utils/protocol-yield-analytics';
 
 interface ProtocolYieldAnalyticsSectionProps {
   invoices: Invoice[];
   isLoading?: boolean;
 }
 
-function MetricCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
+function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-[20px] border border-outline-variant/10 bg-surface-container-lowest p-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-        {label}
-      </p>
+      <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{label}</p>
       <p className="mt-2 text-2xl font-bold text-on-surface">{value}</p>
       {sub ? <p className="mt-1 text-xs text-on-surface-variant">{sub}</p> : null}
     </div>
@@ -90,26 +80,20 @@ export default function ProtocolYieldAnalyticsSection({
         />
         <MetricCard
           label="Highest Yield This Week"
-          value={
-            metrics.highestThisWeek
-              ? `#${metrics.highestThisWeek.id}`
-              : "—"
-          }
+          value={metrics.highestThisWeek ? `#${metrics.highestThisWeek.id}` : '—'}
           sub={
             metrics.highestThisWeek
               ? `${metrics.highestThisWeek.effectiveYieldPct.toFixed(2)}% · ${metrics.highestThisWeek.symbol}`
-              : "No funded invoices this week"
+              : 'No funded invoices this week'
           }
         />
         <MetricCard
           label="Lowest Yield This Week"
-          value={
-            metrics.lowestThisWeek ? `#${metrics.lowestThisWeek.id}` : "—"
-          }
+          value={metrics.lowestThisWeek ? `#${metrics.lowestThisWeek.id}` : '—'}
           sub={
             metrics.lowestThisWeek
               ? `${metrics.lowestThisWeek.effectiveYieldPct.toFixed(2)}% · ${metrics.lowestThisWeek.symbol}`
-              : "No funded invoices this week"
+              : 'No funded invoices this week'
           }
         />
       </div>
@@ -120,16 +104,13 @@ export default function ProtocolYieldAnalyticsSection({
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {metrics.yieldByToken.map((row) => (
-            <div
-              key={row.symbol}
-              className="rounded-xl bg-surface-container-low p-4"
-            >
+            <div key={row.symbol} className="rounded-xl bg-surface-container-low p-4">
               <p className="text-xs font-bold text-on-surface-variant">{row.symbol}</p>
               <p className="mt-1 text-lg font-bold text-primary">
                 {row.avgEffectiveYieldPct.toFixed(2)}%
               </p>
               <p className="text-xs text-on-surface-variant">
-                {row.invoiceCount} settled invoice{row.invoiceCount === 1 ? "" : "s"}
+                {row.invoiceCount} settled invoice{row.invoiceCount === 1 ? '' : 's'}
               </p>
             </div>
           ))}
@@ -155,20 +136,20 @@ export default function ProtocolYieldAnalyticsSection({
                 />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
+                  tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 11 }}
                 />
                 <YAxis
-                  tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
+                  tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 11 }}
                   width={48}
                   tickFormatter={(v) => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "var(--color-surface-container)",
-                    border: "1px solid var(--color-outline-variant)",
-                    borderRadius: "0.75rem",
+                    backgroundColor: 'var(--color-surface-container)',
+                    border: '1px solid var(--color-outline-variant)',
+                    borderRadius: '0.75rem',
                   }}
-                  formatter={(value: number) => [`${value.toFixed(2)}%`, "Avg yield"]}
+                  formatter={(value: number) => [`${value.toFixed(2)}%`, 'Avg yield']}
                 />
                 <Line
                   type="monotone"

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from 'react';
 
 export interface ColumnConfig {
   id: string;
@@ -38,13 +38,13 @@ export default function ColumnCustomiser({
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItemId(id);
-    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.effectAllowed = 'move';
     // Create a ghost image or just let default happen
   };
 
@@ -73,7 +73,9 @@ export default function ColumnCustomiser({
       >
         <span className="material-symbols-outlined text-[18px]">view_column</span>
         <span className="text-sm font-bold uppercase tracking-wider">Columns</span>
-        <span className={`material-symbols-outlined text-[18px] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+        <span
+          className={`material-symbols-outlined text-[18px] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+        >
           expand_more
         </span>
       </button>
@@ -109,13 +111,13 @@ export default function ColumnCustomiser({
                     onDragOver={(e) => handleDragOver(e, id)}
                     onDragEnd={handleDragEnd}
                     className={`flex items-center gap-3 p-2.5 rounded-xl transition-all group ${
-                      isDragging ? "opacity-30 scale-95" : "hover:bg-surface-container-low"
+                      isDragging ? 'opacity-30 scale-95' : 'hover:bg-surface-container-low'
                     } cursor-grab active:cursor-grabbing`}
                   >
                     <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-[18px] select-none">
                       drag_indicator
                     </span>
-                    
+
                     <label className="flex-1 flex items-center gap-3 cursor-pointer select-none">
                       <div className="relative flex items-center">
                         <input
@@ -124,11 +126,11 @@ export default function ColumnCustomiser({
                           disabled={column.isMandatory}
                           onChange={(e) => onVisibilityChange(id, e.target.checked)}
                           className={`w-5 h-5 rounded border-2 transition-all appearance-none cursor-pointer ${
-                            column.isMandatory 
-                              ? "bg-surface-dim border-outline-variant cursor-not-allowed" 
-                              : isVisible 
-                                ? "bg-primary border-primary checked:bg-primary" 
-                                : "bg-surface-container-lowest border-outline-variant hover:border-primary/50"
+                            column.isMandatory
+                              ? 'bg-surface-dim border-outline-variant cursor-not-allowed'
+                              : isVisible
+                                ? 'bg-primary border-primary checked:bg-primary'
+                                : 'bg-surface-container-lowest border-outline-variant hover:border-primary/50'
                           }`}
                         />
                         {isVisible && (
@@ -137,13 +139,18 @@ export default function ColumnCustomiser({
                           </span>
                         )}
                       </div>
-                      <span className={`text-sm font-medium ${column.isMandatory ? "text-on-surface-variant/60" : "text-on-surface"}`}>
+                      <span
+                        className={`text-sm font-medium ${column.isMandatory ? 'text-on-surface-variant/60' : 'text-on-surface'}`}
+                      >
                         {column.label}
                       </span>
                     </label>
-                    
+
                     {column.isMandatory && (
-                      <span className="material-symbols-outlined text-[14px] text-outline-variant" title="Required column">
+                      <span
+                        className="material-symbols-outlined text-[14px] text-outline-variant"
+                        title="Required column"
+                      >
                         lock
                       </span>
                     )}
@@ -152,7 +159,7 @@ export default function ColumnCustomiser({
               })}
             </div>
           </div>
-          
+
           <div className="p-3 bg-surface-container-low/30 text-[10px] text-on-surface-variant italic text-center">
             Drag items to reorder the table view
           </div>

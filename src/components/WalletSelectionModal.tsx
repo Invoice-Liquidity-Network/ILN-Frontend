@@ -1,12 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { useFocusTrap } from "@/hooks/useFocusTrap";
-import {
-  isWalletConnectConfigured,
-  getWalletConnectPairingUri,
-} from "@/lib/walletConnect";
+import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { isWalletConnectConfigured, getWalletConnectPairingUri } from '@/lib/walletConnect';
 
 interface WalletSelectionModalProps {
   onClose: () => void;
@@ -82,7 +79,9 @@ export default function WalletSelectionModal({
                 <span className="material-symbols-outlined text-primary">qr_code_2</span>
                 WalletConnect
               </span>
-              <span className="text-xs font-medium text-on-surface-variant">Mobile &amp; hardware</span>
+              <span className="text-xs font-medium text-on-surface-variant">
+                Mobile &amp; hardware
+              </span>
             </button>
 
             {!walletConnectReady ? (
@@ -102,8 +101,8 @@ export default function WalletSelectionModal({
               </div>
             ) : null}
             <p className="text-center text-xs text-on-surface-variant">
-              Open your mobile wallet and scan this code to pair. Session completion
-              requires the WalletConnect relay.
+              Open your mobile wallet and scan this code to pair. Session completion requires the
+              WalletConnect relay.
             </p>
             <button
               type="button"

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { get_contract_stats } from "@/utils/contract-stats";
-import { statsKeys, QUERY_TIMINGS } from "@/hooks/queries/keys";
+import { useQuery } from '@tanstack/react-query';
+import { get_contract_stats } from '@/utils/contract-stats';
+import { statsKeys, QUERY_TIMINGS } from '@/hooks/queries/keys';
 
 export function useContractStats() {
   return useQuery({

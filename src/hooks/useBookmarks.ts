@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = "iln-bookmarks";
+const STORAGE_KEY = 'iln-bookmarks';
 const MAX_BOOKMARKS = 100;
 
 function loadBookmarks(): Set<string> {

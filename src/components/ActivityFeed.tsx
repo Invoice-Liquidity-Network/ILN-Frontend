@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import Link from "next/link";
-import { formatAddress, formatRelativeTime, formatUSDC } from "@/utils/format";
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import { formatAddress, formatRelativeTime, formatUSDC } from '@/utils/format';
 
 type InvoiceEventType =
-  | "submitted"
-  | "funded"
-  | "partially_paid"
-  | "paid"
-  | "defaulted"
-  | "cancelled"
-  | "dispute_raised"
-  | "dispute_resolved"
-  | "unknown";
+  | 'submitted'
+  | 'funded'
+  | 'partially_paid'
+  | 'paid'
+  | 'defaulted'
+  | 'cancelled'
+  | 'dispute_raised'
+  | 'dispute_resolved'
+  | 'unknown';
 
 interface RawInvoiceEvent {
   type?: string;
@@ -35,117 +35,203 @@ interface ActivityFeedProps {
   invoiceId: bigint;
 }
 
-const INDEXER_API_BASE =
-  process.env.NEXT_PUBLIC_INDEXER_API_URL ?? "https://api.iln.example.com";
+const INDEXER_API_BASE = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? 'https://api.iln.example.com';
 
 const EVENT_TYPE_MAP: Record<string, InvoiceEventType> = {
-  submitted: "submitted",
-  invoice_submitted: "submitted",
-  funded: "funded",
-  invoice_funded: "funded",
-  paid: "paid",
-  invoice_paid: "paid",
-  partially_paid: "partially_paid",
-  invoice_partially_paid: "partially_paid",
-  partial_payment: "partially_paid",
-  defaulted: "defaulted",
-  invoice_defaulted: "defaulted",
-  cancelled: "cancelled",
-  invoice_cancelled: "cancelled",
-  dispute_raised: "dispute_raised",
-  invoice_disputed: "dispute_raised",
-  dispute_resolved: "dispute_resolved",
-  invoice_resolved: "dispute_resolved",
+  submitted: 'submitted',
+  invoice_submitted: 'submitted',
+  funded: 'funded',
+  invoice_funded: 'funded',
+  paid: 'paid',
+  invoice_paid: 'paid',
+  partially_paid: 'partially_paid',
+  invoice_partially_paid: 'partially_paid',
+  partial_payment: 'partially_paid',
+  defaulted: 'defaulted',
+  invoice_defaulted: 'defaulted',
+  cancelled: 'cancelled',
+  invoice_cancelled: 'cancelled',
+  dispute_raised: 'dispute_raised',
+  invoice_disputed: 'dispute_raised',
+  dispute_resolved: 'dispute_resolved',
+  invoice_resolved: 'dispute_resolved',
 };
 
-const EVENT_CONFIG: Record<InvoiceEventType, { icon: string; color: string; bgColor: string; description: (event: InvoiceEvent) => React.ReactNode }> = {
+const EVENT_CONFIG: Record<
+  InvoiceEventType,
+  {
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: (event: InvoiceEvent) => React.ReactNode;
+  }
+> = {
   submitted: {
-    icon: "publish",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
+    icon: 'publish',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
     description: (event) => (
-      <>Invoice submitted by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}</>
+      <>
+        Invoice submitted by{' '}
+        {event.actor ? (
+          <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+            {formatAddress(event.actor)}
+          </Link>
+        ) : (
+          'Unknown actor'
+        )}
+      </>
     ),
   },
   funded: {
-    icon: "payments",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10",
+    icon: 'payments',
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
     description: (event) => {
       const amount = formatUSDCValue(event.data?.amount);
       return (
         <>
-          Invoice funded by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}
+          Invoice funded by{' '}
+          {event.actor ? (
+            <Link
+              href={`/profile/${event.actor}`}
+              className="font-mono text-primary hover:underline"
+            >
+              {formatAddress(event.actor)}
+            </Link>
+          ) : (
+            'Unknown actor'
+          )}
           {amount ? ` for ${amount}` : null}
         </>
       );
     },
   },
   partially_paid: {
-    icon: "payment",
-    color: "text-sky-500",
-    bgColor: "bg-sky-500/10",
+    icon: 'payment',
+    color: 'text-sky-500',
+    bgColor: 'bg-sky-500/10',
     description: (event) => {
       const amount = formatUSDCValue(event.data?.amount);
       return (
         <>
-          Partial payment by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}
+          Partial payment by{' '}
+          {event.actor ? (
+            <Link
+              href={`/profile/${event.actor}`}
+              className="font-mono text-primary hover:underline"
+            >
+              {formatAddress(event.actor)}
+            </Link>
+          ) : (
+            'Unknown actor'
+          )}
           {amount ? ` of ${amount}` : null}
         </>
       );
     },
   },
   paid: {
-    icon: "check_circle",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
+    icon: 'check_circle',
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
     description: (event) => (
-      <>Invoice paid by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}</>
+      <>
+        Invoice paid by{' '}
+        {event.actor ? (
+          <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+            {formatAddress(event.actor)}
+          </Link>
+        ) : (
+          'Unknown actor'
+        )}
+      </>
     ),
   },
   defaulted: {
-    icon: "report_problem",
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
+    icon: 'report_problem',
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
     description: (event) => {
       const amount = formatUSDCValue(event.data?.amount);
       return (
         <>
-          Invoice defaulted{event.actor ? <> by <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link></> : ""}
+          Invoice defaulted
+          {event.actor ? (
+            <>
+              {' '}
+              by{' '}
+              <Link
+                href={`/profile/${event.actor}`}
+                className="font-mono text-primary hover:underline"
+              >
+                {formatAddress(event.actor)}
+              </Link>
+            </>
+          ) : (
+            ''
+          )}
           {amount ? ` with claimed amount ${amount}` : null}
         </>
       );
     },
   },
   cancelled: {
-    icon: "cancel",
-    color: "text-red-500",
-    bgColor: "bg-red-500/10",
+    icon: 'cancel',
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10',
     description: (event) => (
-      <>Invoice cancelled by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}</>
+      <>
+        Invoice cancelled by{' '}
+        {event.actor ? (
+          <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+            {formatAddress(event.actor)}
+          </Link>
+        ) : (
+          'Unknown actor'
+        )}
+      </>
     ),
   },
   dispute_raised: {
-    icon: "gavel",
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
+    icon: 'gavel',
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
     description: (event) => (
-      <>Dispute raised by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}</>
+      <>
+        Dispute raised by{' '}
+        {event.actor ? (
+          <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+            {formatAddress(event.actor)}
+          </Link>
+        ) : (
+          'Unknown actor'
+        )}
+      </>
     ),
   },
   dispute_resolved: {
-    icon: "task_alt",
-    color: "text-violet-500",
-    bgColor: "bg-violet-500/10",
+    icon: 'task_alt',
+    color: 'text-violet-500',
+    bgColor: 'bg-violet-500/10',
     description: (event) => (
-      <>Dispute resolved by {event.actor ? <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">{formatAddress(event.actor)}</Link> : "Unknown actor"}</>
+      <>
+        Dispute resolved by{' '}
+        {event.actor ? (
+          <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+            {formatAddress(event.actor)}
+          </Link>
+        ) : (
+          'Unknown actor'
+        )}
+      </>
     ),
   },
   unknown: {
-    icon: "help_outline",
-    color: "text-on-surface-variant",
-    bgColor: "bg-surface-container-high",
-    description: () => "Unknown activity occurred",
+    icon: 'help_outline',
+    color: 'text-on-surface-variant',
+    bgColor: 'bg-surface-container-high',
+    description: () => 'Unknown activity occurred',
   },
 };
 
@@ -159,17 +245,22 @@ function formatUSDCValue(value: unknown): string | null {
 }
 
 function normalizeEventType(value?: string): InvoiceEventType {
-  if (!value) return "unknown";
-  return EVENT_TYPE_MAP[value.toString().toLowerCase()] ?? "unknown";
+  if (!value) return 'unknown';
+  return EVENT_TYPE_MAP[value.toString().toLowerCase()] ?? 'unknown';
 }
 
 function parseInvoiceEvent(raw: RawInvoiceEvent): InvoiceEvent {
-  const resolvedTimestamp = raw.timestamp ? (typeof raw.timestamp === "string" ? Date.parse(raw.timestamp) : Number(raw.timestamp)) : Date.now();
+  const resolvedTimestamp = raw.timestamp
+    ? typeof raw.timestamp === 'string'
+      ? Date.parse(raw.timestamp)
+      : Number(raw.timestamp)
+    : Date.now();
   return {
     type: normalizeEventType(raw.type),
-    timestamp: Number.isFinite(resolvedTimestamp) && !Number.isNaN(resolvedTimestamp)
-      ? resolvedTimestamp
-      : Date.now(),
+    timestamp:
+      Number.isFinite(resolvedTimestamp) && !Number.isNaN(resolvedTimestamp)
+        ? resolvedTimestamp
+        : Date.now(),
     actor: raw.actor,
     data: raw.data,
     raw,
@@ -177,9 +268,7 @@ function parseInvoiceEvent(raw: RawInvoiceEvent): InvoiceEvent {
 }
 
 function formatEventTypeLabel(type: InvoiceEventType) {
-  return type
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+  return type.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
 export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
@@ -192,38 +281,38 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
     try {
       setLoading(true);
       const res = await fetch(`${INDEXER_API_BASE}/invoice/${invoiceId}/events`, {
-        cache: "no-store",
+        cache: 'no-store',
       });
-      if (!res.ok) throw new Error("Failed to fetch activity feed");
+      if (!res.ok) throw new Error('Failed to fetch activity feed');
       const rawEvents = (await res.json()) as RawInvoiceEvent[];
       setEvents(rawEvents.map(parseInvoiceEvent));
     } catch (err) {
       console.error(err);
-      setError("Unable to load activity feed.");
+      setError('Unable to load activity feed.');
 
       // MOCK DATA for demonstration if the API is not reachable
-      if (process.env.NODE_ENV === "development" || true) {
+      if (process.env.NODE_ENV === 'development' || true) {
         setEvents([
           {
-            type: "submitted",
+            type: 'submitted',
             timestamp: Date.now() - 86400000 * 2,
-            actor: "GABC12345678901234567890123456789012345678901234567890123456",
+            actor: 'GABC12345678901234567890123456789012345678901234567890123456',
             raw: {
-              type: "submitted",
+              type: 'submitted',
               timestamp: Date.now() - 86400000 * 2,
-              actor: "GABC12345678901234567890123456789012345678901234567890123456",
+              actor: 'GABC12345678901234567890123456789012345678901234567890123456',
             },
           },
           {
-            type: "funded",
+            type: 'funded',
             timestamp: Date.now() - 86400000,
-            actor: "GDEF5678901234567890123456789012345678901234567890123456",
-            data: { amount: "1000000000" },
+            actor: 'GDEF5678901234567890123456789012345678901234567890123456',
+            data: { amount: '1000000000' },
             raw: {
-              type: "funded",
+              type: 'funded',
               timestamp: Date.now() - 86400000,
-              actor: "GDEF5678901234567890123456789012345678901234567890123456",
-              data: { amount: "1000000000" },
+              actor: 'GDEF5678901234567890123456789012345678901234567890123456',
+              data: { amount: '1000000000' },
             },
           },
         ]);
@@ -238,7 +327,10 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
     fetchEvents();
   }, [fetchEvents]);
 
-  const sortedEvents = useMemo(() => [...events].sort((a, b) => b.timestamp - a.timestamp), [events]);
+  const sortedEvents = useMemo(
+    () => [...events].sort((a, b) => b.timestamp - a.timestamp),
+    [events]
+  );
 
   const toggleRawData = (index: number) => {
     setExpandedEvents((current) => ({
@@ -283,20 +375,35 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
           const rawJson = JSON.stringify(event.raw, null, 2);
 
           return (
-            <article key={idx} className="relative rounded-3xl border border-outline-variant/10 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+            <article
+              key={idx}
+              className="relative rounded-3xl border border-outline-variant/10 bg-white p-4 shadow-sm transition-all hover:shadow-md"
+            >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-outline-variant/10 ${config.bgColor}`}>
-                    <span className={`material-symbols-outlined text-2xl ${config.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-outline-variant/10 ${config.bgColor}`}
+                  >
+                    <span
+                      className={`material-symbols-outlined text-2xl ${config.color}`}
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
                       {config.icon}
                     </span>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-on-surface">{config.description(event)}</p>
+                    <p className="text-sm font-medium text-on-surface">
+                      {config.description(event)}
+                    </p>
                     <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-wider text-on-surface-variant">
-                      <span className="font-bold text-primary">{formatEventTypeLabel(event.type)}</span>
+                      <span className="font-bold text-primary">
+                        {formatEventTypeLabel(event.type)}
+                      </span>
                       {event.actor ? (
-                        <Link href={`/profile/${event.actor}`} className="font-mono text-primary hover:underline">
+                        <Link
+                          href={`/profile/${event.actor}`}
+                          className="font-mono text-primary hover:underline"
+                        >
                           {formatAddress(event.actor)}
                         </Link>
                       ) : (
@@ -322,7 +429,7 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
                     className="text-xs text-primary hover:underline"
                     aria-expanded={Boolean(expandedEvents[idx])}
                   >
-                    {expandedEvents[idx] ? "Hide raw event data" : "Show raw event data"}
+                    {expandedEvents[idx] ? 'Hide raw event data' : 'Show raw event data'}
                   </button>
                 </div>
               </div>

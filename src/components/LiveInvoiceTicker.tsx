@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import AnimatedNumber from "@/components/AnimatedNumber";
-import { useInvoiceCount } from "@/hooks/queries/useInvoiceCount";
-import { useContractStats } from "@/hooks/useContractStats";
+import AnimatedNumber from '@/components/AnimatedNumber';
+import { useInvoiceCount } from '@/hooks/queries/useInvoiceCount';
+import { useContractStats } from '@/hooks/useContractStats';
 
 /**
  * Static fallback shown when the contract query fails, so the hero never

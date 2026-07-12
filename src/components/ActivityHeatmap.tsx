@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import type { Invoice } from "@/utils/soroban";
+import { useMemo, useState } from 'react';
+import type { Invoice } from '@/utils/soroban';
 import {
   type DayActivity,
   buildDailyActivityCounts,
@@ -9,7 +9,7 @@ import {
   deriveAddressActivityFromInvoices,
   formatActivityTooltip,
   getHeatmapIntensityColor,
-} from "@/utils/activity-heatmap";
+} from '@/utils/activity-heatmap';
 
 interface ActivityHeatmapProps {
   address: string;
@@ -65,11 +65,11 @@ export default function ActivityHeatmap({ address, invoices }: ActivityHeatmapPr
     : undefined;
 
   const formattedDate = tooltip
-    ? new Date(`${tooltip.dayKey}T00:00:00Z`).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
+    ? new Date(`${tooltip.dayKey}T00:00:00Z`).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       })
     : null;
 
@@ -108,14 +108,14 @@ export default function ActivityHeatmap({ address, invoices }: ActivityHeatmapPr
                     tabIndex={0}
                     role="gridcell"
                     aria-label={formatActivityTooltip(cellActivity, dayKey)}
-                    style={{ outline: "none", cursor: "default" }}
+                    style={{ outline: 'none', cursor: 'default' }}
                     onMouseEnter={() => showTooltip(weekIndex, dayIndex, dayKey)}
                     onMouseLeave={hideTooltip}
                     onFocus={() => showTooltip(weekIndex, dayIndex, dayKey)}
                     onBlur={hideTooltip}
                   />
                 );
-              }),
+              })
             )}
           </svg>
 
@@ -131,9 +131,9 @@ export default function ActivityHeatmap({ address, invoices }: ActivityHeatmapPr
               </p>
               <p className="mt-1 text-sm font-bold text-on-surface">
                 {tooltip.activity.count === 0
-                  ? "No activity"
+                  ? 'No activity'
                   : tooltip.activity.count === 1
-                    ? "1 action"
+                    ? '1 action'
                     : `${tooltip.activity.count} actions`}
               </p>
               {tooltip.activity.totalAmount > 0n && (

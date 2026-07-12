@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslation } from "react-i18next";
-import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import BatchInvoiceForm from "@/components/BatchInvoiceForm";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import BatchInvoiceForm from '@/components/BatchInvoiceForm';
 
 export default function BatchInvoiceSubmissionPage() {
   const router = useRouter();
@@ -16,18 +16,18 @@ export default function BatchInvoiceSubmissionPage() {
   const handleSuccess = (results: { successful: number; failed: number }) => {
     if (results.failed === 0) {
       addToast({
-        type: "success",
-        title: "Batch Submission Complete",
+        type: 'success',
+        title: 'Batch Submission Complete',
         message: `Successfully submitted ${results.successful} invoices.`,
       });
     } else {
       addToast({
-        type: "warning",
-        title: "Batch Submission Partial",
+        type: 'warning',
+        title: 'Batch Submission Partial',
         message: `${results.successful} invoices submitted, ${results.failed} failed.`,
       });
     }
-    router.push("/dashboard");
+    router.push('/dashboard');
   };
 
   if (!isConnected) {
@@ -56,9 +56,7 @@ export default function BatchInvoiceSubmissionPage() {
     <div className="min-h-screen bg-surface p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-on-surface mb-2">
-            Batch Invoice Submission
-          </h1>
+          <h1 className="text-3xl font-bold text-on-surface mb-2">Batch Invoice Submission</h1>
           <p className="text-on-surface-variant">
             Submit multiple invoices at once using CSV upload or dynamic form entry.
           </p>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
+import { useEffect, useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
 
 type LeaderboardItem = {
   address: string;
@@ -10,8 +10,8 @@ type LeaderboardItem = {
 };
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<"lp" | "freelancer">("lp");
-  const [period, setPeriod] = useState("all");
+  const [activeTab, setActiveTab] = useState<'lp' | 'freelancer'>('lp');
+  const [period, setPeriod] = useState('all');
   const [data, setData] = useState<LeaderboardItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -22,9 +22,7 @@ export default function LeaderboardPage() {
       setLoading(true);
 
       try {
-        const res = await fetch(
-          `/api/leaderboard?type=${activeTab}&period=${period}`
-        );
+        const res = await fetch(`/api/leaderboard?type=${activeTab}&period=${period}`);
         const result = await res.json();
         setData(result);
       } catch (err) {
@@ -37,11 +35,9 @@ export default function LeaderboardPage() {
     fetchData();
   }, [activeTab, period]);
 
-  const truncate = (addr: string) =>
-    `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const truncate = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-  const isUser = (addr: string) =>
-    addr.toLowerCase() === address?.toLowerCase();
+  const isUser = (addr: string) => addr.toLowerCase() === address?.toLowerCase();
 
   return (
     <div className="p-6">
@@ -50,25 +46,22 @@ export default function LeaderboardPage() {
       {/* Tabs */}
       <div className="flex gap-4 mb-4">
         <button
-          onClick={() => setActiveTab("lp")}
-          className={activeTab === "lp" ? "font-bold" : ""}
+          onClick={() => setActiveTab('lp')}
+          className={activeTab === 'lp' ? 'font-bold' : ''}
         >
           Top LPs
         </button>
 
         <button
-          onClick={() => setActiveTab("freelancer")}
-          className={activeTab === "freelancer" ? "font-bold" : ""}
+          onClick={() => setActiveTab('freelancer')}
+          className={activeTab === 'freelancer' ? 'font-bold' : ''}
         >
           Top Freelancers
         </button>
       </div>
 
       {/* Filter */}
-      <select
-        className="mb-4 border px-2 py-1"
-        onChange={(e) => setPeriod(e.target.value)}
-      >
+      <select className="mb-4 border px-2 py-1" onChange={(e) => setPeriod(e.target.value)}>
         <option value="all">All time</option>
         <option value="30d">Last 30 days</option>
         <option value="7d">Last 7 days</option>
@@ -91,14 +84,11 @@ export default function LeaderboardPage() {
 
             <tbody>
               {data.slice(0, 20).map((row, i) => (
-                <tr
-                  key={i}
-                  className={isUser(row.address) ? "bg-yellow-100" : ""}
-                >
+                <tr key={i} className={isUser(row.address) ? 'bg-yellow-100' : ''}>
                   <td>{i + 1}</td>
                   <td>{truncate(row.address)}</td>
-                  <td>{row.metric1 ?? "-"}</td>
-                  <td>{row.metric2 ?? "-"}</td>
+                  <td>{row.metric1 ?? '-'}</td>
+                  <td>{row.metric2 ?? '-'}</td>
                 </tr>
               ))}
             </tbody>

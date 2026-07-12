@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from 'react';
 
 export interface RowAction {
   label: string;
@@ -26,16 +26,16 @@ export function RowActionsMenu({ actions, ariaLabel }: RowActionsMenuProps) {
     }
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
+    if (e.key === 'Escape') {
       setIsOpen(false);
       buttonRef.current?.focus();
-    } else if (e.key === "ArrowDown") {
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       const firstButton = menuRef.current?.querySelector("button:not([aria-label*='Actions'])");
       (firstButton as HTMLButtonElement)?.focus();
@@ -53,7 +53,7 @@ export function RowActionsMenu({ actions, ariaLabel }: RowActionsMenuProps) {
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        aria-label={ariaLabel || "Row actions"}
+        aria-label={ariaLabel || 'Row actions'}
         aria-expanded={isOpen}
         className="p-1 rounded hover:bg-surface-variant/20 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
       >

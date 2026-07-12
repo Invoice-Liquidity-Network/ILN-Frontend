@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-const ORACLE_ENABLED = process.env.NEXT_PUBLIC_ORACLE_ENABLED === "true";
+const ORACLE_ENABLED = process.env.NEXT_PUBLIC_ORACLE_ENABLED === 'true';
 
 interface OracleBadgeProps {
   verified: boolean;
@@ -17,7 +17,13 @@ export default function OracleBadge({ verified }: OracleBadgeProps) {
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
           <circle cx="5" cy="5" r="5" fill="#16a34a" />
-          <path d="M2.5 5l1.8 1.8L7.5 3.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2.5 5l1.8 1.8L7.5 3.5"
+            stroke="#fff"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         Oracle Verified
       </span>

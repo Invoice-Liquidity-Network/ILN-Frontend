@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useLPSettings } from "@/hooks/useLPSettings";
+import React from 'react';
+import { useLPSettings } from '@/hooks/useLPSettings';
 
 interface LPSettingsModalProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
             <span className="material-symbols-outlined text-primary">settings</span>
             Risk Settings
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-surface-variant/20 rounded-full transition-colors"
           >
@@ -38,7 +38,8 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
               Minimum Reputation Threshold
             </label>
             <p className="text-sm text-on-surface-variant mb-4">
-              Invoices from payers with a reputation score below this value will be dimmed in the marketplace.
+              Invoices from payers with a reputation score below this value will be dimmed in the
+              marketplace.
             </p>
             <div className="flex items-center gap-4">
               <input
@@ -60,7 +61,9 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
             <span className="material-symbols-outlined text-amber-600">info</span>
             <p className="text-xs text-amber-800 leading-relaxed">
-              This setting is stored locally on this device. It helps you quickly identify and avoid invoices that don't meet your risk criteria without removing them from the marketplace entirely.
+              This setting is stored locally on this device. It helps you quickly identify and avoid
+              invoices that don't meet your risk criteria without removing them from the marketplace
+              entirely.
             </p>
           </div>
 
@@ -70,7 +73,7 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
             </h4>
 
             <div className="space-y-3">
-              {(["invoice", "lp", "governance", "reputation"] as const).map((category) => (
+              {(['invoice', 'lp', 'governance', 'reputation'] as const).map((category) => (
                 <label key={category} className="flex items-center justify-between cursor-pointer">
                   <span className="text-sm text-on-surface capitalize">{category} events</span>
                   <input
@@ -78,7 +81,10 @@ export default function LPSettingsModal({ isOpen, onClose }: LPSettingsModalProp
                     checked={settings.notificationPreferences.categories[category]}
                     onChange={(e) =>
                       updateNotificationPreferences({
-                        categories: { ...settings.notificationPreferences.categories, [category]: e.target.checked },
+                        categories: {
+                          ...settings.notificationPreferences.categories,
+                          [category]: e.target.checked,
+                        },
                       })
                     }
                     className="w-5 h-5 accent-primary"

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React from "react";
-import MetricCard from "@/components/analytics/MetricCard";
-import type { ContractStats } from "@/utils/contract-stats";
+import React from 'react';
+import MetricCard from '@/components/analytics/MetricCard';
+import type { ContractStats } from '@/utils/contract-stats';
 
 function formatUsd(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 }
 
 interface Props {

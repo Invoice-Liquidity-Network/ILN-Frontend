@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * NotificationSettings — Issue #70
@@ -8,24 +8,24 @@
  * test webhooks, and manage/delete active subscriptions.
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { useToast } from "@/context/ToastContext";
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useToast } from '@/context/ToastContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type EventType = "funded" | "settled" | "defaulted" | "due_date_warning";
+type EventType = 'funded' | 'settled' | 'defaulted' | 'due_date_warning';
 
 const EVENT_TYPES: { key: EventType; label: string }[] = [
-  { key: "funded", label: "Invoice Funded" },
-  { key: "settled", label: "Invoice Settled" },
-  { key: "defaulted", label: "Invoice Defaulted" },
-  { key: "due_date_warning", label: "Due Date Warning" },
+  { key: 'funded', label: 'Invoice Funded' },
+  { key: 'settled', label: 'Invoice Settled' },
+  { key: 'defaulted', label: 'Invoice Defaulted' },
+  { key: 'due_date_warning', label: 'Due Date Warning' },
 ];
 
 interface Subscription {
   id: string;
-  type: "email" | "webhook";
+  type: 'email' | 'webhook';
   target: string;
   events: EventType[];
   createdAt: string;
@@ -45,7 +45,7 @@ const DEFAULT_TOGGLES: EventToggles = {
   due_date_warning: true,
 };
 
-const STORAGE_KEY = "iln-notification-subscriptions";
+const STORAGE_KEY = 'iln-notification-subscriptions';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -72,11 +72,11 @@ export default function NotificationSettings() {
   const { addToast } = useToast();
 
   // Email form
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [emailToggles, setEmailToggles] = useState<EventToggles>(DEFAULT_TOGGLES);
 
   // Webhook form
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookToggles, setWebhookToggles] = useState<EventToggles>(DEFAULT_TOGGLES);
   const [testingWebhook, setTestingWebhook] = useState(false);
 
@@ -95,69 +95,69 @@ export default function NotificationSettings() {
   // ── Email save ──────────────────────────────────────────────────────────────
 
   const handleSaveEmail = useCallback(() => {
-    if (!email.includes("@")) {
-      addToast({ type: "error", title: "Please enter a valid email address." });
+    if (!email.includes('@')) {
+      addToast({ type: 'error', title: 'Please enter a valid email address.' });
       return;
     }
     const events = enabledEvents(emailToggles);
     if (events.length === 0) {
-      addToast({ type: "error", title: "Select at least one event type." });
+      addToast({ type: 'error', title: 'Select at least one event type.' });
       return;
     }
     const sub: Subscription = {
       id: `email-${Date.now()}`,
-      type: "email",
+      type: 'email',
       target: email,
       events,
       createdAt: new Date().toISOString(),
     };
     // POST /subscribe (mocked — integrate with real notification service)
     persistAndSet([...subscriptions, sub]);
-    setEmail("");
-    addToast({ type: "success", title: "Email subscription saved." });
+    setEmail('');
+    addToast({ type: 'success', title: 'Email subscription saved.' });
   }, [email, emailToggles, subscriptions, addToast]);
 
   // ── Webhook save ────────────────────────────────────────────────────────────
 
   const handleSaveWebhook = useCallback(() => {
-    if (!webhookUrl.startsWith("http")) {
-      addToast({ type: "error", title: "Please enter a valid webhook URL." });
+    if (!webhookUrl.startsWith('http')) {
+      addToast({ type: 'error', title: 'Please enter a valid webhook URL.' });
       return;
     }
     const events = enabledEvents(webhookToggles);
     if (events.length === 0) {
-      addToast({ type: "error", title: "Select at least one event type." });
+      addToast({ type: 'error', title: 'Select at least one event type.' });
       return;
     }
     const sub: Subscription = {
       id: `webhook-${Date.now()}`,
-      type: "webhook",
+      type: 'webhook',
       target: webhookUrl,
       events,
       createdAt: new Date().toISOString(),
     };
     persistAndSet([...subscriptions, sub]);
-    setWebhookUrl("");
-    addToast({ type: "success", title: "Webhook subscription saved." });
+    setWebhookUrl('');
+    addToast({ type: 'success', title: 'Webhook subscription saved.' });
   }, [webhookUrl, webhookToggles, subscriptions, addToast]);
 
   // ── Test webhook ────────────────────────────────────────────────────────────
 
   const handleTestWebhook = useCallback(async () => {
-    if (!webhookUrl.startsWith("http")) {
-      addToast({ type: "error", title: "Enter a valid webhook URL first." });
+    if (!webhookUrl.startsWith('http')) {
+      addToast({ type: 'error', title: 'Enter a valid webhook URL first.' });
       return;
     }
     setTestingWebhook(true);
     try {
       await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: "test", message: "Invoice Liquidity Network test webhook" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'test', message: 'Invoice Liquidity Network test webhook' }),
       });
-      addToast({ type: "success", title: "Test webhook sent successfully." });
+      addToast({ type: 'success', title: 'Test webhook sent successfully.' });
     } catch {
-      addToast({ type: "error", title: "Webhook test failed. Check the URL." });
+      addToast({ type: 'error', title: 'Webhook test failed. Check the URL.' });
     } finally {
       setTestingWebhook(false);
     }
@@ -168,7 +168,7 @@ export default function NotificationSettings() {
   const handleDelete = useCallback(
     (id: string) => {
       persistAndSet(subscriptions.filter((s) => s.id !== id));
-      addToast({ type: "success", title: "Subscription removed." });
+      addToast({ type: 'success', title: 'Subscription removed.' });
     },
     [subscriptions, addToast]
   );
@@ -176,8 +176,7 @@ export default function NotificationSettings() {
   // ── Toggle helper ───────────────────────────────────────────────────────────
 
   const toggle =
-    (setter: React.Dispatch<React.SetStateAction<EventToggles>>, key: EventType) =>
-    () =>
+    (setter: React.Dispatch<React.SetStateAction<EventToggles>>, key: EventType) => () =>
       setter((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -269,7 +268,7 @@ export default function NotificationSettings() {
             data-testid="test-webhook-btn"
             className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
-            {testingWebhook ? "Sending…" : "Test webhook"}
+            {testingWebhook ? 'Sending…' : 'Test webhook'}
           </button>
         </div>
       </section>
@@ -286,8 +285,7 @@ export default function NotificationSettings() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{sub.target}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {sub.type === "email" ? "📧 Email" : "🔗 Webhook"} ·{" "}
-                    {sub.events.join(", ")}
+                    {sub.type === 'email' ? '📧 Email' : '🔗 Webhook'} · {sub.events.join(', ')}
                   </p>
                 </div>
                 <button

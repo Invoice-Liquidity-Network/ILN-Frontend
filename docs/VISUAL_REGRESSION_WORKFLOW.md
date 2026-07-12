@@ -63,7 +63,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { /* default props */ },
+  args: {/* default props */},
 };
 ```
 
@@ -101,9 +101,9 @@ npm run build-storybook
 
 ## Troubleshooting
 
-| Issue | Resolution |
-|-------|------------|
-| Chromatic token missing | Add `CHROMATIC_PROJECT_TOKEN` to GitHub Actions secrets |
-| Storybook build fails | Check `npm run build-storybook` locally first |
-| False positives (font/animation differences) | Add `chromatic: { delay: 500 }` to the story's parameters |
-| Story import errors | Ensure all component dependencies are available in Storybook context |
+| Issue                                        | Resolution                                                           |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| Chromatic token missing                      | Add `CHROMATIC_PROJECT_TOKEN` to GitHub Actions secrets              |
+| Storybook build fails                        | Check `npm run build-storybook` locally first                        |
+| False positives (font/animation differences) | Add `chromatic: { delay: 500 }` to the story's parameters            |
+| Story import errors                          | Ensure all component dependencies are available in Storybook context |

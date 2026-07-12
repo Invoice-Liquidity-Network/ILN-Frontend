@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { formatAddress, formatDate, formatUSDC, calculateYield } from "@/utils/format";
-import type { Invoice } from "@/utils/soroban";
-import type { ApprovedToken } from "@/hooks/useApprovedTokens";
-import InvoiceTable, { ColumnDefinition } from "./InvoiceTable";
+import { useState, useMemo } from 'react';
+import { formatAddress, formatDate, formatUSDC, calculateYield } from '@/utils/format';
+import type { Invoice } from '@/utils/soroban';
+import type { ApprovedToken } from '@/hooks/useApprovedTokens';
+import InvoiceTable, { ColumnDefinition } from './InvoiceTable';
 
-import LPTokenMetricsCards from "./LPTokenMetricsCards";
-import LPPortfolioAllocationChart from "./LPPortfolioAllocationChart";
-import WeeklyYieldChart from "./WeeklyYieldChart";
-import { calculatePerTokenMetrics } from "@/utils/per-token-yield";
+import LPTokenMetricsCards from './LPTokenMetricsCards';
+import LPPortfolioAllocationChart from './LPPortfolioAllocationChart';
+import WeeklyYieldChart from './WeeklyYieldChart';
+import { calculatePerTokenMetrics } from '@/utils/per-token-yield';
 
 interface LPPortfolioProps {
   invoices: Invoice[];
@@ -42,50 +42,50 @@ export default function LPPortfolio({
   // Calculate per-token metrics
   const perTokenMetrics = useMemo(
     () => calculatePerTokenMetrics(invoices, tokenMap, defaultToken),
-    [invoices, tokenMap, defaultToken],
+    [invoices, tokenMap, defaultToken]
   );
 
   const totalYieldEarned = invoices
-    .filter((invoice) => invoice.status === "Paid")
+    .filter((invoice) => invoice.status === 'Paid')
     .reduce((total, invoice) => total + calculateYield(invoice.amount, invoice.discount_rate), 0n);
 
   const columns: ColumnDefinition<Invoice>[] = [
     {
-      id: "id",
-      label: "ID",
+      id: 'id',
+      label: 'ID',
       isMandatory: true,
       isKeyColumn: true,
       sortable: true,
       renderCell: (inv) => <span className="font-bold text-primary">#{inv.id.toString()}</span>,
     },
     {
-      id: "freelancer",
-      label: "Freelancer",
+      id: 'freelancer',
+      label: 'Freelancer',
       sortable: false,
       renderCell: (inv) => <span>{formatAddress(inv.freelancer)}</span>,
     },
     {
-      id: "amount",
-      label: "Amount Funded",
+      id: 'amount',
+      label: 'Amount Funded',
       isKeyColumn: true,
       sortable: true,
       renderCell: (inv) => <span className="font-bold">{formatUSDC(inv.amount)}</span>,
     },
     {
-      id: "discount",
-      label: "Discount %",
+      id: 'discount',
+      label: 'Discount %',
       sortable: true,
       renderCell: (inv) => <span>{(inv.discount_rate / 100).toFixed(2)}%</span>,
     },
     {
-      id: "due_date",
-      label: "Due Date",
+      id: 'due_date',
+      label: 'Due Date',
       sortable: true,
       renderCell: (inv) => <span>{formatDate(inv.due_date)}</span>,
     },
     {
-      id: "status",
-      label: "Status",
+      id: 'status',
+      label: 'Status',
       isMandatory: true,
       isKeyColumn: true,
       sortable: true,
@@ -96,14 +96,14 @@ export default function LPPortfolio({
       ),
     },
     {
-      id: "yield",
-      label: "Yield Earned",
+      id: 'yield',
+      label: 'Yield Earned',
       sortable: false,
       renderCell: (inv) => {
         const yieldAmount = calculateYield(inv.amount, inv.discount_rate);
         return (
           <span className="font-bold">
-            {inv.status === "Paid" ? (
+            {inv.status === 'Paid' ? (
               <span className="text-green-600">{formatUSDC(yieldAmount)}</span>
             ) : (
               <span className="text-on-surface-variant">Pending</span>
@@ -113,15 +113,15 @@ export default function LPPortfolio({
       },
     },
     {
-      id: "actions",
-      label: "",
+      id: 'actions',
+      label: '',
       sortable: false,
       renderCell: (inv) => {
         const isPastDue = Number(inv.due_date) * 1000 < now;
-        const isClaimEligible = inv.status === "Funded" && isPastDue;
+        const isClaimEligible = inv.status === 'Funded' && isPastDue;
         const isClaiming = claimingInvoiceId === inv.id.toString();
         const isClaimingInsurance = claimingInsuranceId === inv.id.toString();
-        
+
         if (!isClaimEligible && !onTransfer) return null;
 
         return (
@@ -133,7 +133,7 @@ export default function LPPortfolio({
                   disabled={isClaiming || isClaimingInsurance}
                   className="rounded-lg bg-error px-3 py-2 text-xs font-bold text-on-error transition-all hover:opacity-90 disabled:opacity-60"
                 >
-                  {isClaiming ? "Claiming..." : "Claim Default"}
+                  {isClaiming ? 'Claiming...' : 'Claim Default'}
                 </button>
                 {onClaimInsurance && isEnrolledInInsurance && (
                   <button
@@ -142,12 +142,12 @@ export default function LPPortfolio({
                     className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-surface transition-all hover:opacity-90 disabled:opacity-60 flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[14px]">shield</span>
-                    {isClaimingInsurance ? "Processing..." : "File a Claim"}
+                    {isClaimingInsurance ? 'Processing...' : 'File a Claim'}
                   </button>
                 )}
               </>
             )}
-            {onTransfer && inv.status === "Funded" && (
+            {onTransfer && inv.status === 'Funded' && (
               <button
                 onClick={() => onTransfer(inv)}
                 className="rounded-lg border border-outline-variant px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-dim"
@@ -165,7 +165,9 @@ export default function LPPortfolio({
     <div className="space-y-6 p-6">
       {/* Total Yield Card (Legacy) */}
       <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Total Yield Earned</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+          Total Yield Earned
+        </p>
         <p className="mt-1 text-2xl font-bold text-green-700">{formatUSDC(totalYieldEarned)}</p>
       </div>
 
@@ -179,9 +181,7 @@ export default function LPPortfolio({
       )}
 
       {/* Portfolio Allocation Donut */}
-      {perTokenMetrics.length > 0 && (
-        <LPPortfolioAllocationChart metrics={perTokenMetrics} />
-      )}
+      {perTokenMetrics.length > 0 && <LPPortfolioAllocationChart metrics={perTokenMetrics} />}
 
       {/* Weekly Yield Chart */}
       {perTokenMetrics.length > 0 && (

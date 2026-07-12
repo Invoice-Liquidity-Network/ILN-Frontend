@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, {
   createContext,
@@ -8,30 +8,19 @@ import React, {
   ReactNode,
   useEffect,
   useMemo,
-} from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useLPSettings } from "@/hooks/useLPSettings";
+} from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useLPSettings } from '@/hooks/useLPSettings';
 import {
   MAX_NOTIFICATIONS,
   notificationsStorageKey,
   readStateStorageKey,
-} from "@/utils/notificationHelpers";
+} from '@/utils/notificationHelpers';
 
-export type NotificationCategory =
-  | "invoice"
-  | "lp"
-  | "governance"
-  | "reputation";
+export type NotificationCategory = 'invoice' | 'lp' | 'governance' | 'reputation';
 
 export type NotificationType =
-  | "funded"
-  | "settled"
-  | "expired"
-  | "disputed"
-  | "info"
-  | "warning"
-  | "proposal"
-  | "reputation";
+  'funded' | 'settled' | 'expired' | 'disputed' | 'info' | 'warning' | 'proposal' | 'reputation';
 
 export interface NotificationItem {
   id: string;
@@ -48,14 +37,12 @@ interface NotificationContextType {
   notifications: NotificationItem[];
   unreadCount: number;
   setNotifications: (
-    notifications:
-      | NotificationItem[]
-      | ((previous: NotificationItem[]) => NotificationItem[]),
+    notifications: NotificationItem[] | ((previous: NotificationItem[]) => NotificationItem[])
   ) => void;
   addNotification: (
-    notification: Omit<NotificationItem, "createdAt" | "read"> & {
+    notification: Omit<NotificationItem, 'createdAt' | 'read'> & {
       id?: string;
-    },
+    }
   ) => NotificationItem;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -63,12 +50,10 @@ interface NotificationContextType {
   isRead: (id: string) => boolean;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined,
-);
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 function loadReadMap(key: string): Record<string, boolean> {
-  if (typeof window === "undefined") return {};
+  if (typeof window === 'undefined') return {};
   try {
     const stored = localStorage.getItem(key);
     return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
@@ -79,7 +64,7 @@ function loadReadMap(key: string): Record<string, boolean> {
 
 function applyReadState(
   items: NotificationItem[],
-  readMap: Record<string, boolean>,
+  readMap: Record<string, boolean>
 ): NotificationItem[] {
   return items.map((item) => ({
     ...item,
@@ -90,9 +75,7 @@ function applyReadState(
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { address } = useWallet();
   const { settings } = useLPSettings();
-  const [notifications, setNotificationsState] = useState<NotificationItem[]>(
-    [],
-  );
+  const [notifications, setNotificationsState] = useState<NotificationItem[]>([]);
   const [readMap, setReadMap] = useState<Record<string, boolean>>({});
 
   const storageKey = address ? notificationsStorageKey(address) : null;
@@ -127,7 +110,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!readKey) return;
       localStorage.setItem(readKey, JSON.stringify(next));
     },
-    [readKey],
+    [readKey]
   );
 
   const persistNotifications = useCallback(
@@ -135,34 +118,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!storageKey) return;
       localStorage.setItem(storageKey, JSON.stringify(items.slice(0, MAX_NOTIFICATIONS)));
     },
-    [storageKey],
+    [storageKey]
   );
 
   const setNotifications = useCallback(
-    (
-      items:
-        | NotificationItem[]
-        | ((previous: NotificationItem[]) => NotificationItem[]),
-    ) => {
+    (items: NotificationItem[] | ((previous: NotificationItem[]) => NotificationItem[])) => {
       setNotificationsState((previous) => {
-        const resolved =
-          typeof items === "function" ? items(previous) : items;
-        const withRead = applyReadState(
-          resolved.slice(0, MAX_NOTIFICATIONS),
-          readMap,
-        );
+        const resolved = typeof items === 'function' ? items(previous) : items;
+        const withRead = applyReadState(resolved.slice(0, MAX_NOTIFICATIONS), readMap);
         persistNotifications(withRead);
         return withRead;
       });
     },
-    [readMap, persistNotifications],
+    [readMap, persistNotifications]
   );
 
   const addNotification = useCallback(
     (
-      notification: Omit<NotificationItem, "createdAt" | "read"> & {
+      notification: Omit<NotificationItem, 'createdAt' | 'read'> & {
         id?: string;
-      },
+      }
     ) => {
       const stableId =
         notification.id ??
@@ -184,17 +159,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       setNotificationsState((prev) => {
         const withoutDuplicate = prev.filter((n) => n.id !== stableId);
-        const next = [newNotification, ...withoutDuplicate].slice(
-          0,
-          MAX_NOTIFICATIONS,
-        );
+        const next = [newNotification, ...withoutDuplicate].slice(0, MAX_NOTIFICATIONS);
         persistNotifications(next);
         return next;
       });
 
       return newNotification;
     },
-    [readMap, persistNotifications, settings],
+    [readMap, persistNotifications, settings]
   );
 
   const markAsRead = useCallback(
@@ -206,13 +178,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       });
       setNotificationsState((prev) => {
         const next = prev.map((notification) =>
-          notification.id === id ? { ...notification, read: true } : notification,
+          notification.id === id ? { ...notification, read: true } : notification
         );
         persistNotifications(next);
         return next;
       });
     },
-    [persistNotifications, persistReadMap],
+    [persistNotifications, persistReadMap]
   );
 
   const markAllAsRead = useCallback(() => {
@@ -237,14 +209,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAllAsRead();
   }, [markAllAsRead]);
 
-  const isRead = useCallback(
-    (id: string) => readMap[id] === true,
-    [readMap],
-  );
+  const isRead = useCallback((id: string) => readMap[id] === true, [readMap]);
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.read).length,
-    [notifications],
+    [notifications]
   );
 
   return (
@@ -268,9 +237,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 export function useNotification() {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error(
-      "useNotification must be used within a NotificationProvider",
-    );
+    throw new Error('useNotification must be used within a NotificationProvider');
   }
   return context;
 }

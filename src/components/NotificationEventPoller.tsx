@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useWallet } from "@/context/WalletContext";
-import { useNotification } from "@/context/NotificationContext";
-import { useInvoices } from "@/hooks/useInvoices";
-import { useNotificationEvents } from "@/hooks/useNotificationEvents";
-import { usePositionPolling } from "@/hooks/usePositionPolling";
-import { useToast } from "@/context/ToastContext";
+import { useWallet } from '@/context/WalletContext';
+import { useNotification } from '@/context/NotificationContext';
+import { useInvoices } from '@/hooks/useInvoices';
+import { useNotificationEvents } from '@/hooks/useNotificationEvents';
+import { usePositionPolling } from '@/hooks/usePositionPolling';
+import { useToast } from '@/context/ToastContext';
 
 export default function NotificationEventPoller() {
   const { address } = useWallet();

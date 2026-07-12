@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from 'react';
 
 interface FieldTooltipProps {
   content: string | React.ReactNode;
@@ -17,8 +17,8 @@ export default function FieldTooltip({ content, trigger }: FieldTooltipProps) {
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -35,9 +35,7 @@ export default function FieldTooltip({ content, trigger }: FieldTooltipProps) {
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200"
-        >
+        <div className="absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200">
           <div className="relative p-3 rounded-xl bg-surface-container-highest/95 backdrop-blur-md shadow-xl border border-outline-variant/20 text-xs text-on-surface leading-relaxed text-center">
             {content}
             {/* Arrow */}

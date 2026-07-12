@@ -1,14 +1,14 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import WhatsNewModal from "../WhatsNewModal";
-import * as useWhatsNewHook from "@/hooks/useWhatsNew";
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import WhatsNewModal from '../WhatsNewModal';
+import * as useWhatsNewHook from '@/hooks/useWhatsNew';
 
-vi.mock("@/hooks/useWhatsNew", () => ({
+vi.mock('@/hooks/useWhatsNew', () => ({
   useWhatsNew: vi.fn(),
 }));
 
-describe("WhatsNewModal", () => {
+describe('WhatsNewModal', () => {
   const mockDismiss = vi.fn();
 
   beforeEach(() => {
@@ -19,30 +19,30 @@ describe("WhatsNewModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not render when isOpen is false", () => {
+  it('does not render when isOpen is false', () => {
     (useWhatsNewHook.useWhatsNew as any).mockReturnValue({
       isOpen: false,
       dismiss: mockDismiss,
       items: [],
-      currentVersion: "v1.5.0",
+      currentVersion: 'v1.5.0',
     });
 
     const { container } = render(<WhatsNewModal />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders correctly when isOpen is true", () => {
+  it('renders correctly when isOpen is true', () => {
     (useWhatsNewHook.useWhatsNew as any).mockReturnValue({
       isOpen: true,
       dismiss: mockDismiss,
-      currentVersion: "v1.5.0",
+      currentVersion: 'v1.5.0',
       items: [
         {
-          id: "feature-1",
-          icon: "🚀",
-          title: "New Feature",
-          description: "This is a great new feature.",
-          version: "v1.5.0",
+          id: 'feature-1',
+          icon: '🚀',
+          title: 'New Feature',
+          description: 'This is a great new feature.',
+          version: 'v1.5.0',
         },
       ],
     });
@@ -51,16 +51,19 @@ describe("WhatsNewModal", () => {
 
     // Header and Version
     expect(screen.getByText(/What's New in/)).toBeInTheDocument();
-    expect(screen.getByText("v1.5.0")).toBeInTheDocument();
+    expect(screen.getByText('v1.5.0')).toBeInTheDocument();
 
     // Features
-    expect(screen.getByText("🚀")).toBeInTheDocument();
-    expect(screen.getByText("New Feature")).toBeInTheDocument();
-    expect(screen.getByText("This is a great new feature.")).toBeInTheDocument();
+    expect(screen.getByText('🚀')).toBeInTheDocument();
+    expect(screen.getByText('New Feature')).toBeInTheDocument();
+    expect(screen.getByText('This is a great new feature.')).toBeInTheDocument();
 
     // Action buttons
-    expect(screen.getByRole("link", { name: /See full changelog/i })).toHaveAttribute("href", "/changelog");
-    expect(screen.getByRole("button", { name: "Got it" })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /See full changelog/i })).toHaveAttribute(
+      'href',
+      '/changelog'
+    );
+    expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument();
   });
 
   it("calls dismiss when 'Got it' is clicked", async () => {
@@ -68,13 +71,13 @@ describe("WhatsNewModal", () => {
     (useWhatsNewHook.useWhatsNew as any).mockReturnValue({
       isOpen: true,
       dismiss: mockDismiss,
-      currentVersion: "v1.5.0",
+      currentVersion: 'v1.5.0',
       items: [],
     });
 
     render(<WhatsNewModal />);
 
-    const dismissBtn = screen.getByRole("button", { name: "Got it" });
+    const dismissBtn = screen.getByRole('button', { name: 'Got it' });
     await user.click(dismissBtn);
 
     expect(mockDismiss).toHaveBeenCalledTimes(1);
@@ -84,14 +87,14 @@ describe("WhatsNewModal", () => {
     (useWhatsNewHook.useWhatsNew as any).mockReturnValue({
       isOpen: true,
       dismiss: mockDismiss,
-      currentVersion: "v1.5.0",
+      currentVersion: 'v1.5.0',
       items: [],
     });
 
     render(<WhatsNewModal />);
-    
+
     // Simulating escape press
-    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(mockDismiss).toHaveBeenCalledTimes(1);
   });
@@ -101,13 +104,13 @@ describe("WhatsNewModal", () => {
     (useWhatsNewHook.useWhatsNew as any).mockReturnValue({
       isOpen: true,
       dismiss: mockDismiss,
-      currentVersion: "v1.5.0",
+      currentVersion: 'v1.5.0',
       items: [],
     });
 
     render(<WhatsNewModal />);
 
-    const link = screen.getByRole("link", { name: /See full changelog/i });
+    const link = screen.getByRole('link', { name: /See full changelog/i });
     await user.click(link);
 
     // Should dismiss the modal so it doesn't stay open behind the scenes

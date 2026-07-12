@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   FreelancerEmptyIllustration,
   LPDiscoveryEmptyIllustration,
   LPPortfolioEmptyIllustration,
   NotificationsEmptyIllustration,
-} from "./illustrations/EmptyIllustrations";
+} from './illustrations/EmptyIllustrations';
 
 export type EmptyStateVariant =
-  | "wallet-disconnected"
-  | "no-invoices"
-  | "no-funded-positions"
-  | "empty-marketplace"
-  | "no-governance-proposals";
+  | 'wallet-disconnected'
+  | 'no-invoices'
+  | 'no-funded-positions'
+  | 'empty-marketplace'
+  | 'no-governance-proposals';
 
 export interface EmptyStateAction {
   label: string;
@@ -33,30 +33,30 @@ const VARIANT_CONFIG: Record<
     message: string;
   }
 > = {
-  "wallet-disconnected": {
+  'wallet-disconnected': {
     illustration: null,
-    icon: "account_balance_wallet",
-    message: "Connect your wallet to view your invoices",
+    icon: 'account_balance_wallet',
+    message: 'Connect your wallet to view your invoices',
   },
-  "no-invoices": {
+  'no-invoices': {
     illustration: FreelancerEmptyIllustration,
     icon: null,
-    message: "No invoices found",
+    message: 'No invoices found',
   },
-  "no-funded-positions": {
+  'no-funded-positions': {
     illustration: LPPortfolioEmptyIllustration,
     icon: null,
-    message: "You have no funded positions yet",
+    message: 'You have no funded positions yet',
   },
-  "empty-marketplace": {
+  'empty-marketplace': {
     illustration: LPDiscoveryEmptyIllustration,
     icon: null,
-    message: "No invoices available in the marketplace",
+    message: 'No invoices available in the marketplace',
   },
-  "no-governance-proposals": {
+  'no-governance-proposals': {
     illustration: NotificationsEmptyIllustration,
     icon: null,
-    message: "No governance proposals at this time",
+    message: 'No governance proposals at this time',
   },
 };
 

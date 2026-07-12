@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { getAllInvoices, getInvoiceCount, Invoice } from "@/utils/soroban";
+import { useEffect, useState } from 'react';
+import { getAllInvoices, getInvoiceCount, Invoice } from '@/utils/soroban';
 
-const STATES = ["PENDING", "FUNDED", "PAID", "EXPIRED", "CANCELLED", "DISPUTED"];
+const STATES = ['PENDING', 'FUNDED', 'PAID', 'EXPIRED', 'CANCELLED', 'DISPUTED'];
 
 export default function useInvoiceStateCounts() {
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
@@ -28,7 +28,7 @@ export default function useInvoiceStateCounts() {
         const map: Record<string, number> = {};
         for (const s of STATES) map[s] = 0;
         for (const inv of invoices) {
-          const status = String(inv.status ?? "").toUpperCase();
+          const status = String(inv.status ?? '').toUpperCase();
           map[status] = (map[status] || 0) + 1;
         }
         if (mounted) {

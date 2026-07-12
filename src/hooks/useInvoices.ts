@@ -1,13 +1,19 @@
-"use client";
+'use client';
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllInvoices, getInvoice, fundInvoice, submitSignedTransaction, Invoice } from "@/utils/soroban";
-import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { isContractEventStreamingActive } from "@/lib/contract-event-stream-state";
-import { invoiceKeys, QUERY_TIMINGS } from "@/hooks/queries/keys";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  getAllInvoices,
+  getInvoice,
+  fundInvoice,
+  submitSignedTransaction,
+  Invoice,
+} from '@/utils/soroban';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import { isContractEventStreamingActive } from '@/lib/contract-event-stream-state';
+import { invoiceKeys, QUERY_TIMINGS } from '@/hooks/queries/keys';
 
-const TERMINAL_STATUSES = ["Paid", "Defaulted", "Cancelled"];
+const TERMINAL_STATUSES = ['Paid', 'Defaulted', 'Cancelled'];
 
 export function useInvoices() {
   return useQuery({
@@ -18,9 +24,7 @@ export function useInvoices() {
       const data = query.state.data as Invoice[] | undefined;
       if (!data) return isContractEventStreamingActive() ? 60_000 : 15000;
 
-      const hasActiveInvoices = data.some(
-        (invoice) => !TERMINAL_STATUSES.includes(invoice.status),
-      );
+      const hasActiveInvoices = data.some((invoice) => !TERMINAL_STATUSES.includes(invoice.status));
 
       if (!hasActiveInvoices) return false;
       return isContractEventStreamingActive() ? 60_000 : 15000;
@@ -31,7 +35,7 @@ export function useInvoices() {
 export function useInvoice(id: bigint | null) {
   return useQuery({
     queryKey: invoiceKeys.detail(id),
-    queryFn: () => (id ? getInvoice(id) : Promise.reject("Invalid ID")),
+    queryFn: () => (id ? getInvoice(id) : Promise.reject('Invalid ID')),
     enabled: !!id,
     ...QUERY_TIMINGS.invoiceDetail,
     refetchInterval: (query) => {
@@ -50,8 +54,8 @@ export function useFundInvoice() {
 
   return useMutation({
     mutationFn: async (invoiceId: bigint) => {
-      if (!address || !signTx) throw new Error("Wallet not connected");
-      
+      if (!address || !signTx) throw new Error('Wallet not connected');
+
       const tx = await fundInvoice(address, invoiceId);
       return submitSignedTransaction({ tx, signTx });
     },
@@ -65,9 +69,7 @@ export function useFundInvoice() {
       // Optimistically update to the new value
       if (previousInvoices) {
         queryClient.setQueryData<Invoice[]>(invoiceKeys.all, (old) =>
-          old?.map((inv) =>
-            inv.id === invoiceId ? { ...inv, status: "Funded" } : inv
-          )
+          old?.map((inv) => (inv.id === invoiceId ? { ...inv, status: 'Funded' } : inv))
         );
       }
 
@@ -78,9 +80,9 @@ export function useFundInvoice() {
         queryClient.setQueryData(invoiceKeys.all, context.previousInvoices);
       }
       addToast({
-        type: "error",
-        title: "Funding failed",
-        message: err instanceof Error ? err.message : "Unknown error",
+        type: 'error',
+        title: 'Funding failed',
+        message: err instanceof Error ? err.message : 'Unknown error',
       });
     },
     onSettled: () => {
@@ -89,8 +91,8 @@ export function useFundInvoice() {
     },
     onSuccess: () => {
       addToast({
-        type: "success",
-        title: "Invoice funded successfully!",
+        type: 'success',
+        title: 'Invoice funded successfully!',
       });
     },
   });

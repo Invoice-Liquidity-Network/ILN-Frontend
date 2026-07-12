@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useContext, useCallback, useRef } from "react";
-import { WalletContext } from "@/context/WalletContext";
-import { signTransaction } from "@stellar/freighter-api";
-import { NETWORK_PASSPHRASE } from "@/constants";
+import { useContext, useCallback, useRef } from 'react';
+import { WalletContext } from '@/context/WalletContext';
+import { signTransaction } from '@stellar/freighter-api';
+import { NETWORK_PASSPHRASE } from '@/constants';
 
 /**
  * SEP-10 authentication state and token management.
@@ -26,13 +26,10 @@ async function fetchSEP10Challenge(publicKey: string): Promise<string> {
 /**
  * Submits a signed SEP-10 challenge to the server to obtain a JWT.
  */
-async function submitSEP10Challenge(
-  publicKey: string,
-  signedChallenge: string,
-): Promise<string> {
-  const response = await fetch("/api/auth/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+async function submitSEP10Challenge(publicKey: string, signedChallenge: string): Promise<string> {
+  const response = await fetch('/api/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       account: publicKey,
       transaction: signedChallenge,
@@ -63,8 +60,8 @@ async function performSEP10Auth(publicKey: string): Promise<string> {
     });
 
     // Ensure we got a string response from the wallet
-    if (typeof signedChallenge !== "string") {
-      throw new Error("Failed to sign SEP-10 challenge");
+    if (typeof signedChallenge !== 'string') {
+      throw new Error('Failed to sign SEP-10 challenge');
     }
 
     // Step 3: Verify and get JWT
@@ -75,7 +72,7 @@ async function performSEP10Auth(publicKey: string): Promise<string> {
 
     return jwt;
   } catch (error) {
-    console.error("SEP-10 authentication failed:", error);
+    console.error('SEP-10 authentication failed:', error);
     jwtToken = null;
     throw error;
   }
@@ -109,7 +106,7 @@ export interface UseWalletReturn {
 export function useWallet(): UseWalletReturn {
   const context = useContext(WalletContext);
   if (!context) {
-    throw new Error("useWallet must be used within a WalletProvider");
+    throw new Error('useWallet must be used within a WalletProvider');
   }
 
   // Track if we've already performed SEP-10 auth in this session
@@ -127,14 +124,14 @@ export function useWallet(): UseWalletReturn {
           jwtToken = await performSEP10Auth(context.address);
         } catch (error) {
           // SEP-10 auth failed, but wallet is still connected
-          console.error("SEP-10 authentication failed during connect:", error);
+          console.error('SEP-10 authentication failed during connect:', error);
           // Reset the flag so it can be retried
           authAttemptedRef.current = false;
           throw error;
         }
       }
     } catch (error) {
-      console.error("Connection failed:", error);
+      console.error('Connection failed:', error);
       throw error;
     }
   }, [context]);
@@ -151,11 +148,11 @@ export function useWallet(): UseWalletReturn {
   const signTx = useCallback(
     async (txXdr: string): Promise<string> => {
       if (!context.isConnected) {
-        throw new Error("Wallet is not connected");
+        throw new Error('Wallet is not connected');
       }
       return context.signTx(txXdr);
     },
-    [context],
+    [context]
   );
 
   return {

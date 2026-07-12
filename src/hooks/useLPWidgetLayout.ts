@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Widget {
   id: string;
@@ -8,12 +8,12 @@ export interface Widget {
 }
 
 const DEFAULT_WIDGETS: Widget[] = [
-  { id: "portfolio-summary", label: "Portfolio Summary", visible: true, order: 0 },
-  { id: "analytics-chart", label: "Analytics Chart", visible: true, order: 1 },
-  { id: "yield-comparison", label: "Yield Comparison", visible: true, order: 2 },
-  { id: "risk-summary", label: "Risk Summary", visible: true, order: 3 },
-  { id: "insurance-pool", label: "Insurance Pool", visible: true, order: 4 },
-  { id: "portfolio-table", label: "Portfolio Table", visible: true, order: 5 },
+  { id: 'portfolio-summary', label: 'Portfolio Summary', visible: true, order: 0 },
+  { id: 'analytics-chart', label: 'Analytics Chart', visible: true, order: 1 },
+  { id: 'yield-comparison', label: 'Yield Comparison', visible: true, order: 2 },
+  { id: 'risk-summary', label: 'Risk Summary', visible: true, order: 3 },
+  { id: 'insurance-pool', label: 'Insurance Pool', visible: true, order: 4 },
+  { id: 'portfolio-table', label: 'Portfolio Table', visible: true, order: 5 },
 ];
 
 export function useLPWidgetLayout(userId: string | null) {
@@ -57,9 +57,7 @@ export function useLPWidgetLayout(userId: string | null) {
   const toggleWidget = useCallback(
     (widgetId: string) => {
       setWidgets((prev) => {
-        const updated = prev.map((w) =>
-          w.id === widgetId ? { ...w, visible: !w.visible } : w
-        );
+        const updated = prev.map((w) => (w.id === widgetId ? { ...w, visible: !w.visible } : w));
         if (storageKey) {
           try {
             localStorage.setItem(storageKey, JSON.stringify(updated));

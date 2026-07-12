@@ -1,13 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ApprovedToken } from "@/hooks/useApprovedTokens";
-import { useBalances, type TokenBalanceMap } from "@/hooks/useBalances";
-import { formatTokenAmount } from "@/utils/format";
-import FieldTooltip from "./FieldTooltip";
-import { getXlmPrecisionNote } from "@/utils/token-amount-input";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { ApprovedToken } from '@/hooks/useApprovedTokens';
+import { useBalances, type TokenBalanceMap } from '@/hooks/useBalances';
+import { formatTokenAmount } from '@/utils/format';
+import FieldTooltip from './FieldTooltip';
+import { getXlmPrecisionNote } from '@/utils/token-amount-input';
 
-type TokenLike = ApprovedToken | (Partial<ApprovedToken> & Pick<ApprovedToken, "contractId" | "symbol" | "decimals">);
+type TokenLike =
+  | ApprovedToken
+  | (Partial<ApprovedToken> & Pick<ApprovedToken, 'contractId' | 'symbol' | 'decimals'>);
 
 interface TokenSelectorProps {
   label: string;
@@ -29,29 +31,38 @@ interface BaseTokenSelectorProps extends TokenSelectorProps {
 
 function tokenAccentClasses(symbol: string): string {
   switch (symbol) {
-    case "EURC":
-      return "bg-sky-100 text-sky-700 border-sky-200";
-    case "XLM":
-      return "bg-zinc-900 text-white border-zinc-700";
-    case "USDC":
-      return "bg-indigo-100 text-indigo-700 border-indigo-200";
+    case 'EURC':
+      return 'bg-sky-100 text-sky-700 border-sky-200';
+    case 'XLM':
+      return 'bg-zinc-900 text-white border-zinc-700';
+    case 'USDC':
+      return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     default:
-      return "bg-surface-container-high text-on-surface border-outline-variant/20";
+      return 'bg-surface-container-high text-on-surface border-outline-variant/20';
   }
 }
 
 function getTokenName(token: Partial<TokenLike> & { symbol?: string; name?: string }): string {
-  return token.name ?? token.symbol ?? "Token";
+  return token.name ?? token.symbol ?? 'Token';
 }
 
 function getTokenLogo(token: Partial<TokenLike> & { symbol?: string; logo?: string }): string {
-  const symbol = token.symbol ?? "unknown";
+  const symbol = token.symbol ?? 'unknown';
   return token.logo ?? `/tokens/${symbol.toLowerCase()}.svg`;
 }
 
-function getTokenIconLabel(token: Partial<TokenLike> & { symbol?: string; iconLabel?: string }): string {
-  const sym = token.symbol ?? "TK";
-  return token.iconLabel ?? (sym.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK");
+function getTokenIconLabel(
+  token: Partial<TokenLike> & { symbol?: string; iconLabel?: string }
+): string {
+  const sym = token.symbol ?? 'TK';
+  return (
+    token.iconLabel ??
+    (sym
+      .replace(/[^A-Z0-9]/gi, '')
+      .slice(0, 2)
+      .toUpperCase() ||
+      'TK')
+  );
 }
 
 function isTokenAllowed(token: Partial<TokenLike>): boolean {
@@ -59,13 +70,15 @@ function isTokenAllowed(token: Partial<TokenLike>): boolean {
 }
 
 function getUnavailableReason(token: Partial<TokenLike>): string {
-  return (token as any).unavailableReason ?? "This token is not currently available for ILN invoices.";
+  return (
+    (token as any).unavailableReason ?? 'This token is not currently available for ILN invoices.'
+  );
 }
 
 function chooseSelectedToken(tokens: TokenLike[], value: string) {
   return (
     tokens.find((token) => token.contractId === value) ??
-    tokens.find((token) => token.symbol === "USDC" && isTokenAllowed(token)) ??
+    tokens.find((token) => token.symbol === 'USDC' && isTokenAllowed(token)) ??
     tokens.find(isTokenAllowed) ??
     tokens[0] ??
     null
@@ -74,9 +87,9 @@ function chooseSelectedToken(tokens: TokenLike[], value: string) {
 
 export function TokenIcon({
   token,
-  className = "",
+  className = '',
 }: {
-  token: Pick<TokenLike, "iconLabel" | "logo" | "symbol">;
+  token: Pick<TokenLike, 'iconLabel' | 'logo' | 'symbol'>;
   className?: string;
 }) {
   return (
@@ -91,7 +104,7 @@ export function TokenIcon({
         alt=""
         className="h-full w-full object-cover"
         onError={(event) => {
-          event.currentTarget.style.display = "none";
+          event.currentTarget.style.display = 'none';
         }}
       />
       <span className="sr-only">{getTokenIconLabel(token)}</span>
@@ -102,7 +115,7 @@ export function TokenIcon({
 export function TokenAmount({
   amount,
   token,
-  className = "",
+  className = '',
 }: {
   amount: string;
   token: TokenLike;
@@ -134,7 +147,7 @@ function BalanceAwareTokenSelector(props: TokenSelectorProps) {
         logo: getTokenLogo(token),
         isAllowed: isTokenAllowed(token),
       })) as ApprovedToken[],
-    [props.tokens],
+    [props.tokens]
   );
   const { balances, isLoading } = useBalances(balanceTokens, props.showBalances);
 
@@ -165,8 +178,8 @@ function BaseTokenSelector({
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -178,19 +191,19 @@ function BaseTokenSelector({
       }
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [open, isMobile]);
 
   // Prevent body scroll when bottom sheet is open on mobile
   useEffect(() => {
     if (isMobile && open) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [isMobile, open]);
 
@@ -203,11 +216,7 @@ function BaseTokenSelector({
   const selectedBalance = selectedToken ? balances?.get(selectedToken.contractId) : undefined;
 
   const tokenList = (
-    <div
-      id={listboxId}
-      role="listbox"
-      aria-labelledby={selectorId}
-    >
+    <div id={listboxId} role="listbox" aria-labelledby={selectorId}>
       {tokens.map((token) => {
         const allowed = isTokenAllowed(token);
         const selected = selectedToken?.contractId === token.contractId;
@@ -224,9 +233,9 @@ function BaseTokenSelector({
             onClick={() => selectToken(token)}
             className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
               allowed
-                ? "hover:bg-surface-container-low active:bg-surface-container-high"
-                : "cursor-not-allowed grayscale opacity-50"
-            } ${selected ? "bg-primary-container/40" : ""}`}
+                ? 'hover:bg-surface-container-low active:bg-surface-container-high'
+                : 'cursor-not-allowed grayscale opacity-50'
+            } ${selected ? 'bg-primary-container/40' : ''}`}
           >
             <TokenDisplay
               token={token}
@@ -278,7 +287,9 @@ function BaseTokenSelector({
             <span className="text-on-surface-variant">No tokens available</span>
           )}
           {!readOnly ? (
-            <span className="material-symbols-outlined text-base text-on-surface-variant">expand_more</span>
+            <span className="material-symbols-outlined text-base text-on-surface-variant">
+              expand_more
+            </span>
           ) : null}
         </button>
 
@@ -298,14 +309,14 @@ function BaseTokenSelector({
             className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-300"
             style={{
               opacity: isMobile && open ? 1 : 0,
-              pointerEvents: isMobile && open ? "auto" : "none",
+              pointerEvents: isMobile && open ? 'auto' : 'none',
             }}
             onClick={() => setOpen(false)}
           />
           <div
             className="fixed bottom-0 left-0 right-0 z-50 max-h-[80vh] overflow-auto rounded-t-3xl bg-surface-container-lowest p-4 shadow-2xl transition-transform duration-300"
             style={{
-              transform: isMobile && open ? "translateY(0)" : "translateY(100%)",
+              transform: isMobile && open ? 'translateY(0)' : 'translateY(100%)',
             }}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -316,7 +327,9 @@ function BaseTokenSelector({
                 onClick={() => setOpen(false)}
                 className="rounded-full p-1 hover:bg-surface-container"
               >
-                <span className="material-symbols-outlined text-base text-on-surface-variant">close</span>
+                <span className="material-symbols-outlined text-base text-on-surface-variant">
+                  close
+                </span>
               </button>
             </div>
             {tokenList}
@@ -325,7 +338,7 @@ function BaseTokenSelector({
       ) : null}
 
       {hint ? <p className="mt-2 text-xs text-on-surface-variant">{hint}</p> : null}
-      {selectedToken?.symbol === "XLM" ? (
+      {selectedToken?.symbol === 'XLM' ? (
         <p className="mt-2 text-xs text-on-surface-variant" data-testid="xlm-token-selector-note">
           {getXlmPrecisionNote()}
         </p>
@@ -361,9 +374,9 @@ function TokenDisplay({
         {showBalance ? (
           <span className="block text-xs text-on-surface-variant">
             {balancesLoading
-              ? "Loading balance..."
+              ? 'Loading balance...'
               : balance === undefined
-                ? "Balance unavailable"
+                ? 'Balance unavailable'
                 : `Balance: ${formatTokenAmount(balance, token)}`}
           </span>
         ) : null}

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * WalletConnect v2 connector scaffold (#2).
@@ -17,16 +17,16 @@
 
 export class WalletConnectUnavailableError extends Error {
   constructor(
-    message = "WalletConnect is not configured. Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to enable it.",
+    message = 'WalletConnect is not configured. Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to enable it.'
   ) {
     super(message);
-    this.name = "WalletConnectUnavailableError";
+    this.name = 'WalletConnectUnavailableError';
   }
 }
 
 /** Read at call time so configuration is picked up at runtime (and in tests). */
 export function walletConnectProjectId(): string {
-  return (process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "").trim();
+  return (process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? '').trim();
 }
 
 export function isWalletConnectConfigured(): boolean {

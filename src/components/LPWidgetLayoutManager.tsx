@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import type { Widget } from "@/hooks/useLPWidgetLayout";
+import { useState } from 'react';
+import type { Widget } from '@/hooks/useLPWidgetLayout';
 
 interface LPWidgetLayoutManagerProps {
   widgets: Widget[];
@@ -75,8 +75,8 @@ export default function LPWidgetLayoutManager({
               onDragEnd={handleDragEnd}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                 draggedIndex === index
-                  ? "bg-primary/10 border-primary opacity-50"
-                  : "border-outline-variant/20 hover:bg-surface-container-low"
+                  ? 'bg-primary/10 border-primary opacity-50'
+                  : 'border-outline-variant/20 hover:bg-surface-container-low'
               } cursor-move`}
             >
               <span className="material-symbols-outlined text-on-surface-variant text-[18px]">
@@ -89,9 +89,7 @@ export default function LPWidgetLayoutManager({
                   onChange={() => onToggleWidget(widget.id)}
                   className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
                 />
-                <span className="text-sm font-medium text-on-surface">
-                  {widget.label}
-                </span>
+                <span className="text-sm font-medium text-on-surface">{widget.label}</span>
               </label>
             </div>
           ))}

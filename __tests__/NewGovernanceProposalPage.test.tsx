@@ -1,39 +1,39 @@
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach } from "vitest";
-import NewGovernanceProposalPage from "../app/governance/new/page.tsx";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@/context/WalletContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useBalances } from "@/hooks/useBalances";
-import { fetchProtocolParameters, createProposal, lookupToken } from "@/utils/governance";
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import NewGovernanceProposalPage from '../app/governance/new/page.tsx';
+import { useRouter } from 'next/navigation';
+import { useWallet } from '@/context/WalletContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useBalances } from '@/hooks/useBalances';
+import { fetchProtocolParameters, createProposal, lookupToken } from '@/utils/governance';
 
 // Mock useRouter
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),
 }));
 
 // Mock useWallet
-vi.mock("@/context/WalletContext", () => ({
+vi.mock('@/context/WalletContext', () => ({
   useWallet: vi.fn(() => ({
-    address: "G...MOCK",
+    address: 'G...MOCK',
     isConnected: true,
     signTx: vi.fn(),
   })),
 }));
 
 // Mock useTransaction
-vi.mock("@/hooks/useTransaction", () => ({
+vi.mock('@/hooks/useTransaction', () => ({
   useTransaction: vi.fn(() => ({
-    execute: vi.fn().mockResolvedValue("txHash123"),
+    execute: vi.fn().mockResolvedValue('txHash123'),
     loading: false,
     error: null,
   })),
 }));
 
 // Mock useBalances
-vi.mock("@/hooks/useBalances", () => ({
+vi.mock('@/hooks/useBalances', () => ({
   useBalances: vi.fn(() => ({
     balances: [],
     loading: false,
@@ -42,34 +42,36 @@ vi.mock("@/hooks/useBalances", () => ({
 }));
 
 // Mock governance utilities
-vi.mock("@/utils/governance", () => ({
+vi.mock('@/utils/governance', () => ({
   fetchProtocolParameters: vi.fn().mockResolvedValue({
     feeRateBps: 50,
     maxDiscountRateBps: 500,
     acceptedTokens: [
-      { address: "TOKEN1_ADDR", name: "Token One", symbol: "TKO" },
-      { address: "TOKEN2_ADDR", name: "Token Two", symbol: "TTW" },
+      { address: 'TOKEN1_ADDR', name: 'Token One', symbol: 'TKO' },
+      { address: 'TOKEN2_ADDR', name: 'Token Two', symbol: 'TTW' },
     ],
     minProposalILN: 500,
   }),
-  createProposal: vi.fn().mockResolvedValue({ txHash: "mockTx", proposalId: 1 }),
+  createProposal: vi.fn().mockResolvedValue({ txHash: 'mockTx', proposalId: 1 }),
   isValidStellarAddress: vi.fn().mockReturnValue(true),
-  lookupToken: vi.fn().mockResolvedValue({ address: "NEW_TOKEN_ADDR", name: "New Token", symbol: "NEW" }),
+  lookupToken: vi
+    .fn()
+    .mockResolvedValue({ address: 'NEW_TOKEN_ADDR', name: 'New Token', symbol: 'NEW' }),
 }));
 
-describe("NewGovernanceProposalPage", () => {
+describe('NewGovernanceProposalPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useRouter as unknown as vi.Mock).mockReturnValue({
       push: vi.fn(),
     });
     (useWallet as unknown as vi.Mock).mockReturnValue({
-      address: "G...MOCK",
+      address: 'G...MOCK',
       isConnected: true,
       signTx: vi.fn(),
     });
     (useTransaction as unknown as vi.Mock).mockReturnValue({
-      execute: vi.fn().mockResolvedValue("txHash123"),
+      execute: vi.fn().mockResolvedValue('txHash123'),
       loading: false,
       error: null,
     });
@@ -82,21 +84,25 @@ describe("NewGovernanceProposalPage", () => {
       feeRateBps: 50,
       maxDiscountRateBps: 500,
       acceptedTokens: [
-        { address: "TOKEN1_ADDR", name: "Token One", symbol: "TKO" },
-        { address: "TOKEN2_ADDR", name: "Token Two", symbol: "TTW" },
+        { address: 'TOKEN1_ADDR', name: 'Token One', symbol: 'TKO' },
+        { address: 'TOKEN2_ADDR', name: 'Token Two', symbol: 'TTW' },
       ],
       minProposalILN: 500,
     });
-    (createProposal as vi.Mock).mockResolvedValue({ txHash: "mockTx", proposalId: 1 });
-    (lookupToken as vi.Mock).mockResolvedValue({ address: "NEW_TOKEN_ADDR", name: "New Token", symbol: "NEW" });
+    (createProposal as vi.Mock).mockResolvedValue({ txHash: 'mockTx', proposalId: 1 });
+    (lookupToken as vi.Mock).mockResolvedValue({
+      address: 'NEW_TOKEN_ADDR',
+      name: 'New Token',
+      symbol: 'NEW',
+    });
     (useWallet as unknown as vi.Mock).mockImplementation(() => ({
-      address: "G...MOCK",
+      address: 'G...MOCK',
       isConnected: true,
       signTx: vi.fn(),
     }));
   });
 
-  it("renders the form correctly", async () => {
+  it('renders the form correctly', async () => {
     render(<NewGovernanceProposalPage />);
     await waitFor(() => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
@@ -104,10 +110,10 @@ describe("NewGovernanceProposalPage", () => {
     expect(screen.getByLabelText(/Action Type/)).toBeDefined();
     expect(screen.getByLabelText(/Title/)).toBeDefined();
     expect(screen.getByLabelText(/Description/)).toBeDefined();
-    expect(screen.getByRole("button", { name: /Submit Proposal/ })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Submit Proposal/ })).toBeDefined();
   });
 
-  it("shows dynamic fields based on action type", async () => {
+  it('shows dynamic fields based on action type', async () => {
     render(<NewGovernanceProposalPage />);
     await waitFor(() => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
@@ -115,19 +121,19 @@ describe("NewGovernanceProposalPage", () => {
 
     const select = screen.getByLabelText(/Action Type/);
 
-    fireEvent.change(select, { target: { value: "FeeRate" } });
+    fireEvent.change(select, { target: { value: 'FeeRate' } });
     expect(screen.getByLabelText(/Proposed Value \(Basis Points\)/)).toBeDefined();
 
-    fireEvent.change(select, { target: { value: "AddToken" } });
+    fireEvent.change(select, { target: { value: 'AddToken' } });
     expect(screen.getByLabelText(/Token Address \(G...\)/)).toBeDefined();
 
-    fireEvent.change(select, { target: { value: "RemoveToken" } });
+    fireEvent.change(select, { target: { value: 'RemoveToken' } });
     expect(screen.getByLabelText(/Token to Remove/)).toBeDefined();
   });
 
-  it("disables submit button if balance is insufficient", async () => {
+  it('disables submit button if balance is insufficient', async () => {
     (useWallet as unknown as vi.Mock).mockReturnValue({
-      address: "G...MOCK",
+      address: 'G...MOCK',
       isConnected: true,
       signTx: vi.fn(),
     });
@@ -145,18 +151,20 @@ describe("NewGovernanceProposalPage", () => {
 
     render(<NewGovernanceProposalPage />);
     await waitFor(() => {
-      expect(screen.getByText(/Your current ILN balance \(1250\) is below the minimum required/)).toBeDefined();
+      expect(
+        screen.getByText(/Your current ILN balance \(1250\) is below the minimum required/)
+      ).toBeDefined();
     });
-    expect(screen.getByRole("button", { name: /Submit Proposal/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Submit Proposal/ })).toBeDisabled();
   });
 
-  it("shows validation errors for empty required fields", async () => {
+  it('shows validation errors for empty required fields', async () => {
     render(<NewGovernanceProposalPage />);
     await waitFor(() => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
     });
 
-    const submitButton = screen.getByRole("button", { name: /Submit Proposal/ });
+    const submitButton = screen.getByRole('button', { name: /Submit Proposal/ });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -166,23 +174,29 @@ describe("NewGovernanceProposalPage", () => {
     });
   });
 
-  it("shows live preview with correct values", async () => {
+  it('shows live preview with correct values', async () => {
     render(<NewGovernanceProposalPage />);
     await waitFor(() => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
     });
 
-    fireEvent.change(screen.getByLabelText(/Action Type/), { target: { value: "FeeRate" } });
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: "Test Title" } });
-    fireEvent.change(screen.getByLabelText(/Description/), { target: { value: "Test Description" } });
-    fireEvent.change(screen.getByLabelText(/Proposed Value \(Basis Points\)/), { target: { value: "100" } });
+    fireEvent.change(screen.getByLabelText(/Action Type/), { target: { value: 'FeeRate' } });
+    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Test Title' } });
+    fireEvent.change(screen.getByLabelText(/Description/), {
+      target: { value: 'Test Description' },
+    });
+    fireEvent.change(screen.getByLabelText(/Proposed Value \(Basis Points\)/), {
+      target: { value: '100' },
+    });
 
     await waitFor(() => {
-      expect(screen.getByText(/This proposal will change \[FeeRate\] from 50 \(0.5%\) to 100 \(1%\)./)).toBeDefined();
+      expect(
+        screen.getByText(/This proposal will change \[FeeRate\] from 50 \(0.5%\) to 100 \(1%\)./)
+      ).toBeDefined();
     });
   });
 
-  it("submits the form and redirects on success", async () => {
+  it('submits the form and redirects on success', async () => {
     const mockRouterPush = vi.fn();
     (useRouter as unknown as vi.Mock).mockReturnValue({
       push: mockRouterPush,
@@ -193,26 +207,30 @@ describe("NewGovernanceProposalPage", () => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
     });
 
-    fireEvent.change(screen.getByLabelText(/Action Type/), { target: { value: "FeeRate" } });
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: "Test Title" } });
-    fireEvent.change(screen.getByLabelText(/Description/), { target: { value: "Test Description" } });
-    fireEvent.change(screen.getByLabelText(/Proposed Value \(Basis Points\)/), { target: { value: "100" } });
+    fireEvent.change(screen.getByLabelText(/Action Type/), { target: { value: 'FeeRate' } });
+    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Test Title' } });
+    fireEvent.change(screen.getByLabelText(/Description/), {
+      target: { value: 'Test Description' },
+    });
+    fireEvent.change(screen.getByLabelText(/Proposed Value \(Basis Points\)/), {
+      target: { value: '100' },
+    });
 
-    const submitButton = screen.getByRole("button", { name: /Submit Proposal/ });
+    const submitButton = screen.getByRole('button', { name: /Submit Proposal/ });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(createProposal).toHaveBeenCalledWith(
         expect.objectContaining({
-          formType: "FeeRate",
-          title: "Test Title",
-          description: expect.stringContaining("Test Description"),
+          formType: 'FeeRate',
+          title: 'Test Title',
+          description: expect.stringContaining('Test Description'),
           newValueBps: 100,
         }),
-        "G...MOCK",
+        'G...MOCK',
         expect.any(Function)
       );
-      expect(mockRouterPush).toHaveBeenCalledWith("/governance/1");
+      expect(mockRouterPush).toHaveBeenCalledWith('/governance/1');
     });
   });
 });

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import ColumnCustomiser, { ColumnConfig } from "./ColumnCustomiser";
+import React, { useState, useEffect, useMemo } from 'react';
+import ColumnCustomiser, { ColumnConfig } from './ColumnCustomiser';
 
 export interface DataTableColumn<T> extends ColumnConfig {
   renderCell: (item: T, index: number) => React.ReactNode;
@@ -47,7 +47,7 @@ interface DataTableProps<T> {
   sortable?: boolean;
   onSort?: (columnId: string) => void;
   sortKey?: string;
-  sortOrder?: "asc" | "desc";
+  sortOrder?: 'asc' | 'desc';
   pagination?: PaginationConfig;
   selection?: SelectionConfig;
   columnCustomization?: ColumnCustomizationConfig;
@@ -68,7 +68,7 @@ export default function DataTable<T>({
   keyExtractor,
   isLoading = false,
   loadingRows = 5,
-  emptyMessage = "No data found.",
+  emptyMessage = 'No data found.',
   emptyIcon,
   sortable = true,
   onSort,
@@ -92,7 +92,9 @@ export default function DataTable<T>({
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const storageKey = columnCustomization?.tableId ? `iln_table_config_${columnCustomization.tableId}` : null;
+  const storageKey = columnCustomization?.tableId
+    ? `iln_table_config_${columnCustomization.tableId}`
+    : null;
 
   // Responsive detection
   useEffect(() => {
@@ -100,8 +102,8 @@ export default function DataTable<T>({
 
     const checkMobile = () => setIsMobile(window.innerWidth < mobileBreakpoint);
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, [mobileBreakpoint, mobileCardLayout]);
 
   // Load column config from localStorage
@@ -196,7 +198,9 @@ export default function DataTable<T>({
 
   const totalPages = pagination ? Math.ceil(pagination.totalItems / pagination.pageSize) : 1;
   const startItem = pagination ? (pagination.currentPage - 1) * pagination.pageSize + 1 : 1;
-  const endItem = pagination ? Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems) : data.length;
+  const endItem = pagination
+    ? Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems)
+    : data.length;
 
   if (!isInitialized) return null;
 
@@ -240,9 +244,11 @@ export default function DataTable<T>({
                   key={key}
                   onClick={() => onRowClick?.(item, index)}
                   className={`bg-surface-container-lowest rounded-lg p-4 border border-outline-variant/10 ${
-                    onRowClick ? "cursor-pointer hover:bg-surface-variant/10" : ""
-                  } ${isSelected ? "ring-2 ring-primary" : ""} ${
-                    typeof rowClassName === "function" ? rowClassName(item, index) : rowClassName || ""
+                    onRowClick ? 'cursor-pointer hover:bg-surface-variant/10' : ''
+                  } ${isSelected ? 'ring-2 ring-primary' : ''} ${
+                    typeof rowClassName === 'function'
+                      ? rowClassName(item, index)
+                      : rowClassName || ''
                   }`}
                 >
                   {selection && (
@@ -257,7 +263,9 @@ export default function DataTable<T>({
                   )}
                   {activeColumns.map((col) => (
                     <div key={col.id} className="mb-2 last:mb-0">
-                      <span className="text-xs text-on-surface-variant font-bold uppercase">{col.label}: </span>
+                      <span className="text-xs text-on-surface-variant font-bold uppercase">
+                        {col.label}:{' '}
+                      </span>
                       <span className="text-sm">{col.renderCell(item, index)}</span>
                     </div>
                   ))}
@@ -303,8 +311,8 @@ export default function DataTable<T>({
       )}
 
       <div className="overflow-x-auto rounded-xl">
-        <table className={`w-full text-left ${tableClassName || ""}`} aria-label={ariaLabel}>
-          <thead className={`bg-surface-container-low ${headerClassName || ""}`}>
+        <table className={`w-full text-left ${tableClassName || ''}`} aria-label={ariaLabel}>
+          <thead className={`bg-surface-container-low ${headerClassName || ''}`}>
             <tr>
               {selection && (
                 <th className="px-6 py-4 w-12">
@@ -321,15 +329,19 @@ export default function DataTable<T>({
                   key={col.id}
                   onClick={() => sortable && col.sortable && onSort?.(col.id)}
                   className={`px-6 py-4 text-[11px] font-bold uppercase text-on-surface-variant tracking-wider ${
-                    sortable && col.sortable ? "cursor-pointer select-none group" : ""
-                  } ${col.headerClassName || ""}`}
+                    sortable && col.sortable ? 'cursor-pointer select-none group' : ''
+                  } ${col.headerClassName || ''}`}
                   style={{ width: col.width }}
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
                     {sortable && col.sortable && (
                       <span className="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity">
-                        {sortKey === col.id ? (sortOrder === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+                        {sortKey === col.id
+                          ? sortOrder === 'asc'
+                            ? 'arrow_upward'
+                            : 'arrow_downward'
+                          : 'unfold_more'}
                       </span>
                     )}
                   </div>
@@ -337,11 +349,17 @@ export default function DataTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className={`divide-y divide-surface-dim bg-surface-container-lowest/50 ${bodyClassName || ""}`}>
+          <tbody
+            className={`divide-y divide-surface-dim bg-surface-container-lowest/50 ${bodyClassName || ''}`}
+          >
             {isLoading ? (
               Array.from({ length: loadingRows }).map((_, i) => (
                 <tr key={i}>
-                  {selection && <td className="px-6 py-5"><div className="w-4 h-4 bg-surface-variant/30 rounded animate-pulse"></div></td>}
+                  {selection && (
+                    <td className="px-6 py-5">
+                      <div className="w-4 h-4 bg-surface-variant/30 rounded animate-pulse"></div>
+                    </td>
+                  )}
                   {activeColumns.map((col) => (
                     <td key={col.id} className="px-6 py-5">
                       <div className="h-4 bg-surface-variant/30 rounded animate-pulse"></div>
@@ -351,7 +369,10 @@ export default function DataTable<T>({
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={activeColumns.length + (selection ? 1 : 0)} className="px-6 py-12 text-center text-on-surface-variant">
+                <td
+                  colSpan={activeColumns.length + (selection ? 1 : 0)}
+                  className="px-6 py-12 text-center text-on-surface-variant"
+                >
                   {emptyIcon}
                   <p className="mt-2">{emptyMessage}</p>
                 </td>
@@ -365,9 +386,11 @@ export default function DataTable<T>({
                     key={key}
                     onClick={() => onRowClick?.(item, index)}
                     className={`hover:bg-surface-variant/10 transition-colors ${
-                      onRowClick ? "cursor-pointer" : ""
-                    } ${isSelected ? "bg-primary/5" : ""} ${
-                      typeof rowClassName === "function" ? rowClassName(item, index) : rowClassName || ""
+                      onRowClick ? 'cursor-pointer' : ''
+                    } ${isSelected ? 'bg-primary/5' : ''} ${
+                      typeof rowClassName === 'function'
+                        ? rowClassName(item, index)
+                        : rowClassName || ''
                     }`}
                   >
                     {selection && (
@@ -384,7 +407,7 @@ export default function DataTable<T>({
                       </td>
                     )}
                     {activeColumns.map((col) => (
-                      <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ""}`}>
+                      <td key={col.id} className={`px-6 py-5 ${col.cellClassName || ''}`}>
                         {col.renderCell(item, index)}
                       </td>
                     ))}
@@ -439,11 +462,15 @@ function Pagination({
   const pages = useMemo(() => {
     const delta = 2;
     const range = [];
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
       range.push(i);
     }
-    if (currentPage - delta > 2) range.unshift("...");
-    if (currentPage + delta < totalPages - 1) range.push("...");
+    if (currentPage - delta > 2) range.unshift('...');
+    if (currentPage + delta < totalPages - 1) range.push('...');
     range.unshift(1);
     if (totalPages > 1) range.push(totalPages);
     return range;
@@ -465,16 +492,18 @@ function Pagination({
         </button>
 
         {pages.map((page, i) =>
-          page === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-2">...</span>
+          page === '...' ? (
+            <span key={`ellipsis-${i}`} className="px-2">
+              ...
+            </span>
           ) : (
             <button
               key={page}
               onClick={() => onPageChange(page as number)}
               className={`px-3 py-1 rounded border ${
                 currentPage === page
-                  ? "bg-primary text-surface-container-lowest border-primary"
-                  : "border-outline-variant hover:bg-surface-variant/10"
+                  ? 'bg-primary text-surface-container-lowest border-primary'
+                  : 'border-outline-variant hover:bg-surface-variant/10'
               }`}
             >
               {page}

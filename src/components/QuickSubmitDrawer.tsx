@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { Suspense, useEffect, useRef } from "react";
-import SubmitInvoiceForm from "./SubmitInvoiceForm";
+import React, { Suspense, useEffect, useRef } from 'react';
+import SubmitInvoiceForm from './SubmitInvoiceForm';
 
 interface QuickSubmitDrawerProps {
   isOpen: boolean;
@@ -14,21 +14,21 @@ export default function QuickSubmitDrawer({ isOpen, onClose }: QuickSubmitDrawer
   // Close on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) onClose();
+      if (e.key === 'Escape' && isOpen) onClose();
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
   // Lock body scroll while open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -46,10 +46,10 @@ export default function QuickSubmitDrawer({ isOpen, onClose }: QuickSubmitDrawer
         aria-hidden="true"
         onClick={onClose}
         className={[
-          "fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm",
-          "transition-opacity duration-300",
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-        ].join(" ")}
+          'fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm',
+          'transition-opacity duration-300',
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        ].join(' ')}
       />
 
       {/* Drawer panel */}
@@ -61,14 +61,14 @@ export default function QuickSubmitDrawer({ isOpen, onClose }: QuickSubmitDrawer
         aria-hidden={!isOpen}
         tabIndex={-1}
         className={[
-          "fixed bottom-0 left-0 right-0 z-[80]",
-          "max-h-[90dvh] overflow-y-auto",
-          "rounded-t-[28px] shadow-2xl",
-          "bg-background",
-          "outline-none",
-          "transition-transform duration-300 ease-out",
-          isOpen ? "translate-y-0" : "translate-y-full",
-        ].join(" ")}
+          'fixed bottom-0 left-0 right-0 z-[80]',
+          'max-h-[90dvh] overflow-y-auto',
+          'rounded-t-[28px] shadow-2xl',
+          'bg-background',
+          'outline-none',
+          'transition-transform duration-300 ease-out',
+          isOpen ? 'translate-y-0' : 'translate-y-full',
+        ].join(' ')}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between bg-background/80 backdrop-blur-sm px-6 pt-5 pb-3 border-b border-outline-variant/10">

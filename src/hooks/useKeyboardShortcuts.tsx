@@ -7,17 +7,13 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
+} from 'react';
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
   if (!element) return false;
   const tag = element.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    element.isContentEditable
-  );
+  return tag === 'INPUT' || tag === 'TEXTAREA' || element.isContentEditable;
 }
 
 type KeyboardShortcutsContextValue = {
@@ -53,7 +49,7 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         if (isShortcutsOpen) {
           event.preventDefault();
           closeShortcuts();
@@ -66,32 +62,32 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
       const isMeta = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
-      if (isMeta && key === "k") {
+      if (isMeta && key === 'k') {
         event.preventDefault();
         commandPaletteToggleRef.current?.();
         return;
       }
 
-      if (isMeta && key === "n") {
+      if (isMeta && key === 'n') {
         event.preventDefault();
         openQuickSubmit();
         return;
       }
 
-      if (isMeta && (event.key === "/" || event.key === "?")) {
+      if (isMeta && (event.key === '/' || event.key === '?')) {
         event.preventDefault();
         openShortcuts();
         return;
       }
 
-      if (!isMeta && event.key === "?") {
+      if (!isMeta && event.key === '?') {
         event.preventDefault();
         openShortcuts();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isShortcutsOpen, closeShortcuts, openQuickSubmit, openShortcuts]);
 
   const value = useMemo(
@@ -115,16 +111,14 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
   );
 
   return (
-    <KeyboardShortcutsContext.Provider value={value}>
-      {children}
-    </KeyboardShortcutsContext.Provider>
+    <KeyboardShortcutsContext.Provider value={value}>{children}</KeyboardShortcutsContext.Provider>
   );
 }
 
 export function useKeyboardShortcuts() {
   const context = useContext(KeyboardShortcutsContext);
   if (!context) {
-    throw new Error("useKeyboardShortcuts must be used within a KeyboardShortcutsProvider");
+    throw new Error('useKeyboardShortcuts must be used within a KeyboardShortcutsProvider');
   }
   return context;
 }

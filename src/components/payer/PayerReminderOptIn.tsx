@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import { supabase } from '@/lib/supabase';
 
 export default function PayerReminderOptIn() {
   const { address, isConnected } = useWallet();
   const { addToast } = useToast();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -23,9 +23,9 @@ export default function PayerReminderOptIn() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("reminder_preferences")
-        .select("email, enabled")
-        .eq("address", address)
+        .from('reminder_preferences')
+        .select('email, enabled')
+        .eq('address', address)
         .maybeSingle();
 
       if (data) {
@@ -33,7 +33,7 @@ export default function PayerReminderOptIn() {
         setEnabled(data.enabled);
       }
     } catch (error) {
-      console.error("Error loading preference:", error);
+      console.error('Error loading preference:', error);
     } finally {
       setLoading(false);
     }
@@ -45,26 +45,26 @@ export default function PayerReminderOptIn() {
 
     setSaving(true);
     try {
-      const response = await fetch("/api/reminders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address, email, enabled }),
       });
 
-      if (!response.ok) throw new Error("Failed to save");
+      if (!response.ok) throw new Error('Failed to save');
 
       addToast({
-        type: "success",
-        title: "Preferences saved",
-        message: enabled 
-          ? `You will receive reminders at ${email}` 
-          : "Email reminders are now disabled",
+        type: 'success',
+        title: 'Preferences saved',
+        message: enabled
+          ? `You will receive reminders at ${email}`
+          : 'Email reminders are now disabled',
       });
     } catch (error) {
       addToast({
-        type: "error",
-        title: "Save failed",
-        message: error instanceof Error ? error.message : "Unknown error",
+        type: 'error',
+        title: 'Save failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setSaving(false);
@@ -110,17 +110,17 @@ export default function PayerReminderOptIn() {
               type="button"
               onClick={() => setEnabled(!enabled)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                enabled ? "bg-primary" : "bg-outline-variant/30"
+                enabled ? 'bg-primary' : 'bg-outline-variant/30'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  enabled ? "translate-x-6" : "translate-x-1"
+                  enabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
             <span className="text-sm font-medium">
-              {enabled ? "Reminders enabled" : "Reminders disabled"}
+              {enabled ? 'Reminders enabled' : 'Reminders disabled'}
             </span>
           </div>
 
@@ -129,7 +129,7 @@ export default function PayerReminderOptIn() {
             disabled={saving || !email}
             className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-white disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Preferences"}
+            {saving ? 'Saving...' : 'Save Preferences'}
           </button>
         </form>
       )}

@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import type { Invoice } from "@/utils/soroban";
-import type { ToastMessage } from "@/context/ToastContext";
-import type { NotificationItem } from "@/context/NotificationContext";
-import { calculateYield, formatUSDC } from "@/utils/format";
+import { useEffect, useRef } from 'react';
+import type { Invoice } from '@/utils/soroban';
+import type { ToastMessage } from '@/context/ToastContext';
+import type { NotificationItem } from '@/context/NotificationContext';
+import { calculateYield, formatUSDC } from '@/utils/format';
 
 interface PositionPollingOptions {
   invoices: Invoice[];
   address?: string | null;
-  addToast: (toast: Omit<ToastMessage, "id">) => string;
+  addToast: (toast: Omit<ToastMessage, 'id'>) => string;
   addNotification: (
-    notification: Omit<NotificationItem, "createdAt" | "read"> & { id?: string },
+    notification: Omit<NotificationItem, 'createdAt' | 'read'> & { id?: string }
   ) => NotificationItem;
 }
 
@@ -25,16 +25,16 @@ function formatYield(invoice: Invoice) {
   return formatUSDC(yieldAmount);
 }
 
-function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type"]) {
+function buildNotificationPayload(invoice: Invoice, type: NotificationItem['type']) {
   const invoiceId = invoice.id.toString();
   const amount = formatYield(invoice);
   const base = {
     id: `lp-invoice-${invoiceId}-${type}`,
-    category: "lp" as const,
-    href: "/dashboard",
+    category: 'lp' as const,
+    href: '/dashboard',
   };
 
-  if (type === "settled") {
+  if (type === 'settled') {
     return {
       ...base,
       type,
@@ -43,7 +43,7 @@ function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type
     };
   }
 
-  if (type === "expired") {
+  if (type === 'expired') {
     return {
       ...base,
       type,
@@ -52,7 +52,7 @@ function buildNotificationPayload(invoice: Invoice, type: NotificationItem["type
     };
   }
 
-  if (type === "disputed") {
+  if (type === 'disputed') {
     return {
       ...base,
       type,
@@ -79,7 +79,11 @@ export function usePositionPolling({
   const invoicesRef = useRef<Invoice[]>(invoices);
   invoicesRef.current = invoices;
 
-  const notify = (invoice: Invoice, type: NotificationItem["type"], toastType: ToastMessage["type"]) => {
+  const notify = (
+    invoice: Invoice,
+    type: NotificationItem['type'],
+    toastType: ToastMessage['type']
+  ) => {
     const payload = buildNotificationPayload(invoice, type);
     addToast({
       type: toastType,
@@ -93,9 +97,7 @@ export function usePositionPolling({
     if (!address) return;
 
     const evaluateInvoices = (currentInvoices: Invoice[]) => {
-      const fundedInvoices = currentInvoices.filter(
-        (invoice) => invoice.funder === address,
-      );
+      const fundedInvoices = currentInvoices.filter((invoice) => invoice.funder === address);
 
       fundedInvoices.forEach((invoice) => {
         const key = invoice.id.toString();
@@ -107,18 +109,14 @@ export function usePositionPolling({
         const dueDateMillis = Number(invoice.due_date) * 1000;
         const isPastDue = dueDateMillis > 0 && dueDateMillis < Date.now();
 
-        if (prevState.status === "Funded" && invoice.status === "Paid") {
-          notify(invoice, "settled", "success");
-        } else if (prevState.status === "Funded" && invoice.status === "Defaulted") {
-          notify(invoice, "expired", "error");
-        } else if (prevState.status === "Funded" && invoice.status === "Cancelled") {
-          notify(invoice, "disputed", "error");
-        } else if (
-          invoice.status === "Funded" &&
-          isPastDue &&
-          !prevState.expiredNotified
-        ) {
-          notify(invoice, "expired", "error");
+        if (prevState.status === 'Funded' && invoice.status === 'Paid') {
+          notify(invoice, 'settled', 'success');
+        } else if (prevState.status === 'Funded' && invoice.status === 'Defaulted') {
+          notify(invoice, 'expired', 'error');
+        } else if (prevState.status === 'Funded' && invoice.status === 'Cancelled') {
+          notify(invoice, 'disputed', 'error');
+        } else if (invoice.status === 'Funded' && isPastDue && !prevState.expiredNotified) {
+          notify(invoice, 'expired', 'error');
           prevState.expiredNotified = true;
         }
 
@@ -145,7 +143,9 @@ export function usePositionPolling({
       }, getDelay());
     };
 
-    const onActivity = () => { lastActivity.current = Date.now(); };
+    const onActivity = () => {
+      lastActivity.current = Date.now();
+    };
     const onVisibility = () => {
       window.clearTimeout(timerId);
       schedule();
@@ -154,17 +154,17 @@ export function usePositionPolling({
     evaluateInvoices(invoicesRef.current);
     schedule();
 
-    document.addEventListener("mousemove", onActivity, { passive: true });
-    document.addEventListener("keydown", onActivity, { passive: true });
-    document.addEventListener("click", onActivity, { passive: true });
-    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener('mousemove', onActivity, { passive: true });
+    document.addEventListener('keydown', onActivity, { passive: true });
+    document.addEventListener('click', onActivity, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       window.clearTimeout(timerId);
-      document.removeEventListener("mousemove", onActivity);
-      document.removeEventListener("keydown", onActivity);
-      document.removeEventListener("click", onActivity);
-      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener('mousemove', onActivity);
+      document.removeEventListener('keydown', onActivity);
+      document.removeEventListener('click', onActivity);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [address, addToast, addNotification]);
 }

@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { Invoice, cancelInvoice, submitSignedTransaction } from "@/utils/soroban";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { tokenAmountToNumber } from "@/utils/format";
+import React, { useState } from 'react';
+import { Invoice, cancelInvoice, submitSignedTransaction } from '@/utils/soroban';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import { tokenAmountToNumber } from '@/utils/format';
 
 interface BulkActionBarProps {
   selectedInvoices: Invoice[];
@@ -27,46 +27,43 @@ export default function BulkActionBar({
   const handleExport = () => {
     setIsExporting(true);
     try {
-      const headers = ["Invoice ID", "Amount (USDC)", "Discount Rate (%)", "Due Date", "Status", "Payer", "Token"];
+      const headers = [
+        'Invoice ID',
+        'Amount (USDC)',
+        'Discount Rate (%)',
+        'Due Date',
+        'Status',
+        'Payer',
+        'Token',
+      ];
       const rows = selectedInvoices.map((inv) => {
-        const dDate = new Date(Number(inv.due_date) * 1000).toISOString().split("T")[0];
+        const dDate = new Date(Number(inv.due_date) * 1000).toISOString().split('T')[0];
         const amt = tokenAmountToNumber(inv.amount).toFixed(2);
         const rate = (inv.discount_rate / 100).toFixed(2);
-        return [
-          inv.id.toString(),
-          amt,
-          rate,
-          dDate,
-          inv.status,
-          inv.payer,
-          inv.token || "Unknown"
-        ];
+        return [inv.id.toString(), amt, rate, dDate, inv.status, inv.payer, inv.token || 'Unknown'];
       });
 
-      const csvContent = [
-        headers.join(","),
-        ...rows.map((r) => r.join(","))
-      ].join("\n");
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `invoices_export_${new Date().getTime()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      
+
       addToast({
-        type: "success",
-        title: "Export complete",
+        type: 'success',
+        title: 'Export complete',
         message: `Exported ${selectedInvoices.length} invoices to CSV.`,
       });
       onClearSelection();
     } catch (err) {
       addToast({
-        type: "error",
-        title: "Export failed",
-        message: "Failed to generate CSV export.",
+        type: 'error',
+        title: 'Export failed',
+        message: 'Failed to generate CSV export.',
       });
     } finally {
       setIsExporting(false);
@@ -75,12 +72,12 @@ export default function BulkActionBar({
 
   const handleBulkCancel = async () => {
     if (!address) return;
-    
+
     setIsCancelling(true);
     setCancelProgress(0);
-    
+
     let successCount = 0;
-    
+
     for (const invoice of selectedInvoices) {
       const result = await execute(
         async (signTx) => {
@@ -89,8 +86,8 @@ export default function BulkActionBar({
         },
         {
           title: `Cancelling invoice #${invoice.id.toString()}...`,
-          pendingMessage: "Waiting for wallet signature...",
-          successTitle: "Invoice cancelled",
+          pendingMessage: 'Waiting for wallet signature...',
+          successTitle: 'Invoice cancelled',
           successMessage: `Invoice #${invoice.id.toString()} was successfully cancelled.`,
         }
       );
@@ -100,16 +97,16 @@ export default function BulkActionBar({
         setCancelProgress(successCount);
       }
     }
-    
+
     setIsCancelling(false);
     setShowCancelModal(false);
     onClearSelection();
     onRefresh();
-    
+
     if (successCount > 0) {
       addToast({
-        type: "success",
-        title: "Bulk cancel complete",
+        type: 'success',
+        title: 'Bulk cancel complete',
         message: `Successfully cancelled ${successCount} out of ${selectedInvoices.length} invoices.`,
       });
     }
@@ -172,15 +169,17 @@ export default function BulkActionBar({
                 Cancel Invoices
               </h4>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <p className="text-sm text-on-surface-variant">
-                You are about to cancel {selectedInvoices.length} pending {selectedInvoices.length === 1 ? 'invoice' : 'invoices'}. This action cannot be undone.
+                You are about to cancel {selectedInvoices.length} pending{' '}
+                {selectedInvoices.length === 1 ? 'invoice' : 'invoices'}. This action cannot be
+                undone.
               </p>
-              
+
               <div className="bg-surface-container-low border border-outline-variant/10 rounded-lg max-h-40 overflow-y-auto p-3">
                 <ul className="text-sm font-mono flex flex-wrap gap-2">
-                  {selectedInvoices.map(inv => (
+                  {selectedInvoices.map((inv) => (
                     <li key={inv.id.toString()} className="bg-surface px-2 py-1 rounded">
                       #{inv.id.toString()}
                     </li>
@@ -191,11 +190,13 @@ export default function BulkActionBar({
               {isCancelling && (
                 <div className="pt-2">
                   <div className="flex justify-between text-xs font-bold text-on-surface-variant mb-1">
-                    <span>Cancelling {cancelProgress} of {selectedInvoices.length}...</span>
+                    <span>
+                      Cancelling {cancelProgress} of {selectedInvoices.length}...
+                    </span>
                     <span>{Math.round((cancelProgress / selectedInvoices.length) * 100)}%</span>
                   </div>
                   <div className="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden">
-                    <div 
+                    <div
                       className="bg-primary h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(cancelProgress / selectedInvoices.length) * 100}%` }}
                     />
@@ -223,7 +224,7 @@ export default function BulkActionBar({
                     Processing...
                   </>
                 ) : (
-                  "Confirm Cancel"
+                  'Confirm Cancel'
                 )}
               </button>
             </div>

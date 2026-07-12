@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useToast } from "@/context/ToastContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useFocusTrap } from "@/hooks/useFocusTrap";
-import { disputeInvoice, Invoice } from "@/utils/soroban";
-import { hashEvidence } from "@/utils/evidence";
+import { useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { disputeInvoice, Invoice } from '@/utils/soroban';
+import { hashEvidence } from '@/utils/evidence';
 
 interface DisputeInvoiceModalProps {
   invoice: Invoice;
@@ -14,11 +14,15 @@ interface DisputeInvoiceModalProps {
   onSuccess: () => void;
 }
 
-export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: DisputeInvoiceModalProps) {
+export default function DisputeInvoiceModal({
+  invoice,
+  onClose,
+  onSuccess,
+}: DisputeInvoiceModalProps) {
   const { address } = useWallet();
   const { addToast } = useToast();
   const { execute, loading, error } = useTransaction();
-  const [evidence, setEvidence] = useState("");
+  const [evidence, setEvidence] = useState('');
   const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   const canSubmit = evidence.trim().length > 0 && !loading;
@@ -27,15 +31,15 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
     if (!address || !canSubmit) return;
 
     const reasonHash = await hashEvidence(evidence);
-    const toastId = addToast({ type: "pending", title: "Submitting dispute..." });
+    const toastId = addToast({ type: 'pending', title: 'Submitting dispute...' });
 
     try {
       const tx = await disputeInvoice(address, invoice.id, reasonHash);
-      const txHash = await execute(tx, "Dispute invoice");
+      const txHash = await execute(tx, 'Dispute invoice');
       if (txHash) {
         addToast({
-          type: "success",
-          title: "Dispute submitted",
+          type: 'success',
+          title: 'Dispute submitted',
           message: `Invoice #${invoice.id.toString()} is now disputed.`,
           txHash,
         });
@@ -44,20 +48,32 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
       }
     } catch (err) {
       addToast({
-        type: "error",
-        title: "Dispute failed",
-        message: err instanceof Error ? err.message : "Unknown error",
+        type: 'error',
+        title: 'Dispute failed',
+        message: err instanceof Error ? err.message : 'Unknown error',
       });
     }
   };
 
   return (
-    <div ref={modalRef} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="dispute-title">
+    <div
+      ref={modalRef}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dispute-title"
+    >
       <div className="w-full max-w-lg mx-4 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/20 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-dim">
-          <h4 id="dispute-title" className="text-xl font-bold">Raise Dispute — Invoice #{invoice.id.toString()}</h4>
-          <button onClick={onClose} className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant" aria-label="Close modal">
+          <h4 id="dispute-title" className="text-xl font-bold">
+            Raise Dispute — Invoice #{invoice.id.toString()}
+          </h4>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-surface-variant/20 rounded-full text-on-surface-variant"
+            aria-label="Close modal"
+          >
             <span className="material-symbols-outlined shrink-0">close</span>
           </button>
         </div>
@@ -73,8 +89,9 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
           <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 text-sm text-on-surface-variant">
             <p className="font-semibold text-on-surface mb-1">How disputes work</p>
             <p>
-              Describe the issue with this invoice below. Your description will be hashed (SHA-256) and recorded on-chain
-              as evidence. <strong>Save your text</strong> — you will need to share it with governance to resolve the dispute.
+              Describe the issue with this invoice below. Your description will be hashed (SHA-256)
+              and recorded on-chain as evidence. <strong>Save your text</strong> — you will need to
+              share it with governance to resolve the dispute.
             </p>
           </div>
 
@@ -93,8 +110,8 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
           </div>
 
           <div className="rounded-lg bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant font-mono break-all">
-            <span className="font-bold text-on-surface">Evidence hash:</span>{" "}
-            {evidence.trim() ? "will be computed on submit" : "enter evidence above"}
+            <span className="font-bold text-on-surface">Evidence hash:</span>{' '}
+            {evidence.trim() ? 'will be computed on submit' : 'enter evidence above'}
           </div>
         </div>
 
@@ -118,7 +135,7 @@ export default function DisputeInvoiceModal({ invoice, onClose, onSuccess }: Dis
                 Submitting...
               </>
             ) : (
-              "Submit Dispute"
+              'Submit Dispute'
             )}
           </button>
         </div>

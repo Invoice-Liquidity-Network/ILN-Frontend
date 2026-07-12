@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchParameterUpdates, type ParameterUpdateEvent } from "@/utils/governance";
-import { governanceKeys, QUERY_TIMINGS } from "./keys";
+import { useQuery } from '@tanstack/react-query';
+import { fetchParameterUpdates, type ParameterUpdateEvent } from '@/utils/governance';
+import { governanceKeys, QUERY_TIMINGS } from './keys';
 
 /** Default announcement window: only surface changes from the last 48 hours. */
 export const PARAMETER_UPDATE_WINDOW_MS = 48 * 60 * 60 * 1000;

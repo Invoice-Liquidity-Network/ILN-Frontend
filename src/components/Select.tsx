@@ -25,7 +25,11 @@ type SelectProps = {
   options?: SelectOption[];
 };
 
-function NativeSelect({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children?: React.ReactNode }) {
+function NativeSelect({
+  className,
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { children?: React.ReactNode }) {
   return (
     <select className={className} {...props}>
       {children}

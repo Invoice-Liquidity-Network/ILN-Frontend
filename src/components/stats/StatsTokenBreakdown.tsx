@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React from "react";
-import type { TokenVolume } from "@/utils/contract-stats";
+import React from 'react';
+import type { TokenVolume } from '@/utils/contract-stats';
 
 const TOKEN_ICONS: Record<string, string> = {
-  USDC: "currency_exchange",
-  EURC: "euro",
-  XLM: "star",
+  USDC: 'currency_exchange',
+  EURC: 'euro',
+  XLM: 'star',
 };
 
 interface Props {
@@ -36,7 +36,7 @@ export default function StatsTokenBreakdown({ tokens, totalUsd }: Props) {
                 className="material-symbols-outlined text-xl"
                 style={{ color: token.color, fontVariationSettings: "'FILL' 1" }}
               >
-                {TOKEN_ICONS[token.symbol] ?? "token"}
+                {TOKEN_ICONS[token.symbol] ?? 'token'}
               </span>
             </div>
 
@@ -60,14 +60,15 @@ export default function StatsTokenBreakdown({ tokens, totalUsd }: Props) {
                 {token.amount_raw >= 1_000_000
                   ? `${(token.amount_raw / 1_000_000).toFixed(2)}M`
                   : token.amount_raw >= 1_000
-                  ? `${(token.amount_raw / 1_000).toFixed(1)}K`
-                  : token.amount_raw.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                {" "}{token.symbol}
+                    ? `${(token.amount_raw / 1_000).toFixed(1)}K`
+                    : token.amount_raw.toLocaleString('en-US', { maximumFractionDigits: 2 })}{' '}
+                {token.symbol}
               </p>
               <p className="text-xs text-on-surface-variant">
-                ≈ ${token.amount_usd >= 1_000
+                ≈ $
+                {token.amount_usd >= 1_000
                   ? `${(token.amount_usd / 1_000).toFixed(1)}K`
-                  : token.amount_usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  : token.amount_usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
               </p>
             </div>
           </div>
@@ -89,11 +90,12 @@ export default function StatsTokenBreakdown({ tokens, totalUsd }: Props) {
             Total
           </span>
           <span className="font-headline text-lg font-bold text-primary">
-            ${totalUsd >= 1_000_000
+            $
+            {totalUsd >= 1_000_000
               ? `${(totalUsd / 1_000_000).toFixed(2)}M`
               : totalUsd >= 1_000
-              ? `${(totalUsd / 1_000).toFixed(1)}K`
-              : totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                ? `${(totalUsd / 1_000).toFixed(1)}K`
+                : totalUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
           </span>
         </div>
       )}

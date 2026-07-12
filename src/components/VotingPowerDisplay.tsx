@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useWallet } from "@/context/WalletContext";
-import { getVotingPower, getDelegationInfo } from "@/utils/governance";
-import { formatTokenAmount } from "@/utils/format";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useWallet } from '@/context/WalletContext';
+import { getVotingPower, getDelegationInfo } from '@/utils/governance';
+import { formatTokenAmount } from '@/utils/format';
 
 interface DelegationInfo {
   delegatedTo: string | null;
@@ -17,7 +17,10 @@ interface VotingPowerDisplayProps {
   className?: string;
 }
 
-export default function VotingPowerDisplay({ votingPower, className = "" }: VotingPowerDisplayProps) {
+export default function VotingPowerDisplay({
+  votingPower,
+  className = '',
+}: VotingPowerDisplayProps) {
   const { address, isConnected } = useWallet();
   const [delegationInfo, setDelegationInfo] = useState<DelegationInfo>({
     delegatedTo: null,
@@ -39,7 +42,7 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
     }
 
     setLoading(true);
-    
+
     // Fetch delegation information
     getDelegationInfo(address)
       .then((info) => {
@@ -48,7 +51,7 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
         setOwnBalance(Math.max(0, votingPower - info.incomingDelegations));
       })
       .catch((error) => {
-        console.error("Failed to fetch delegation info:", error);
+        console.error('Failed to fetch delegation info:', error);
         // Fallback: assume all voting power is own balance
         setOwnBalance(votingPower);
       })
@@ -59,9 +62,13 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
 
   if (!isConnected) {
     return (
-      <div className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}>
+      <div
+        className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}
+      >
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-on-surface-variant">account_balance_wallet</span>
+          <span className="material-symbols-outlined text-on-surface-variant">
+            account_balance_wallet
+          </span>
           <div>
             <div className="font-medium text-on-surface">Connect Wallet</div>
             <div className="text-sm text-on-surface-variant">
@@ -75,7 +82,9 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
 
   if (loading) {
     return (
-      <div className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}>
+      <div
+        className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}
+      >
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 bg-surface-container animate-pulse rounded-full"></div>
           <div className="flex-1">
@@ -88,7 +97,9 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
   }
 
   return (
-    <div className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}>
+    <div
+      className={`bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 ${className}`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-3">
@@ -99,11 +110,9 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
           {/* Total Voting Power */}
           <div className="mb-4">
             <div className="text-2xl font-bold text-primary mb-1">
-              {formatTokenAmount(BigInt(votingPower * 1e7), { symbol: "ILN", decimals: 7 })}
+              {formatTokenAmount(BigInt(votingPower * 1e7), { symbol: 'ILN', decimals: 7 })}
             </div>
-            <div className="text-sm text-on-surface-variant">
-              Total voting weight
-            </div>
+            <div className="text-sm text-on-surface-variant">Total voting weight</div>
           </div>
 
           {/* Breakdown */}
@@ -111,15 +120,19 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
             <div className="flex justify-between items-center">
               <span className="text-on-surface-variant">Your balance:</span>
               <span className="font-medium">
-                {formatTokenAmount(BigInt(ownBalance * 1e7), { symbol: "ILN", decimals: 7 })}
+                {formatTokenAmount(BigInt(ownBalance * 1e7), { symbol: 'ILN', decimals: 7 })}
               </span>
             </div>
-            
+
             {delegationInfo.incomingDelegations > 0 && (
               <div className="flex justify-between items-center">
                 <span className="text-on-surface-variant">Delegated to you:</span>
                 <span className="font-medium text-green-600">
-                  +{formatTokenAmount(BigInt(delegationInfo.incomingDelegations * 1e7), { symbol: "ILN", decimals: 7 })}
+                  +
+                  {formatTokenAmount(BigInt(delegationInfo.incomingDelegations * 1e7), {
+                    symbol: 'ILN',
+                    decimals: 7,
+                  })}
                 </span>
               </div>
             )}
@@ -127,7 +140,9 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
             {delegationInfo.delegatedTo && (
               <div className="mt-3 p-3 bg-surface-container-high rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-orange-600 text-[16px]">forward</span>
+                  <span className="material-symbols-outlined text-orange-600 text-[16px]">
+                    forward
+                  </span>
                   <span className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
                     Delegated
                   </span>
@@ -137,7 +152,8 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
                     Your voting power is currently delegated to:
                   </div>
                   <div className="font-mono text-xs bg-surface-container-lowest px-2 py-1 rounded border">
-                    {delegationInfo.delegatedTo.slice(0, 8)}...{delegationInfo.delegatedTo.slice(-8)}
+                    {delegationInfo.delegatedTo.slice(0, 8)}...
+                    {delegationInfo.delegatedTo.slice(-8)}
                   </div>
                 </div>
               </div>
@@ -178,12 +194,14 @@ export default function VotingPowerDisplay({ votingPower, className = "" }: Voti
       {votingPower === 0 && (
         <div className="mt-4 p-3 bg-surface-container-high rounded-lg">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-on-surface-variant text-[16px] mt-0.5">info</span>
+            <span className="material-symbols-outlined text-on-surface-variant text-[16px] mt-0.5">
+              info
+            </span>
             <div className="text-xs text-on-surface-variant">
               <div className="font-medium mb-1">No voting power</div>
               <div>
-                You need ILN tokens to participate in governance. 
-                Earn tokens by providing liquidity or contributing to the protocol.
+                You need ILN tokens to participate in governance. Earn tokens by providing liquidity
+                or contributing to the protocol.
               </div>
             </div>
           </div>

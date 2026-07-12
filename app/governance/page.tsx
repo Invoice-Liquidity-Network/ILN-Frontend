@@ -1,47 +1,56 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar";
-import VoteProgressBar from "@/components/VoteProgressBar";
-import QuorumProgressBar from "@/components/QuorumProgressBar";
-import TokenAllowlistPanel from "@/components/governance/TokenAllowlistPanel";
-import VotingPowerDisplay from "@/components/VotingPowerDisplay";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import PageHeader from "@/components/PageHeader";
-import { useWallet } from "@/context/WalletContext";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Footer from '@/components/Footer';
+import Navbar from '@/components/Navbar';
+import VoteProgressBar from '@/components/VoteProgressBar';
+import QuorumProgressBar from '@/components/QuorumProgressBar';
+import TokenAllowlistPanel from '@/components/governance/TokenAllowlistPanel';
+import VotingPowerDisplay from '@/components/VotingPowerDisplay';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import PageHeader from '@/components/PageHeader';
+import { useWallet } from '@/context/WalletContext';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
-    Proposal,
-    ProposalStatus,
-    fetchProposals,
-    getVotingPower,
-    timeRemaining,
-    totalVotes,
-} from "@/utils/governance";
+  Proposal,
+  ProposalStatus,
+  fetchProposals,
+  getVotingPower,
+  timeRemaining,
+  totalVotes,
+} from '@/utils/governance';
 
 const PAGE_SIZE = 20;
-type ProposalFilter = "Active" | "Passed" | "Rejected" | "Executed" | "Vetoed";
-const FILTERS: ProposalFilter[] = ["Active", "Passed", "Rejected", "Executed", "Vetoed"];
+type ProposalFilter = 'Active' | 'Passed' | 'Rejected' | 'Executed' | 'Vetoed';
+const FILTERS: ProposalFilter[] = ['Active', 'Passed', 'Rejected', 'Executed', 'Vetoed'];
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: ProposalStatus }) {
   const config: Record<ProposalStatus, { color: string; icon: string }> = {
-    Active: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", icon: "fiber_manual_record" },
-    Passed: { color: "bg-primary/15 text-primary border-primary/30", icon: "check_circle" },
-    Failed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "cancel" },
-    Executed: { color: "bg-purple-500/15 text-purple-500 border-purple-500/30", icon: "rocket_launch" },
-    Pending: { color: "bg-amber-500/15 text-amber-500 border-amber-500/30", icon: "schedule" },
-    Vetoed: { color: "bg-red-500/15 text-red-500 border-red-500/30", icon: "gavel" },
+    Active: {
+      color: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+      icon: 'fiber_manual_record',
+    },
+    Passed: { color: 'bg-primary/15 text-primary border-primary/30', icon: 'check_circle' },
+    Failed: { color: 'bg-red-500/15 text-red-500 border-red-500/30', icon: 'cancel' },
+    Executed: {
+      color: 'bg-purple-500/15 text-purple-500 border-purple-500/30',
+      icon: 'rocket_launch',
+    },
+    Pending: { color: 'bg-amber-500/15 text-amber-500 border-amber-500/30', icon: 'schedule' },
+    Vetoed: { color: 'bg-red-500/15 text-red-500 border-red-500/30', icon: 'gavel' },
   };
   const { color, icon } = config[status];
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${color}`}
     >
-      <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+      <span
+        className="material-symbols-outlined text-[12px]"
+        style={{ fontVariationSettings: "'FILL' 1" }}
+      >
         {icon}
       </span>
       {status}
@@ -50,16 +59,16 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
 }
 
 function displayStatus(status: ProposalStatus): ProposalFilter | ProposalStatus {
-  return status === "Failed" ? "Rejected" : status;
+  return status === 'Failed' ? 'Rejected' : status;
 }
 
 // ─── Type badge ───────────────────────────────────────────────────────────────
 
-function TypeBadge({ type }: { type: Proposal["type"] }) {
-  const label: Record<Proposal["type"], string> = {
-    ParameterUpdate: "Parameter",
-    ProtocolUpgrade: "Upgrade",
-    TextProposal: "Signal",
+function TypeBadge({ type }: { type: Proposal['type'] }) {
+  const label: Record<Proposal['type'], string> = {
+    ParameterUpdate: 'Parameter',
+    ProtocolUpgrade: 'Upgrade',
+    TextProposal: 'Signal',
   };
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant/30">
@@ -73,7 +82,7 @@ function TypeBadge({ type }: { type: Proposal["type"] }) {
 function ProposalCard({ proposal }: { proposal: Proposal }) {
   const total = totalVotes(proposal);
   const remaining = timeRemaining(proposal);
-  const proposedValue = proposal.parameterChanges?.[0]?.newValue ?? "Text proposal";
+  const proposedValue = proposal.parameterChanges?.[0]?.newValue ?? 'Text proposal';
 
   return (
     <Link
@@ -120,34 +129,32 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
       />
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-outline-variant/10">
-        <span className="text-xs text-on-surface-variant">
-          {total.toLocaleString()} ILN voted
-        </span>
+        <span className="text-xs text-on-surface-variant">{total.toLocaleString()} ILN voted</span>
         {remaining && (
           <span className="text-xs font-medium text-amber-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">schedule</span>
             {remaining}
           </span>
         )}
-        {proposal.status === "Passed" && (
+        {proposal.status === 'Passed' && (
           <span className="text-xs font-medium text-primary flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">pending_actions</span>
             Ready to execute
           </span>
         )}
-        {proposal.status === "Executed" && (
+        {proposal.status === 'Executed' && (
           <span className="text-xs font-medium text-purple-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
             Executed
           </span>
         )}
-        {proposal.status === "Failed" && (
+        {proposal.status === 'Failed' && (
           <span className="text-xs font-medium text-red-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">cancel</span>
             Rejected
           </span>
         )}
-        {proposal.status === "Vetoed" && (
+        {proposal.status === 'Vetoed' && (
           <span className="text-xs font-medium text-red-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">gavel</span>
             Vetoed
@@ -177,13 +184,13 @@ function FilterTabs({
           onClick={() => onChange(f)}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
             active === f
-              ? "bg-primary text-white border-primary"
-              : "bg-surface-container text-on-surface-variant border-outline-variant/30 hover:border-primary/40 hover:text-primary"
+              ? 'bg-primary text-white border-primary'
+              : 'bg-surface-container text-on-surface-variant border-outline-variant/30 hover:border-primary/40 hover:text-primary'
           }`}
         >
           {f}
           <span
-            className={`ml-1.5 text-xs ${active === f ? "text-white/70" : "text-on-surface-variant/60"}`}
+            className={`ml-1.5 text-xs ${active === f ? 'text-white/70' : 'text-on-surface-variant/60'}`}
           >
             {counts[f]}
           </span>
@@ -196,12 +203,12 @@ function FilterTabs({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GovernancePage() {
-  useDocumentTitle({ pageTitle: "Governance" });
+  useDocumentTitle({ pageTitle: 'Governance' });
   const { address, isConnected } = useWallet();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<ProposalFilter>("Active");
+  const [filter, setFilter] = useState<ProposalFilter>('Active');
   const [page, setPage] = useState(1);
   const [votingPower, setVotingPower] = useState(0);
 
@@ -228,7 +235,7 @@ export default function GovernancePage() {
 
   const sorted = useMemo(
     () => [...proposals].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id),
-    [proposals],
+    [proposals]
   );
   const filtered = sorted.filter((proposal) => displayStatus(proposal.status) === filter);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -251,7 +258,7 @@ export default function GovernancePage() {
       <section className="pt-32 pb-12 px-8 border-b border-outline-variant/10 bg-surface-container-lowest">
         <div className="max-w-7xl mx-auto">
           <PageHeader
-            breadcrumbs={[{ label: "ILN Governance" }]}
+            breadcrumbs={[{ label: 'ILN Governance' }]}
             title="Proposals"
             description="Shape the future of the protocol. Review active proposals and cast your vote using your ILN token balance."
             actions={
@@ -308,10 +315,7 @@ export default function GovernancePage() {
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-64 rounded-2xl bg-surface-container animate-pulse"
-                  />
+                  <div key={i} className="h-64 rounded-2xl bg-surface-container animate-pulse" />
                 ))}
               </div>
             ) : filtered.length === 0 ? (

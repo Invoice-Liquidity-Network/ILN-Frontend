@@ -1,11 +1,11 @@
-import type { Invoice } from "@/utils/soroban";
+import type { Invoice } from '@/utils/soroban';
 
 export const CONTRACT_EVENT_TYPES = [
-  "InvoiceSubmitted",
-  "InvoiceFunded",
-  "InvoicePaid",
-  "InvoiceDisputed",
-  "InvoiceCancelled",
+  'InvoiceSubmitted',
+  'InvoiceFunded',
+  'InvoicePaid',
+  'InvoiceDisputed',
+  'InvoiceCancelled',
 ] as const;
 
 export type ContractEventType = (typeof CONTRACT_EVENT_TYPES)[number];
@@ -18,11 +18,11 @@ export interface ParsedContractEvent {
 }
 
 const STATUS_BY_EVENT: Record<ContractEventType, string> = {
-  InvoiceSubmitted: "Pending",
-  InvoiceFunded: "Funded",
-  InvoicePaid: "Paid",
-  InvoiceDisputed: "Disputed",
-  InvoiceCancelled: "Cancelled",
+  InvoiceSubmitted: 'Pending',
+  InvoiceFunded: 'Funded',
+  InvoicePaid: 'Paid',
+  InvoiceDisputed: 'Disputed',
+  InvoiceCancelled: 'Cancelled',
 };
 
 interface HorizonContractEvent {
@@ -50,7 +50,7 @@ function decodeTopicInvoiceId(topics: string[] | undefined): bigint | undefined 
   if (!raw) return undefined;
   try {
     if (/^\d+$/.test(raw)) return BigInt(raw);
-    if (typeof atob === "function" && raw.length > 4) {
+    if (typeof atob === 'function' && raw.length > 4) {
       const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
       if (bytes.length >= 8) {
         let value = 0n;
@@ -66,7 +66,7 @@ function decodeTopicInvoiceId(topics: string[] | undefined): bigint | undefined 
 
 function parseContractEvent(
   entry: HorizonContractEvent,
-  tx: HorizonTransactionPayload,
+  tx: HorizonTransactionPayload
 ): ParsedContractEvent | null {
   const topicName = entry.topics?.[0] ?? entry.type ?? entry.id;
   if (!topicName || !CONTRACT_EVENT_TYPES.includes(topicName as ContractEventType)) {
@@ -83,7 +83,7 @@ function parseContractEvent(
 
 /** Parse Soroban contract events from a Horizon transaction payload. */
 export function parseContractEventsFromTransaction(
-  tx: HorizonTransactionPayload,
+  tx: HorizonTransactionPayload
 ): ParsedContractEvent[] {
   if (tx.successful === false) return [];
 
@@ -119,13 +119,13 @@ export function statusForContractEvent(type: ContractEventType): string {
 
 export function applyContractEventToInvoices(
   invoices: Invoice[] | undefined,
-  event: ParsedContractEvent,
+  event: ParsedContractEvent
 ): Invoice[] | undefined {
   if (!invoices || event.invoiceId === undefined) return invoices;
   const nextStatus = statusForContractEvent(event.type);
 
   return invoices.map((invoice) =>
-    invoice.id === event.invoiceId ? { ...invoice, status: nextStatus } : invoice,
+    invoice.id === event.invoiceId ? { ...invoice, status: nextStatus } : invoice
   );
 }
 

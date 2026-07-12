@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST, GET } from "../app/api/reminders/route";
-import { NextRequest } from "next/server";
-import { Resend } from "resend";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import * as soroban from "@/utils/soroban";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { POST, GET } from '../app/api/reminders/route';
+import { NextRequest } from 'next/server';
+import { Resend } from 'resend';
+import { getSupabaseAdmin } from '@/lib/supabase';
+import * as soroban from '@/utils/soroban';
 
 // Mock Resend
-vi.mock("resend", () => {
-  const send = vi.fn().mockResolvedValue({ data: { id: "test-email-id" }, error: null });
+vi.mock('resend', () => {
+  const send = vi.fn().mockResolvedValue({ data: { id: 'test-email-id' }, error: null });
   return {
-    Resend: vi.fn().mockImplementation(function() {
+    Resend: vi.fn().mockImplementation(function () {
       return {
         emails: { send },
       };
@@ -18,7 +18,7 @@ vi.mock("resend", () => {
 });
 
 // Mock Supabase
-vi.mock("@/lib/supabase", () => {
+vi.mock('@/lib/supabase', () => {
   const mock = {
     from: vi.fn().mockReturnThis(),
     upsert: vi.fn().mockReturnThis(),
@@ -35,19 +35,19 @@ vi.mock("@/lib/supabase", () => {
 });
 
 // Mock Soroban utils
-vi.mock("@/utils/soroban", () => ({
+vi.mock('@/utils/soroban', () => ({
   getAllInvoices: vi.fn(),
   getTokenMetadata: vi.fn(),
 }));
 
-describe("/api/reminders API route", () => {
+describe('/api/reminders API route', () => {
   let mockSupabase: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.CRON_SECRET = "test-secret";
-    process.env.RESEND_API_KEY = "re_test_123";
-    
+    process.env.CRON_SECRET = 'test-secret';
+    process.env.RESEND_API_KEY = 're_test_123';
+
     mockSupabase = getSupabaseAdmin();
     // Default mocks for chaining
     mockSupabase.from.mockReturnValue(mockSupabase);
@@ -57,18 +57,18 @@ describe("/api/reminders API route", () => {
     mockSupabase.insert.mockReturnValue(mockSupabase);
   });
 
-  describe("POST handler", () => {
-    it("should successfully save reminder preferences", async () => {
+  describe('POST handler', () => {
+    it('should successfully save reminder preferences', async () => {
       mockSupabase.upsert.mockResolvedValue({ error: null });
 
       const payload = {
-        address: "GABC123",
-        email: "test@example.com",
+        address: 'GABC123',
+        email: 'test@example.com',
         enabled: true,
       };
 
-      const req = new NextRequest("http://localhost/api/reminders", {
-        method: "POST",
+      const req = new NextRequest('http://localhost/api/reminders', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
@@ -78,26 +78,26 @@ describe("/api/reminders API route", () => {
       expect(response.status).toBe(200);
       expect(body.success).toBe(true);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith("reminder_preferences");
+      expect(mockSupabase.from).toHaveBeenCalledWith('reminder_preferences');
       expect(mockSupabase.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           address: payload.address,
           email: payload.email,
         }),
-        { onConflict: "address" }
+        { onConflict: 'address' }
       );
     });
   });
 
-  describe("GET handler (Cron Trigger)", () => {
-    it("should send a reminder email for an invoice due in 72 hours", async () => {
+  describe('GET handler (Cron Trigger)', () => {
+    it('should send a reminder email for an invoice due in 72 hours', async () => {
       const now = Math.floor(Date.now() / 1000);
-      const dueIn71Hours = now + (71 * 3600);
-      const payerAddress = "GPA123";
+      const dueIn71Hours = now + 71 * 3600;
+      const payerAddress = 'GPA123';
 
       // 1. Mock preferences
       mockSupabase.eq.mockResolvedValueOnce({
-        data: [{ address: payerAddress, email: "payer@example.com", enabled: true }],
+        data: [{ address: payerAddress, email: 'payer@example.com', enabled: true }],
         error: null,
       });
 
@@ -106,27 +106,27 @@ describe("/api/reminders API route", () => {
         {
           id: 101n,
           payer: payerAddress,
-          status: "Funded",
+          status: 'Funded',
           due_date: BigInt(dueIn71Hours),
-          token: "USDC_CONTRACT",
+          token: 'USDC_CONTRACT',
           amount: 500000000n,
-          freelancer: "GFL123",
+          freelancer: 'GFL123',
           discount_rate: 0,
         },
       ]);
 
       vi.mocked(soroban.getTokenMetadata).mockResolvedValue({
-        contractId: "USDC_CONTRACT",
-        symbol: "USDC",
+        contractId: 'USDC_CONTRACT',
+        symbol: 'USDC',
         decimals: 7,
-        name: "USD Coin",
+        name: 'USD Coin',
       });
 
       mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
       mockSupabase.insert.mockResolvedValue({ error: null });
 
-      const req = new NextRequest("http://localhost/api/reminders", {
-        headers: { authorization: "Bearer test-secret" },
+      const req = new NextRequest('http://localhost/api/reminders', {
+        headers: { authorization: 'Bearer test-secret' },
       });
 
       const response = await GET(req);
@@ -134,18 +134,18 @@ describe("/api/reminders API route", () => {
 
       expect(response.status).toBe(200);
       expect(body.sentCount).toBe(1);
-      
+
       const resendInstance = new Resend();
       expect(resendInstance.emails.send).toHaveBeenCalled();
     });
 
-    it("should not send duplicate emails for the same milestone", async () => {
+    it('should not send duplicate emails for the same milestone', async () => {
       const now = Math.floor(Date.now() / 1000);
-      const dueIn23Hours = now + (23 * 3600);
-      const payerAddress = "GPA123";
+      const dueIn23Hours = now + 23 * 3600;
+      const payerAddress = 'GPA123';
 
       mockSupabase.eq.mockResolvedValueOnce({
-        data: [{ address: payerAddress, email: "payer@example.com", enabled: true }],
+        data: [{ address: payerAddress, email: 'payer@example.com', enabled: true }],
         error: null,
       });
 
@@ -153,22 +153,22 @@ describe("/api/reminders API route", () => {
         {
           id: 102n,
           payer: payerAddress,
-          status: "Funded",
+          status: 'Funded',
           due_date: BigInt(dueIn23Hours),
-          token: "USDC_CONTRACT",
+          token: 'USDC_CONTRACT',
           amount: 500000000n,
-          freelancer: "GFL123",
+          freelancer: 'GFL123',
           discount_rate: 0,
         },
       ]);
 
       mockSupabase.maybeSingle.mockResolvedValue({
-        data: { id: "existing-log-id" },
+        data: { id: 'existing-log-id' },
         error: null,
       });
 
-      const req = new NextRequest("http://localhost/api/reminders", {
-        headers: { authorization: "Bearer test-secret" },
+      const req = new NextRequest('http://localhost/api/reminders', {
+        headers: { authorization: 'Bearer test-secret' },
       });
 
       const response = await GET(req);

@@ -1,26 +1,23 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { connectHorizonTransactionStream } from "@/lib/horizon-stream";
-import { connectIndexerWebSocket } from "@/lib/indexer-websocket";
-import {
-  applyContractEventToInvoices,
-  type ParsedContractEvent,
-} from "@/lib/contract-events";
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { connectHorizonTransactionStream } from '@/lib/horizon-stream';
+import { connectIndexerWebSocket } from '@/lib/indexer-websocket';
+import { applyContractEventToInvoices, type ParsedContractEvent } from '@/lib/contract-events';
 import {
   isContractEventStreamingActive,
   setContractEventStreamingActive,
-} from "@/lib/contract-event-stream-state";
-import type { Invoice } from "@/utils/soroban";
-import { invoiceKeys } from "@/hooks/queries/keys";
+} from '@/lib/contract-event-stream-state';
+import type { Invoice } from '@/utils/soroban';
+import { invoiceKeys } from '@/hooks/queries/keys';
 
 function patchInvoiceQueries(
   queryClient: ReturnType<typeof useQueryClient>,
-  event: ParsedContractEvent,
+  event: ParsedContractEvent
 ) {
   queryClient.setQueryData<Invoice[]>(invoiceKeys.all, (current) =>
-    applyContractEventToInvoices(current, event),
+    applyContractEventToInvoices(current, event)
   );
   if (event.invoiceId !== undefined) {
     queryClient.setQueryData<Invoice>(invoiceKeys.detail(event.invoiceId), (current) => {
@@ -40,14 +37,14 @@ export function useContractEvents(enabled = true) {
   const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [manualRefresh, setManualRefresh] = useState(0);
-  const [connectionType, setConnectionType] = useState<"websocket" | "polling" | "none">("none");
+  const [connectionType, setConnectionType] = useState<'websocket' | 'polling' | 'none'>('none');
   const retryTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wsHandleRef = useRef<ReturnType<typeof connectIndexerWebSocket> | null>(null);
   const horizonHandleRef = useRef<ReturnType<typeof connectHorizonTransactionStream> | null>(null);
 
   const connectWebSocket = useCallback(() => {
-    setConnectionType("websocket");
-    
+    setConnectionType('websocket');
+
     const handle = connectIndexerWebSocket({
       onEvent: (event) => {
         patchInvoiceQueries(queryClient, event);
@@ -55,13 +52,13 @@ export function useContractEvents(enabled = true) {
         setRetryCount(0);
       },
       onStatusChange: (status) => {
-        setContractEventStreamingActive(status === "connected");
-        if (status === "error" || status === "disconnected") {
-          if (process.env.NODE_ENV === "development") {
+        setContractEventStreamingActive(status === 'connected');
+        if (status === 'error' || status === 'disconnected') {
+          if (process.env.NODE_ENV === 'development') {
             console.error(`[ContractEventSync] WebSocket failed, falling back to polling`);
           }
-          setError("WebSocket connection failed. Falling back to polling.");
-          setConnectionType("polling");
+          setError('WebSocket connection failed. Falling back to polling.');
+          setConnectionType('polling');
           wsHandleRef.current?.close();
           wsHandleRef.current = null;
           horizonHandleRef.current = connectHorizonTransactionStream({
@@ -71,12 +68,12 @@ export function useContractEvents(enabled = true) {
               setRetryCount(0);
             },
             onStatusChange: (status) => {
-              setContractEventStreamingActive(status === "connected");
-              if (status === "error" || status === "disconnected") {
-                if (process.env.NODE_ENV === "development") {
-                  console.error("[ContractEventSync] Polling connection failed.");
+              setContractEventStreamingActive(status === 'connected');
+              if (status === 'error' || status === 'disconnected') {
+                if (process.env.NODE_ENV === 'development') {
+                  console.error('[ContractEventSync] Polling connection failed.');
                 }
-                setError("Connection failed. Please refresh manually.");
+                setError('Connection failed. Please refresh manually.');
               }
             },
           });
@@ -84,40 +81,45 @@ export function useContractEvents(enabled = true) {
       },
       maxReconnectAttempts: 3,
     });
-    
+
     return handle;
   }, [queryClient]);
 
-  const connectPolling = useCallback((attempt: number) => {
-    setConnectionType("polling");
-    const handle = connectHorizonTransactionStream({
-      onEvent: (event) => {
-        patchInvoiceQueries(queryClient, event);
-        setError(null);
-        setRetryCount(0);
-      },
-      onStatusChange: (status) => {
-        setContractEventStreamingActive(status === "connected");
-        if (status === "error" || status === "disconnected") {
-          if (attempt < MAX_RETRIES) {
-            const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-            if (process.env.NODE_ENV === "development") {
-              console.error(`[ContractEventSync] Connection failed. Retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`);
-            }
-            setError(`Connection lost. Retrying... (${attempt + 1}/${MAX_RETRIES})`);
-            setRetryCount(attempt + 1);
-            retryTimeout.current = setTimeout(() => connectPolling(attempt + 1), delay);
-          } else {
-            setError("Failed to connect after 3 attempts. Please refresh manually.");
-            if (process.env.NODE_ENV === "development") {
-              console.error("[ContractEventSync] Max retries reached.");
+  const connectPolling = useCallback(
+    (attempt: number) => {
+      setConnectionType('polling');
+      const handle = connectHorizonTransactionStream({
+        onEvent: (event) => {
+          patchInvoiceQueries(queryClient, event);
+          setError(null);
+          setRetryCount(0);
+        },
+        onStatusChange: (status) => {
+          setContractEventStreamingActive(status === 'connected');
+          if (status === 'error' || status === 'disconnected') {
+            if (attempt < MAX_RETRIES) {
+              const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+              if (process.env.NODE_ENV === 'development') {
+                console.error(
+                  `[ContractEventSync] Connection failed. Retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`
+                );
+              }
+              setError(`Connection lost. Retrying... (${attempt + 1}/${MAX_RETRIES})`);
+              setRetryCount(attempt + 1);
+              retryTimeout.current = setTimeout(() => connectPolling(attempt + 1), delay);
+            } else {
+              setError('Failed to connect after 3 attempts. Please refresh manually.');
+              if (process.env.NODE_ENV === 'development') {
+                console.error('[ContractEventSync] Max retries reached.');
+              }
             }
           }
-        }
-      },
-    });
-    return handle;
-  }, [queryClient]);
+        },
+      });
+      return handle;
+    },
+    [queryClient]
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -125,7 +127,7 @@ export function useContractEvents(enabled = true) {
       wsHandleRef.current = null;
       horizonHandleRef.current?.close();
       horizonHandleRef.current = null;
-      setConnectionType("none");
+      setConnectionType('none');
       setContractEventStreamingActive(false);
       if (retryTimeout.current) clearTimeout(retryTimeout.current);
       return;
@@ -133,7 +135,7 @@ export function useContractEvents(enabled = true) {
 
     setError(null);
     setRetryCount(0);
-    
+
     wsHandleRef.current = connectWebSocket();
 
     return () => {

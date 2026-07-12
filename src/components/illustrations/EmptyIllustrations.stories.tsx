@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { FreelancerEmptyIllustration, LPDiscoveryEmptyIllustration, LPPortfolioEmptyIllustration, PayerEmptyIllustration, NotificationsEmptyIllustration } from './EmptyIllustrations';
+import {
+  FreelancerEmptyIllustration,
+  LPDiscoveryEmptyIllustration,
+  LPPortfolioEmptyIllustration,
+  PayerEmptyIllustration,
+  NotificationsEmptyIllustration,
+} from './EmptyIllustrations';
 
 const meta: Meta<typeof FreelancerEmptyIllustration> = {
   title: 'Components/Illustrations/EmptyIllustrations',

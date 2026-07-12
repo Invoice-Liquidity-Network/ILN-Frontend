@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import dynamic from "next/dynamic";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-const ProtocolStatsScreen = dynamic(() => import("@/screens/ProtocolStats"), {
+const ProtocolStatsScreen = dynamic(() => import('@/screens/ProtocolStats'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen bg-surface-container flex flex-col items-center justify-center text-on-surface-variant font-medium gap-3">
@@ -15,7 +15,7 @@ const ProtocolStatsScreen = dynamic(() => import("@/screens/ProtocolStats"), {
 });
 
 export default function StatsPage() {
-  useDocumentTitle({ pageTitle: "Protocol Statistics" });
+  useDocumentTitle({ pageTitle: 'Protocol Statistics' });
   return (
     <Suspense fallback={null}>
       <ProtocolStatsScreen />

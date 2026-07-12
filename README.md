@@ -10,7 +10,7 @@ The user interface follows a curated design system strategy known as **The Fisca
 
 - **Color & Tonal Architecture**: Rooted in a "Warm Industrial" aesthetic combining structural Navy/Slate with warm parchment grays.
 - **The "No-Line" Rule**: The layout explicitly avoids 1px borders for containment, using background shifts (`surface`, `surface-container-low`, `surface-container-high`) to create architectural boundaries.
-- **Typography Dialogue**: Pairs the editorial authority of the *Newsreader* serif typeface for display statements and data points with the functional clarity of the *Manrope* sans-serif.
+- **Typography Dialogue**: Pairs the editorial authority of the _Newsreader_ serif typeface for display statements and data points with the functional clarity of the _Manrope_ sans-serif.
 
 For a deep dive into layout grids, elevation layers, and color tokens, read the full [DESIGN.md](DESIGN.md) document.
 
@@ -84,26 +84,33 @@ The application is structured logically to support multiple participant roles (f
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 
 ### 1. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Configure Environment Variables
+
 Copy `.env.example` to `.env.local` (see the [Environment Variables](#-environment-variables-reference) section below for details):
+
 ```bash
 cp .env.example .env.local
 ```
 
 ### 3. Run Development Server
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ### 4. Running Tests
+
 - **Unit & Snapshot Tests (Vitest)**:
   ```bash
   npm test
@@ -118,7 +125,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
   ```
 
 ### 5. Storybook & Visual Regression
+
 Storybook and Chromatic are used to check UI components for regressions.
+
 - **Start Storybook locally**:
   ```bash
   npm run storybook
@@ -135,41 +144,44 @@ Storybook and Chromatic are used to check UI components for regressions.
 Here is a detailed guide of the configuration options available:
 
 ### 🌐 Stellar & Smart Contract Settings
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_CONTRACT_ID` | `CD3TE3IAHM737P236XZL2OYU275ZKD6MN7YH7PYYAXYIGEH55OPEWYJC` | The primary Invoice Factoring smart contract ID on Soroban. |
-| `NEXT_PUBLIC_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` | Stellar network identifier passphrase. |
-| `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` | Soroban RPC server endpoint. |
-| `NEXT_PUBLIC_NETWORK_NAME` | `TESTNET` | Descriptive name of the active Stellar network. |
-| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | Network type identifier (`testnet`, `public`). |
-| `NEXT_PUBLIC_TESTNET_USDC_TOKEN_ID`| `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` | Asset contract ID for USDC on testnet. |
-| `NEXT_PUBLIC_TESTNET_EURC_TOKEN_ID`| `GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP` | Asset contract ID for EURC on testnet. |
-| `NEXT_PUBLIC_TESTNET_XLM_TOKEN_ID` | `native-xlm` | Token identifier for Native XLM. |
-| `NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS`| `GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF` | Admin fallback address for parameters governance. |
-| `NEXT_PUBLIC_INSURANCE_POOL_ENABLED`| `false` | Enables/disables the liquidity insurance pooling feature. |
-| `NEXT_PUBLIC_NFT_ENABLED` | `false` | Set to `true` to enable Soroban Invoice NFT metadata displays. |
-| `NEXT_PUBLIC_NFT_CONTRACT_ID` | Defaults to contract ID | Contract ID for Invoice NFTs (if separated from primary). |
-| `NEXT_PUBLIC_NFT_METADATA_METHOD` | `token_uri` | Contract function that returns token metadata URI. |
-| `NEXT_PUBLIC_NFT_EVENT_HINTS` | `""` | Hints helper (e.g., `mint:Minted;transfer:Transfer;burn:Burned`). |
+
+| Variable                               | Default Value                                              | Description                                                       |
+| :------------------------------------- | :--------------------------------------------------------- | :---------------------------------------------------------------- |
+| `NEXT_PUBLIC_CONTRACT_ID`              | `CD3TE3IAHM737P236XZL2OYU275ZKD6MN7YH7PYYAXYIGEH55OPEWYJC` | The primary Invoice Factoring smart contract ID on Soroban.       |
+| `NEXT_PUBLIC_NETWORK_PASSPHRASE`       | `Test SDF Network ; September 2015`                        | Stellar network identifier passphrase.                            |
+| `NEXT_PUBLIC_RPC_URL`                  | `https://soroban-testnet.stellar.org`                      | Soroban RPC server endpoint.                                      |
+| `NEXT_PUBLIC_NETWORK_NAME`             | `TESTNET`                                                  | Descriptive name of the active Stellar network.                   |
+| `NEXT_PUBLIC_STELLAR_NETWORK`          | `testnet`                                                  | Network type identifier (`testnet`, `public`).                    |
+| `NEXT_PUBLIC_TESTNET_USDC_TOKEN_ID`    | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` | Asset contract ID for USDC on testnet.                            |
+| `NEXT_PUBLIC_TESTNET_EURC_TOKEN_ID`    | `GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP`  | Asset contract ID for EURC on testnet.                            |
+| `NEXT_PUBLIC_TESTNET_XLM_TOKEN_ID`     | `native-xlm`                                               | Token identifier for Native XLM.                                  |
+| `NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS` | `GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF` | Admin fallback address for parameters governance.                 |
+| `NEXT_PUBLIC_INSURANCE_POOL_ENABLED`   | `false`                                                    | Enables/disables the liquidity insurance pooling feature.         |
+| `NEXT_PUBLIC_NFT_ENABLED`              | `false`                                                    | Set to `true` to enable Soroban Invoice NFT metadata displays.    |
+| `NEXT_PUBLIC_NFT_CONTRACT_ID`          | Defaults to contract ID                                    | Contract ID for Invoice NFTs (if separated from primary).         |
+| `NEXT_PUBLIC_NFT_METADATA_METHOD`      | `token_uri`                                                | Contract function that returns token metadata URI.                |
+| `NEXT_PUBLIC_NFT_EVENT_HINTS`          | `""`                                                       | Hints helper (e.g., `mint:Minted;transfer:Transfer;burn:Burned`). |
 
 ### 🗄️ Notifications, Databases & Email (Backend/Cron)
-| Variable | Description |
-| :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | The endpoint URL for the Supabase database. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anonymous browser-safe public key for Supabase. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Backend service key used by reminder crons to bypass RLS policies. |
-| `RESEND_API_KEY` | API key from Resend.com used to dispatch payer reminder emails. |
-| `CRON_SECRET` | Secret token to secure `/api/reminders` GET trigger from unauthorized calls. |
-| `NOTIFICATION_API` | External backend base URL to fetch notifications. |
-| `INDEXER_URL` | Base API URL of the ILN contract data indexer. |
-| `NEXT_PUBLIC_INDEXER_API_URL` | Public indexer endpoint for activity feeds and analytics charts. |
-| `NEXT_PUBLIC_APP_URL` | Base URL of the deployed application (defaults to `https://app.iln.finance`). |
+
+| Variable                        | Description                                                                   |
+| :------------------------------ | :---------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | The endpoint URL for the Supabase database.                                   |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anonymous browser-safe public key for Supabase.                               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Backend service key used by reminder crons to bypass RLS policies.            |
+| `RESEND_API_KEY`                | API key from Resend.com used to dispatch payer reminder emails.               |
+| `CRON_SECRET`                   | Secret token to secure `/api/reminders` GET trigger from unauthorized calls.  |
+| `NOTIFICATION_API`              | External backend base URL to fetch notifications.                             |
+| `INDEXER_URL`                   | Base API URL of the ILN contract data indexer.                                |
+| `NEXT_PUBLIC_INDEXER_API_URL`   | Public indexer endpoint for activity feeds and analytics charts.              |
+| `NEXT_PUBLIC_APP_URL`           | Base URL of the deployed application (defaults to `https://app.iln.finance`). |
 
 ### 🧪 Testing & Analytics
-| Variable | Description |
-| :--- | :--- |
-| `NEXT_PUBLIC_API_MOCKING` | Set to `enabled` to run MSW mocks in local development. |
-| `NEXT_PUBLIC_ORACLE_ENABLED` | Set to `true` to display Oracle verification badges. |
+
+| Variable                                        | Description                                                          |
+| :---------------------------------------------- | :------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_MOCKING`                       | Set to `enabled` to run MSW mocks in local development.              |
+| `NEXT_PUBLIC_ORACLE_ENABLED`                    | Set to `true` to display Oracle verification badges.                 |
 | `GITHUB_TOKEN` / `GITHUB_OWNER` / `GITHUB_REPO` | Secrets used by the feedback widget to raise GitHub issues directly. |
 
 ---
@@ -177,14 +189,17 @@ Here is a detailed guide of the configuration options available:
 ## 📸 Screenshots
 
 ### 📊 Liquidity Provider Dashboard
+
 Provides LPs with real-time portfolio metrics, cash flow analysis, liquidity meters, and active funding statuses.
 ![Liquidity Provider Dashboard](public/screenshots/lp_dashboard.png)
 
 ### ✍️ Freelancer Dashboard
+
 Allows freelancers to manage invoice factoring parameters, submit new invoices, view reputation ratings, and review cash advance details.
 ![Freelancer Dashboard](public/screenshots/freelancer_dashboard.png)
 
 ### 🔍 Marketplace Explorer
+
 A central marketplace listing all active open invoices waiting for funding, detailed interest rates, and risk rankings.
 ![Marketplace Explorer](public/screenshots/marketplace.png)
 

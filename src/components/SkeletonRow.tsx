@@ -17,7 +17,7 @@ interface SkeletonRowProps {
   rowClass?: string;
 }
 
-export default function SkeletonRow({ columns, rowClass = "py-5" }: SkeletonRowProps) {
+export default function SkeletonRow({ columns, rowClass = 'py-5' }: SkeletonRowProps) {
   return (
     <tr className="border-b border-surface-dim last:border-0" aria-hidden="true">
       {columns.map((width, i) => (
@@ -34,13 +34,13 @@ export default function SkeletonRow({ columns, rowClass = "py-5" }: SkeletonRowP
 
 /** LP Discovery table: ID · Freelancer · Amount · Discount · Due Date · Est. Yield · (action) */
 export const LP_DISCOVERY_COLUMNS = [
-  "w-8",   // ID
-  "w-32",  // Freelancer (two lines)
-  "w-24",  // Amount
-  "w-16",  // Discount badge
-  "w-20",  // Due Date
-  "w-20",  // Est. Yield
-  "w-16",  // Fund button
+  'w-8', // ID
+  'w-32', // Freelancer (two lines)
+  'w-24', // Amount
+  'w-16', // Discount badge
+  'w-20', // Due Date
+  'w-20', // Est. Yield
+  'w-16', // Fund button
 ];
 
 /** LP My-Funded / Portfolio table — same column structure */
@@ -48,10 +48,10 @@ export const LP_PORTFOLIO_COLUMNS = LP_DISCOVERY_COLUMNS;
 
 /** Freelancer My-Invoices table: ID · Payer · Amount · Discount · Due Date · Status */
 export const FREELANCER_COLUMNS = [
-  "w-8",   // ID
-  "w-28",  // Payer
-  "w-24",  // Amount
-  "w-16",  // Discount badge
-  "w-20",  // Due Date
-  "w-20",  // Status badge
+  'w-8', // ID
+  'w-28', // Payer
+  'w-24', // Amount
+  'w-16', // Discount badge
+  'w-20', // Due Date
+  'w-20', // Status badge
 ];

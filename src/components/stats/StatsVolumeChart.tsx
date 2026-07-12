@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,27 +10,27 @@ import {
   Tooltip,
   ResponsiveContainer,
   type TooltipProps,
-} from "recharts";
-import type { DailyVolumeBucket } from "@/utils/contract-stats";
+} from 'recharts';
+import type { DailyVolumeBucket } from '@/utils/contract-stats';
 import {
   CHART_TOKEN_COLORS,
   parseContractStatsForStackedBar,
   type VolumeChartRangeDays,
-} from "@/utils/stats-volume-chart-data";
+} from '@/utils/stats-volume-chart-data';
 
-const TOKEN_KEYS = ["USDC", "EURC", "XLM"] as const;
+const TOKEN_KEYS = ['USDC', 'EURC', 'XLM'] as const;
 
 const CHART_TICK_STYLE = {
-  fill: "var(--color-on-surface-variant, #94a3b8)",
+  fill: 'var(--color-on-surface-variant, #94a3b8)',
   fontSize: 11,
-  fontFamily: "inherit",
+  fontFamily: 'inherit',
 };
-const GRID_STROKE = "var(--color-outline-variant, #334155)";
+const GRID_STROKE = 'var(--color-outline-variant, #334155)';
 
 function formatUsd(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
 function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -48,7 +48,9 @@ function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) 
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-xs font-medium text-on-surface">{entry.name}</span>
             </div>
-            <span className="text-xs font-bold text-on-surface">{formatUsd(Number(entry.value))}</span>
+            <span className="text-xs font-bold text-on-surface">
+              {formatUsd(Number(entry.value))}
+            </span>
           </div>
         ))}
         <div className="my-1 h-px bg-outline-variant/10" />
@@ -70,19 +72,20 @@ export default function StatsVolumeChart({ dailyVolume }: Props) {
 
   const { weeklyBars, totalVolumeUsd } = useMemo(
     () => parseContractStatsForStackedBar(dailyVolume, rangeDays),
-    [dailyVolume, rangeDays],
+    [dailyVolume, rangeDays]
   );
 
   const isEmpty =
-    weeklyBars.length === 0 ||
-    weeklyBars.every((w) => w.USDC === 0 && w.EURC === 0 && w.XLM === 0);
+    weeklyBars.length === 0 || weeklyBars.every((w) => w.USDC === 0 && w.EURC === 0 && w.XLM === 0);
 
   return (
     <div className="flex flex-col gap-6 rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="font-headline text-xl font-bold text-on-surface">Historical Volume</h3>
-          <p className="text-sm text-on-surface-variant">Weekly funded volume by token (USD equivalent)</p>
+          <p className="text-sm text-on-surface-variant">
+            Weekly funded volume by token (USD equivalent)
+          </p>
         </div>
         <div className="flex items-center gap-1 p-1 bg-surface-container rounded-xl self-start">
           {([30, 90] as VolumeChartRangeDays[]).map((days) => (
@@ -92,8 +95,8 @@ export default function StatsVolumeChart({ dailyVolume }: Props) {
               onClick={() => setRangeDays(days)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 rangeDays === days
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               {days} days
@@ -132,9 +135,7 @@ export default function StatsVolumeChart({ dailyVolume }: Props) {
                 tick={CHART_TICK_STYLE}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v: number) =>
-                  v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
-                }
+                tickFormatter={(v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`)}
               />
               <Tooltip content={<ChartTooltip />} />
               {TOKEN_KEYS.map((symbol) => (

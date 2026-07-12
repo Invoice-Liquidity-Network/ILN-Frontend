@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -10,13 +10,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
-import { Invoice } from "@/utils/soroban";
-import {
-  buildYieldTimeSeries,
-  calcAvgWeeklyYieldPct,
-  YieldRange,
-} from "@/utils/yield-timeseries";
+} from 'recharts';
+import { Invoice } from '@/utils/soroban';
+import { buildYieldTimeSeries, calcAvgWeeklyYieldPct, YieldRange } from '@/utils/yield-timeseries';
 
 interface YieldAnalyticsChartProps {
   invoices: Invoice[];
@@ -27,9 +23,9 @@ interface YieldAnalyticsChartProps {
 const RANGES: YieldRange[] = [30, 60, 90];
 
 const TOKEN_COLORS: Record<string, string> = {
-  USDC: "#6366f1",
-  EURC: "#06b6d4",
-  XLM: "#8b5cf6",
+  USDC: '#6366f1',
+  EURC: '#06b6d4',
+  XLM: '#8b5cf6',
 };
 
 function Skeleton() {
@@ -59,7 +55,7 @@ export default function YieldAnalyticsChart({
         <div>
           <h2 className="text-lg font-semibold text-on-surface">Yield Analytics</h2>
           <p className="text-sm text-on-surface-variant">
-            Avg weekly yield:{" "}
+            Avg weekly yield:{' '}
             <span className="font-bold text-green-600">{avgWeeklyPct.toFixed(3)}%</span>
           </p>
         </div>
@@ -70,8 +66,8 @@ export default function YieldAnalyticsChart({
               onClick={() => setRange(r)}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 range === r
-                  ? "bg-primary text-surface-container-lowest shadow"
-                  : "text-on-surface-variant hover:bg-surface-variant/30"
+                  ? 'bg-primary text-surface-container-lowest shadow'
+                  : 'text-on-surface-variant hover:bg-surface-variant/30'
               }`}
             >
               {r}d
@@ -95,23 +91,20 @@ export default function YieldAnalyticsChart({
               />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
+                tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 11 }}
               />
-              <YAxis
-                tick={{ fill: "var(--color-on-surface-variant)", fontSize: 11 }}
-                width={48}
-              />
+              <YAxis tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 11 }} width={48} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "var(--color-surface-container)",
-                  border: "1px solid var(--color-outline-variant)",
-                  borderRadius: "0.75rem",
+                  backgroundColor: 'var(--color-surface-container)',
+                  border: '1px solid var(--color-outline-variant)',
+                  borderRadius: '0.75rem',
                 }}
-                labelStyle={{ color: "var(--color-on-surface)", fontWeight: 600 }}
+                labelStyle={{ color: 'var(--color-on-surface)', fontWeight: 600 }}
                 formatter={(v: number) => v.toFixed(4)}
               />
               <Legend />
-              {(["USDC", "EURC", "XLM"] as const).map((sym) => (
+              {(['USDC', 'EURC', 'XLM'] as const).map((sym) => (
                 <Line
                   key={sym}
                   type="monotone"

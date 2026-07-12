@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useToast } from "@/context/ToastContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { cancelInvoice, type Invoice } from "@/utils/soroban";
+import { useState } from 'react';
+import { useToast } from '@/context/ToastContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { cancelInvoice, type Invoice } from '@/utils/soroban';
 
 interface CancelInvoiceButtonProps {
   invoice: Invoice;
@@ -24,7 +24,7 @@ export default function CancelInvoiceButton({
   const { addToast, updateToast } = useToast();
   const canCancel =
     Boolean(walletAddress) &&
-    invoice.status === "Pending" &&
+    invoice.status === 'Pending' &&
     invoice.freelancer.toLowerCase() === walletAddress?.toLowerCase();
 
   if (!canCancel) return null;
@@ -34,31 +34,31 @@ export default function CancelInvoiceButton({
 
     setIsCancelling(true);
     const toastId = addToast({
-      type: "pending",
+      type: 'pending',
       title: `Cancelling invoice #${invoice.id.toString()}...`,
-      message: "Confirm the transaction in your wallet.",
+      message: 'Confirm the transaction in your wallet.',
     });
 
     try {
       const { tx } = await cancelInvoice(walletAddress, invoice.id);
-      const txHash = await execute(tx, "Cancel invoice");
+      const txHash = await execute(tx, 'Cancel invoice');
 
-      if (!txHash) throw new Error("Transaction was not submitted.");
+      if (!txHash) throw new Error('Transaction was not submitted.');
 
-      const cancelledInvoice = { ...invoice, status: "Cancelled" };
+      const cancelledInvoice = { ...invoice, status: 'Cancelled' };
       onCancelled?.(cancelledInvoice);
       updateToast(toastId, {
-        type: "success",
-        title: "Invoice cancelled",
+        type: 'success',
+        title: 'Invoice cancelled',
         message: `Invoice #${invoice.id.toString()} was cancelled.`,
         txHash,
       });
       setOpen(false);
     } catch (error) {
       updateToast(toastId, {
-        type: "error",
-        title: "Cancellation failed",
-        message: error instanceof Error ? error.message : "The invoice could not be cancelled.",
+        type: 'error',
+        title: 'Cancellation failed',
+        message: error instanceof Error ? error.message : 'The invoice could not be cancelled.',
       });
     } finally {
       setIsCancelling(false);
@@ -72,8 +72,8 @@ export default function CancelInvoiceButton({
         onClick={() => setOpen(true)}
         className={
           compact
-            ? "flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-error transition-colors hover:bg-error-container/50"
-            : "inline-flex items-center justify-center gap-2 rounded-xl bg-error px-4 py-2.5 text-sm font-bold text-on-error shadow-sm transition-colors hover:bg-error/90"
+            ? 'flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-error transition-colors hover:bg-error-container/50'
+            : 'inline-flex items-center justify-center gap-2 rounded-xl bg-error px-4 py-2.5 text-sm font-bold text-on-error shadow-sm transition-colors hover:bg-error/90'
         }
       >
         <span className="material-symbols-outlined text-[18px]">cancel</span>
@@ -110,7 +110,7 @@ export default function CancelInvoiceButton({
                 disabled={isCancelling}
                 className="inline-flex items-center gap-2 rounded-lg bg-error px-5 py-2 text-sm font-bold text-on-error transition-colors hover:bg-error/90 disabled:opacity-50"
               >
-                {isCancelling ? "Cancelling..." : "Confirm Cancel"}
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
               </button>
             </div>
           </div>

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import { Invoice } from "@/utils/soroban";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useWallet } from "@/context/WalletContext";
-import { useBalances } from "@/hooks/useBalances";
-import TokenSelector from "./TokenSelector";
-import { formatTokenAmount } from "@/utils/format";
-import type { ApprovedToken } from "@/hooks/useApprovedTokens";
+import React, { useMemo, useState } from 'react';
+import { Invoice } from '@/utils/soroban';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useWallet } from '@/context/WalletContext';
+import { useBalances } from '@/hooks/useBalances';
+import TokenSelector from './TokenSelector';
+import { formatTokenAmount } from '@/utils/format';
+import type { ApprovedToken } from '@/hooks/useApprovedTokens';
 import {
   TransactionBuilder,
   Operation,
@@ -15,7 +15,7 @@ import {
   nativeToScVal,
   BASE_FEE,
   rpc,
-} from "@stellar/stellar-sdk";
+} from '@stellar/stellar-sdk';
 import {
   CONTRACT_ID,
   NETWORK_PASSPHRASE,
@@ -23,36 +23,36 @@ import {
   TESTNET_EURC_TOKEN_ID,
   TESTNET_USDC_TOKEN_ID,
   TESTNET_XLM_TOKEN_ID,
-} from "@/constants";
+} from '@/constants';
 
 const G_ADDRESS_RE = /^G[A-Z2-7]{55}$/;
 
 const TRANSFER_TOKENS: ApprovedToken[] = [
   {
     contractId: TESTNET_USDC_TOKEN_ID,
-    name: "USD Coin",
-    symbol: "USDC",
+    name: 'USD Coin',
+    symbol: 'USDC',
     decimals: 7,
-    iconLabel: "US",
-    logo: "/tokens/usdc.svg",
+    iconLabel: 'US',
+    logo: '/tokens/usdc.svg',
     isAllowed: true,
   },
   {
     contractId: TESTNET_EURC_TOKEN_ID,
-    name: "Euro Coin",
-    symbol: "EURC",
+    name: 'Euro Coin',
+    symbol: 'EURC',
     decimals: 7,
-    iconLabel: "EU",
-    logo: "/tokens/eurc.svg",
+    iconLabel: 'EU',
+    logo: '/tokens/eurc.svg',
     isAllowed: true,
   },
   {
     contractId: TESTNET_XLM_TOKEN_ID,
-    name: "Stellar Lumens",
-    symbol: "XLM",
+    name: 'Stellar Lumens',
+    symbol: 'XLM',
     decimals: 7,
-    iconLabel: "XL",
-    logo: "/tokens/xlm.svg",
+    iconLabel: 'XL',
+    logo: '/tokens/xlm.svg',
     isAllowed: true,
   },
 ];
@@ -69,11 +69,7 @@ interface LPTransferModalProps {
   onSuccess: (invoice: Invoice, newOwner: string) => void;
 }
 
-async function buildTransferLPPositionTx(
-  funder: string,
-  invoiceId: bigint,
-  newOwner: string,
-) {
+async function buildTransferLPPositionTx(funder: string, invoiceId: bigint, newOwner: string) {
   const server = new rpc.Server(RPC_URL);
   const account = await server.getAccount(funder);
   const tx = new TransactionBuilder(account, {
@@ -83,12 +79,9 @@ async function buildTransferLPPositionTx(
     .addOperation(
       Operation.invokeContractFunction({
         contract: CONTRACT_ID,
-        function: "transfer_lp_position",
-        args: [
-          nativeToScVal(invoiceId, { type: "u64" }),
-          Address.fromString(newOwner).toScVal(),
-        ],
-      }),
+        function: 'transfer_lp_position',
+        args: [nativeToScVal(invoiceId, { type: 'u64' }), Address.fromString(newOwner).toScVal()],
+      })
     )
     .setTimeout(60)
     .build();
@@ -100,24 +93,19 @@ async function buildTransferLPPositionTx(
   return rpc.assembleTransaction(tx, sim).build();
 }
 
-export default function LPTransferModal({
-  invoice,
-  onClose,
-  onSuccess,
-}: LPTransferModalProps) {
+export default function LPTransferModal({ invoice, onClose, onSuccess }: LPTransferModalProps) {
   const { address } = useWallet();
   const { execute, loading, error: txError } = useTransaction();
   const initialTokenId = invoice.token ?? TESTNET_USDC_TOKEN_ID;
-  const [recipient, setRecipient] = useState("");
+  const [recipient, setRecipient] = useState('');
   const [selectedTokenId, setSelectedTokenId] = useState(initialTokenId);
   const [validationError, setValidationError] = useState<string | null>(null);
   const { balances, unavailable, isLoading: balancesLoading } = useBalances(TRANSFER_TOKENS);
 
   const selectedToken = useMemo(
     () =>
-      TRANSFER_TOKENS.find((token) => token.contractId === selectedTokenId) ??
-      TRANSFER_TOKENS[0],
-    [selectedTokenId],
+      TRANSFER_TOKENS.find((token) => token.contractId === selectedTokenId) ?? TRANSFER_TOKENS[0],
+    [selectedTokenId]
   );
   const selectedBalance = balances.get(selectedToken.contractId);
   const minimumAmount = TOKEN_MINIMUMS[selectedToken.symbol] ?? 0n;
@@ -125,9 +113,10 @@ export default function LPTransferModal({
   const tokenMatchesInvoice = selectedToken.contractId === invoiceTokenId;
 
   const validate = (value: string): string | null => {
-    if (!value.trim()) return "Recipient address is required.";
-    if (!G_ADDRESS_RE.test(value.trim())) return "Enter a valid Stellar G-address (56 characters starting with G).";
-    if (value.trim() === address) return "You cannot transfer a position to yourself.";
+    if (!value.trim()) return 'Recipient address is required.';
+    if (!G_ADDRESS_RE.test(value.trim()))
+      return 'Enter a valid Stellar G-address (56 characters starting with G).';
+    if (value.trim() === address) return 'You cannot transfer a position to yourself.';
     if (!tokenMatchesInvoice) {
       return `Select the invoice token before transferring. Invoice #${invoice.id.toString()} is denominated in ${selectedTokenLabel(invoiceTokenId)}.`;
     }
@@ -159,13 +148,13 @@ export default function LPTransferModal({
       const tx = await buildTransferLPPositionTx(address!, invoice.id, recipient.trim());
       const txHash = await execute(
         tx as any,
-        `Transfer ${formatTokenAmount(invoice.amount, selectedToken)} LP position #${invoice.id}`,
+        `Transfer ${formatTokenAmount(invoice.amount, selectedToken)} LP position #${invoice.id}`
       );
       if (txHash) {
         onSuccess(invoice, recipient.trim());
       }
     } catch (e: any) {
-      setValidationError(e.message ?? "Transfer failed.");
+      setValidationError(e.message ?? 'Transfer failed.');
     }
   };
 
@@ -220,11 +209,11 @@ export default function LPTransferModal({
               <span className="text-on-surface-variant">Wallet balance</span>
               <span className="font-bold">
                 {balancesLoading
-                  ? "Loading..."
+                  ? 'Loading...'
                   : selectedBalance !== undefined
                     ? formatTokenAmount(selectedBalance, selectedToken)
                     : unavailable.has(selectedToken.contractId)
-                      ? "Unavailable"
+                      ? 'Unavailable'
                       : formatTokenAmount(0n, selectedToken)}
               </span>
             </div>
@@ -251,10 +240,10 @@ export default function LPTransferModal({
           </div>
 
           <div className="rounded-2xl border border-primary/15 bg-primary-container/20 px-4 py-3 text-xs text-on-surface-variant">
-            Confirm transfer of{" "}
+            Confirm transfer of{' '}
             <span className="font-bold text-on-surface">
               {formatTokenAmount(invoice.amount, selectedToken)}
-            </span>{" "}
+            </span>{' '}
             for invoice #{invoice.id.toString()} to the recipient above.
           </div>
 
@@ -291,5 +280,7 @@ export default function LPTransferModal({
 }
 
 function selectedTokenLabel(tokenId: string): string {
-  return TRANSFER_TOKENS.find((token) => token.contractId === tokenId)?.symbol ?? "the selected token";
+  return (
+    TRANSFER_TOKENS.find((token) => token.contractId === tokenId)?.symbol ?? 'the selected token'
+  );
 }

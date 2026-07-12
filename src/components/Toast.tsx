@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from "react";
-import type { ToastMessage } from "@/context/ToastContext";
+import React, { useState, useRef, useEffect } from 'react';
+import type { ToastMessage } from '@/context/ToastContext';
 
 interface ToastProps {
   toast: ToastMessage;
@@ -13,9 +13,9 @@ const DISMISS_THRESHOLD = 0.5;
 export default function Toast({ toast, onClose }: ToastProps) {
   const { type, title, message, txHash, action } = toast;
 
-  const isPending = type === "pending";
-  const isSuccess = type === "success";
-  const isError = type === "error";
+  const isPending = type === 'pending';
+  const isSuccess = type === 'success';
+  const isError = type === 'error';
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -29,10 +29,10 @@ export default function Toast({ toast, onClose }: ToastProps) {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
-    
+
     const currentX = e.touches[0].clientX;
     const deltaX = currentX - startX.current;
-    
+
     if (deltaX > 0) {
       setDragX(deltaX);
     }
@@ -40,22 +40,22 @@ export default function Toast({ toast, onClose }: ToastProps) {
 
   const handleTouchEnd = () => {
     if (!isDragging) return;
-    
+
     const toastWidth = toastRef.current?.offsetWidth || 300;
     const dragPercentage = dragX / toastWidth;
-    
+
     if (dragPercentage >= DISMISS_THRESHOLD) {
       triggerHapticFeedback();
       onClose();
     } else {
       setDragX(0);
     }
-    
+
     setIsDragging(false);
   };
 
   const triggerHapticFeedback = () => {
-    if ("vibrate" in navigator && typeof navigator.vibrate === "function") {
+    if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
       navigator.vibrate(50);
     }
   };
@@ -78,29 +78,27 @@ export default function Toast({ toast, onClose }: ToastProps) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`min-w-[300px] p-4 rounded-lg shadow-lg border flex items-start gap-3 transition-all duration-300 transform ${
-        isDragging ? "transition-none" : ""
+        isDragging ? 'transition-none' : ''
       }`}
       style={{
         transform: `translateX(${translateX}px)`,
         opacity,
-        touchAction: "pan-y",
+        touchAction: 'pan-y',
       }}
     >
       <div
         className={`flex-1 ${
           isSuccess
-            ? "bg-[#e8f5e9] border-[#c8e6c9] text-[#2e7d32] dark:bg-[#1b5e20]/20 dark:border-[#2e7d32]/30 dark:text-[#81c784]"
+            ? 'bg-[#e8f5e9] border-[#c8e6c9] text-[#2e7d32] dark:bg-[#1b5e20]/20 dark:border-[#2e7d32]/30 dark:text-[#81c784]'
             : isError
-            ? "bg-[#ffebee] border-[#ffcdd2] text-[#c62828] dark:bg-[#b71c1c]/20 dark:border-[#c62828]/30 dark:text-[#e57373]"
-            : "bg-surface-container-highest border-outline-variant/30 text-on-surface"
+              ? 'bg-[#ffebee] border-[#ffcdd2] text-[#c62828] dark:bg-[#b71c1c]/20 dark:border-[#c62828]/30 dark:text-[#e57373]'
+              : 'bg-surface-container-highest border-outline-variant/30 text-on-surface'
         } rounded-lg p-4`}
       >
         <div className="flex items-start gap-3">
           <div className="mt-0.5 min-w-[24px]">
             {isPending && (
-              <span className="material-symbols-outlined animate-spin text-primary">
-                sync
-              </span>
+              <span className="material-symbols-outlined animate-spin text-primary">sync</span>
             )}
             {isSuccess && (
               <span className="material-symbols-outlined text-[#2e7d32] dark:text-[#81c784]">
@@ -149,7 +147,7 @@ export default function Toast({ toast, onClose }: ToastProps) {
           </button>
         </div>
       </div>
-      
+
       {dragPercentage > 0 && (
         <div
           className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-primary/20 to-transparent rounded-lg"

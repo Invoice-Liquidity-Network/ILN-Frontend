@@ -1,12 +1,12 @@
-﻿"use client";
+﻿'use client';
 
-import Link from "next/link";
-import { useNotification } from "@/context/NotificationContext";
+import Link from 'next/link';
+import { useNotification } from '@/context/NotificationContext';
 import {
   formatTimeAgo,
   getNotificationAccentClass,
   getNotificationIcon,
-} from "@/utils/notificationHelpers";
+} from '@/utils/notificationHelpers';
 
 type Props = {
   onClose: () => void;
@@ -16,7 +16,7 @@ export default function NotificationDrawer({ onClose }: Props) {
   const { notifications, markAsRead, markAllAsRead } = useNotification();
 
   const orderedNotifications = [...notifications].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   return (
@@ -34,9 +34,7 @@ export default function NotificationDrawer({ onClose }: Props) {
         <div className="flex items-center justify-between border-b border-outline-variant/15 px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold text-on-surface">Notifications</h2>
-            <p className="text-sm text-on-surface-variant">
-              On-chain activity for your wallet
-            </p>
+            <p className="text-sm text-on-surface-variant">On-chain activity for your wallet</p>
           </div>
           <button
             type="button"
@@ -75,8 +73,8 @@ export default function NotificationDrawer({ onClose }: Props) {
                     }}
                     className={`flex gap-3 rounded-2xl border p-4 transition ${
                       notification.read
-                        ? "border-outline-variant/15 bg-surface-variant/20 opacity-75"
-                        : "border-outline-variant/20 bg-surface-container-low hover:border-primary/30"
+                        ? 'border-outline-variant/15 bg-surface-variant/20 opacity-75'
+                        : 'border-outline-variant/20 bg-surface-container-low hover:border-primary/30'
                     }`}
                   >
                     <span

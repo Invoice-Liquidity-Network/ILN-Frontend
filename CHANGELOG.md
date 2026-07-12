@@ -2,13 +2,11 @@
 
 ## [unreleased]
 
-
 ### ⚙️ Chores
 
 - Merge upstream main and resolve conflicts
 
 - Add sonner for standardized toast notifications
-
 
 ### ⚡ Performance
 
@@ -17,7 +15,6 @@
 - Deduplicate and batch Horizon API calls across the app
 
 - Implement route-level code splitting for chart and PDF libraries
-
 
 ### 🐛 Bug Fixes
 
@@ -31,19 +28,17 @@
 
 - Repair profile page and embed activity heatmap
 
-- *(notifications)* Return empty list when external API is unavailable
+- _(notifications)_ Return empty list when external API is unavailable
 
-- *(notifications)* Avoid refetch loop when merging API notifications
+- _(notifications)_ Avoid refetch loop when merging API notifications
 
 - Removed task.md
-
 
 ### 💼 Other
 
 - Build a JavaScript/TypeScript SDK for the ILN contract
 
 - Add skeleton loading states to the invoice table
-
 
 ### 🚀 Features
 
@@ -145,7 +140,7 @@
 
 - Notification settings UI, fee breakdown tooltips, sound notifications, page tours
 
-- *(frontend)* Add shortcuts modal and top funders widget
+- _(frontend)_ Add shortcuts modal and top funders widget
 
 - Frontend build fix
 
@@ -181,7 +176,7 @@
 
 - Invoice PDF export, USD amount preview & deep-link sharing
 
-- *(components)* Add WalletAddress with Stellar Federation resolution (#5)
+- _(components)_ Add WalletAddress with Stellar Federation resolution (#5)
 
 - Implement reputation decay indicator
 
@@ -209,13 +204,13 @@
 
 - Add GitHub-style ActivityHeatmap SVG component
 
-- *(notifications)* Extend context with categories and wallet-scoped storage
+- _(notifications)_ Extend context with categories and wallet-scoped storage
 
-- *(notifications)* Enhance drawer with icons, links, and time ago
+- _(notifications)_ Enhance drawer with icons, links, and time ago
 
-- *(notifications)* Poll invoice, governance, and reputation events
+- _(notifications)_ Poll invoice, governance, and reputation events
 
-- *(notifications)* Add bell to navbar and global event poller
+- _(notifications)_ Add bell to navbar and global event poller
 
 - Implement partial payment functionality in PayInvoicePage and add PartialPaymentModal component
 
@@ -225,13 +220,13 @@
 
 - Add event log viewer to invoice detail page
 
-- *(query)* Centralise React Query keys and cache timings (#154)
+- _(query)_ Centralise React Query keys and cache timings (#154)
 
-- *(home)* Add live invoice count ticker to hero (#133)
+- _(home)_ Add live invoice count ticker to hero (#133)
 
-- *(governance)* Announce protocol parameter changes via dismissible banners (#153)
+- _(governance)_ Announce protocol parameter changes via dismissible banners (#153)
 
-- *(ui)* Add skeleton loading states for invoice list and profile (#155)
+- _(ui)_ Add skeleton loading states for invoice list and profile (#155)
 
 - Build admin protocol health dashboard with action shortcuts, add Playwright responsive layout tests for mobile viewports, add error boundaries and tests for contract failure scenarios,set up MSW for realistic API mocking in Jest and Playwright
 
@@ -261,7 +256,6 @@
 
 - Add testnet feedback widget with API submission
 
-
 ### 🚜 Refactor
 
 - Reorganize project structure by moving core hooks and utilities into a structured src directory
@@ -271,7 +265,6 @@
 - Route command palette settings actions to in-app pages
 
 - Centralize heatmap colour scale constants
-
 
 ### 🧪 Testing
 
@@ -283,11 +276,10 @@
 
 - Add activity heatmap and profile page coverage
 
-- *(notifications)* Cover context, drawer, helpers, and event polling
+- _(notifications)_ Cover context, drawer, helpers, and event polling
 
 - Add accessibility, visual regression, contract and performance CI suite
 
 - Resolve accessibility, responsive mobile, performance budget and contract integration test suite issues
 
 - Set up Chromatic visual regression testing for UI components
-

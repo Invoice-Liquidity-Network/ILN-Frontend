@@ -1,7 +1,10 @@
-import { CONTRACT_ID } from "@/constants";
-import { parseContractEventsFromTransaction, type ParsedContractEvent } from "@/lib/contract-events";
-import { getHorizonBaseUrl } from "@/lib/horizon";
-import { dedupedFetch, TTL } from "@/lib/horizonClient";
+import { CONTRACT_ID } from '@/constants';
+import {
+  parseContractEventsFromTransaction,
+  type ParsedContractEvent,
+} from '@/lib/contract-events';
+import { getHorizonBaseUrl } from '@/lib/horizon';
+import { dedupedFetch, TTL } from '@/lib/horizonClient';
 
 const MS_PER_DAY = 86_400_000;
 const DEFAULT_LOOKBACK_DAYS = 90;
@@ -28,7 +31,7 @@ interface HorizonTxResponse {
 }
 
 async function fetchTransactionsPage(url: string): Promise<HorizonTxResponse> {
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`Horizon transaction fetch failed: ${res.status}`);
   }
@@ -57,13 +60,13 @@ export async function fetchRecentProtocolContractEvents(): Promise<ParsedContrac
         return tb - ta;
       });
     },
-    TTL.EVENTS,
+    TTL.EVENTS
   );
 }
 
 /** Fetch ILN contract events from Horizon for the last `lookbackDays` days. */
 export async function fetchProtocolContractEvents(
-  lookbackDays = DEFAULT_LOOKBACK_DAYS,
+  lookbackDays = DEFAULT_LOOKBACK_DAYS
 ): Promise<ParsedContractEvent[]> {
   const cacheKey = `protocol-contract-events:${CONTRACT_ID}:${lookbackDays}`;
 
@@ -104,6 +107,6 @@ export async function fetchProtocolContractEvents(
 
       return events;
     },
-    TTL.EVENTS,
+    TTL.EVENTS
   );
 }

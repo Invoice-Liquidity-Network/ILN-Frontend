@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { getReputation, type ReputationScore } from "@/utils/soroban";
-import Skeleton from "@/components/ui/Skeleton";
+import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { getReputation, type ReputationScore } from '@/utils/soroban';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface PayerReputationCardProps {
   address: string;
@@ -22,7 +22,7 @@ export default function PayerReputationCard({ address, refreshTrigger }: PayerRe
       const data = await getReputation(address);
       setReputation(data);
     } catch (err) {
-      console.error("Failed to load reputation:", err);
+      console.error('Failed to load reputation:', err);
     } finally {
       setLoading(false);
     }
@@ -57,13 +57,15 @@ export default function PayerReputationCard({ address, refreshTrigger }: PayerRe
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-on-surface">Reputation</h2>
-          <div 
+          <div
             className="relative cursor-help group"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onClick={() => setShowTooltip(!showTooltip)}
           >
-            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">info</span>
+            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+              info
+            </span>
             {showTooltip && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[200] w-48 rounded-lg bg-surface-container-high p-3 shadow-lg text-xs text-on-surface border border-outline-variant/20">
                 Your score affects whether LPs are willing to fund your invoices
@@ -71,7 +73,10 @@ export default function PayerReputationCard({ address, refreshTrigger }: PayerRe
             )}
           </div>
         </div>
-        <Link href="/governance/how-it-works" className="text-sm font-bold text-primary hover:underline">
+        <Link
+          href="/governance/how-it-works"
+          className="text-sm font-bold text-primary hover:underline"
+        >
           How reputation works
         </Link>
       </div>
@@ -99,28 +104,38 @@ export default function PayerReputationCard({ address, refreshTrigger }: PayerRe
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
               className={`transition-all duration-1000 ${
-                score > 80 ? "text-emerald-500" : score > 50 ? "text-amber-500" : "text-red-500"
+                score > 80 ? 'text-emerald-500' : score > 50 ? 'text-amber-500' : 'text-red-500'
               }`}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-2xl font-bold text-on-surface leading-none">{score}</span>
-            <span className="text-[10px] uppercase font-bold text-on-surface-variant mt-1">Score</span>
+            <span className="text-[10px] uppercase font-bold text-on-surface-variant mt-1">
+              Score
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 flex-1 w-full">
           <div className="bg-surface-container/30 rounded-xl p-3">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">Paid</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">
+              Paid
+            </p>
             <p className="text-xl font-bold text-on-surface">{reputation?.invoices_paid ?? 0}</p>
           </div>
           <div className="bg-surface-container/30 rounded-xl p-3">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">Defaulted</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">
+              Defaulted
+            </p>
             <p className="text-xl font-bold text-red-600">{reputation?.invoices_defaulted ?? 0}</p>
           </div>
           <div className="bg-surface-container/30 rounded-xl p-3">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">Submitted</p>
-            <p className="text-xl font-bold text-on-surface">{reputation?.invoices_submitted ?? 0}</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-1">
+              Submitted
+            </p>
+            <p className="text-xl font-bold text-on-surface">
+              {reputation?.invoices_submitted ?? 0}
+            </p>
           </div>
         </div>
       </div>

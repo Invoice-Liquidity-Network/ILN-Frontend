@@ -33,10 +33,10 @@ The `prepare` script runs `husky` automatically, registering the hooks in `.husk
 
 ### What the hooks do
 
-| Hook | Trigger | Action |
-|------|---------|--------|
-| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only |
-| `pre-push` | `git push` | Runs `tsc --noEmit` to catch type errors before the branch is pushed |
+| Hook         | Trigger      | Action                                                               |
+| ------------ | ------------ | -------------------------------------------------------------------- |
+| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only      |
+| `pre-push`   | `git push`   | Runs `tsc --noEmit` to catch type errors before the branch is pushed |
 
 Hooks are scoped to staged files via `lint-staged`, so they typically complete in well under 10 seconds.
 
@@ -65,6 +65,7 @@ npx prettier --write .
 ```
 
 ---
+
 ### 3. Environment Variables Setup
 
 Copy the example environment file and configure it:
@@ -76,6 +77,7 @@ cp .env.example .env.local
 Required environment variables (see [README.md](README.md) for full list):
 
 #### Stellar & Smart Contract Settings
+
 - `NEXT_PUBLIC_CONTRACT_ID` - Invoice factoring smart contract ID
 - `NEXT_PUBLIC_NETWORK_PASSPHRASE` - Stellar network passphrase
 - `NEXT_PUBLIC_RPC_URL` - Soroban RPC server endpoint
@@ -84,12 +86,14 @@ Required environment variables (see [README.md](README.md) for full list):
 - Token IDs for USDC, EURC, and XLM
 
 #### Backend Services
+
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase database URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 - `RESEND_API_KEY` - Resend email API key (server-side)
 - `CRON_SECRET` - Secret for cron job security
 
 #### Feature Flags
+
 - `NEXT_PUBLIC_NFT_ENABLED` - Enable Invoice NFT metadata display
 - `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` - Enable liquidity insurance pooling
 - `NEXT_PUBLIC_API_MOCKING` - Enable MSW mocks for local development
@@ -97,17 +101,21 @@ Required environment variables (see [README.md](README.md) for full list):
 ### 4. Stellar-Specific Setup
 
 #### Install Freighter Wallet
+
 1. Install the [Freighter wallet extension](https://www.freighter.app/) for your browser
 2. Create or import a Stellar account
 3. Switch to the appropriate network (Testnet for development)
 
 #### Get Testnet Funds
+
 If working on Testnet, fund your account using the Friendbot:
+
 - Visit [Stellar Testnet Friendbot](https://friendbot.stellar.org/)
 - Enter your Freighter wallet address
 - Receive 10,000 XLM for testing
 
 #### Configure Network in Freighter
+
 1. Open Freighter extension
 2. Go to Settings
 3. Select "Testnet" network
@@ -138,6 +146,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 We use **ESLint** and **Prettier** to maintain consistent code quality.
 
 #### Linting
+
 ```bash
 # Check for linting errors
 npm run lint
@@ -147,6 +156,7 @@ npm run lint:fix
 ```
 
 #### Formatting
+
 ```bash
 # Format all files
 npm run format
@@ -156,7 +166,9 @@ npm run format:check
 ```
 
 #### Pre-commit Hooks
+
 We recommend using Husky for pre-commit hooks (optional but recommended):
+
 ```bash
 npm install --save-dev husky lint-staged
 npx husky install
@@ -164,6 +176,7 @@ npx husky add .husky/pre-commit "npx lint-staged"
 ```
 
 Add to `package.json`:
+
 ```json
 "lint-staged": {
   "*.{ts,tsx,js,jsx}": [
@@ -179,6 +192,7 @@ Add to `package.json`:
 ### Testing
 
 #### Unit Tests (Vitest)
+
 ```bash
 # Run all unit tests
 npm test
@@ -194,6 +208,7 @@ npm test -- --update-snapshots
 ```
 
 #### End-to-End Tests (Playwright)
+
 ```bash
 # Run all E2E tests
 npm run test:e2e
@@ -206,6 +221,7 @@ npm run test:e2e -- invoice-submission.spec.ts
 ```
 
 #### Visual Regression Tests (Storybook + Chromatic)
+
 ```bash
 # Start Storybook locally
 npm run storybook
@@ -258,24 +274,29 @@ This repository uses Conventional Commits to power changelog generation via `git
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] Unit tests pass
 - [ ] E2E tests pass
 - [ ] Manual testing completed
 - [ ] Visual regression tests pass
 
 ## Screenshots (if applicable)
+
 Add screenshots for UI changes
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Comments added for complex logic
@@ -296,6 +317,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
    - Add new locales by creating corresponding directories
 
 2. **Use translations in components**:
+
    ```typescript
    import { useTranslation } from 'react-i18next';
 
@@ -307,6 +329,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
 
 3. **Locale-aware formatting**:
    We provide a custom hook for locale-aware formatting:
+
    ```typescript
    import { useLocaleFormatting } from '@/hooks/useLocaleFormatting';
 
@@ -328,6 +351,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
    ```
 
    Or use the utility functions directly:
+
    ```typescript
    import { formatCurrency, formatDate } from '@/lib/formatting';
 
@@ -359,6 +383,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
 ### i18n Configuration
 
 The i18n configuration is in `src/i18n.ts`:
+
 - Uses `i18next-browser-languagedetector` for automatic language detection
 - Persists language preference in localStorage
 - Falls back to English if translation is missing
@@ -371,6 +396,7 @@ Tests use Mock Service Worker (MSW) to mock network calls at the request boundar
 ### MSW Setup
 
 MSW is configured for both Node (Vitest) and browser (Playwright) environments:
+
 - Server setup: `src/mocks/server.ts`
 - Browser setup: `src/mocks/browser.ts`
 - Handlers: `src/mocks/handlers.ts`
@@ -379,6 +405,7 @@ MSW is configured for both Node (Vitest) and browser (Playwright) environments:
 ### Adding New Handlers
 
 1. **Add or update fixtures** in `src/mocks/fixtures/`:
+
    ```typescript
    // src/mocks/fixtures/contract.ts
    export const myNewFixture = {
@@ -387,12 +414,13 @@ MSW is configured for both Node (Vitest) and browser (Playwright) environments:
    ```
 
 2. **Add request handler** in `src/mocks/handlers.ts`:
+
    ```typescript
-   import { http, HttpResponse } from "msw";
-   import { myNewFixture } from "./fixtures/contract";
+   import { http, HttpResponse } from 'msw';
+   import { myNewFixture } from './fixtures/contract';
 
    export const handlers = [
-     http.get("https://api.example.com/endpoint", () => {
+     http.get('https://api.example.com/endpoint', () => {
        return HttpResponse.json(myNewFixture);
      }),
    ];
@@ -400,13 +428,13 @@ MSW is configured for both Node (Vitest) and browser (Playwright) environments:
 
 3. **Use in tests**:
    ```typescript
-   import { server } from "@/mocks/server";
+   import { server } from '@/mocks/server';
 
-   describe("MyComponent", () => {
-     it("should handle API response", () => {
+   describe('MyComponent', () => {
+     it('should handle API response', () => {
        server.use(
-         http.get("https://api.example.com/endpoint", () => {
-           return HttpResponse.json({ custom: "response" });
+         http.get('https://api.example.com/endpoint', () => {
+           return HttpResponse.json({ custom: 'response' });
          })
        );
        // test logic
@@ -417,6 +445,7 @@ MSW is configured for both Node (Vitest) and browser (Playwright) environments:
 ### Existing Handlers
 
 Current MSW handlers cover:
+
 - Horizon account/balance endpoints
 - Horizon transaction endpoints
 - Friendbot faucet endpoint
@@ -434,6 +463,7 @@ When migrating existing tests from function mocks to MSW:
 4. Verify tests still pass with realistic network responses
 
 Example migration:
+
 ```typescript
 // Before (function mock)
 vi.mock('@/lib/horizonClient', () => ({
@@ -441,12 +471,12 @@ vi.mock('@/lib/horizonClient', () => ({
 }));
 
 // After (MSW handler)
-import { server } from "@/mocks/server";
+import { server } from '@/mocks/server';
 
 server.use(
-  http.get("https://horizon-testnet.stellar.org/accounts/:accountId", () => {
+  http.get('https://horizon-testnet.stellar.org/accounts/:accountId', () => {
     return HttpResponse.json({
-      balances: [{ asset_type: "native", balance: "1000" }],
+      balances: [{ asset_type: 'native', balance: '1000' }],
     });
   })
 );
@@ -459,6 +489,7 @@ This project uses Chromatic for visual regression testing to catch unintended UI
 ### Setup
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -472,6 +503,7 @@ This project uses Chromatic for visual regression testing to catch unintended UI
 ### Running Visual Tests
 
 #### Local Development
+
 ```bash
 # Start Storybook locally
 npm run storybook
@@ -484,7 +516,9 @@ npm run chromatic
 ```
 
 #### CI/CD Integration
+
 Visual regression tests run automatically on:
+
 - Pull requests
 - Pushes to main branch
 - Manual workflow dispatch
@@ -537,6 +571,7 @@ Visual regression tests run automatically on:
 ### Story Writing Guidelines
 
 #### File Structure
+
 ```
 src/components/
 ├── Button/
@@ -546,6 +581,7 @@ src/components/
 ```
 
 #### Story Template
+
 ```typescript
 import type { Meta, StoryObj } from '@storybook/react';
 import { ComponentName } from './ComponentName';
@@ -581,6 +617,7 @@ export const Variant: Story = {
 ### Required Stories for Key Components
 
 #### High Priority Components
+
 - [ ] `Button` - All variants, sizes, states
 - [ ] `InvoiceStatusBadge` - All status types
 - [ ] `RiskBadge` - All risk levels
@@ -588,6 +625,7 @@ export const Variant: Story = {
 - [ ] `TokenSelector` - All token types, error states
 
 #### Medium Priority Components
+
 - [ ] `InvoiceTable` - Different data sets, filters
 - [ ] `LPPortfolio` - Various portfolio states
 - [ ] `NotificationBell` - Read/unread states
@@ -623,12 +661,14 @@ export const Variant: Story = {
 ### Maintenance
 
 #### Regular Tasks
+
 - Review and approve visual changes weekly
 - Update baselines after major design changes
 - Archive old unused stories
 - Monitor Chromatic usage and costs
 
 #### Version Updates
+
 - Test Storybook updates in a separate branch
 - Regenerate all baselines after major updates
 - Update this documentation as needed
@@ -636,6 +676,7 @@ export const Variant: Story = {
 ## Getting Help
 
 If you need help:
+
 - Check existing [GitHub Issues](https://github.com/Invoice-Liquidity-Network/ILN-Frontend/issues)
 - Review the [architecture documentation](docs/architecture.md)
 - Read the [design system guide](DESIGN.md)

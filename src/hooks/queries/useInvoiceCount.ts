@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { getInvoiceCount } from "@/utils/soroban";
-import { invoiceKeys, QUERY_TIMINGS } from "./keys";
+import { useQuery } from '@tanstack/react-query';
+import { getInvoiceCount } from '@/utils/soroban';
+import { invoiceKeys, QUERY_TIMINGS } from './keys';
 
 /**
  * Polls the contract's `get_invoice_count` every 30 seconds.

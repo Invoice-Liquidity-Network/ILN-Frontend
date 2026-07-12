@@ -1,11 +1,11 @@
-import { formatAmountFromUnits, parseAmountToUnits } from "@/utils/invoiceSubmission";
+import { formatAmountFromUnits, parseAmountToUnits } from '@/utils/invoiceSubmission';
 
 export const STROOPS_PER_XLM = 10_000_000;
 export const MIN_INVOICE_AMOUNT_STROOPS = 1n;
 
 /** Input/display decimal places for invoice amounts (USDC/EURC: 6, XLM: 7). */
 export function getTokenInputDecimals(symbol: string): number {
-  return symbol === "XLM" ? 7 : 6;
+  return symbol === 'XLM' ? 7 : 6;
 }
 
 export function getMinimumInvoiceAmountXlm(): string {
@@ -18,15 +18,18 @@ export function getXlmPrecisionNote(): string {
 }
 
 export function sanitizeAmountInput(value: string, maxDecimals: number): string {
-  const stripped = value.replace(/[^\d.]/g, "");
-  const dotIndex = stripped.indexOf(".");
+  const stripped = value.replace(/[^\d.]/g, '');
+  const dotIndex = stripped.indexOf('.');
   if (dotIndex === -1) {
     return stripped;
   }
 
   const whole = stripped.slice(0, dotIndex);
-  const fraction = stripped.slice(dotIndex + 1).replace(/\./g, "").slice(0, maxDecimals);
-  return fraction.length > 0 || stripped.endsWith(".") ? `${whole}.${fraction}` : whole;
+  const fraction = stripped
+    .slice(dotIndex + 1)
+    .replace(/\./g, '')
+    .slice(0, maxDecimals);
+  return fraction.length > 0 || stripped.endsWith('.') ? `${whole}.${fraction}` : whole;
 }
 
 export function isValidAmountInput(value: string, maxDecimals: number): boolean {
@@ -50,7 +53,7 @@ export function formatAmountEntryPreview(amount: string, symbol: string): string
   const unitBase = 10n ** BigInt(decimals);
   const whole = units / unitBase;
   const fraction = units % unitBase;
-  const formatted = `${whole}.${fraction.toString().padStart(decimals, "0")}`;
+  const formatted = `${whole}.${fraction.toString().padStart(decimals, '0')}`;
 
   return `You entered: ${formatted} ${symbol}`;
 }

@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import React from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { useContractStats } from "@/hooks/useContractStats";
-import { useInvoices } from "@/hooks/useInvoices";
-import StatsMetricCards from "@/components/stats/StatsMetricCards";
-import StatsDisputeRateCard from "@/components/stats/StatsDisputeRateCard";
-import StatsVolumeChart from "@/components/stats/StatsVolumeChart";
-import StatsTokenBreakdown from "@/components/stats/StatsTokenBreakdown";
-import ProtocolYieldAnalyticsSection from "@/components/stats/ProtocolYieldAnalyticsSection";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import PageHeader from "@/components/PageHeader";
+import React from 'react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { useContractStats } from '@/hooks/useContractStats';
+import { useInvoices } from '@/hooks/useInvoices';
+import StatsMetricCards from '@/components/stats/StatsMetricCards';
+import StatsDisputeRateCard from '@/components/stats/StatsDisputeRateCard';
+import StatsVolumeChart from '@/components/stats/StatsVolumeChart';
+import StatsTokenBreakdown from '@/components/stats/StatsTokenBreakdown';
+import ProtocolYieldAnalyticsSection from '@/components/stats/ProtocolYieldAnalyticsSection';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import PageHeader from '@/components/PageHeader';
 
 function LoadingSkeleton() {
   return (
@@ -33,7 +33,10 @@ function LoadingSkeleton() {
 function ErrorBanner({ message }: { message: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-error/20 bg-error-container/10 p-4 text-sm text-on-error-container">
-      <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
+      <span
+        className="material-symbols-outlined text-error"
+        style={{ fontVariationSettings: "'FILL' 1" }}
+      >
         error
       </span>
       <span>Failed to load stats: {message}</span>
@@ -58,9 +61,7 @@ export default function ProtocolStatsScreen() {
           {isLoading && <LoadingSkeleton />}
 
           {!isLoading && error && (
-            <ErrorBanner
-              message={error instanceof Error ? error.message : "Unknown error"}
-            />
+            <ErrorBanner message={error instanceof Error ? error.message : 'Unknown error'} />
           )}
 
           {!isLoading && !error && stats && (
@@ -76,10 +77,7 @@ export default function ProtocolStatsScreen() {
                 totalUsd={stats.total_volume_usd}
               />
 
-              <ProtocolYieldAnalyticsSection
-                invoices={invoices}
-                isLoading={invoicesLoading}
-              />
+              <ProtocolYieldAnalyticsSection invoices={invoices} isLoading={invoicesLoading} />
             </ErrorBoundary>
           )}
         </div>

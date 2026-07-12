@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
 import {
   getAllInvoices,
   getReputation,
@@ -9,18 +9,18 @@ import {
   type Invoice,
   type ReputationEvent,
   type ReputationScore,
-} from "@/utils/soroban";
-import { resolveFederatedAddress } from "@/utils/federation";
-import { formatDate } from "@/utils/format";
-import ProfileActivityChart from "@/components/ProfileActivityChart";
-import ProfileRecentInvoices from "@/components/ProfileRecentInvoices";
-import ActivityHeatmap from "@/components/ActivityHeatmap";
-import { ScoreSimulator } from "@/components/profile/ScoreSimulator";
-import OracleBadge from "@/components/OracleBadge";
-import { DecayWarningBanner } from "@/components/DecayWarningBanner";
-import GovernanceActivity from "@/components/GovernanceActivity";
-import Skeleton from "@/components/ui/Skeleton";
-import PageHeader from "@/components/PageHeader";
+} from '@/utils/soroban';
+import { resolveFederatedAddress } from '@/utils/federation';
+import { formatDate } from '@/utils/format';
+import ProfileActivityChart from '@/components/ProfileActivityChart';
+import ProfileRecentInvoices from '@/components/ProfileRecentInvoices';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
+import { ScoreSimulator } from '@/components/profile/ScoreSimulator';
+import OracleBadge from '@/components/OracleBadge';
+import { DecayWarningBanner } from '@/components/DecayWarningBanner';
+import GovernanceActivity from '@/components/GovernanceActivity';
+import Skeleton from '@/components/ui/Skeleton';
+import PageHeader from '@/components/PageHeader';
 
 interface ScoreHistoryPoint {
   period: string;
@@ -64,10 +64,9 @@ export default function ProfilePage() {
         setReputationEvents(events);
       } catch {
         if (!cancelled) {
-          setError("Failed to load profile data.");
+          setError('Failed to load profile data.');
         }
-      }
-      finally {
+      } finally {
         if (!cancelled) {
           setLoading(false);
         }
@@ -82,17 +81,17 @@ export default function ProfilePage() {
 
   const submittedInvoices = useMemo(
     () => invoices.filter((invoice) => invoice.freelancer === address),
-    [invoices, address],
+    [invoices, address]
   );
 
   const payerInvoices = useMemo(
     () => invoices.filter((invoice) => invoice.payer === address),
-    [invoices, address],
+    [invoices, address]
   );
 
   const lpPositions = useMemo(
     () => invoices.filter((invoice) => invoice.funder === address),
-    [invoices, address],
+    [invoices, address]
   );
 
   const recentInvoices = useMemo(
@@ -105,15 +104,13 @@ export default function ProfilePage() {
           return bDate - aDate;
         })
         .slice(0, 10),
-    [invoices, address],
+    [invoices, address]
   );
 
   const lastActiveInvoice = useMemo(() => {
     const relevant = invoices.filter(
       (invoice) =>
-        invoice.freelancer === address ||
-        invoice.payer === address ||
-        invoice.funder === address,
+        invoice.freelancer === address || invoice.payer === address || invoice.funder === address
     );
     if (relevant.length === 0) return null;
     return relevant.reduce((latest, invoice) => {
@@ -127,22 +124,24 @@ export default function ProfilePage() {
     return {
       score: reputation?.score ?? 0,
       invoices_submitted: reputation?.invoices_submitted ?? submittedInvoices.length,
-      invoices_paid: reputation?.invoices_paid ?? payerInvoices.filter((invoice) => invoice.status === "Paid").length,
+      invoices_paid:
+        reputation?.invoices_paid ??
+        payerInvoices.filter((invoice) => invoice.status === 'Paid').length,
       invoices_defaulted:
         reputation?.invoices_defaulted ??
-        payerInvoices.filter((invoice) => invoice.status === "Defaulted").length,
+        payerInvoices.filter((invoice) => invoice.status === 'Defaulted').length,
     };
   }, [payerInvoices, reputation, submittedInvoices.length]);
 
   const scoreHistory = useMemo<ScoreHistoryPoint[]>(() => {
     return reputationEvents
-      .filter((event) => typeof event.score === "number")
+      .filter((event) => typeof event.score === 'number')
       .map((event) => {
         const timestamp = eventTimestampMs(event);
         return {
-          period: new Date(timestamp).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
+          period: new Date(timestamp).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
           }),
           score: event.score ?? 0,
           timestamp,
@@ -152,17 +151,17 @@ export default function ProfilePage() {
   }, [reputationEvents]);
 
   const lastActiveLabel = loading
-    ? "Loading..."
+    ? 'Loading...'
     : lastActiveInvoice
       ? formatDate(lastActiveInvoice.funded_at ?? lastActiveInvoice.due_date)
-      : "No activity yet";
+      : 'No activity yet';
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
           <PageHeader
-            breadcrumbs={[{ label: "Public reputation profile" }]}
+            breadcrumbs={[{ label: 'Public reputation profile' }]}
             title={resolvedAddress}
             description={
               resolvedAddress !== address
@@ -173,7 +172,9 @@ export default function ProfilePage() {
               <div className="flex flex-col lg:items-end gap-3">
                 <OracleBadge verified={false} />
                 <div className="rounded-3xl bg-surface-container p-4 text-right">
-                  <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Last active</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">
+                    Last active
+                  </p>
                   <p className="mt-1 text-lg font-semibold text-on-surface">{lastActiveLabel}</p>
                 </div>
               </div>
@@ -207,7 +208,10 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard label="Reputation score" value={reputation ? reputationSummary.score : "No score"} />
+              <MetricCard
+                label="Reputation score"
+                value={reputation ? reputationSummary.score : 'No score'}
+              />
               <MetricCard label="Invoices submitted" value={reputationSummary.invoices_submitted} />
               <MetricCard label="Invoices paid" value={reputationSummary.invoices_paid} />
               <MetricCard label="Invoices defaulted" value={reputationSummary.invoices_defaulted} />
@@ -226,13 +230,20 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="rounded-3xl bg-surface-container p-4 text-right">
-                  <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">LP positions</p>
-                  <p className="mt-1 text-2xl font-semibold text-on-surface">{lpPositions.length}</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">
+                    LP positions
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-on-surface">
+                    {lpPositions.length}
+                  </p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <RoleCard label="Freelancer" value={`${submittedInvoices.length} invoices submitted`} />
+                <RoleCard
+                  label="Freelancer"
+                  value={`${submittedInvoices.length} invoices submitted`}
+                />
                 <RoleCard label="Payer" value={`${payerInvoices.length} invoices`} />
                 <RoleCard label="LP" value={`${lpPositions.length} positions`} />
               </div>

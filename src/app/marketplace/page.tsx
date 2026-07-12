@@ -1,45 +1,45 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useCallback } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useInvoices } from "@/hooks/useInvoices";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
-import { usePayerScores } from "@/hooks/usePayerScores";
-import { Invoice } from "@/utils/soroban";
-import { calculateYield, formatTokenAmount, formatAddress, formatDate } from "@/utils/format";
-import { RiskLevel } from "@/utils/risk";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import InvoiceMarketplaceCard from "@/components/InvoiceMarketplaceCard";
-import FundConfirmModal from "@/components/FundConfirmModal";
-import LPSettingsModal from "@/components/LPSettingsModal";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import PageHeader from "@/components/PageHeader";
-import { useLPSettings } from "@/hooks/useLPSettings";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useState, useMemo, useCallback } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useInvoices } from '@/hooks/useInvoices';
+import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import { usePayerScores } from '@/hooks/usePayerScores';
+import { Invoice } from '@/utils/soroban';
+import { calculateYield, formatTokenAmount, formatAddress, formatDate } from '@/utils/format';
+import { RiskLevel } from '@/utils/risk';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import InvoiceMarketplaceCard from '@/components/InvoiceMarketplaceCard';
+import FundConfirmModal from '@/components/FundConfirmModal';
+import LPSettingsModal from '@/components/LPSettingsModal';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import PageHeader from '@/components/PageHeader';
+import { useLPSettings } from '@/hooks/useLPSettings';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-import { useBookmarks } from "@/hooks/useBookmarks";
+import { useBookmarks } from '@/hooks/useBookmarks';
 const PAGE_SIZE = 20;
 
-type SortKey = "yield" | "amount" | "due_date";
+type SortKey = 'yield' | 'amount' | 'due_date';
 
 export default function MarketplacePage() {
-  useDocumentTitle({ pageTitle: "Invoice Marketplace" });
+  useDocumentTitle({ pageTitle: 'Invoice Marketplace' });
   const { isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading, refetch } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();
 
-  const [sortKey, setSortKey] = useState<SortKey>("yield");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  
+  const [sortKey, setSortKey] = useState<SortKey>('yield');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   // Advanced Filters
   const [filterTokens, setFilterTokens] = useState<string[]>([]);
   const [filterRisks, setFilterRisks] = useState<RiskLevel[]>([]);
-  const [filterMinDiscount, setFilterMinDiscount] = useState("");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
-  const [filterMinYield, setFilterMinYield] = useState("");
-  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+  const [filterMinDiscount, setFilterMinDiscount] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterMinYield, setFilterMinYield] = useState('');
+  const [filterMaxAmount, setFilterMaxAmount] = useState('');
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -61,13 +61,13 @@ export default function MarketplacePage() {
 
   const compareInvoices = useMemo(
     () => allInvoices.filter((inv) => compareIds.includes(inv.id.toString())),
-    [allInvoices, compareIds],
+    [allInvoices, compareIds]
   );
 
   // Filter to Pending only
   const pendingInvoices = useMemo(
-    () => allInvoices.filter((inv) => inv.status === "Pending"),
-    [allInvoices],
+    () => allInvoices.filter((inv) => inv.status === 'Pending'),
+    [allInvoices]
   );
 
   // Fetch payer scores and risk levels
@@ -79,7 +79,7 @@ export default function MarketplacePage() {
 
     if (filterTokens.length > 0) {
       result = result.filter((inv) => {
-        const sym = (tokenMap.get(inv.token ?? "")?.symbol ?? "USDC").toUpperCase();
+        const sym = (tokenMap.get(inv.token ?? '')?.symbol ?? 'USDC').toUpperCase();
         return filterTokens.includes(sym);
       });
     }
@@ -87,7 +87,8 @@ export default function MarketplacePage() {
     const minYield = filterMinYield ? Number(filterMinYield) : null;
     if (minYield !== null && Number.isFinite(minYield)) {
       result = result.filter((inv) => {
-        const y = Number(calculateYield(inv.amount, inv.discount_rate)) / Number(inv.amount) * 100;
+        const y =
+          (Number(calculateYield(inv.amount, inv.discount_rate)) / Number(inv.amount)) * 100;
         return y >= minYield;
       });
     }
@@ -96,10 +97,10 @@ export default function MarketplacePage() {
     if (maxAmt !== null && Number.isFinite(maxAmt)) {
       result = result.filter((inv) => Number(inv.amount) / 1e6 <= maxAmt);
     }
-    
+
     if (filterRisks.length > 0) {
       result = result.filter((inv) => {
-        const risk = payerRisks.get(inv.payer) ?? "Unknown";
+        const risk = payerRisks.get(inv.payer) ?? 'Unknown';
         return filterRisks.includes(risk);
       });
     }
@@ -124,27 +125,36 @@ export default function MarketplacePage() {
     }
 
     return result;
-
-  }, [pendingInvoices, filterTokens, filterMinYield, filterMaxAmount, filterRisks, filterMinDiscount, filterStartDate, filterEndDate, tokenMap, payerRisks, filterBookmarked, isBookmarked]);
-
-  
-
+  }, [
+    pendingInvoices,
+    filterTokens,
+    filterMinYield,
+    filterMaxAmount,
+    filterRisks,
+    filterMinDiscount,
+    filterStartDate,
+    filterEndDate,
+    tokenMap,
+    payerRisks,
+    filterBookmarked,
+    isBookmarked,
+  ]);
 
   // Sort
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "yield") {
+      if (sortKey === 'yield') {
         const ya = Number(calculateYield(a.amount, a.discount_rate));
         const yb = Number(calculateYield(b.amount, b.discount_rate));
         cmp = ya - yb;
-      } else if (sortKey === "amount") {
+      } else if (sortKey === 'amount') {
         cmp = Number(a.amount - b.amount);
       } else {
         cmp = Number(a.due_date - b.due_date);
       }
-      return sortOrder === "asc" ? cmp : -cmp;
+      return sortOrder === 'asc' ? cmp : -cmp;
     });
     return arr;
   }, [filtered, sortKey, sortOrder]);
@@ -155,10 +165,10 @@ export default function MarketplacePage() {
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
-      setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortKey(key);
-      setSortOrder("desc");
+      setSortOrder('desc');
     }
     setPage(1);
   };
@@ -173,12 +183,12 @@ export default function MarketplacePage() {
 
   const clearAllFilters = () => {
     setFilterTokens([]);
-    setFilterMinYield("");
-    setFilterMaxAmount("");
+    setFilterMinYield('');
+    setFilterMaxAmount('');
     setFilterRisks([]);
-    setFilterMinDiscount("");
-    setFilterStartDate("");
-    setFilterEndDate("");
+    setFilterMinDiscount('');
+    setFilterStartDate('');
+    setFilterEndDate('');
     setPage(1);
   };
 
@@ -229,18 +239,21 @@ export default function MarketplacePage() {
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase text-on-surface-variant">Saved</label>
             <button
-              onClick={() => { setFilterBookmarked((v) => !v); setPage(1); }}
-              title={atLimit ? "Bookmark limit (100) reached" : undefined}
+              onClick={() => {
+                setFilterBookmarked((v) => !v);
+                setPage(1);
+              }}
+              title={atLimit ? 'Bookmark limit (100) reached' : undefined}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${
                 filterBookmarked
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-outline-variant/30 text-on-surface-variant hover:border-primary/40"
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-outline-variant/30 text-on-surface-variant hover:border-primary/40'
               }`}
             >
               <span className="material-symbols-outlined text-[14px]">
-                {filterBookmarked ? "bookmark" : "bookmark_border"}
+                {filterBookmarked ? 'bookmark' : 'bookmark_border'}
               </span>
-              Bookmarked{bookmarkCount > 0 ? ` (${bookmarkCount})` : ""}
+              Bookmarked{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
             </button>
           </div>
           {compareIds.length >= 2 && (
@@ -253,21 +266,23 @@ export default function MarketplacePage() {
             </button>
           )}
           {compareIds.length > 0 && compareIds.length < 2 && (
-            <span className="text-xs text-on-surface-variant self-center">Select {2 - compareIds.length} more to compare</span>
+            <span className="text-xs text-on-surface-variant self-center">
+              Select {2 - compareIds.length} more to compare
+            </span>
           )}
           <div className="flex gap-2 ml-auto">
-            {(["yield", "amount", "due_date"] as SortKey[]).map((key) => (
+            {(['yield', 'amount', 'due_date'] as SortKey[]).map((key) => (
               <button
                 key={key}
                 onClick={() => toggleSort(key)}
                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${
                   sortKey === key
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-outline-variant/30 text-on-surface-variant hover:border-primary/40"
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-outline-variant/30 text-on-surface-variant hover:border-primary/40'
                 }`}
               >
-                {key === "yield" ? "Yield" : key === "amount" ? "Amount" : "Due Date"}
-                {sortKey === key && (sortOrder === "desc" ? " ↓" : " ↑")}
+                {key === 'yield' ? 'Yield' : key === 'amount' ? 'Amount' : 'Due Date'}
+                {sortKey === key && (sortOrder === 'desc' ? ' ↓' : ' ↑')}
               </button>
             ))}
           </div>
@@ -277,13 +292,17 @@ export default function MarketplacePage() {
         {isFiltersOpen && (
           <div className="mb-6 rounded-xl border border-outline-variant/20 bg-surface-container-low p-5 shadow-sm">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              
               {/* Token Type */}
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Token</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                  Token
+                </p>
                 <div className="flex flex-col gap-2">
-                  {["USDC", "EURC", "XLM"].map((token) => (
-                    <label key={token} className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                  {['USDC', 'EURC', 'XLM'].map((token) => (
+                    <label
+                      key={token}
+                      className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         checked={filterTokens.includes(token)}
@@ -302,10 +321,15 @@ export default function MarketplacePage() {
 
               {/* Risk Level */}
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Risk Level</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                  Risk Level
+                </p>
                 <div className="flex flex-col gap-2">
-                  {(["Low", "Medium", "High"] as RiskLevel[]).map((risk) => (
-                    <label key={risk} className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                  {(['Low', 'Medium', 'High'] as RiskLevel[]).map((risk) => (
+                    <label
+                      key={risk}
+                      className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         checked={filterRisks.includes(risk)}
@@ -325,32 +349,44 @@ export default function MarketplacePage() {
               {/* Discount & Yield */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Min Discount (%)</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                    Min Discount (%)
+                  </p>
                   <input
                     type="range"
                     min="0"
                     max="100"
                     step="1"
-                    value={filterMinDiscount || "0"}
-                    onChange={(e) => { setFilterMinDiscount(e.target.value); setPage(1); }}
+                    value={filterMinDiscount || '0'}
+                    onChange={(e) => {
+                      setFilterMinDiscount(e.target.value);
+                      setPage(1);
+                    }}
                     className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-xs text-on-surface-variant">
                     <span>0%</span>
-                    <span className="font-semibold text-on-surface">{filterMinDiscount || "0"}%</span>
+                    <span className="font-semibold text-on-surface">
+                      {filterMinDiscount || '0'}%
+                    </span>
                     <span>100%</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Min Yield %</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                    Min Yield %
+                  </p>
                   <input
                     type="number"
                     min="0"
                     step="0.1"
                     value={filterMinYield}
                     placeholder="e.g. 2.0"
-                    onChange={(e) => { setFilterMinYield(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      setFilterMinYield(e.target.value);
+                      setPage(1);
+                    }}
                     className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
                   />
                 </div>
@@ -359,19 +395,27 @@ export default function MarketplacePage() {
               {/* Due Date & Amount */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Due Date Range</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                    Due Date Range
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="date"
                       value={filterStartDate}
-                      onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
+                      onChange={(e) => {
+                        setFilterStartDate(e.target.value);
+                        setPage(1);
+                      }}
                       className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
                       aria-label="Start Date"
                     />
                     <input
                       type="date"
                       value={filterEndDate}
-                      onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
+                      onChange={(e) => {
+                        setFilterEndDate(e.target.value);
+                        setPage(1);
+                      }}
                       className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
                       aria-label="End Date"
                     />
@@ -379,33 +423,40 @@ export default function MarketplacePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">Max Amount (USDC)</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                    Max Amount (USDC)
+                  </p>
                   <input
                     type="number"
                     min="0"
                     step="100"
                     value={filterMaxAmount}
                     placeholder="e.g. 10000"
-                    onChange={(e) => { setFilterMaxAmount(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      setFilterMaxAmount(e.target.value);
+                      setPage(1);
+                    }}
                     className="rounded-lg border border-outline-variant/30 bg-surface-container-lowest px-3 py-2 text-sm w-full"
                   />
                 </div>
               </div>
-
             </div>
           </div>
         )}
 
         {/* Results count */}
         <p className="text-sm text-on-surface-variant mb-4">
-          {sorted.length} invoice{sorted.length !== 1 ? "s" : ""} available
+          {sorted.length} invoice{sorted.length !== 1 ? 's' : ''} available
         </p>
 
         <ErrorBoundary onRetry={() => void refetch()}>
           {loading && paginated.length === 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 animate-pulse">
+                <div
+                  key={i}
+                  className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 animate-pulse"
+                >
                   <div className="h-5 w-20 bg-surface-variant rounded mb-3" />
                   <div className="space-y-2">
                     <div className="h-4 bg-surface-variant rounded" />
@@ -418,7 +469,9 @@ export default function MarketplacePage() {
             </div>
           ) : paginated.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">receipt_long</span>
+              <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4">
+                receipt_long
+              </span>
               <p className="font-medium text-on-surface">No Pending Invoices</p>
               <p className="mt-1 text-sm text-on-surface-variant">
                 There are currently no invoices matching your filters.
@@ -433,7 +486,7 @@ export default function MarketplacePage() {
                   tokenMap={tokenMap}
                   defaultToken={defaultToken}
                   payerScore={payerScores.get(invoice.payer) ?? null}
-                  payerRisk={payerRisks.get(invoice.payer) ?? "Unknown"}
+                  payerRisk={payerRisks.get(invoice.payer) ?? 'Unknown'}
                   onFund={setSelectedInvoice}
                   isWalletConnected={isConnected}
                   minReputation={settings.minReputation}
@@ -480,18 +533,24 @@ export default function MarketplacePage() {
         onSuccess={() => setSelectedInvoice(null)}
       />
 
-      <LPSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
+      <LPSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* Compare Modal */}
       {showCompareModal && compareInvoices.length >= 2 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCompareModal(false)}>
-          <div className="bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/20 w-full max-w-5xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowCompareModal(false)}
+        >
+          <div
+            className="bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/20 w-full max-w-5xl max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-outline-variant/15 bg-surface-container-lowest">
               <h2 className="text-xl font-bold">Compare Invoices</h2>
-              <button onClick={() => setShowCompareModal(false)} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-variant transition-colors">
+              <button
+                onClick={() => setShowCompareModal(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
+              >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -499,40 +558,93 @@ export default function MarketplacePage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="p-4 text-left text-[11px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container-low/50 min-w-[160px]">Field</th>
+                    <th className="p-4 text-left text-[11px] font-bold uppercase tracking-widest text-on-surface-variant bg-surface-container-low/50 min-w-[160px]">
+                      Field
+                    </th>
                     {compareInvoices.map((inv) => (
-                      <th key={inv.id.toString()} className="p-4 text-center bg-surface-container-low/50 border-l border-outline-variant/10">
-                        <span className="text-lg font-bold text-primary">Invoice #{inv.id.toString()}</span>
+                      <th
+                        key={inv.id.toString()}
+                        className="p-4 text-center bg-surface-container-low/50 border-l border-outline-variant/10"
+                      >
+                        <span className="text-lg font-bold text-primary">
+                          Invoice #{inv.id.toString()}
+                        </span>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {([
-                    { label: 'Token', get: () => tokenMap.get(inv.token ?? defaultToken?.contractId ?? '')?.symbol ?? 'USDC' },
-                    { label: 'Amount', get: (inv: Invoice) => formatTokenAmount(inv.amount, defaultToken ?? tokenMap.get(inv.token ?? '') ?? { symbol: 'USDC', decimals: 7, contractId: '', name: '', iconLabel: '' } as any) },
-                    { label: 'Discount', get: (inv: Invoice) => `${(inv.discount_rate / 100).toFixed(2)}%` },
-                    { label: 'Effective Yield', get: (inv: Invoice) => `${((Number(calculateYield(inv.amount, inv.discount_rate)) / Number(inv.amount)) * 100).toFixed(2)}%` },
-                    { label: 'Due Date', get: (inv: Invoice) => formatDate(inv.due_date) },
-                    { label: 'Submitter', get: (inv: Invoice) => formatAddress(inv.freelancer) },
-                    { label: 'Payer', get: (inv: Invoice) => formatAddress(inv.payer) },
-                    { label: 'Risk', get: (inv: Invoice) => payerRisks.get(inv.payer) ?? 'Unknown' },
-                    { label: 'Payer Score', get: (inv: Invoice) => (payerScores.get(inv.payer)?.score ?? 0).toString() },
-                  ] as const).map((row) => {
+                  {(
+                    [
+                      {
+                        label: 'Token',
+                        get: () =>
+                          tokenMap.get(inv.token ?? defaultToken?.contractId ?? '')?.symbol ??
+                          'USDC',
+                      },
+                      {
+                        label: 'Amount',
+                        get: (inv: Invoice) =>
+                          formatTokenAmount(
+                            inv.amount,
+                            defaultToken ??
+                              tokenMap.get(inv.token ?? '') ??
+                              ({
+                                symbol: 'USDC',
+                                decimals: 7,
+                                contractId: '',
+                                name: '',
+                                iconLabel: '',
+                              } as any)
+                          ),
+                      },
+                      {
+                        label: 'Discount',
+                        get: (inv: Invoice) => `${(inv.discount_rate / 100).toFixed(2)}%`,
+                      },
+                      {
+                        label: 'Effective Yield',
+                        get: (inv: Invoice) =>
+                          `${((Number(calculateYield(inv.amount, inv.discount_rate)) / Number(inv.amount)) * 100).toFixed(2)}%`,
+                      },
+                      { label: 'Due Date', get: (inv: Invoice) => formatDate(inv.due_date) },
+                      { label: 'Submitter', get: (inv: Invoice) => formatAddress(inv.freelancer) },
+                      { label: 'Payer', get: (inv: Invoice) => formatAddress(inv.payer) },
+                      {
+                        label: 'Risk',
+                        get: (inv: Invoice) => payerRisks.get(inv.payer) ?? 'Unknown',
+                      },
+                      {
+                        label: 'Payer Score',
+                        get: (inv: Invoice) => (payerScores.get(inv.payer)?.score ?? 0).toString(),
+                      },
+                    ] as const
+                  ).map((row) => {
                     const values = compareInvoices.map(row.get);
                     const isNumeric = values.every((v) => !isNaN(Number(v)));
-                    const bestValue = isNumeric
-                      ? Math.max(...values.map(Number))
-                      : null;
+                    const bestValue = isNumeric ? Math.max(...values.map(Number)) : null;
                     return (
-                      <tr key={row.label} className="border-b border-outline-variant/10 hover:bg-surface-container-low/20 transition-colors">
-                        <td className="p-4 font-medium text-on-surface-variant text-sm">{row.label}</td>
+                      <tr
+                        key={row.label}
+                        className="border-b border-outline-variant/10 hover:bg-surface-container-low/20 transition-colors"
+                      >
+                        <td className="p-4 font-medium text-on-surface-variant text-sm">
+                          {row.label}
+                        </td>
                         {values.map((val, idx) => {
-                          const isBest = isNumeric && bestValue !== null && Number(val) === bestValue;
+                          const isBest =
+                            isNumeric && bestValue !== null && Number(val) === bestValue;
                           return (
-                            <td key={compareInvoices[idx].id.toString()} className={`p-4 text-center text-sm border-l border-outline-variant/10 ${isBest ? 'bg-green-50/50 font-bold text-green-700' : ''}`}>
+                            <td
+                              key={compareInvoices[idx].id.toString()}
+                              className={`p-4 text-center text-sm border-l border-outline-variant/10 ${isBest ? 'bg-green-50/50 font-bold text-green-700' : ''}`}
+                            >
                               {val}
-                              {isBest && <span className="block text-[9px] uppercase tracking-tighter mt-0.5 text-green-600">Best</span>}
+                              {isBest && (
+                                <span className="block text-[9px] uppercase tracking-tighter mt-0.5 text-green-600">
+                                  Best
+                                </span>
+                              )}
                             </td>
                           );
                         })}

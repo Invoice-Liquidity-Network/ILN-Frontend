@@ -1,3 +1,3 @@
-"use client";
+'use client';
 
-export { default } from "../../src/app/marketplace/page";
+export { default } from '../../src/app/marketplace/page';

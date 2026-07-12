@@ -1,20 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { formatAddress } from "@/utils/format";
+import { useEffect, useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { formatAddress } from '@/utils/format';
 
 const STEPS = [
   {
-    id: "welcome",
-    title: "Welcome to ILN",
-    shortTitle: "Welcome",
-    icon: "waving_hand",
+    id: 'welcome',
+    title: 'Welcome to ILN',
+    shortTitle: 'Welcome',
+    icon: 'waving_hand',
     content: (
       <div className="space-y-4">
         <p>
           ILN connects freelancers who need liquidity with LPs who earn yield by funding invoices.
-          As an LP, you browse pending invoices, assess payer risk, and fund positions that match your strategy.
+          As an LP, you browse pending invoices, assess payer risk, and fund positions that match
+          your strategy.
         </p>
         <ul className="list-disc space-y-2 pl-5">
           <li>Earn yield from invoice discount rates when invoices settle on time</li>
@@ -25,34 +26,39 @@ const STEPS = [
     ),
   },
   {
-    id: "wallet",
-    title: "Connect your wallet",
-    shortTitle: "Wallet",
-    icon: "account_balance_wallet",
+    id: 'wallet',
+    title: 'Connect your wallet',
+    shortTitle: 'Wallet',
+    icon: 'account_balance_wallet',
     content: null,
   },
   {
-    id: "yield",
-    title: "Understanding yield mechanics",
-    shortTitle: "Yield",
-    icon: "trending_up",
+    id: 'yield',
+    title: 'Understanding yield mechanics',
+    shortTitle: 'Yield',
+    icon: 'trending_up',
     content: (
       <div className="space-y-4">
         <p>
-          Yield comes from the discount rate on each invoice. When you fund an invoice, you pay the discounted
-          amount upfront and receive the full face value when the payer settles.
+          Yield comes from the discount rate on each invoice. When you fund an invoice, you pay the
+          discounted amount upfront and receive the full face value when the payer settles.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Example</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">
+              Example
+            </p>
             <p className="mt-2 text-sm text-on-surface">
               Fund a $10,000 invoice at 5% discount → pay $9,500, receive $10,000 on settlement.
             </p>
           </div>
           <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Risk</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">
+              Risk
+            </p>
             <p className="mt-2 text-sm text-on-surface">
-              Higher discount rates can mean higher returns, but review payer history and due dates before funding.
+              Higher discount rates can mean higher returns, but review payer history and due dates
+              before funding.
             </p>
           </div>
         </div>
@@ -60,28 +66,41 @@ const STEPS = [
     ),
   },
   {
-    id: "funding",
-    title: "Your first funding walkthrough",
-    shortTitle: "Fund",
-    icon: "payments",
+    id: 'funding',
+    title: 'Your first funding walkthrough',
+    shortTitle: 'Fund',
+    icon: 'payments',
     content: (
       <div className="space-y-4">
         <ol className="space-y-3">
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">1</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">
+              1
+            </span>
             <span>Open the marketplace or Discovery tab to browse pending invoices.</span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">2</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">
+              2
+            </span>
             <span>Review payer risk, discount rate, due date, and estimated yield.</span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">3</span>
-            <span>Click Fund, confirm token approval if prompted, and sign the transaction in your wallet.</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">
+              3
+            </span>
+            <span>
+              Click Fund, confirm token approval if prompted, and sign the transaction in your
+              wallet.
+            </span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">4</span>
-            <span>Track your position under My Funded and monitor settlement in your portfolio.</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-on-primary-container">
+              4
+            </span>
+            <span>
+              Track your position under My Funded and monitor settlement in your portfolio.
+            </span>
           </li>
         </ol>
       </div>
@@ -109,7 +128,8 @@ function WalletStepContent() {
           </div>
         </div>
         <p className="text-sm text-on-surface-variant">
-          You are ready to fund invoices and manage your LP portfolio. Continue to learn how yield works.
+          You are ready to fund invoices and manage your LP portfolio. Continue to learn how yield
+          works.
         </p>
       </div>
     );
@@ -138,7 +158,11 @@ function WalletStepContent() {
   );
 }
 
-export default function LPOnboardingModal({ isOpen, onClose, onGoToMarketplace }: LPOnboardingModalProps) {
+export default function LPOnboardingModal({
+  isOpen,
+  onClose,
+  onGoToMarketplace,
+}: LPOnboardingModalProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   useEffect(() => {
@@ -168,8 +192,12 @@ export default function LPOnboardingModal({ isOpen, onClose, onGoToMarketplace }
         </button>
 
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-on-surface-variant">LP onboarding</p>
-          <h2 className="mt-3 font-headline text-3xl text-on-surface">Get started as a liquidity provider</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-on-surface-variant">
+            LP onboarding
+          </p>
+          <h2 className="mt-3 font-headline text-3xl text-on-surface">
+            Get started as a liquidity provider
+          </h2>
           <p className="mt-3 text-sm leading-6 text-on-surface-variant">
             Step {currentStepIndex + 1} of {STEPS.length}: {step.shortTitle}
           </p>
@@ -198,19 +226,19 @@ export default function LPOnboardingModal({ isOpen, onClose, onGoToMarketplace }
                   key={item.id}
                   className={`rounded-2xl border p-3 text-center transition-colors ${
                     isActive
-                      ? "border-primary/40 bg-primary/5"
+                      ? 'border-primary/40 bg-primary/5'
                       : isComplete
-                        ? "border-primary/20 bg-primary-container/20"
-                        : "border-surface-dim bg-surface-container-high"
+                        ? 'border-primary/20 bg-primary-container/20'
+                        : 'border-surface-dim bg-surface-container-high'
                   }`}
                 >
                   <div
                     className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
                       isActive
-                        ? "bg-primary text-surface-container-lowest"
+                        ? 'bg-primary text-surface-container-lowest'
                         : isComplete
-                          ? "bg-primary-container text-on-primary-container"
-                          : "bg-surface-variant text-on-surface-variant"
+                          ? 'bg-primary-container text-on-primary-container'
+                          : 'bg-surface-variant text-on-surface-variant'
                     }`}
                   >
                     {isComplete ? (
@@ -235,7 +263,7 @@ export default function LPOnboardingModal({ isOpen, onClose, onGoToMarketplace }
             <h3 className="text-xl font-bold text-on-surface">{step.title}</h3>
           </div>
           <div className="text-sm leading-6 text-on-surface-variant">
-            {step.id === "wallet" ? <WalletStepContent /> : step.content}
+            {step.id === 'wallet' ? <WalletStepContent /> : step.content}
           </div>
         </div>
 
@@ -270,7 +298,7 @@ export default function LPOnboardingModal({ isOpen, onClose, onGoToMarketplace }
               }}
               className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-surface-container-lowest shadow-md transition-colors hover:bg-primary/90"
             >
-              {isLastStep ? "Go to Marketplace" : "Next"}
+              {isLastStep ? 'Go to Marketplace' : 'Next'}
             </button>
           </div>
         </div>

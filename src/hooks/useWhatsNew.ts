@@ -1,16 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { WHATS_NEW, WhatsNewItem } from "@/data/whats-new";
+import { useState, useEffect, useCallback } from 'react';
+import { WHATS_NEW, WhatsNewItem } from '@/data/whats-new';
 
-const WHATS_NEW_VERSION_KEY = "iln:last-seen-version";
+const WHATS_NEW_VERSION_KEY = 'iln:last-seen-version';
 const MAX_VISIBLE_ITEMS = 5;
 
 export function useWhatsNew() {
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<WhatsNewItem[]>([]);
-  
-  const currentVersion = process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || "dev";
+
+  const currentVersion =
+    process.env.NEXT_PUBLIC_APP_VERSION || process.env.npm_package_version || 'dev';
 
   useEffect(() => {
     // Determine visibility once on mount

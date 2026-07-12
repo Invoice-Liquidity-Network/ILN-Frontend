@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { formatDate } from "@/utils/format";
+import React, { useState, useEffect, useMemo } from 'react';
+import { formatDate } from '@/utils/format';
 
 interface DueDateCountdownProps {
   dueDate: bigint;
@@ -40,8 +40,9 @@ function formatTimeDisplay(time: TimeRemaining): {
 } {
   if (time.isOverdue) {
     return {
-      text: "Expired",
-      className: "inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600",
+      text: 'Expired',
+      className:
+        'inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600',
       shouldPulse: false,
     };
   }
@@ -53,7 +54,7 @@ function formatTimeDisplay(time: TimeRemaining): {
     // Less than 24 hours: "X hrs Y mins" with red text + pulse
     return {
       text: `${time.hours}h ${time.minutes}m`,
-      className: "text-red-500 font-semibold",
+      className: 'text-red-500 font-semibold',
       shouldPulse: true,
     };
   }
@@ -62,7 +63,7 @@ function formatTimeDisplay(time: TimeRemaining): {
     // 1-7 days: "X days Y hrs" with orange text
     return {
       text: `${days}d ${time.hours}h`,
-      className: "text-amber-500 font-semibold",
+      className: 'text-amber-500 font-semibold',
       shouldPulse: false,
     };
   }
@@ -70,7 +71,7 @@ function formatTimeDisplay(time: TimeRemaining): {
   // More than 7 days: "X days Y hrs" with green color
   return {
     text: `${days}d ${time.hours}h`,
-    className: "text-green-500 font-semibold",
+    className: 'text-green-500 font-semibold',
     shouldPulse: false,
   };
 }
@@ -100,13 +101,13 @@ export default function DueDateCountdown({
 
   const formattedDueDate = useMemo(() => {
     return dueDateLocal.toLocaleString(undefined, {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
     });
   }, [dueDateLocal]);
 
@@ -114,7 +115,7 @@ export default function DueDateCountdown({
     <div className="flex items-center gap-3">
       <div className="relative">
         <span
-          className={`cursor-help ${display.className} ${display.shouldPulse ? "animate-pulse-fast" : ""}`}
+          className={`cursor-help ${display.className} ${display.shouldPulse ? 'animate-pulse-fast' : ''}`}
           onMouseEnter={() => setIsTooltipVisible(true)}
           onMouseLeave={() => setIsTooltipVisible(false)}
           onFocus={() => setIsTooltipVisible(true)}

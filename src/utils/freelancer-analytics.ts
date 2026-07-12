@@ -1,4 +1,4 @@
-import { Invoice } from "./soroban";
+import { Invoice } from './soroban';
 
 export interface FreelancerMetrics {
   totalInvoiced: bigint;
@@ -31,7 +31,10 @@ export interface PayerReliability {
 /**
  * Calculate key metrics for a freelancer's invoice history
  */
-export function calculateFreelancerMetrics(invoices: Invoice[], address: string): FreelancerMetrics {
+export function calculateFreelancerMetrics(
+  invoices: Invoice[],
+  address: string
+): FreelancerMetrics {
   const freelancerInvoices = invoices.filter((i) => i.freelancer === address);
 
   if (freelancerInvoices.length === 0) {
@@ -56,15 +59,15 @@ export function calculateFreelancerMetrics(invoices: Invoice[], address: string)
 
   freelancerInvoices.forEach((i) => {
     totalInvoiced += i.amount;
-    
+
     // Calculate discount cost: amount * discount_rate / 10000
     const discount = (i.amount * BigInt(i.discount_rate)) / 10000n;
     totalDiscountCost += discount;
     totalDiscountRate += i.discount_rate;
 
-    if (i.status === "Funded" || i.status === "Paid") {
+    if (i.status === 'Funded' || i.status === 'Paid') {
       fundedCount++;
-      
+
       // Calculate time to funding
       if (i.funded_at) {
         const submittedTime = Math.floor(Number(i.due_date) * 1000); // Approximate submission time as due date
@@ -85,10 +88,11 @@ export function calculateFreelancerMetrics(invoices: Invoice[], address: string)
 
   // Calculate averages
   const fundedRate = (fundedCount / freelancerInvoices.length) * 100;
-  const avgDiscountRate = (totalDiscountRate / freelancerInvoices.length) / 100;
-  const avgTimeToFunding = fundedWithTimeCount > 0 
-    ? (totalTimeToFunding / fundedWithTimeCount) / (1000 * 60 * 60) // convert ms to hours
-    : null;
+  const avgDiscountRate = totalDiscountRate / freelancerInvoices.length / 100;
+  const avgTimeToFunding =
+    fundedWithTimeCount > 0
+      ? totalTimeToFunding / fundedWithTimeCount / (1000 * 60 * 60) // convert ms to hours
+      : null;
 
   return {
     totalInvoiced,
@@ -105,26 +109,26 @@ export function calculateFreelancerMetrics(invoices: Invoice[], address: string)
  */
 export function getMonthlyInvoiceData(invoices: Invoice[], address: string): MonthlyInvoiceData[] {
   const freelancerInvoices = invoices.filter((i) => i.freelancer === address);
-  
+
   // Get last 12 months of data
   const months: Record<string, { submitted: number; funded: number }> = {};
   const now = new Date();
-  
+
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now);
     d.setMonth(d.getMonth() - i);
-    const monthKey = d.toLocaleString("default", { month: "short", year: "2-digit" });
+    const monthKey = d.toLocaleString('default', { month: 'short', year: '2-digit' });
     months[monthKey] = { submitted: 0, funded: 0 };
   }
 
   freelancerInvoices.forEach((i) => {
     // Use due_date as approximate submission date
     const date = new Date(Number(i.due_date) * 1000);
-    const monthKey = date.toLocaleString("default", { month: "short", year: "2-digit" });
-    
+    const monthKey = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+
     if (months[monthKey]) {
       months[monthKey].submitted++;
-      if (i.status === "Funded" || i.status === "Paid") {
+      if (i.status === 'Funded' || i.status === 'Paid') {
         months[monthKey].funded++;
       }
     }
@@ -140,14 +144,19 @@ export function getMonthlyInvoiceData(invoices: Invoice[], address: string): Mon
 /**
  * Get discount cost over time (line chart data)
  */
-export function getDiscountOverTimeData(invoices: Invoice[], address: string): DiscountOverTimeData[] {
-  const freelancerInvoices = invoices.filter((i) => i.freelancer === address && i.status === "Paid");
+export function getDiscountOverTimeData(
+  invoices: Invoice[],
+  address: string
+): DiscountOverTimeData[] {
+  const freelancerInvoices = invoices.filter(
+    (i) => i.freelancer === address && i.status === 'Paid'
+  );
   const dates: Record<string, bigint> = {};
 
   freelancerInvoices.forEach((i) => {
     if (i.funded_at) {
       const date = new Date(Number(i.funded_at) * 1000);
-      const dateKey = date.toLocaleString("default", { month: "short", day: "numeric" });
+      const dateKey = date.toLocaleString('default', { month: 'short', day: 'numeric' });
       const discountCost = (i.amount * BigInt(i.discount_rate)) / 10000n;
       dates[dateKey] = (dates[dateKey] || 0n) + discountCost;
     }
@@ -172,13 +181,16 @@ export function getDiscountOverTimeData(invoices: Invoice[], address: string): D
  */
 export function getPayerReliability(invoices: Invoice[], address: string): PayerReliability[] {
   const freelancerInvoices = invoices.filter((i) => i.freelancer === address);
-  const payers: Record<string, {
-    totalInvoices: number;
-    onTimeCount: number;
-    totalSettlementDays: number;
-    settledCount: number;
-    fundedAmount: bigint;
-  }> = {};
+  const payers: Record<
+    string,
+    {
+      totalInvoices: number;
+      onTimeCount: number;
+      totalSettlementDays: number;
+      settledCount: number;
+      fundedAmount: bigint;
+    }
+  > = {};
 
   freelancerInvoices.forEach((i) => {
     if (!payers[i.payer]) {
@@ -194,7 +206,7 @@ export function getPayerReliability(invoices: Invoice[], address: string): Payer
     payers[i.payer].fundedAmount += i.amount;
 
     // Calculate on-time payment (if paid before due date)
-    if (i.status === "Paid" && i.funded_at) {
+    if (i.status === 'Paid' && i.funded_at) {
       payers[i.payer].settledCount++;
       const dueDate = Number(i.due_date);
       const paidDate = Number(i.funded_at);
@@ -224,16 +236,16 @@ export function getOutcomeBreakdown(invoices: Invoice[], address: string) {
 
   freelancerInvoices.forEach((i) => {
     counts.Submitted++;
-    if (i.status === "Funded") counts.Funded++;
-    else if (i.status === "Paid") {
+    if (i.status === 'Funded') counts.Funded++;
+    else if (i.status === 'Paid') {
       counts.Paid++;
       counts.Funded++; // Paid invoices were also funded
-    } else if (i.status === "Defaulted") counts.Defaulted++;
+    } else if (i.status === 'Defaulted') counts.Defaulted++;
   });
 
   return [
-    { name: "Funded", value: counts.Funded },
-    { name: "Paid", value: counts.Paid },
-    { name: "Defaulted", value: counts.Defaulted },
+    { name: 'Funded', value: counts.Funded },
+    { name: 'Paid', value: counts.Paid },
+    { name: 'Defaulted', value: counts.Defaulted },
   ];
 }

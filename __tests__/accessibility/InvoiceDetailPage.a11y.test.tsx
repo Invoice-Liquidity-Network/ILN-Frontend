@@ -1,6 +1,6 @@
-import { render } from "@testing-library/react";
-import { axe } from "jest-axe";
-import { describe, it, expect, vi } from "vitest";
+import { render } from '@testing-library/react';
+import { axe } from 'jest-axe';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock the invoice detail page component
 const MockInvoiceDetailPage = () => {
@@ -13,7 +13,7 @@ const MockInvoiceDetailPage = () => {
           <span>Funded</span>
         </div>
       </header>
-      
+
       <section aria-labelledby="invoice-details">
         <h2 id="invoice-details">Invoice Details</h2>
         <dl>
@@ -37,7 +37,7 @@ const MockInvoiceDetailPage = () => {
           <div id="pdf-help" className="sr-only">
             Downloads a PDF copy of this invoice
           </div>
-          
+
           <button type="button" aria-describedby="share-help">
             Share Invoice
           </button>
@@ -64,52 +64,52 @@ const MockInvoiceDetailPage = () => {
   );
 };
 
-describe("InvoiceDetailPage Accessibility", () => {
-  it("should not have any accessibility violations", async () => {
+describe('InvoiceDetailPage Accessibility', () => {
+  it('should not have any accessibility violations', async () => {
     const { container } = render(<MockInvoiceDetailPage />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("should have proper heading hierarchy", () => {
+  it('should have proper heading hierarchy', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
-    const h1 = container.querySelector("h1");
+
+    const h1 = container.querySelector('h1');
     expect(h1).toBeInTheDocument();
-    expect(h1).toHaveTextContent("Invoice #12345");
-    
-    const h2Elements = container.querySelectorAll("h2");
+    expect(h1).toHaveTextContent('Invoice #12345');
+
+    const h2Elements = container.querySelectorAll('h2');
     expect(h2Elements.length).toBeGreaterThan(0);
   });
 
-  it("should have accessible status indicator", () => {
+  it('should have accessible status indicator', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
+
     const statusElement = container.querySelector('[role="status"]');
     expect(statusElement).toBeInTheDocument();
-    expect(statusElement).toHaveAttribute("aria-live", "polite");
+    expect(statusElement).toHaveAttribute('aria-live', 'polite');
   });
 
-  it("should have proper description list structure", () => {
+  it('should have proper description list structure', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
-    const dl = container.querySelector("dl");
+
+    const dl = container.querySelector('dl');
     expect(dl).toBeInTheDocument();
-    
-    const dts = container.querySelectorAll("dt");
-    const dds = container.querySelectorAll("dd");
+
+    const dts = container.querySelectorAll('dt');
+    const dds = container.querySelectorAll('dd');
     expect(dts.length).toBe(dds.length);
   });
 
-  it("should have accessible action buttons", () => {
+  it('should have accessible action buttons', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
-    const buttons = container.querySelectorAll("button");
+
+    const buttons = container.querySelectorAll('button');
     buttons.forEach((button) => {
-      expect(button).toHaveAttribute("type", "button");
-      
+      expect(button).toHaveAttribute('type', 'button');
+
       // Should have describedby for additional context
-      const describedBy = button.getAttribute("aria-describedby");
+      const describedBy = button.getAttribute('aria-describedby');
       if (describedBy) {
         const helpText = container.querySelector(`#${describedBy}`);
         expect(helpText).toBeInTheDocument();
@@ -117,31 +117,31 @@ describe("InvoiceDetailPage Accessibility", () => {
     });
   });
 
-  it("should have accessible time elements", () => {
+  it('should have accessible time elements', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
-    const timeElements = container.querySelectorAll("time");
+
+    const timeElements = container.querySelectorAll('time');
     timeElements.forEach((time) => {
-      expect(time).toHaveAttribute("dateTime");
+      expect(time).toHaveAttribute('dateTime');
     });
   });
 
-  it("should have proper list structure for activity feed", () => {
+  it('should have proper list structure for activity feed', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
+
     const list = container.querySelector('[role="list"]');
     expect(list).toBeInTheDocument();
-    
-    const listItems = list?.querySelectorAll("li");
+
+    const listItems = list?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
 
-  it("should have screen reader only text for context", () => {
+  it('should have screen reader only text for context', () => {
     const { container } = render(<MockInvoiceDetailPage />);
-    
-    const srOnlyElements = container.querySelectorAll(".sr-only");
+
+    const srOnlyElements = container.querySelectorAll('.sr-only');
     expect(srOnlyElements.length).toBeGreaterThan(0);
-    
+
     srOnlyElements.forEach((element) => {
       expect(element.textContent?.trim()).toBeTruthy();
     });

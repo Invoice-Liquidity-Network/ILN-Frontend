@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import PartialPaymentModal from "../src/components/PartialPaymentModal";
-import { Invoice, TokenMetadata } from "../src/utils/soroban";
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import PartialPaymentModal from '../src/components/PartialPaymentModal';
+import { Invoice, TokenMetadata } from '../src/utils/soroban';
 
 // Mock utilities
-vi.mock("../src/utils/format", () => ({
+vi.mock('../src/utils/format', () => ({
   formatTokenAmount: (v: bigint, token?: TokenMetadata) => {
     if (!token) return v.toString();
-    return (Number(v) / 10 ** token.decimals).toLocaleString("en-US", {
+    return (Number(v) / 10 ** token.decimals).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: token.decimals,
     });
@@ -15,23 +15,23 @@ vi.mock("../src/utils/format", () => ({
   formatAddress: (a: string) => a.slice(0, 4),
 }));
 
-describe("PartialPaymentModal", () => {
+describe('PartialPaymentModal', () => {
   const mockInvoice: Invoice = {
     id: 123n,
-    status: "Funded",
-    freelancer: "FREELANCER",
-    payer: "PAYER",
+    status: 'Funded',
+    freelancer: 'FREELANCER',
+    payer: 'PAYER',
     amount: 10000000000n, // 1000 USDC (in stroops: 7 decimals)
     amount_paid: 3000000000n, // 300 USDC already paid
     due_date: 999999n,
     discount_rate: 500,
-    funder: "LP_HOLDER",
+    funder: 'LP_HOLDER',
   };
 
   const mockToken: TokenMetadata = {
-    contractId: "TOKEN_ID",
-    name: "USDC",
-    symbol: "USDC",
+    contractId: 'TOKEN_ID',
+    name: 'USDC',
+    symbol: 'USDC',
     decimals: 7,
   };
 
@@ -42,8 +42,8 @@ describe("PartialPaymentModal", () => {
     vi.clearAllMocks();
   });
 
-  describe("Payment Progress Display", () => {
-    it("displays correct payment progress", () => {
+  describe('Payment Progress Display', () => {
+    it('displays correct payment progress', () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -61,7 +61,7 @@ describe("PartialPaymentModal", () => {
       expect(screen.getByText(/Remaining: 700\.00 USDC/)).toBeInTheDocument();
     });
 
-    it("updates progress when no amount paid yet", () => {
+    it('updates progress when no amount paid yet', () => {
       const newInvoice = { ...mockInvoice, amount_paid: 0n };
       render(
         <PartialPaymentModal
@@ -79,8 +79,8 @@ describe("PartialPaymentModal", () => {
     });
   });
 
-  describe("Amount Input Validation", () => {
-    it("validates amount greater than 0", async () => {
+  describe('Amount Input Validation', () => {
+    it('validates amount greater than 0', async () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -92,21 +92,19 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "0" } });
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '0' } });
 
-      const confirmBtn = screen.getByText("Confirm Payment");
+      const confirmBtn = screen.getByText('Confirm Payment');
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Please enter an amount greater than 0")
-        ).toBeInTheDocument();
+        expect(screen.getByText('Please enter an amount greater than 0')).toBeInTheDocument();
       });
       expect(mockOnConfirm).not.toHaveBeenCalled();
     });
 
-    it("validates amount does not exceed remaining balance", async () => {
+    it('validates amount does not exceed remaining balance', async () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -118,21 +116,19 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "800" } }); // Exceeds remaining 700
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '800' } }); // Exceeds remaining 700
 
-      const confirmBtn = screen.getByText("Confirm Payment");
+      const confirmBtn = screen.getByText('Confirm Payment');
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/Amount exceeds remaining balance/)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Amount exceeds remaining balance/)).toBeInTheDocument();
       });
       expect(mockOnConfirm).not.toHaveBeenCalled();
     });
 
-    it("allows payment up to remaining balance", async () => {
+    it('allows payment up to remaining balance', async () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -144,10 +140,10 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "700" } }); // Exactly the remaining amount
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '700' } }); // Exactly the remaining amount
 
-      const confirmBtn = screen.getByText("Confirm Payment");
+      const confirmBtn = screen.getByText('Confirm Payment');
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
@@ -156,8 +152,8 @@ describe("PartialPaymentModal", () => {
     });
   });
 
-  describe("Pay Full Amount Shortcut", () => {
-    it("populates input with full remaining amount", () => {
+  describe('Pay Full Amount Shortcut', () => {
+    it('populates input with full remaining amount', () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -172,11 +168,11 @@ describe("PartialPaymentModal", () => {
       const fullPayBtn = screen.getByText(/Pay Full Remaining Amount/);
       fireEvent.click(fullPayBtn);
 
-      const input = screen.getByPlaceholderText("0.00") as HTMLInputElement;
-      expect(input.value).toBe("700.00");
+      const input = screen.getByPlaceholderText('0.00') as HTMLInputElement;
+      expect(input.value).toBe('700.00');
     });
 
-    it("disables full payment button when no remaining balance", () => {
+    it('disables full payment button when no remaining balance', () => {
       const paidInvoice = { ...mockInvoice, amount_paid: mockInvoice.amount };
       render(
         <PartialPaymentModal
@@ -194,8 +190,8 @@ describe("PartialPaymentModal", () => {
     });
   });
 
-  describe("Payment Summary", () => {
-    it("displays new balance after payment", async () => {
+  describe('Payment Summary', () => {
+    it('displays new balance after payment', async () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -207,20 +203,18 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "200" } });
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '200' } });
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/New Balance After Payment/)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/New Balance After Payment/)).toBeInTheDocument();
         expect(screen.getByText(/500\.00 USDC/)).toBeInTheDocument(); // 700 - 200 = 500
       });
     });
   });
 
-  describe("Modal Behavior", () => {
-    it("does not render when closed", () => {
+  describe('Modal Behavior', () => {
+    it('does not render when closed', () => {
       const { container } = render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -235,7 +229,7 @@ describe("PartialPaymentModal", () => {
       expect(container.firstChild).toBeNull();
     });
 
-    it("calls onClose when cancel button is clicked", () => {
+    it('calls onClose when cancel button is clicked', () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -247,13 +241,13 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const cancelBtn = screen.getByText("Cancel");
+      const cancelBtn = screen.getByText('Cancel');
       fireEvent.click(cancelBtn);
 
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it("calls onClose when close button is clicked", () => {
+    it('calls onClose when close button is clicked', () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -265,17 +259,17 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const closeBtn = screen.getAllByRole("button").find((btn) =>
-        btn.querySelector(".material-symbols-outlined")?.textContent?.includes(
-          "close"
-        )
-      );
+      const closeBtn = screen
+        .getAllByRole('button')
+        .find((btn) =>
+          btn.querySelector('.material-symbols-outlined')?.textContent?.includes('close')
+        );
       if (closeBtn) fireEvent.click(closeBtn);
 
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it("disables buttons while submitting", () => {
+    it('disables buttons while submitting', () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -287,22 +281,20 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00") as HTMLInputElement;
+      const input = screen.getByPlaceholderText('0.00') as HTMLInputElement;
       expect(input).toBeDisabled();
 
-      const confirmBtn = screen.getByText("Processing...");
+      const confirmBtn = screen.getByText('Processing...');
       expect(confirmBtn).toBeDisabled();
 
-      const cancelBtn = screen.getByText("Cancel");
+      const cancelBtn = screen.getByText('Cancel');
       expect(cancelBtn).toBeDisabled();
     });
   });
 
-  describe("Error Handling", () => {
-    it("displays error message from onConfirm", async () => {
-      const errorOnConfirm = vi.fn().mockRejectedValue(
-        new Error("Transaction failed")
-      );
+  describe('Error Handling', () => {
+    it('displays error message from onConfirm', async () => {
+      const errorOnConfirm = vi.fn().mockRejectedValue(new Error('Transaction failed'));
 
       render(
         <PartialPaymentModal
@@ -315,18 +307,18 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "100" } });
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '100' } });
 
-      const confirmBtn = screen.getByText("Confirm Payment");
+      const confirmBtn = screen.getByText('Confirm Payment');
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
-        expect(screen.getByText("Transaction failed")).toBeInTheDocument();
+        expect(screen.getByText('Transaction failed')).toBeInTheDocument();
       });
     });
 
-    it("clears error message when user changes input", async () => {
+    it('clears error message when user changes input', async () => {
       render(
         <PartialPaymentModal
           invoice={mockInvoice}
@@ -338,24 +330,20 @@ describe("PartialPaymentModal", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("0.00");
-      fireEvent.change(input, { target: { value: "0" } });
+      const input = screen.getByPlaceholderText('0.00');
+      fireEvent.change(input, { target: { value: '0' } });
 
-      const confirmBtn = screen.getByText("Confirm Payment");
+      const confirmBtn = screen.getByText('Confirm Payment');
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Please enter an amount greater than 0")
-        ).toBeInTheDocument();
+        expect(screen.getByText('Please enter an amount greater than 0')).toBeInTheDocument();
       });
 
-      fireEvent.change(input, { target: { value: "100" } });
+      fireEvent.change(input, { target: { value: '100' } });
 
       await waitFor(() => {
-        expect(
-          screen.queryByText("Please enter an amount greater than 0")
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText('Please enter an amount greater than 0')).not.toBeInTheDocument();
       });
     });
   });

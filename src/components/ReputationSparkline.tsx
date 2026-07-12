@@ -1,12 +1,15 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-import { getReputationEvents } from "@/utils/soroban";
+import React, { useEffect, useMemo, useState } from 'react';
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { getReputationEvents } from '@/utils/soroban';
 
 type Point = { date: string; label: string; score: number };
 
-function build30DaySeries(events: Array<{ timestamp: number; score?: number }>, fallbackScore: number) {
+function build30DaySeries(
+  events: Array<{ timestamp: number; score?: number }>,
+  fallbackScore: number
+) {
   const now = new Date();
   const days = 30;
   const series: Point[] = [];
@@ -24,13 +27,11 @@ function build30DaySeries(events: Array<{ timestamp: number; score?: number }>, 
     d.setDate(d.getDate() - i);
     d.setHours(23, 59, 59, 999);
     // find latest event <= d
-    const ev = eventsWithDate
-      .filter((e) => e.d.getTime() <= d.getTime())
-      .slice(-1)[0];
-    if (ev && typeof ev.score === "number") lastKnownScore = Math.max(0, Math.min(100, ev.score));
+    const ev = eventsWithDate.filter((e) => e.d.getTime() <= d.getTime()).slice(-1)[0];
+    if (ev && typeof ev.score === 'number') lastKnownScore = Math.max(0, Math.min(100, ev.score));
     series.push({
       date: d.toISOString().slice(0, 10),
-      label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
       score: lastKnownScore,
     });
   }
@@ -58,7 +59,9 @@ export default function ReputationSparkline({
         // ignore
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [payerAddress]);
 
   const points = useMemo(() => build30DaySeries(events, currentScore ?? 0), [events, currentScore]);
@@ -76,10 +79,10 @@ export default function ReputationSparkline({
 
       <div className="w-28 h-10">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points}> 
+          <LineChart data={points}>
             <XAxis dataKey="label" hide />
             <Tooltip
-              formatter={(value: any) => [`${value}/100`, "Score"]}
+              formatter={(value: any) => [`${value}/100`, 'Score']}
               labelFormatter={(label: string, items: any) => {
                 return label;
               }}
@@ -87,7 +90,13 @@ export default function ReputationSparkline({
             <Line
               type="monotone"
               dataKey="score"
-              stroke={delta > 0 ? "var(--color-success, #16a34a)" : delta < 0 ? "var(--color-error, #dc2626)" : "var(--color-on-surface, #0f172a)"}
+              stroke={
+                delta > 0
+                  ? 'var(--color-success, #16a34a)'
+                  : delta < 0
+                    ? 'var(--color-error, #dc2626)'
+                    : 'var(--color-on-surface, #0f172a)'
+              }
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
@@ -98,9 +107,13 @@ export default function ReputationSparkline({
 
       <div className="flex flex-col items-end text-sm">
         {delta > 0 ? (
-          <div className="text-success font-bold flex items-center gap-1">▲ {Math.abs(Math.round(delta))}</div>
+          <div className="text-success font-bold flex items-center gap-1">
+            ▲ {Math.abs(Math.round(delta))}
+          </div>
         ) : delta < 0 ? (
-          <div className="text-error font-bold flex items-center gap-1">▼ {Math.abs(Math.round(delta))}</div>
+          <div className="text-error font-bold flex items-center gap-1">
+            ▼ {Math.abs(Math.round(delta))}
+          </div>
         ) : (
           <div className="text-on-surface-variant">—</div>
         )}

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 
 export default function HowItWorks() {
   const { t } = useTranslation();
@@ -11,16 +11,16 @@ export default function HowItWorks() {
 
   const steps = [
     {
-      title: t("landing.steps.submitInvoice"),
-      description: t("landing.steps.submitInvoiceDesc"),
+      title: t('landing.steps.submitInvoice'),
+      description: t('landing.steps.submitInvoiceDesc'),
     },
     {
-      title: t("landing.steps.fundAsLP"),
-      description: t("landing.steps.fundAsLPDesc"),
+      title: t('landing.steps.fundAsLP'),
+      description: t('landing.steps.fundAsLPDesc'),
     },
     {
-      title: t("landing.steps.protocolSettle"),
-      description: t("landing.steps.protocolSettleDesc"),
+      title: t('landing.steps.protocolSettle'),
+      description: t('landing.steps.protocolSettleDesc'),
     },
   ];
 
@@ -43,9 +43,7 @@ export default function HowItWorks() {
   return (
     <section className="bg-surface-container-low py-24 px-8 overflow-hidden">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-4xl font-headline mb-16 text-center">
-          {t("landing.howItWorksTitle")}
-        </h2>
+        <h2 className="text-4xl font-headline mb-16 text-center">{t('landing.howItWorksTitle')}</h2>
         <div className="grid md:grid-cols-3 gap-12 relative mb-24">
           {steps.map((step, index) => (
             <div
@@ -55,7 +53,7 @@ export default function HowItWorks() {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   handleStepClick(index);
                 }
@@ -65,8 +63,8 @@ export default function HowItWorks() {
             >
               <div
                 className={`w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container font-bold mb-6 transition-all duration-300 transform ${
-                  currentStep === index ? "scale-125 ring-2 ring-primary" : ""
-                } ${expandedDetails === index ? "ring-2 ring-primary scale-110" : ""}`}
+                  currentStep === index ? 'scale-125 ring-2 ring-primary' : ''
+                } ${expandedDetails === index ? 'ring-2 ring-primary scale-110' : ''}`}
               >
                 {index + 1}
               </div>
@@ -75,7 +73,7 @@ export default function HowItWorks() {
               </h3>
               <p
                 className={`text-on-surface-variant text-sm leading-relaxed transition-all duration-300 ${
-                  expandedDetails === index ? "opacity-100" : "opacity-75"
+                  expandedDetails === index ? 'opacity-100' : 'opacity-75'
                 }`}
               >
                 {step.description}
@@ -97,7 +95,7 @@ export default function HowItWorks() {
               <button
                 key={index}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  currentStep === index ? "w-8 bg-primary" : "w-2 bg-on-surface-variant/30"
+                  currentStep === index ? 'w-8 bg-primary' : 'w-2 bg-on-surface-variant/30'
                 }`}
                 onClick={() => {
                   setCurrentStep(index);
@@ -123,10 +121,10 @@ export default function HowItWorks() {
         <div className="bg-surface-container-highest p-8 md:p-12 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-outline-variant/40">
           <div className="text-center">
             <div className="text-xs font-bold mb-2 uppercase text-on-surface-variant">
-              {t("landing.flowDiagram.liquidityProvider")}
+              {t('landing.flowDiagram.liquidityProvider')}
             </div>
             <div className="text-2xl font-headline font-medium">$1,000</div>
-            <div className="text-xs text-primary mt-1">{t("landing.flowDiagram.capitalOut")}</div>
+            <div className="text-xs text-primary mt-1">{t('landing.flowDiagram.capitalOut')}</div>
           </div>
           <div className="flex-1 h-[2px] bg-outline-variant relative flex items-center justify-center w-full">
             <span className="absolute right-0 w-2 h-2 bg-outline-variant rotate-45 border-t border-r -mr-1"></span>
@@ -136,20 +134,20 @@ export default function HowItWorks() {
           </div>
           <div className="text-center">
             <div className="text-xs font-bold mb-2 uppercase text-on-surface-variant">
-              {t("landing.flowDiagram.freelancer")}
+              {t('landing.flowDiagram.freelancer')}
             </div>
             <div className="text-2xl font-headline font-medium">$970</div>
-            <div className="text-xs text-primary mt-1">{t("landing.flowDiagram.instantCash")}</div>
+            <div className="text-xs text-primary mt-1">{t('landing.flowDiagram.instantCash')}</div>
           </div>
           <div className="flex-1 h-[2px] bg-outline-variant relative flex items-center justify-center w-full">
             <span className="absolute right-0 w-2 h-2 bg-outline-variant rotate-45 border-t border-r -mr-1"></span>
           </div>
           <div className="text-center">
             <div className="text-xs font-bold mb-2 uppercase text-on-surface-variant">
-              {t("landing.flowDiagram.payerSettles")}
+              {t('landing.flowDiagram.payerSettles')}
             </div>
             <div className="text-2xl font-headline font-medium">$1,000</div>
-            <div className="text-xs text-primary mt-1">{t("landing.flowDiagram.toLP")}</div>
+            <div className="text-xs text-primary mt-1">{t('landing.flowDiagram.toLP')}</div>
           </div>
         </div>
       </div>

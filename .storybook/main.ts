@@ -24,9 +24,18 @@ const config: StorybookConfig = {
           '@': path.resolve(dirname, '../src'),
           '@/app': path.resolve(dirname, '../app'),
 
-          'storybook/highlight': path.resolve(dirname, '../node_modules/storybook/dist/highlight/index.js'),
-          'storybook/internal/csf': path.resolve(dirname, '../node_modules/storybook/dist/csf/index.js'),
-          '@storybook/global': path.resolve(dirname, '../node_modules/@storybook/global/dist/index.js'),
+          'storybook/highlight': path.resolve(
+            dirname,
+            '../node_modules/storybook/dist/highlight/index.js'
+          ),
+          'storybook/internal/csf': path.resolve(
+            dirname,
+            '../node_modules/storybook/dist/csf/index.js'
+          ),
+          '@storybook/global': path.resolve(
+            dirname,
+            '../node_modules/@storybook/global/dist/index.js'
+          ),
         },
       },
     });
@@ -35,11 +44,7 @@ const config: StorybookConfig = {
     return mergeConfig(config, {
       build: {
         rollupOptions: {
-          external: [
-            'storybook/highlight',
-            'storybook/internal/csf',
-            '@storybook/global',
-          ],
+          external: ['storybook/highlight', 'storybook/internal/csf', '@storybook/global'],
         },
       },
     });

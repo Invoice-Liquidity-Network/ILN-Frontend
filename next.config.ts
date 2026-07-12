@@ -1,23 +1,23 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 // @ts-ignore
-import withPWA from "next-pwa";
+import withPWA from 'next-pwa';
 
 const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
   turbopack: {},
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
 };
 
 export default withPWA({
-  dest: "public",
+  dest: 'public',
   register: true,
   skipWaiting: true,
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: "CacheFirst",
+      handler: 'CacheFirst',
       options: {
-        cacheName: "google-fonts",
+        cacheName: 'google-fonts',
         expiration: {
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
@@ -26,9 +26,9 @@ export default withPWA({
     },
     {
       urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-      handler: "CacheFirst",
+      handler: 'CacheFirst',
       options: {
-        cacheName: "google-fonts-static",
+        cacheName: 'google-fonts-static',
         expiration: {
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
@@ -37,9 +37,9 @@ export default withPWA({
     },
     {
       urlPattern: /\.(?:js|css|woff|woff2|ttf|eot)$/i,
-      handler: "StaleWhileRevalidate",
+      handler: 'StaleWhileRevalidate',
       options: {
-        cacheName: "static-assets",
+        cacheName: 'static-assets',
         expiration: {
           maxEntries: 64,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
@@ -48,9 +48,9 @@ export default withPWA({
     },
     {
       urlPattern: /\/api\/.*$/i,
-      handler: "NetworkFirst",
+      handler: 'NetworkFirst',
       options: {
-        cacheName: "api-cache",
+        cacheName: 'api-cache',
         expiration: {
           maxEntries: 16,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
@@ -59,10 +59,10 @@ export default withPWA({
       },
     },
     {
-      urlPattern: ({ request }: any) => request.destination === "document",
-      handler: "NetworkFirst",
+      urlPattern: ({ request }: any) => request.destination === 'document',
+      handler: 'NetworkFirst',
       options: {
-        cacheName: "pages",
+        cacheName: 'pages',
         expiration: {
           maxEntries: 32,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours

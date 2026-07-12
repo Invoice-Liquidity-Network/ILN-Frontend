@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { fetchProtocolParameters } from "@/utils/governance";
-import { Invoice, TokenMetadata, getTokenAllowance, getUsdcAllowance } from "@/utils/soroban";
-import { CONTRACT_ID } from "@/constants";
-import { formatTokenAmount, formatAddress } from "@/utils/format";
-import { TokenIcon } from "./TokenSelector";
+import React, { useState, useEffect, useMemo } from 'react';
+import { fetchProtocolParameters } from '@/utils/governance';
+import { Invoice, TokenMetadata, getTokenAllowance, getUsdcAllowance } from '@/utils/soroban';
+import { CONTRACT_ID } from '@/constants';
+import { formatTokenAmount, formatAddress } from '@/utils/format';
+import { TokenIcon } from './TokenSelector';
 
 interface PayerSettlementModalProps {
   invoice: Invoice;
@@ -22,17 +22,17 @@ export default function PayerSettlementModal({
   isOpen,
   onClose,
   onConfirm,
-  submitting
+  submitting,
 }: PayerSettlementModalProps) {
   const [payFull, setPayFull] = useState(true);
-  const [partialAmount, setPartialAmount] = useState("");
+  const [partialAmount, setPartialAmount] = useState('');
   const [allowance, setAllowance] = useState<bigint>(0n);
   const [loadingAllowance, setLoadingAllowance] = useState(false);
 
   const amountToPay = useMemo(() => {
     if (payFull) return invoice.amount;
     try {
-      const units = BigInt(Math.floor(Number(partialAmount) * (10 ** (token?.decimals ?? 7))));
+      const units = BigInt(Math.floor(Number(partialAmount) * 10 ** (token?.decimals ?? 7)));
       return units > invoice.amount ? invoice.amount : units;
     } catch {
       return 0n;
@@ -79,7 +79,9 @@ export default function PayerSettlementModal({
         <div className="border-b border-outline-variant/10 p-6 flex justify-between items-center bg-surface-container-low">
           <div>
             <h2 className="text-xl font-bold">Settle Invoice #{invoice.id.toString()}</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">Review payment details and confirm settlement.</p>
+            <p className="mt-1 text-sm text-on-surface-variant">
+              Review payment details and confirm settlement.
+            </p>
           </div>
           <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined">close</span>
@@ -89,14 +91,20 @@ export default function PayerSettlementModal({
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-xl border border-outline-variant/20 p-4 bg-surface-container-low">
-              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">LP Address</p>
-              <p className="mt-1 font-mono text-sm">{formatAddress(invoice.funder || "Not funded")}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                LP Address
+              </p>
+              <p className="mt-1 font-mono text-sm">
+                {formatAddress(invoice.funder || 'Not funded')}
+              </p>
             </div>
             <div className="rounded-xl border border-outline-variant/20 p-4 bg-surface-container-low">
-              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Token</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                Token
+              </p>
               <div className="mt-1 flex items-center gap-2">
                 {token && <TokenIcon token={token} className="h-5 w-5 !text-[8px]" />}
-                <span className="font-bold">{token?.symbol || "Unknown"}</span>
+                <span className="font-bold">{token?.symbol || 'Unknown'}</span>
               </div>
             </div>
           </div>
@@ -107,13 +115,13 @@ export default function PayerSettlementModal({
               <div className="flex bg-surface-container-high p-1 rounded-lg">
                 <button
                   onClick={() => setPayFull(true)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${payFull ? "bg-primary text-white shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${payFull ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
                   Full Amount
                 </button>
                 <button
                   onClick={() => setPayFull(false)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${!payFull ? "bg-primary text-white shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${!payFull ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
                   Partial
                 </button>
@@ -135,7 +143,9 @@ export default function PayerSettlementModal({
                   </div>
                 </div>
                 <p className="text-xs text-on-surface-variant">
-                  Max: {token ? formatTokenAmount(invoice.amount, token) : invoice.amount.toString()} {token?.symbol}
+                  Max:{' '}
+                  {token ? formatTokenAmount(invoice.amount, token) : invoice.amount.toString()}{' '}
+                  {token?.symbol}
                 </p>
               </div>
             )}
@@ -144,14 +154,18 @@ export default function PayerSettlementModal({
               <div className="flex justify-between text-sm">
                 <span className="text-on-surface-variant">Principal Amount</span>
                 <span className="font-medium">
-                  {token ? formatTokenAmount(amountToPay - lpEarnings, token) : (amountToPay - lpEarnings).toString()} {token?.symbol}
+                  {token
+                    ? formatTokenAmount(amountToPay - lpEarnings, token)
+                    : (amountToPay - lpEarnings).toString()}{' '}
+                  {token?.symbol}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-on-surface-variant">Projected LP Earnings</span>
                 <div className="flex items-end gap-3">
                   <span className="font-medium text-emerald-600">
-                    + {token ? formatTokenAmount(lpEarnings, token) : lpEarnings.toString()} {token?.symbol}
+                    + {token ? formatTokenAmount(lpEarnings, token) : lpEarnings.toString()}{' '}
+                    {token?.symbol}
                   </span>
                   {protocolFeeBps !== null && (
                     <span
@@ -160,10 +174,19 @@ export default function PayerSettlementModal({
                       data-testid="protocol-fee-display"
                     >
                       {protocolFeeBps === 0 ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 font-bold">0% fee</span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 font-bold">
+                          0% fee
+                        </span>
                       ) : (
                         <span>
-                          Protocol fee: {protocolFeeBps} bps (≈ {token ? formatTokenAmount((lpEarnings * BigInt(protocolFeeBps)) / 10000n, token) : "-"} {token?.symbol})
+                          Protocol fee: {protocolFeeBps} bps (≈{' '}
+                          {token
+                            ? formatTokenAmount(
+                                (lpEarnings * BigInt(protocolFeeBps)) / 10000n,
+                                token
+                              )
+                            : '-'}{' '}
+                          {token?.symbol})
                         </span>
                       )}
                     </span>
@@ -173,7 +196,8 @@ export default function PayerSettlementModal({
               <div className="pt-3 border-t border-primary/10 flex justify-between items-end">
                 <span className="text-sm font-bold text-on-surface">Total to Pay</span>
                 <span className="text-xl font-bold text-primary">
-                  {token ? formatTokenAmount(amountToPay, token) : amountToPay.toString()} {token?.symbol}
+                  {token ? formatTokenAmount(amountToPay, token) : amountToPay.toString()}{' '}
+                  {token?.symbol}
                 </span>
               </div>
             </div>
@@ -185,8 +209,10 @@ export default function PayerSettlementModal({
               <div>
                 <p className="text-sm font-bold text-amber-700">Approval Required</p>
                 <p className="text-xs text-amber-600 mt-0.5">
-                  Your current allowance is {token ? formatTokenAmount(allowance, token) : allowance.toString()} {token?.symbol}. 
-                  You will need to sign two transactions: one for approval and one for payment.
+                  Your current allowance is{' '}
+                  {token ? formatTokenAmount(allowance, token) : allowance.toString()}{' '}
+                  {token?.symbol}. You will need to sign two transactions: one for approval and one
+                  for payment.
                 </p>
               </div>
             </div>
@@ -211,9 +237,7 @@ export default function PayerSettlementModal({
                 Processing...
               </>
             ) : (
-              <>
-                Confirm Payment
-              </>
+              <>Confirm Payment</>
             )}
           </button>
         </div>

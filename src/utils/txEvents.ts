@@ -6,11 +6,11 @@
  * Kept in its own module so producers (`useTransaction`, the submit flow) and
  * consumers (`useBalances`) can share the contract without importing each other.
  */
-export const TX_SUCCESS_EVENT = "iln:tx-success";
+export const TX_SUCCESS_EVENT = 'iln:tx-success';
 
 /** Notify listeners that a transaction settled successfully. No-op on the server. */
 export function notifyTxSuccess(): void {
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(TX_SUCCESS_EVENT));
   }
 }

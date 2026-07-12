@@ -1,28 +1,34 @@
-"use client";
+'use client';
 
-import React from "react";
-import { ExternalLink, PlusCircle } from "lucide-react";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
-import { useWallet } from "@/context/WalletContext";
-import { TokenIcon } from "@/components/TokenSelector";
-import type { ApprovedToken } from "@/hooks/useApprovedTokens";
+import React from 'react';
+import { ExternalLink, PlusCircle } from 'lucide-react';
+import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import { useWallet } from '@/context/WalletContext';
+import { TokenIcon } from '@/components/TokenSelector';
+import type { ApprovedToken } from '@/hooks/useApprovedTokens';
 
-const STELLAR_DEX_BASE = "https://stellarterm.com/exchange";
+const STELLAR_DEX_BASE = 'https://stellarterm.com/exchange';
 
 const TOKEN_NOTES: Record<string, string> = {
-  XLM: "Native Stellar asset — no trustline required. Precision: 7 decimal places.",
-  USDC: "Circle USD Coin on Stellar. Requires a trustline.",
-  EURC: "Circle Euro Coin on Stellar. Requires a trustline.",
+  XLM: 'Native Stellar asset — no trustline required. Precision: 7 decimal places.',
+  USDC: 'Circle USD Coin on Stellar. Requires a trustline.',
+  EURC: 'Circle Euro Coin on Stellar. Requires a trustline.',
 };
 
 function getAcquireUrl(token: ApprovedToken): string {
-  if (token.symbol === "XLM") return "https://www.stellar.org/lumens/buy";
+  if (token.symbol === 'XLM') return 'https://www.stellar.org/lumens/buy';
   return `${STELLAR_DEX_BASE}/${token.symbol}-${token.contractId}/XLM-native`;
 }
 
-function TokenCard({ token, onAddTrustline }: { token: ApprovedToken; onAddTrustline: (t: ApprovedToken) => void }) {
+function TokenCard({
+  token,
+  onAddTrustline,
+}: {
+  token: ApprovedToken;
+  onAddTrustline: (t: ApprovedToken) => void;
+}) {
   const { isConnected } = useWallet();
-  const isNative = token.contractId === "native-xlm" || token.symbol === "XLM";
+  const isNative = token.contractId === 'native-xlm' || token.symbol === 'XLM';
 
   return (
     <div
@@ -51,9 +57,7 @@ function TokenCard({ token, onAddTrustline }: { token: ApprovedToken; onAddTrust
           <span className="font-semibold text-on-surface">Contract: </span>
           <span className="font-mono break-all">{token.contractId}</span>
         </p>
-        {TOKEN_NOTES[token.symbol] && (
-          <p className="italic">{TOKEN_NOTES[token.symbol]}</p>
-        )}
+        {TOKEN_NOTES[token.symbol] && <p className="italic">{TOKEN_NOTES[token.symbol]}</p>}
       </div>
 
       <div className="flex gap-2 mt-auto">
@@ -71,7 +75,7 @@ function TokenCard({ token, onAddTrustline }: { token: ApprovedToken; onAddTrust
             type="button"
             onClick={() => onAddTrustline(token)}
             disabled={!isConnected}
-            title={isConnected ? "Add trustline via Freighter" : "Connect wallet to add trustline"}
+            title={isConnected ? 'Add trustline via Freighter' : 'Connect wallet to add trustline'}
             className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             data-testid={`add-trustline-${token.symbol}`}
           >
@@ -91,7 +95,7 @@ export default function TokensPage() {
   async function handleAddTrustline(token: ApprovedToken) {
     if (!isConnected) return;
     try {
-      const freighter = await import("@stellar/freighter-api");
+      const freighter = await import('@stellar/freighter-api');
       await (freighter as any).addTrustline?.({
         assetCode: token.symbol,
         assetIssuer: token.contractId,
@@ -109,15 +113,21 @@ export default function TokensPage() {
       </p>
 
       {isLoading && (
-        <p className="text-on-surface-variant text-sm" role="status">Loading tokens…</p>
+        <p className="text-on-surface-variant text-sm" role="status">
+          Loading tokens…
+        </p>
       )}
 
       {error && (
-        <p className="text-error text-sm" role="alert">{error}</p>
+        <p className="text-error text-sm" role="alert">
+          {error}
+        </p>
       )}
 
       {!isLoading && !error && tokens.length === 0 && (
-        <p className="text-on-surface-variant text-sm" data-testid="no-tokens">No supported tokens found.</p>
+        <p className="text-on-surface-variant text-sm" data-testid="no-tokens">
+          No supported tokens found.
+        </p>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

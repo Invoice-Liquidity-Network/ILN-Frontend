@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import type { Invoice } from "@/utils/soroban";
-import type { InvoicePdfData } from "@/utils/invoicePdf";
+import { useState, useCallback } from 'react';
+import type { Invoice } from '@/utils/soroban';
+import type { InvoicePdfData } from '@/utils/invoicePdf';
 
 interface InvoicePdfButtonProps {
   invoice: Invoice;
-  data: Omit<InvoicePdfData, "shareUrl">;
+  data: Omit<InvoicePdfData, 'shareUrl'>;
   /** Overrides window.location.origin (primarily for tests). */
   baseUrl?: string;
 }
@@ -25,17 +25,17 @@ interface CustomFields {
 export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfButtonProps) {
   const [open, setOpen] = useState(false);
   const [fields, setFields] = useState<CustomFields>({
-    notes: "",
-    termsAndConditions: "",
-    paymentInstructions: "",
+    notes: '',
+    termsAndConditions: '',
+    paymentInstructions: '',
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   const shareUrl = useCallback(() => {
-    const origin = baseUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
-    return `${origin.replace(/\/$/, "")}/i/${invoice.id.toString()}`;
+    const origin = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '');
+    return `${origin.replace(/\/$/, '')}/i/${invoice.id.toString()}`;
   }, [baseUrl, invoice.id]);
 
   const buildData = useCallback(
@@ -46,15 +46,15 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
       termsAndConditions: fields.termsAndConditions.trim() || undefined,
       paymentInstructions: fields.paymentInstructions.trim() || undefined,
     }),
-    [data, shareUrl, fields],
+    [data, shareUrl, fields]
   );
 
   const handlePreview = async () => {
     setPreviewing(true);
     try {
-      const { buildInvoicePdf } = await import("@/utils/invoicePdf");
+      const { buildInvoicePdf } = await import('@/utils/invoicePdf');
       const doc = await buildInvoicePdf(invoice, buildData());
-      const blob = new Blob([doc.output("arraybuffer")], { type: "application/pdf" });
+      const blob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(blob));
     } finally {
@@ -65,7 +65,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const { buildInvoicePdf, invoicePdfFilename } = await import("@/utils/invoicePdf");
+      const { buildInvoicePdf, invoicePdfFilename } = await import('@/utils/invoicePdf');
       const doc = await buildInvoicePdf(invoice, buildData());
       doc.save(invoicePdfFilename(invoice.id));
       setOpen(false);
@@ -122,9 +122,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
             <div className="flex flex-col gap-3 text-sm">
               {/* Payment Instructions */}
               <label className="flex flex-col gap-1">
-                <span className="font-bold text-on-surface-variant">
-                  Payment Instructions
-                </span>
+                <span className="font-bold text-on-surface-variant">Payment Instructions</span>
                 <input
                   type="text"
                   placeholder="e.g. Send USDC to G... on Stellar Mainnet"
@@ -141,7 +139,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
                 <span className="flex items-center justify-between font-bold text-on-surface-variant">
                   <span>Notes</span>
                   <span
-                    className={`text-xs font-normal ${notesLen > 1000 ? "text-error" : "text-on-surface-variant"}`}
+                    className={`text-xs font-normal ${notesLen > 1000 ? 'text-error' : 'text-on-surface-variant'}`}
                   >
                     {notesLen}/1000
                   </span>
@@ -158,16 +156,12 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
 
               {/* Terms & Conditions */}
               <label className="flex flex-col gap-1">
-                <span className="font-bold text-on-surface-variant">
-                  Terms &amp; Conditions
-                </span>
+                <span className="font-bold text-on-surface-variant">Terms &amp; Conditions</span>
                 <textarea
                   rows={3}
                   placeholder="Optional terms and conditions…"
                   value={fields.termsAndConditions}
-                  onChange={(e) =>
-                    setFields((f) => ({ ...f, termsAndConditions: e.target.value }))
-                  }
+                  onChange={(e) => setFields((f) => ({ ...f, termsAndConditions: e.target.value }))}
                   className="resize-y rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </label>
@@ -190,7 +184,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
                 className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-2 text-sm font-bold disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">preview</span>
-                {previewing ? "Generating…" : "Preview"}
+                {previewing ? 'Generating…' : 'Preview'}
               </button>
               <button
                 type="button"
@@ -199,7 +193,7 @@ export default function InvoicePdfButton({ invoice, data, baseUrl }: InvoicePdfB
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">download</span>
-                {downloading ? "Preparing…" : "Download PDF"}
+                {downloading ? 'Preparing…' : 'Download PDF'}
               </button>
             </div>
           </div>

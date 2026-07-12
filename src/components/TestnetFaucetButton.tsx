@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { STELLAR_NETWORK } from "@/constants";
-import { useToast } from "@/context/ToastContext";
-import { useWallet } from "@/context/WalletContext";
-import { getNativeXlmBalance } from "@/utils/soroban";
+import { useEffect, useState } from 'react';
+import { STELLAR_NETWORK } from '@/constants';
+import { useToast } from '@/context/ToastContext';
+import { useWallet } from '@/context/WalletContext';
+import { getNativeXlmBalance } from '@/utils/soroban';
 
 const MINIMUM_XLM_BALANCE = 2;
 
@@ -15,7 +15,7 @@ export default function TestnetFaucetButton() {
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
 
-  const isTestnet = STELLAR_NETWORK.toLowerCase() === "testnet";
+  const isTestnet = STELLAR_NETWORK.toLowerCase() === 'testnet';
   const hasSufficientBalance = xlmBalance !== null && xlmBalance >= MINIMUM_XLM_BALANCE;
 
   useEffect(() => {
@@ -49,13 +49,15 @@ export default function TestnetFaucetButton() {
 
   const handleFund = async () => {
     setIsFunding(true);
-    const toastId = addToast({ type: "pending", title: "Requesting testnet XLM..." });
+    const toastId = addToast({ type: 'pending', title: 'Requesting testnet XLM...' });
 
     try {
-      const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(address)}`);
+      const response = await fetch(
+        `https://friendbot.stellar.org?addr=${encodeURIComponent(address)}`
+      );
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || "Friendbot request failed.");
+        throw new Error(message || 'Friendbot request failed.');
       }
 
       const previousBalance = xlmBalance ?? 0;
@@ -63,15 +65,15 @@ export default function TestnetFaucetButton() {
       const fundedAmount = Math.max(0, nextBalance - previousBalance);
       setXlmBalance(nextBalance);
       updateToast(toastId, {
-        type: "success",
-        title: "Testnet XLM received",
+        type: 'success',
+        title: 'Testnet XLM received',
         message: `Funded ${fundedAmount.toFixed(2)} XLM. Current balance: ${nextBalance.toFixed(2)} XLM.`,
       });
     } catch (error) {
       updateToast(toastId, {
-        type: "error",
-        title: "Faucet failed",
-        message: error instanceof Error ? error.message : "Friendbot could not fund this wallet.",
+        type: 'error',
+        title: 'Faucet failed',
+        message: error instanceof Error ? error.message : 'Friendbot could not fund this wallet.',
       });
     } finally {
       setIsFunding(false);
@@ -87,11 +89,11 @@ export default function TestnetFaucetButton() {
       title={
         hasSufficientBalance
           ? `Wallet already has ${xlmBalance.toFixed(2)} XLM`
-          : "Request testnet XLM from Stellar Friendbot"
+          : 'Request testnet XLM from Stellar Friendbot'
       }
     >
       <span className="material-symbols-outlined text-[16px]">add_circle</span>
-      {hasSufficientBalance ? "XLM funded" : isFunding ? "Funding..." : "Get Testnet XLM"}
+      {hasSufficientBalance ? 'XLM funded' : isFunding ? 'Funding...' : 'Get Testnet XLM'}
     </button>
   );
 }

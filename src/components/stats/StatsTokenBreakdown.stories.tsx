@@ -36,7 +36,9 @@ export const Empty: Story = {
 
 export const SingleToken: Story = {
   args: {
-    tokens: [{ symbol: 'USDC', amount_raw: 500000, amount_usd: 500000, percentage: 100, color: '#008080' }],
+    tokens: [
+      { symbol: 'USDC', amount_raw: 500000, amount_usd: 500000, percentage: 100, color: '#008080' },
+    ],
     totalUsd: 500000,
   },
 };

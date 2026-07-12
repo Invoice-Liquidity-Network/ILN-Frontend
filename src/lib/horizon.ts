@@ -1,9 +1,9 @@
-import { CONTRACT_ID, STELLAR_NETWORK } from "@/constants";
+import { CONTRACT_ID, STELLAR_NETWORK } from '@/constants';
 
 export function getHorizonBaseUrl(): string {
-  return STELLAR_NETWORK === "mainnet"
-    ? "https://horizon.stellar.org"
-    : "https://horizon-testnet.stellar.org";
+  return STELLAR_NETWORK === 'mainnet'
+    ? 'https://horizon.stellar.org'
+    : 'https://horizon-testnet.stellar.org';
 }
 
 export function getContractTransactionsStreamUrl(): string {

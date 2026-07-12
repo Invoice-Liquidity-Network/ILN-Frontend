@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
-export type NotificationPermissionState = NotificationPermission | "loading";
+export type NotificationPermissionState = NotificationPermission | 'loading';
 
 export function useNotifications() {
-  const [permission, setPermission] = useState<NotificationPermissionState>("loading");
+  const [permission, setPermission] = useState<NotificationPermissionState>('loading');
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
     } else {
-      setPermission("denied");
+      setPermission('denied');
     }
   }, []);
 
   const requestPermission = useCallback(async () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return "denied";
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return 'denied';
     }
 
     try {
@@ -25,18 +25,18 @@ export function useNotifications() {
       setPermission(result);
       return result;
     } catch (error) {
-      console.error("Error requesting notification permission:", error);
-      setPermission("denied");
-      return "denied";
+      console.error('Error requesting notification permission:', error);
+      setPermission('denied');
+      return 'denied';
     }
   }, []);
 
   const showNotification = useCallback((title: string, options?: NotificationOptions) => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       return null;
     }
 
-    if (Notification.permission === "granted") {
+    if (Notification.permission === 'granted') {
       return new Notification(title, options);
     }
     return null;
@@ -46,6 +46,6 @@ export function useNotifications() {
     permission,
     requestPermission,
     showNotification,
-    isSupported: typeof window !== "undefined" && "Notification" in window,
+    isSupported: typeof window !== 'undefined' && 'Notification' in window,
   };
 }

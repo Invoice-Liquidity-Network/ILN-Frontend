@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-export const ERROR_BOUNDARY_MESSAGE = "Something went wrong loading this section.";
+export const ERROR_BOUNDARY_MESSAGE = 'Something went wrong loading this section.';
 
 /** Gate that stays open until retry clears it (survives React 19 concurrent recovery). */
 export function createThrowGate() {
@@ -10,7 +10,7 @@ export function createThrowGate() {
 export function createThrowingComponent(
   gate: { shouldThrow: boolean },
   success: React.ReactNode,
-  message = "RPC unavailable",
+  message = 'RPC unavailable'
 ) {
   return class ThrowingSection extends React.Component {
     render() {

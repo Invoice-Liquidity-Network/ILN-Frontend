@@ -5,10 +5,10 @@
  * into your components for wallet connection and authentication.
  */
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWallet } from "@/hooks/useWallet";
+import { useState } from 'react';
+import { useWallet } from '@/hooks/useWallet';
 
 /**
  * Example 1: Simple Wallet Connection Component
@@ -24,7 +24,7 @@ export function WalletConnectionExample() {
     try {
       await connect();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Connection failed");
+      setError(err instanceof Error ? err.message : 'Connection failed');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +57,7 @@ export function WalletConnectionExample() {
         disabled={isLoading}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
       >
-        {isLoading ? "Connecting..." : "Connect Wallet"}
+        {isLoading ? 'Connecting...' : 'Connect Wallet'}
       </button>
       {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
     </div>
@@ -75,14 +75,14 @@ export function UserProfileExample() {
 
   const fetchProfile = async () => {
     if (!isConnected || !jwt) {
-      setError("Not connected or authenticated");
+      setError('Not connected or authenticated');
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/user/profile", {
+      const response = await fetch('/api/user/profile', {
         headers: {
           Authorization: `Bearer ${jwt}`,
         },
@@ -95,16 +95,14 @@ export function UserProfileExample() {
       const data = await response.json();
       setProfileData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch profile");
+      setError(err instanceof Error ? err.message : 'Failed to fetch profile');
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!isConnected) {
-    return (
-      <p className="text-gray-600">Connect your wallet to view profile</p>
-    );
+    return <p className="text-gray-600">Connect your wallet to view profile</p>;
   }
 
   return (
@@ -114,7 +112,7 @@ export function UserProfileExample() {
         disabled={isLoading || !jwt}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
       >
-        {isLoading ? "Loading..." : "Load Profile"}
+        {isLoading ? 'Loading...' : 'Load Profile'}
       </button>
 
       {error && <p className="text-red-600">{error}</p>}
@@ -133,14 +131,14 @@ export function UserProfileExample() {
  */
 export function TransactionSigningExample() {
   const { isConnected, publicKey, signTransaction } = useWallet();
-  const [txXdr, setTxXdr] = useState("");
+  const [txXdr, setTxXdr] = useState('');
   const [signedTx, setSignedTx] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSign = async () => {
     if (!txXdr.trim()) {
-      setError("Please enter a transaction XDR");
+      setError('Please enter a transaction XDR');
       return;
     }
 
@@ -150,24 +148,20 @@ export function TransactionSigningExample() {
       const result = await signTransaction(txXdr);
       setSignedTx(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to sign transaction");
+      setError(err instanceof Error ? err.message : 'Failed to sign transaction');
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!isConnected) {
-    return (
-      <p className="text-gray-600">Connect your wallet to sign transactions</p>
-    );
+    return <p className="text-gray-600">Connect your wallet to sign transactions</p>;
   }
 
   return (
     <div className="space-y-4 max-w-2xl">
       <div>
-        <label className="block text-sm font-medium mb-2">
-          Transaction XDR:
-        </label>
+        <label className="block text-sm font-medium mb-2">Transaction XDR:</label>
         <textarea
           value={txXdr}
           onChange={(e) => setTxXdr(e.target.value)}
@@ -181,16 +175,14 @@ export function TransactionSigningExample() {
         disabled={isLoading || !txXdr.trim()}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
       >
-        {isLoading ? "Signing..." : "Sign Transaction"}
+        {isLoading ? 'Signing...' : 'Sign Transaction'}
       </button>
 
       {error && <p className="text-red-600">{error}</p>}
 
       {signedTx && (
         <div className="p-4 bg-green-50 border border-green-200 rounded">
-          <p className="text-sm font-medium text-green-900 mb-2">
-            ✓ Transaction Signed
-          </p>
+          <p className="text-sm font-medium text-green-900 mb-2">✓ Transaction Signed</p>
           <textarea
             value={signedTx}
             readOnly
@@ -218,34 +210,28 @@ export function AuthStatusExample() {
     <div className="p-4 bg-gray-100 rounded space-y-2 text-sm">
       <div>
         <span className="font-medium">Wallet Connected:</span>
-        <span className={isConnected ? "text-green-600" : "text-red-600"}>
-          {isConnected ? " Yes" : " No"}
+        <span className={isConnected ? 'text-green-600' : 'text-red-600'}>
+          {isConnected ? ' Yes' : ' No'}
         </span>
       </div>
 
       <div>
         <span className="font-medium">Public Key:</span>
         <span className="font-mono text-xs">
-          {publicKey ? ` ${publicKey.substring(0, 6)}...${publicKey.substring(-4)}` : " -"}
+          {publicKey ? ` ${publicKey.substring(0, 6)}...${publicKey.substring(-4)}` : ' -'}
         </span>
       </div>
 
       <div>
         <span className="font-medium">Authenticated (JWT):</span>
-        <span className={jwt ? "text-green-600" : "text-red-600"}>
-          {jwt ? " Yes" : " No"}
-        </span>
+        <span className={jwt ? 'text-green-600' : 'text-red-600'}>{jwt ? ' Yes' : ' No'}</span>
       </div>
 
       {jwt && (
         <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
           <p className="font-medium mb-1">JWT Payload (decoded):</p>
           <pre className="font-mono overflow-x-auto">
-            {JSON.stringify(
-              JSON.parse(atob(jwt.split(".")[1])),
-              null,
-              2,
-            )}
+            {JSON.stringify(JSON.parse(atob(jwt.split('.')[1])), null, 2)}
           </pre>
         </div>
       )}
@@ -264,9 +250,7 @@ interface ProtectedComponentProps {
 export function ProtectedComponent({
   children,
   fallback = (
-    <p className="text-yellow-600">
-      Please connect and authenticate to access this content
-    </p>
+    <p className="text-yellow-600">Please connect and authenticate to access this content</p>
   ),
 }: ProtectedComponentProps) {
   const { isConnected, jwt } = useWallet();

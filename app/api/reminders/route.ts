@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import PaymentReminderEmail from "@/emails/PaymentReminder";
-import { getAllInvoices, getTokenMetadata } from "@/utils/soroban";
-import { formatTokenAmount } from "@/utils/format";
+import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
+import { getSupabaseAdmin } from '@/lib/supabase';
+import PaymentReminderEmail from '@/emails/PaymentReminder';
+import { getAllInvoices, getTokenMetadata } from '@/utils/soroban';
+import { formatTokenAmount } from '@/utils/format';
 
 let _resend: Resend | null = null;
 function getResend(): Resend {
@@ -19,34 +19,35 @@ export async function POST(req: NextRequest) {
     const { address, email, enabled } = await req.json();
 
     if (!address || !email) {
-      return NextResponse.json({ error: "Address and email are required" }, { status: 400 });
+      return NextResponse.json({ error: 'Address and email are required' }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
-    const { error } = await supabase
-      .from("reminder_preferences")
-      .upsert({ 
-        address, 
-        email, 
-        enabled: enabled ?? true, 
-        updated_at: new Date().toISOString() 
-      }, { onConflict: "address" });
+    const { error } = await supabase.from('reminder_preferences').upsert(
+      {
+        address,
+        email,
+        enabled: enabled ?? true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'address' }
+    );
 
     if (error) throw error;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error saving reminder preference:", error);
-    return NextResponse.json({ error: "Failed to save preference" }, { status: 500 });
+    console.error('Error saving reminder preference:', error);
+    return NextResponse.json({ error: 'Failed to save preference' }, { status: 500 });
   }
 }
 
 // GET: Trigger reminders (intended for cron job)
 export async function GET(req: NextRequest) {
   // Simple auth check via secret header
-  const authHeader = req.headers.get("authorization");
+  const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -54,13 +55,13 @@ export async function GET(req: NextRequest) {
 
     // 1. Fetch active preferences
     const { data: preferences, error: prefError } = await supabase
-      .from("reminder_preferences")
-      .select("*")
-      .eq("enabled", true);
+      .from('reminder_preferences')
+      .select('*')
+      .eq('enabled', true);
 
     if (prefError) throw prefError;
     if (!preferences || preferences.length === 0) {
-      return NextResponse.json({ message: "No active preferences" });
+      return NextResponse.json({ message: 'No active preferences' });
     }
 
     // 2. Fetch all invoices from contract
@@ -70,9 +71,8 @@ export async function GET(req: NextRequest) {
 
     for (const pref of preferences) {
       // Filter for outstanding invoices addressed to this payer
-      const payerInvoices = allInvoices.filter(inv => 
-        inv.payer === pref.address && 
-        inv.status === "Funded"
+      const payerInvoices = allInvoices.filter(
+        (inv) => inv.payer === pref.address && inv.status === 'Funded'
       );
 
       for (const inv of payerInvoices) {
@@ -90,24 +90,24 @@ export async function GET(req: NextRequest) {
         if (milestone) {
           // Check if already sent for this invoice and milestone
           const { data: alreadySent } = await supabase
-            .from("sent_reminders")
-            .select("id")
-            .eq("invoice_id", inv.id.toString())
-            .eq("milestone", milestone)
+            .from('sent_reminders')
+            .select('id')
+            .eq('invoice_id', inv.id.toString())
+            .eq('milestone', milestone)
             .maybeSingle();
 
           if (!alreadySent) {
-            const token = await getTokenMetadata(inv.token || "");
+            const token = await getTokenMetadata(inv.token || '');
             const formattedAmount = formatTokenAmount(inv.amount, token);
             const formattedDate = new Date(dueDate * 1000).toLocaleDateString();
 
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.iln.finance";
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.iln.finance';
             const payerLink = `${baseUrl}/payer`;
             const payNowLink = `${baseUrl}/pay/${inv.id.toString()}`;
             const unsubscribeUrl = `${baseUrl}/api/reminders/unsubscribe?address=${pref.address}`;
 
             const { error: sendError } = await getResend().emails.send({
-              from: "ILN Reminders <reminders@iln.finance>",
+              from: 'ILN Reminders <reminders@iln.finance>',
               to: [pref.email],
               subject: `Payment Reminder: Invoice #${inv.id} is due in ${milestone} hours`,
               react: PaymentReminderEmail({
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
                 payNowLink,
               }),
               headers: {
-                "List-Unsubscribe": `<${unsubscribeUrl}>`,
+                'List-Unsubscribe': `<${unsubscribeUrl}>`,
               },
             });
 
@@ -127,11 +127,11 @@ export async function GET(req: NextRequest) {
               console.error(`Resend error for invoice ${inv.id}:`, sendError);
             } else {
               // Mark as sent in DB
-              await supabase.from("sent_reminders").insert({
+              await supabase.from('sent_reminders').insert({
                 invoice_id: inv.id.toString(),
                 milestone,
                 sent_at: new Date().toISOString(),
-                email: pref.email
+                email: pref.email,
               });
               sentResults.push({ invoiceId: inv.id.toString(), milestone, email: pref.email });
             }
@@ -140,9 +140,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, sentCount: sentResults.length, details: sentResults });
+    return NextResponse.json({
+      success: true,
+      sentCount: sentResults.length,
+      details: sentResults,
+    });
   } catch (error) {
-    console.error("Error sending reminders:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('Error sending reminders:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

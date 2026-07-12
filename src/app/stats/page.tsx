@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import ProtocolStatsScreen from "@/screens/ProtocolStats";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Suspense } from 'react';
+import ProtocolStatsScreen from '@/screens/ProtocolStats';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function StatsPage() {
-  useDocumentTitle({ pageTitle: "Protocol Statistics" });
+  useDocumentTitle({ pageTitle: 'Protocol Statistics' });
   return (
     <Suspense fallback={null}>
       <ProtocolStatsScreen />

@@ -13,7 +13,7 @@ export default defineConfig({
     alias: [
       { find: '@/app', replacement: path.resolve(dirname, 'app') },
       { find: '@', replacement: path.resolve(dirname, 'src') },
-    ]
+    ],
   },
   test: {
     coverage: {
@@ -35,34 +35,40 @@ export default defineConfig({
       reporter: ['text', 'json', 'json-summary', 'html'],
       reportsDirectory: './coverage',
     },
-    projects: [{
-      extends: true,
-      test: {
-        globals: true,
-        environment: 'jsdom',
-        setupFiles: ['./vitest.setup.ts']
-      }
-    }, {
-      extends: true,
-      plugins: [
-      // The plugin will run tests for the stories defined in your Storybook config
-      // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-      storybookTest({
-        configDir: path.join(dirname, '.storybook')
-      })],
-      test: {
-        name: 'storybook',
-        browser: {
-          // Only run Storybook browser tests when STORYBOOK_TESTS=1 is set
-          // (requires: npx playwright install chromium)
-          enabled: process.env.STORYBOOK_TESTS === '1',
-          headless: true,
-          provider: playwright({}),
-          instances: [{
-            browser: 'chromium'
-          }]
-        }
-      }
-    }]
-  }
+    projects: [
+      {
+        extends: true,
+        test: {
+          globals: true,
+          environment: 'jsdom',
+          setupFiles: ['./vitest.setup.ts'],
+        },
+      },
+      {
+        extends: true,
+        plugins: [
+          // The plugin will run tests for the stories defined in your Storybook config
+          // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+          storybookTest({
+            configDir: path.join(dirname, '.storybook'),
+          }),
+        ],
+        test: {
+          name: 'storybook',
+          browser: {
+            // Only run Storybook browser tests when STORYBOOK_TESTS=1 is set
+            // (requires: npx playwright install chromium)
+            enabled: process.env.STORYBOOK_TESTS === '1',
+            headless: true,
+            provider: playwright({}),
+            instances: [
+              {
+                browser: 'chromium',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 });

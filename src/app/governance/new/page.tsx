@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { 
-  fetchProtocolParameters, 
-  createProposal, 
-  isValidStellarAddress, 
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  fetchProtocolParameters,
+  createProposal,
+  isValidStellarAddress,
   lookupToken,
   ProtocolParameters,
   CreateProposalFormType,
-  CreateProposalPayload
-} from "@/utils/governance";
-import { useWallet } from "@/context/WalletContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { AlertCircle, CheckCircle2, ChevronRight, Info, Loader2 } from "lucide-react";
+  CreateProposalPayload,
+} from '@/utils/governance';
+import { useWallet } from '@/context/WalletContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { AlertCircle, CheckCircle2, ChevronRight, Info, Loader2 } from 'lucide-react';
 
 export default function NewGovernanceProposalPage() {
   const router = useRouter();
@@ -25,9 +25,9 @@ export default function NewGovernanceProposalPage() {
   const [userBalance, setUserBalance] = useState(1250); // Mock balance for demo/test consistency
 
   const [form, setForm] = useState<CreateProposalPayload>({
-    formType: "FeeRate",
-    title: "",
-    description: "",
+    formType: 'FeeRate',
+    title: '',
+    description: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,7 +50,7 @@ export default function NewGovernanceProposalPage() {
 
   const handleActionTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const type = e.target.value as CreateProposalFormType;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       formType: type,
       newValueBps: undefined,
@@ -66,15 +66,14 @@ export default function NewGovernanceProposalPage() {
     setResolvingToken(true);
     try {
       const token = await lookupToken(tokenAddr);
-      setForm(prev => ({ ...prev, tokenName: token.symbol }));
+      setForm((prev) => ({ ...prev, tokenName: token.symbol }));
     } catch (e: any) {
       const msg: string = e?.message ?? String(e);
-      const isFeeOnTransfer =
-        msg.includes("FeeOnTransferToken") || msg.includes("fee_on_transfer");
-      setErrors(prev => ({
+      const isFeeOnTransfer = msg.includes('FeeOnTransferToken') || msg.includes('fee_on_transfer');
+      setErrors((prev) => ({
         ...prev,
         tokenAddress: isFeeOnTransfer
-          ? "This token implements fee-on-transfer and cannot be added to the ILN allowlist. Tokens must transfer the exact amount specified."
+          ? 'This token implements fee-on-transfer and cannot be added to the ILN allowlist. Tokens must transfer the exact amount specified.'
           : msg,
       }));
     } finally {
@@ -84,29 +83,29 @@ export default function NewGovernanceProposalPage() {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!form.formType) newErrors.formType = "Action Type is required.";
-    if (!form.title.trim()) newErrors.title = "Title is required.";
-    if (!form.description.trim()) newErrors.description = "Description is required.";
+    if (!form.formType) newErrors.formType = 'Action Type is required.';
+    if (!form.title.trim()) newErrors.title = 'Title is required.';
+    if (!form.description.trim()) newErrors.description = 'Description is required.';
 
-    if (form.formType === "FeeRate" || form.formType === "MaxDiscountRate") {
+    if (form.formType === 'FeeRate' || form.formType === 'MaxDiscountRate') {
       if (form.newValueBps === undefined || isNaN(form.newValueBps)) {
-        newErrors.newValueBps = "Proposed value is required.";
+        newErrors.newValueBps = 'Proposed value is required.';
       } else if (form.newValueBps < 0 || form.newValueBps > 5000) {
-        newErrors.newValueBps = "Value must be between 0 and 5000 basis points.";
+        newErrors.newValueBps = 'Value must be between 0 and 5000 basis points.';
       }
     }
 
-    if (form.formType === "AddToken") {
+    if (form.formType === 'AddToken') {
       if (!form.tokenAddress) {
-        newErrors.tokenAddress = "Token address is required.";
+        newErrors.tokenAddress = 'Token address is required.';
       } else if (!isValidStellarAddress(form.tokenAddress)) {
-        newErrors.tokenAddress = "Invalid Stellar address.";
+        newErrors.tokenAddress = 'Invalid Stellar address.';
       }
     }
 
-    if (form.formType === "RemoveToken") {
+    if (form.formType === 'RemoveToken') {
       if (!form.removeTokenAddress) {
-        newErrors.removeTokenAddress = "Select a token to remove.";
+        newErrors.removeTokenAddress = 'Select a token to remove.';
       }
     }
 
@@ -122,14 +121,14 @@ export default function NewGovernanceProposalPage() {
     try {
       // In a real app, 'execute' would take a Transaction object.
       // For this spec, we call createProposal which returns a txHash (mocked or real).
-      // We'll wrap it to match the 'useTransaction' pattern if needed, 
+      // We'll wrap it to match the 'useTransaction' pattern if needed,
       // but the test expects createProposal to be called directly with signTx.
-      
+
       const { proposalId } = await createProposal(form, address, async (xdr) => {
         // This is where useTransaction.execute would normally come in if it took XDR
-        return "mock_sig"; 
+        return 'mock_sig';
       });
-      
+
       router.push(`/governance/${proposalId}`);
     } catch (e: any) {
       setErrors({ submit: e.message });
@@ -143,19 +142,19 @@ export default function NewGovernanceProposalPage() {
   }, [params, userBalance]);
 
   const preview = useMemo(() => {
-    if (!params) return "";
+    if (!params) return '';
     switch (form.formType) {
-      case "FeeRate":
-        return `This proposal will change [FeeRate] from ${params.feeRateBps} (${params.feeRateBps / 100}%) to ${form.newValueBps ?? "?"} (${(form.newValueBps ?? 0) / 100}%).`;
-      case "MaxDiscountRate":
-        return `This proposal will change [MaxDiscountRate] from ${params.maxDiscountRateBps} (${params.maxDiscountRateBps / 100}%) to ${form.newValueBps ?? "?"} (${(form.newValueBps ?? 0) / 100}%).`;
-      case "AddToken":
-        return `This proposal will add ${form.tokenName ?? "a new token"} (${form.tokenAddress ?? "address"}) to the protocol's accepted currencies.`;
-      case "RemoveToken":
-        const token = params.acceptedTokens.find(t => t.address === form.removeTokenAddress);
-        return `This proposal will remove ${token?.symbol ?? "the selected token"} from the protocol's accepted currencies.`;
+      case 'FeeRate':
+        return `This proposal will change [FeeRate] from ${params.feeRateBps} (${params.feeRateBps / 100}%) to ${form.newValueBps ?? '?'} (${(form.newValueBps ?? 0) / 100}%).`;
+      case 'MaxDiscountRate':
+        return `This proposal will change [MaxDiscountRate] from ${params.maxDiscountRateBps} (${params.maxDiscountRateBps / 100}%) to ${form.newValueBps ?? '?'} (${(form.newValueBps ?? 0) / 100}%).`;
+      case 'AddToken':
+        return `This proposal will add ${form.tokenName ?? 'a new token'} (${form.tokenAddress ?? 'address'}) to the protocol's accepted currencies.`;
+      case 'RemoveToken':
+        const token = params.acceptedTokens.find((t) => t.address === form.removeTokenAddress);
+        return `This proposal will remove ${token?.symbol ?? 'the selected token'} from the protocol's accepted currencies.`;
       default:
-        return "";
+        return '';
     }
   }, [form, params]);
 
@@ -177,7 +176,8 @@ export default function NewGovernanceProposalPage() {
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Governance Proposal</h1>
       <p className="text-gray-600 mb-8">
-        Propose changes to the protocol's parameters or supported assets. Your proposal will be open for voting for 7 days.
+        Propose changes to the protocol's parameters or supported assets. Your proposal will be open
+        for voting for 7 days.
       </p>
 
       {isBalanceInsufficient && (
@@ -185,12 +185,18 @@ export default function NewGovernanceProposalPage() {
           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <div className="text-sm">
             <p className="font-semibold">Insufficient ILN Balance</p>
-            <p>Your current ILN balance ({userBalance}) is below the minimum required ({params?.minProposalILN}) to submit a proposal.</p>
+            <p>
+              Your current ILN balance ({userBalance}) is below the minimum required (
+              {params?.minProposalILN}) to submit a proposal.
+            </p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100"
+      >
         <div>
           <label htmlFor="actionType" className="block text-sm font-semibold text-gray-700 mb-1">
             Action Type
@@ -210,7 +216,7 @@ export default function NewGovernanceProposalPage() {
         </div>
 
         {/* Dynamic Fields */}
-        {(form.formType === "FeeRate" || form.formType === "MaxDiscountRate") && (
+        {(form.formType === 'FeeRate' || form.formType === 'MaxDiscountRate') && (
           <div>
             <label htmlFor="newValue" className="block text-sm font-semibold text-gray-700 mb-1">
               Proposed Value (Basis Points)
@@ -219,16 +225,20 @@ export default function NewGovernanceProposalPage() {
               type="number"
               id="newValue"
               placeholder="basis points, 0–5000"
-              value={form.newValueBps ?? ""}
-              onChange={(e) => setForm(prev => ({ ...prev, newValueBps: parseInt(e.target.value) }))}
+              value={form.newValueBps ?? ''}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, newValueBps: parseInt(e.target.value) }))
+              }
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
             <p className="mt-1 text-xs text-gray-500">100 basis points = 1%</p>
-            {errors.newValueBps && <p className="mt-1 text-sm text-red-600">{errors.newValueBps}</p>}
+            {errors.newValueBps && (
+              <p className="mt-1 text-sm text-red-600">{errors.newValueBps}</p>
+            )}
           </div>
         )}
 
-        {form.formType === "AddToken" && (
+        {form.formType === 'AddToken' && (
           <div>
             <div className="flex items-center gap-2 mb-1">
               <label htmlFor="tokenAddress" className="block text-sm font-semibold text-gray-700">
@@ -247,10 +257,10 @@ export default function NewGovernanceProposalPage() {
                 type="text"
                 id="tokenAddress"
                 placeholder="G..."
-                value={form.tokenAddress ?? ""}
+                value={form.tokenAddress ?? ''}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setForm(prev => ({ ...prev, tokenAddress: val }));
+                  setForm((prev) => ({ ...prev, tokenAddress: val }));
                   if (val.length === 56) handleTokenLookup(val);
                 }}
                 className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -267,29 +277,33 @@ export default function NewGovernanceProposalPage() {
                 Resolved: {form.tokenName}
               </p>
             )}
-            {errors.tokenAddress && <p className="mt-1 text-sm text-red-600">{errors.tokenAddress}</p>}
+            {errors.tokenAddress && (
+              <p className="mt-1 text-sm text-red-600">{errors.tokenAddress}</p>
+            )}
           </div>
         )}
 
-        {form.formType === "RemoveToken" && (
+        {form.formType === 'RemoveToken' && (
           <div>
             <label htmlFor="removeToken" className="block text-sm font-semibold text-gray-700 mb-1">
               Token to Remove
             </label>
             <select
               id="removeToken"
-              value={form.removeTokenAddress ?? ""}
-              onChange={(e) => setForm(prev => ({ ...prev, removeTokenAddress: e.target.value }))}
+              value={form.removeTokenAddress ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, removeTokenAddress: e.target.value }))}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select a token...</option>
-              {params?.acceptedTokens.map(token => (
+              {params?.acceptedTokens.map((token) => (
                 <option key={token.address} value={token.address}>
                   {token.name} ({token.symbol})
                 </option>
               ))}
             </select>
-            {errors.removeTokenAddress && <p className="mt-1 text-sm text-red-600">{errors.removeTokenAddress}</p>}
+            {errors.removeTokenAddress && (
+              <p className="mt-1 text-sm text-red-600">{errors.removeTokenAddress}</p>
+            )}
           </div>
         )}
 
@@ -302,7 +316,7 @@ export default function NewGovernanceProposalPage() {
             id="title"
             placeholder="e.g. Increase Max Discount Rate for Better Liquidity"
             value={form.title}
-            onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
@@ -317,10 +331,12 @@ export default function NewGovernanceProposalPage() {
             rows={5}
             placeholder="Provide a detailed rationale for this change..."
             value={form.description}
-            onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
             className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          <p className="mt-1 text-xs text-gray-500">Markdown is supported. IPFS CID will be generated on submission.</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Markdown is supported. IPFS CID will be generated on submission.
+          </p>
           {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
         </div>
 
@@ -341,8 +357,8 @@ export default function NewGovernanceProposalPage() {
             disabled={isSubmitting || isBalanceInsufficient || !isConnected}
             className={`w-full py-3 px-4 rounded-lg text-white font-bold transition-all ${
               isSubmitting || isBalanceInsufficient || !isConnected
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg active:scale-[0.98]"
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg active:scale-[0.98]'
             }`}
           >
             {isSubmitting ? (
@@ -351,11 +367,13 @@ export default function NewGovernanceProposalPage() {
                 Submitting Proposal...
               </span>
             ) : (
-              "Submit Proposal"
+              'Submit Proposal'
             )}
           </button>
           {!isConnected && (
-            <p className="mt-2 text-center text-sm text-gray-500">Please connect your wallet to submit a proposal.</p>
+            <p className="mt-2 text-center text-sm text-gray-500">
+              Please connect your wallet to submit a proposal.
+            </p>
           )}
         </div>
       </form>

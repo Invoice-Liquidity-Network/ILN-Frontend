@@ -37,8 +37,7 @@ export function useLocaleFormatting() {
     /**
      * Format a percentage
      */
-    percentage: (value: number, decimals?: number) =>
-      formatPercentage(value, decimals, locale),
+    percentage: (value: number, decimals?: number) => formatPercentage(value, decimals, locale),
 
     /**
      * Format a date

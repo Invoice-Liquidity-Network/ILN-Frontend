@@ -1,13 +1,13 @@
-import { getContractTransactionsStreamUrl } from "@/lib/horizon";
+import { getContractTransactionsStreamUrl } from '@/lib/horizon';
 import {
   parseContractEventsFromTransaction,
   reconnectDelayMs,
   type ParsedContractEvent,
-} from "@/lib/contract-events";
+} from '@/lib/contract-events';
 
 export interface HorizonStreamOptions {
   onEvent: (event: ParsedContractEvent) => void;
-  onStatusChange?: (status: "connected" | "disconnected" | "polling") => void;
+  onStatusChange?: (status: 'connected' | 'disconnected' | 'polling') => void;
   maxReconnectAttempts?: number;
 }
 
@@ -16,7 +16,7 @@ export interface HorizonStreamHandle {
 }
 
 export function connectHorizonTransactionStream(
-  options: HorizonStreamOptions,
+  options: HorizonStreamOptions
 ): HorizonStreamHandle {
   const maxAttempts = options.maxReconnectAttempts ?? 8;
   let attempt = 0;
@@ -33,9 +33,9 @@ export function connectHorizonTransactionStream(
 
   const scheduleReconnect = () => {
     if (closed) return;
-    options.onStatusChange?.("disconnected");
+    options.onStatusChange?.('disconnected');
     if (attempt >= maxAttempts) {
-      options.onStatusChange?.("polling");
+      options.onStatusChange?.('polling');
       return;
     }
     const delay = reconnectDelayMs(attempt);
@@ -44,8 +44,8 @@ export function connectHorizonTransactionStream(
   };
 
   const connect = () => {
-    if (closed || typeof EventSource === "undefined") {
-      options.onStatusChange?.("polling");
+    if (closed || typeof EventSource === 'undefined') {
+      options.onStatusChange?.('polling');
       return;
     }
 
@@ -55,7 +55,7 @@ export function connectHorizonTransactionStream(
 
     source.onopen = () => {
       attempt = 0;
-      options.onStatusChange?.("connected");
+      options.onStatusChange?.('connected');
     };
 
     source.onmessage = (message) => {

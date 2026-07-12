@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { Invoice } from "@/utils/soroban";
-import { PayerScore, scoreToRiskLevel } from "@/utils/risk";
+import { useMemo } from 'react';
+import { Invoice } from '@/utils/soroban';
+import { PayerScore, scoreToRiskLevel } from '@/utils/risk';
 import {
   InvoiceRiskDetail,
   RiskTrendData,
@@ -10,7 +10,7 @@ import {
   calculateInvoiceRiskScore,
   calculatePortfolioRiskMetrics,
   generateRiskTrendData,
-} from "@/utils/riskCalculations";
+} from '@/utils/riskCalculations';
 
 interface UseRiskAnalysisProps {
   invoices: Invoice[];
@@ -18,20 +18,13 @@ interface UseRiskAnalysisProps {
   trendDays?: number;
 }
 
-export function useRiskAnalysis({
-  invoices,
-  payerScores,
-  trendDays = 30,
-}: UseRiskAnalysisProps) {
+export function useRiskAnalysis({ invoices, payerScores, trendDays = 30 }: UseRiskAnalysisProps) {
   const invoiceRisks = useMemo<InvoiceRiskDetail[]>(() => {
     return invoices.map((invoice) => {
       const payer = invoice.payer as string;
       const payerScore = payerScores?.get(payer) || null;
       const riskFactors = calculateRiskFactors(payerScore, invoice.due_date);
-      const riskScore = calculateInvoiceRiskScore(
-        payerScore,
-        riskFactors.fundingAge,
-      );
+      const riskScore = calculateInvoiceRiskScore(payerScore, riskFactors.fundingAge);
       const riskLevel = scoreToRiskLevel(riskScore);
 
       return {

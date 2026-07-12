@@ -25,7 +25,7 @@ describe('OnboardingFlow', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.spyOn(WalletContext, 'useWallet').mockReturnValue(mockWalletContext);
-    
+
     // Mock getBoundingClientRect so Spotlight doesn't fail
     Element.prototype.getBoundingClientRect = vi.fn(() => {
       return {
@@ -37,10 +37,10 @@ describe('OnboardingFlow', () => {
         right: 100,
         x: 0,
         y: 0,
-        toJSON: () => {}
+        toJSON: () => {},
       } as DOMRect;
     });
-    
+
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = vi.fn();
   });
@@ -50,7 +50,11 @@ describe('OnboardingFlow', () => {
   });
 
   it('should not render if not connected', () => {
-    vi.spyOn(WalletContext, 'useWallet').mockReturnValue({ ...mockWalletContext, isConnected: false, address: null });
+    vi.spyOn(WalletContext, 'useWallet').mockReturnValue({
+      ...mockWalletContext,
+      isConnected: false,
+      address: null,
+    });
     render(<OnboardingFlow />);
     expect(screen.queryByText(/Welcome to ILN!/i)).not.toBeInTheDocument();
   });
@@ -73,26 +77,26 @@ describe('OnboardingFlow', () => {
     render(<OnboardingFlow />);
     const skipBtn = screen.getByText('Skip Onboarding');
     fireEvent.click(skipBtn);
-    
+
     expect(localStorage.getItem('iln_onboarding_completed_GABC123')).toBe('true');
     expect(screen.queryByText(/Welcome to ILN!/i)).not.toBeInTheDocument();
   });
 
   it('should start freelancer flow', async () => {
     render(<OnboardingFlow />);
-    
+
     // Select role
     fireEvent.click(screen.getByText("I'm a Freelancer"));
-    
+
     // Check Step 1
     expect(screen.getByText('1 of 4')).toBeInTheDocument();
     expect(screen.getByText('Welcome to ILN!')).toBeInTheDocument();
-    
+
     // Next Step
     fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('2 of 4')).toBeInTheDocument();
     expect(screen.getByText('Submit an Invoice')).toBeInTheDocument();
-    
+
     // Skip mid-flow
     fireEvent.click(screen.getByText('Skip'));
     expect(localStorage.getItem('iln_onboarding_completed_GABC123')).toBe('true');
@@ -101,15 +105,15 @@ describe('OnboardingFlow', () => {
 
   it('should complete payer flow', () => {
     render(<OnboardingFlow />);
-    
+
     fireEvent.click(screen.getByText("I'm a Payer"));
-    
+
     expect(screen.getByText('1 of 2')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Next'));
-    
+
     expect(screen.getByText('2 of 2')).toBeInTheDocument();
     expect(screen.getByText('How to Settle')).toBeInTheDocument();
-    
+
     // Finish
     fireEvent.click(screen.getByText('Done'));
     expect(localStorage.getItem('iln_onboarding_completed_GABC123')).toBe('true');

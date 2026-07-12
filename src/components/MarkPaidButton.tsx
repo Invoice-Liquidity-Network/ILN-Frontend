@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useToast } from "@/context/ToastContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { markPaid, type Invoice } from "@/utils/soroban";
+import { useState } from 'react';
+import { useToast } from '@/context/ToastContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { markPaid, type Invoice } from '@/utils/soroban';
 
 interface MarkPaidButtonProps {
   invoice: Invoice;
@@ -13,7 +13,7 @@ interface MarkPaidButtonProps {
 }
 
 /** Statuses from which the payer may still settle the invoice. */
-const PAYABLE_STATUSES = new Set(["Pending", "Funded"]);
+const PAYABLE_STATUSES = new Set(['Pending', 'Funded']);
 
 /**
  * Payer-only action to settle an invoice (`mark_paid`). Renders nothing unless
@@ -43,30 +43,30 @@ export default function MarkPaidButton({
 
     setIsPaying(true);
     const toastId = addToast({
-      type: "pending",
+      type: 'pending',
       title: `Marking invoice #${invoice.id.toString()} as paid...`,
-      message: "Confirm the transaction in your wallet.",
+      message: 'Confirm the transaction in your wallet.',
     });
 
     try {
       const tx = await markPaid(walletAddress, invoice.id, invoice.amount);
-      const txHash = await execute(tx, "Mark invoice paid");
+      const txHash = await execute(tx, 'Mark invoice paid');
 
-      if (!txHash) throw new Error("Transaction was not submitted.");
+      if (!txHash) throw new Error('Transaction was not submitted.');
 
-      onPaid?.({ ...invoice, status: "Paid" });
+      onPaid?.({ ...invoice, status: 'Paid' });
       updateToast(toastId, {
-        type: "success",
-        title: "Invoice marked as paid",
+        type: 'success',
+        title: 'Invoice marked as paid',
         message: `Invoice #${invoice.id.toString()} is now settled.`,
         txHash,
       });
       setOpen(false);
     } catch (error) {
       updateToast(toastId, {
-        type: "error",
-        title: "Could not mark as paid",
-        message: error instanceof Error ? error.message : "The invoice could not be settled.",
+        type: 'error',
+        title: 'Could not mark as paid',
+        message: error instanceof Error ? error.message : 'The invoice could not be settled.',
       });
     } finally {
       setIsPaying(false);
@@ -80,8 +80,8 @@ export default function MarkPaidButton({
         onClick={() => setOpen(true)}
         className={
           compact
-            ? "flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-primary transition-colors hover:bg-primary-container/50"
-            : "inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary shadow-sm transition-colors hover:bg-primary/90"
+            ? 'flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-primary transition-colors hover:bg-primary-container/50'
+            : 'inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary shadow-sm transition-colors hover:bg-primary/90'
         }
       >
         <span className="material-symbols-outlined text-[18px]">paid</span>
@@ -118,7 +118,7 @@ export default function MarkPaidButton({
                 disabled={isPaying}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-on-primary transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                {isPaying ? "Submitting..." : "Confirm Payment"}
+                {isPaying ? 'Submitting...' : 'Confirm Payment'}
               </button>
             </div>
           </div>

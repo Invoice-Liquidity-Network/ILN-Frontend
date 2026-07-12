@@ -30,7 +30,7 @@ export const Default: Story = {
 
 export const LastStep: Story = {
   args: {
-    title: 'You\'re all set!',
+    title: "You're all set!",
     content: 'You have completed the onboarding tour. Start using the platform.',
     currentStep: 2,
     totalSteps: 3,

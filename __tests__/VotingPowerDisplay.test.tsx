@@ -1,22 +1,22 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { vi } from "vitest";
-import VotingPowerDisplay from "@/components/VotingPowerDisplay";
-import { useWallet } from "@/context/WalletContext";
-import * as governanceUtils from "@/utils/governance";
+import { render, screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
+import VotingPowerDisplay from '@/components/VotingPowerDisplay';
+import { useWallet } from '@/context/WalletContext';
+import * as governanceUtils from '@/utils/governance';
 
 // Mock dependencies
-vi.mock("@/context/WalletContext");
-vi.mock("@/utils/governance");
+vi.mock('@/context/WalletContext');
+vi.mock('@/utils/governance');
 
 const mockUseWallet = vi.mocked(useWallet);
 const mockGetDelegationInfo = vi.mocked(governanceUtils.getDelegationInfo);
 
-describe("VotingPowerDisplay", () => {
+describe('VotingPowerDisplay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("shows connect wallet message when not connected", () => {
+  it('shows connect wallet message when not connected', () => {
     mockUseWallet.mockReturnValue({
       address: null,
       isConnected: false,
@@ -28,14 +28,14 @@ describe("VotingPowerDisplay", () => {
     });
 
     render(<VotingPowerDisplay votingPower={0} />);
-    
-    expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
-    expect(screen.getByText("Connect your wallet to view voting power")).toBeInTheDocument();
+
+    expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
+    expect(screen.getByText('Connect your wallet to view voting power')).toBeInTheDocument();
   });
 
-  it("displays voting power when connected", async () => {
+  it('displays voting power when connected', async () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -51,17 +51,17 @@ describe("VotingPowerDisplay", () => {
     });
 
     render(<VotingPowerDisplay votingPower={1250} />);
-    
-    expect(screen.getByText("Your Voting Power")).toBeInTheDocument();
-    
+
+    expect(screen.getByText('Your Voting Power')).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(screen.getByText("1,250.0000000 ILN")).toBeInTheDocument();
+      expect(screen.getByText('1,250.0000000 ILN')).toBeInTheDocument();
     });
   });
 
-  it("shows delegation information when user has delegated", async () => {
+  it('shows delegation information when user has delegated', async () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -71,22 +71,22 @@ describe("VotingPowerDisplay", () => {
     });
 
     mockGetDelegationInfo.mockResolvedValue({
-      delegatedTo: "GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+      delegatedTo: 'GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
       delegatedAmount: 500,
       incomingDelegations: 0,
     });
 
     render(<VotingPowerDisplay votingPower={1250} />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText("Your voting power is currently delegated to:")).toBeInTheDocument();
-      expect(screen.getByText("GDEF456E...X890YZ")).toBeInTheDocument();
+      expect(screen.getByText('Your voting power is currently delegated to:')).toBeInTheDocument();
+      expect(screen.getByText('GDEF456E...X890YZ')).toBeInTheDocument();
     });
   });
 
-  it("shows incoming delegations", async () => {
+  it('shows incoming delegations', async () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -102,16 +102,16 @@ describe("VotingPowerDisplay", () => {
     });
 
     render(<VotingPowerDisplay votingPower={1750} />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText("Delegated to you:")).toBeInTheDocument();
-      expect(screen.getByText("+500.0000000 ILN")).toBeInTheDocument();
+      expect(screen.getByText('Delegated to you:')).toBeInTheDocument();
+      expect(screen.getByText('+500.0000000 ILN')).toBeInTheDocument();
     });
   });
 
-  it("shows no voting power message when power is 0", async () => {
+  it('shows no voting power message when power is 0', async () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -127,16 +127,16 @@ describe("VotingPowerDisplay", () => {
     });
 
     render(<VotingPowerDisplay votingPower={0} />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText("No voting power")).toBeInTheDocument();
+      expect(screen.getByText('No voting power')).toBeInTheDocument();
       expect(screen.getByText(/You need ILN tokens to participate/)).toBeInTheDocument();
     });
   });
 
-  it("shows loading state", () => {
+  it('shows loading state', () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -149,13 +149,15 @@ describe("VotingPowerDisplay", () => {
     mockGetDelegationInfo.mockReturnValue(new Promise(() => {}));
 
     render(<VotingPowerDisplay votingPower={1250} />);
-    
-    expect(screen.getByTestId("loading-skeleton") || document.querySelector(".animate-pulse")).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId('loading-skeleton') || document.querySelector('.animate-pulse')
+    ).toBeInTheDocument();
   });
 
-  it("includes links to delegation management", async () => {
+  it('includes links to delegation management', async () => {
     mockUseWallet.mockReturnValue({
-      address: "GTEST123",
+      address: 'GTEST123',
       isConnected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -171,10 +173,10 @@ describe("VotingPowerDisplay", () => {
     });
 
     render(<VotingPowerDisplay votingPower={1250} />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText("Manage Delegation")).toBeInTheDocument();
-      expect(screen.getByText("Create Proposal")).toBeInTheDocument();
+      expect(screen.getByText('Manage Delegation')).toBeInTheDocument();
+      expect(screen.getByText('Create Proposal')).toBeInTheDocument();
     });
   });
 });

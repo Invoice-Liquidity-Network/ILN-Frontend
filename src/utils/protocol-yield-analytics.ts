@@ -1,6 +1,6 @@
-import type { Invoice } from "./soroban";
+import type { Invoice } from './soroban';
 
-const TOKEN_SYMBOLS = ["USDC", "EURC", "XLM"] as const;
+const TOKEN_SYMBOLS = ['USDC', 'EURC', 'XLM'] as const;
 export type YieldTokenSymbol = (typeof TOKEN_SYMBOLS)[number];
 
 export interface YieldByTokenRow {
@@ -31,11 +31,11 @@ export interface YieldTrendPoint {
 }
 
 function tokenSymbolFromId(tokenId: string | undefined): YieldTokenSymbol {
-  if (!tokenId) return "USDC";
+  if (!tokenId) return 'USDC';
   const upper = tokenId.toUpperCase();
-  if (upper.includes("EURC")) return "EURC";
-  if (upper.includes("XLM")) return "XLM";
-  return "USDC";
+  if (upper.includes('EURC')) return 'EURC';
+  if (upper.includes('XLM')) return 'XLM';
+  return 'USDC';
 }
 
 /** Annualized effective yield from discount bps and funded-to-due tenure. */
@@ -43,10 +43,7 @@ export function effectiveYieldAnnualizedPct(inv: Invoice): number {
   if (!inv.funded_at) {
     return inv.discount_rate / 100;
   }
-  const tenureDays = Math.max(
-    1,
-    (Number(inv.due_date) - Number(inv.funded_at)) / 86_400,
-  );
+  const tenureDays = Math.max(1, (Number(inv.due_date) - Number(inv.funded_at)) / 86_400);
   return (inv.discount_rate / 10_000) * (365 / tenureDays) * 100;
 }
 
@@ -54,9 +51,7 @@ function median(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 function average(values: number[]): number {
@@ -66,9 +61,7 @@ function average(values: number[]): number {
 
 /** Settled invoices: funded and paid (InvoiceFunded → InvoicePaid lifecycle). */
 export function getSettledInvoices(invoices: Invoice[]): Invoice[] {
-  return invoices.filter(
-    (inv) => inv.status === "Paid" && inv.funded_at !== undefined,
-  );
+  return invoices.filter((inv) => inv.status === 'Paid' && inv.funded_at !== undefined);
 }
 
 export function computeProtocolYieldMetrics(invoices: Invoice[]): ProtocolYieldMetrics {
@@ -81,14 +74,10 @@ export function computeProtocolYieldMetrics(invoices: Invoice[]): ProtocolYieldM
   const fundedThisWeek = settled.filter((inv) => Number(inv.funded_at!) >= weekStartSec);
 
   const yieldByToken: YieldByTokenRow[] = TOKEN_SYMBOLS.map((symbol) => {
-    const tokenInvoices = settled30d.filter(
-      (inv) => tokenSymbolFromId(inv.token) === symbol,
-    );
+    const tokenInvoices = settled30d.filter((inv) => tokenSymbolFromId(inv.token) === symbol);
     return {
       symbol,
-      avgEffectiveYieldPct: average(
-        tokenInvoices.map((inv) => effectiveYieldAnnualizedPct(inv)),
-      ),
+      avgEffectiveYieldPct: average(tokenInvoices.map((inv) => effectiveYieldAnnualizedPct(inv))),
       invoiceCount: tokenInvoices.length,
     };
   });
@@ -103,9 +92,7 @@ export function computeProtocolYieldMetrics(invoices: Invoice[]): ProtocolYieldM
     .sort((a, b) => b.effectiveYieldPct - a.effectiveYieldPct);
 
   return {
-    avgEffectiveYield30d: average(
-      settled30d.map((inv) => effectiveYieldAnnualizedPct(inv)),
-    ),
+    avgEffectiveYield30d: average(settled30d.map((inv) => effectiveYieldAnnualizedPct(inv))),
     medianDiscountRatePct: median(settled.map((inv) => inv.discount_rate / 100)),
     yieldByToken,
     highestThisWeek: weekExtremes[0] ?? null,
@@ -118,15 +105,10 @@ function dayKey(tsSec: number): string {
 }
 
 /** Daily average effective yield for the last 90 days (for line chart). */
-export function buildProtocolYieldTrend(
-  invoices: Invoice[],
-  days = 90,
-): YieldTrendPoint[] {
+export function buildProtocolYieldTrend(invoices: Invoice[], days = 90): YieldTrendPoint[] {
   const nowSec = Math.floor(Date.now() / 1000);
   const cutoff = nowSec - days * 86_400;
-  const settled = getSettledInvoices(invoices).filter(
-    (inv) => Number(inv.funded_at!) >= cutoff,
-  );
+  const settled = getSettledInvoices(invoices).filter((inv) => Number(inv.funded_at!) >= cutoff);
 
   const buckets = new Map<string, number[]>();
   for (const inv of settled) {
@@ -139,10 +121,10 @@ export function buildProtocolYieldTrend(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([isoDate, yields]) => ({
       isoDate,
-      date: new Date(isoDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC",
+      date: new Date(isoDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
       }),
       avgYieldPct: average(yields),
     }));

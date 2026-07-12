@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import type { Invoice } from "@/utils/soroban";
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import type { Invoice } from '@/utils/soroban';
 
-const APP_BASE_URL = "https://app.iln.finance";
+const APP_BASE_URL = 'https://app.iln.finance';
 
 interface ShareInvoiceButtonProps {
   invoice: Invoice;
@@ -14,14 +14,13 @@ interface ShareInvoiceButtonProps {
 
 /** Canonical, publicly viewable URL for an invoice's detail page. */
 export function invoiceShareUrl(id: bigint, origin: string): string {
-  return `${origin.replace(/\/$/, "")}/i/${id.toString()}`;
+  return `${origin.replace(/\/$/, '')}/i/${id.toString()}`;
 }
 
 /** Pre-populated mailto link inviting a payer to review an invoice. */
 export function invoiceShareMailto(id: bigint, url: string): string {
   const subject = `Invoice #${id.toString()} on ILN`;
-  const body =
-    `Hi,\n\nPlease review this invoice on the Invoice Liquidity Network:\n${url}\n\nThanks.`;
+  const body = `Hi,\n\nPlease review this invoice on the Invoice Liquidity Network:\n${url}\n\nThanks.`;
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -41,7 +40,7 @@ export default function ShareInvoiceButton({ invoice, baseUrl }: ShareInvoiceBut
 
   const handleCopy = async () => {
     // Use native share sheet on mobile when available
-    if (typeof navigator.share === "function") {
+    if (typeof navigator.share === 'function') {
       try {
         await navigator.share({
           title: `Invoice #${invoice.id.toString()} on ILN`,
@@ -56,7 +55,7 @@ export default function ShareInvoiceButton({ invoice, baseUrl }: ShareInvoiceBut
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success("Link copied to clipboard");
+      toast.success('Link copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard unavailable — reveal the fallback input field
@@ -78,7 +77,7 @@ export default function ShareInvoiceButton({ invoice, baseUrl }: ShareInvoiceBut
             className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container px-4 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high"
           >
             <span className="material-symbols-outlined text-[18px]">
-              {copied ? "check" : "link"}
+              {copied ? 'check' : 'link'}
             </span>
             Share Invoice
           </button>

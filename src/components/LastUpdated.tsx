@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 
 interface LastUpdatedProps {
   updatedAt: number | undefined;
@@ -8,7 +8,7 @@ interface LastUpdatedProps {
 
 function formatRelative(ms: number): string {
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 5) return "just now";
+  if (seconds < 5) return 'just now';
   if (seconds < 60) return `${seconds}s ago`;
 
   const minutes = Math.floor(seconds / 60);
@@ -23,11 +23,11 @@ function formatRelative(ms: number): string {
 
 function formatAbsolute(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -61,8 +61,7 @@ export default function LastUpdated({ updatedAt }: LastUpdatedProps) {
       title={absolute}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-      Last updated{" "}
-      <time dateTime={new Date(updatedAt).toISOString()}>{relative}</time>
+      Last updated <time dateTime={new Date(updatedAt).toISOString()}>{relative}</time>
     </div>
   );
 }

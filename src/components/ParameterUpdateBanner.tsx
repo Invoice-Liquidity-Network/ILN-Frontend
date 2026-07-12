@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useParameterUpdates } from "@/hooks/queries/useParameterUpdates";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParameterUpdates } from '@/hooks/queries/useParameterUpdates';
 
 /** localStorage key holding the ids of announcements the user has dismissed. */
-const STORAGE_KEY = "iln:dismissed-parameter-updates";
+const STORAGE_KEY = 'iln:dismissed-parameter-updates';
 
 /** Never show more than this many announcement banners at once. */
 const MAX_VISIBLE = 2;
 
 function readDismissed(): string[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === "string")
+      ? parsed.filter((value): value is string => typeof value === 'string')
       : [];
   } catch {
     return [];
@@ -60,9 +60,7 @@ export default function ParameterUpdateBanner() {
 
   if (!hydrated || !updates?.length) return null;
 
-  const visible = updates
-    .filter((update) => !dismissed.includes(update.id))
-    .slice(0, MAX_VISIBLE);
+  const visible = updates.filter((update) => !dismissed.includes(update.id)).slice(0, MAX_VISIBLE);
 
   if (visible.length === 0) return null;
 

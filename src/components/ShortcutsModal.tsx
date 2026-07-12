@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 type Shortcut = {
   keys: string[];
@@ -14,38 +14,38 @@ type ShortcutGroup = {
 
 const GROUPS: ShortcutGroup[] = [
   {
-    title: "Navigation",
+    title: 'Navigation',
     items: [
-      { keys: ["Cmd", "K"], description: "Command palette" },
-      { keys: ["Cmd", "N"], description: "Quick submit" },
-      { keys: ["G", "D"], description: "Go to Dashboard" },
-      { keys: ["G", "L"], description: "Go to LP" },
-      { keys: ["G", "A"], description: "Go to Analytics" },
+      { keys: ['Cmd', 'K'], description: 'Command palette' },
+      { keys: ['Cmd', 'N'], description: 'Quick submit' },
+      { keys: ['G', 'D'], description: 'Go to Dashboard' },
+      { keys: ['G', 'L'], description: 'Go to LP' },
+      { keys: ['G', 'A'], description: 'Go to Analytics' },
     ],
   },
   {
-    title: "Tables",
+    title: 'Tables',
     items: [
-      { keys: ["↑", "↓"], description: "Navigate rows" },
-      { keys: ["Enter"], description: "Open detail" },
-      { keys: ["F"], description: "Fund invoice" },
-      { keys: ["C"], description: "Cancel invoice" },
+      { keys: ['↑', '↓'], description: 'Navigate rows' },
+      { keys: ['Enter'], description: 'Open detail' },
+      { keys: ['F'], description: 'Fund invoice' },
+      { keys: ['C'], description: 'Cancel invoice' },
     ],
   },
   {
-    title: "General",
+    title: 'General',
     items: [
-      { keys: ["Cmd", "/"], description: "Show shortcuts" },
-      { keys: ["Esc"], description: "Close modal/drawer" },
-      { keys: ["D"], description: "Toggle dark mode" },
+      { keys: ['Cmd', '/'], description: 'Show shortcuts' },
+      { keys: ['Esc'], description: 'Close modal/drawer' },
+      { keys: ['D'], description: 'Toggle dark mode' },
     ],
   },
   {
-    title: "Invoice Detail",
+    title: 'Invoice Detail',
     items: [
-      { keys: ["E"], description: "Edit invoice (Pending only)" },
-      { keys: ["P"], description: "Print/export PDF" },
-      { keys: ["Q"], description: "Show QR code" },
+      { keys: ['E'], description: 'Edit invoice (Pending only)' },
+      { keys: ['P'], description: 'Print/export PDF' },
+      { keys: ['Q'], description: 'Show QR code' },
     ],
   },
 ];
@@ -70,13 +70,22 @@ export default function ShortcutsModal({
   if (!isOpen) return null;
 
   return (
-    <div ref={modalRef} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+    <div
+      ref={modalRef}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shortcuts-title"
+    >
       <div
         className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="shortcuts-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">Keyboard shortcuts</h2>
+          <h2 id="shortcuts-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Keyboard shortcuts
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -89,13 +98,19 @@ export default function ShortcutsModal({
 
         <div className="grid gap-4 md:grid-cols-2">
           {GROUPS.map((group) => (
-            <section key={group.title} className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <section
+              key={group.title}
+              className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
+            >
               <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
                 {group.title}
               </h3>
               <div className="space-y-2.5">
                 {group.items.map((item) => (
-                  <div key={`${group.title}-${item.description}`} className="flex items-center justify-between gap-3">
+                  <div
+                    key={`${group.title}-${item.description}`}
+                    className="flex items-center justify-between gap-3"
+                  >
                     <div className="flex flex-wrap items-center gap-1.5">
                       {item.keys.map((k) => (
                         <KeyBadge keyLabel={k} key={`${item.description}-${k}`} />

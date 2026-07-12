@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Tailwind sizing/shape utilities, e.g. "h-4 w-32" or "h-24 w-full rounded-2xl". */
@@ -18,6 +18,6 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
  * Decorative by default (`aria-hidden`) — screen readers should be told the
  * region is loading via the surrounding container, not each shimmer block.
  */
-export default function Skeleton({ className = "", ...rest }: SkeletonProps) {
+export default function Skeleton({ className = '', ...rest }: SkeletonProps) {
   return <div aria-hidden="true" className={`skeleton-cell ${className}`} {...rest} />;
 }

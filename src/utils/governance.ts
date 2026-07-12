@@ -1,9 +1,8 @@
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ProposalType = "ParameterUpdate" | "ProtocolUpgrade" | "TextProposal";
-export type ProposalStatus = "Active" | "Passed" | "Failed" | "Executed" | "Pending" | "Vetoed";
-export type VoteChoice = "For" | "Against" | "Abstain";
+export type ProposalType = 'ParameterUpdate' | 'ProtocolUpgrade' | 'TextProposal';
+export type ProposalStatus = 'Active' | 'Passed' | 'Failed' | 'Executed' | 'Pending' | 'Vetoed';
+export type VoteChoice = 'For' | 'Against' | 'Abstain';
 
 export interface VetoRecord {
   proposalId: number;
@@ -55,12 +54,12 @@ const DAY = 86400;
 export const MOCK_PROPOSALS: Proposal[] = [
   {
     id: 1,
-    title: "Reduce Base Discount Rate to 3.5%",
+    title: 'Reduce Base Discount Rate to 3.5%',
     description:
       "This proposal reduces the protocol's base discount rate from 5% to 3.5% to improve competitiveness with traditional invoice factoring services and attract higher invoice volume from freelancers.",
-    type: "ParameterUpdate",
-    status: "Active",
-    proposer: "GDXYZ...A3KP",
+    type: 'ParameterUpdate',
+    status: 'Active',
+    proposer: 'GDXYZ...A3KP',
     createdAt: NOW - 2 * DAY,
     votingStartsAt: NOW - 2 * DAY,
     votingEndsAt: NOW + 5 * DAY,
@@ -69,17 +68,17 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 9_100,
     quorumRequired: 100_000,
     parameterChanges: [
-      { parameter: "base_discount_rate", currentValue: "500 (5%)", newValue: "350 (3.5%)" },
+      { parameter: 'base_discount_rate', currentValue: '500 (5%)', newValue: '350 (3.5%)' },
     ],
   },
   {
     id: 2,
-    title: "Increase Quorum Threshold to 15%",
+    title: 'Increase Quorum Threshold to 15%',
     description:
-      "To ensure governance decisions represent a meaningful fraction of the token supply, this proposal raises the minimum quorum from 10% to 15% of circulating ILN tokens.",
-    type: "ParameterUpdate",
-    status: "Active",
-    proposer: "GBCDE...F7QR",
+      'To ensure governance decisions represent a meaningful fraction of the token supply, this proposal raises the minimum quorum from 10% to 15% of circulating ILN tokens.',
+    type: 'ParameterUpdate',
+    status: 'Active',
+    proposer: 'GBCDE...F7QR',
     createdAt: NOW - 1 * DAY,
     votingStartsAt: NOW - 1 * DAY,
     votingEndsAt: NOW + 6 * DAY,
@@ -88,17 +87,17 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 4_200,
     quorumRequired: 100_000,
     parameterChanges: [
-      { parameter: "quorum_threshold_bps", currentValue: "1000 (10%)", newValue: "1500 (15%)" },
+      { parameter: 'quorum_threshold_bps', currentValue: '1000 (10%)', newValue: '1500 (15%)' },
     ],
   },
   {
     id: 3,
-    title: "Add EURC as Accepted Invoice Currency",
+    title: 'Add EURC as Accepted Invoice Currency',
     description:
       "Expand the protocol's multi-token support by adding EURC (Euro Coin) as a valid invoice denomination alongside USDC. This targets European freelancers and eliminates FX conversion costs.",
-    type: "ProtocolUpgrade",
-    status: "Passed",
-    proposer: "GCFGH...B2MN",
+    type: 'ProtocolUpgrade',
+    status: 'Passed',
+    proposer: 'GCFGH...B2MN',
     createdAt: NOW - 14 * DAY,
     votingStartsAt: NOW - 14 * DAY,
     votingEndsAt: NOW - 7 * DAY,
@@ -109,20 +108,20 @@ export const MOCK_PROPOSALS: Proposal[] = [
     quorumRequired: 100_000,
     parameterChanges: [
       {
-        parameter: "accepted_tokens",
-        currentValue: "[USDC]",
-        newValue: "[USDC, EURC]",
+        parameter: 'accepted_tokens',
+        currentValue: '[USDC]',
+        newValue: '[USDC, EURC]',
       },
     ],
   },
   {
     id: 4,
-    title: "Extend Voting Period to 10 Days",
+    title: 'Extend Voting Period to 10 Days',
     description:
-      "Increase the governance voting window from 7 days to 10 days to give token holders across all time zones and schedules adequate opportunity to participate.",
-    type: "ParameterUpdate",
-    status: "Executed",
-    proposer: "GHIJK...L9PQ",
+      'Increase the governance voting window from 7 days to 10 days to give token holders across all time zones and schedules adequate opportunity to participate.',
+    type: 'ParameterUpdate',
+    status: 'Executed',
+    proposer: 'GHIJK...L9PQ',
     createdAt: NOW - 30 * DAY,
     votingStartsAt: NOW - 30 * DAY,
     votingEndsAt: NOW - 23 * DAY,
@@ -132,17 +131,21 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 6_100,
     quorumRequired: 100_000,
     parameterChanges: [
-      { parameter: "voting_period_seconds", currentValue: "604800 (7 days)", newValue: "864000 (10 days)" },
+      {
+        parameter: 'voting_period_seconds',
+        currentValue: '604800 (7 days)',
+        newValue: '864000 (10 days)',
+      },
     ],
   },
   {
     id: 5,
-    title: "Signal: Explore On-Chain Credit Scoring Integration",
+    title: 'Signal: Explore On-Chain Credit Scoring Integration',
     description:
-      "A text proposal to gauge community sentiment on integrating a decentralised on-chain credit scoring module that could lower discount rates for freelancers with proven track records.",
-    type: "TextProposal",
-    status: "Failed",
-    proposer: "GLMNO...P4RS",
+      'A text proposal to gauge community sentiment on integrating a decentralised on-chain credit scoring module that could lower discount rates for freelancers with proven track records.',
+    type: 'TextProposal',
+    status: 'Failed',
+    proposer: 'GLMNO...P4RS',
     createdAt: NOW - 20 * DAY,
     votingStartsAt: NOW - 20 * DAY,
     votingEndsAt: NOW - 13 * DAY,
@@ -153,12 +156,12 @@ export const MOCK_PROPOSALS: Proposal[] = [
   },
   {
     id: 6,
-    title: "Deploy LP Yield Optimiser Contract",
+    title: 'Deploy LP Yield Optimiser Contract',
     description:
-      "Deploy a new ancillary contract that auto-compounds LP yield by re-deploying earned USDC into the highest-APY invoice pool at the end of each epoch.",
-    type: "ProtocolUpgrade",
-    status: "Active",
-    proposer: "GTUV...W5XY",
+      'Deploy a new ancillary contract that auto-compounds LP yield by re-deploying earned USDC into the highest-APY invoice pool at the end of each epoch.',
+    type: 'ProtocolUpgrade',
+    status: 'Active',
+    proposer: 'GTUV...W5XY',
     createdAt: NOW - 3 * DAY,
     votingStartsAt: NOW - 3 * DAY,
     votingEndsAt: NOW + 4 * DAY,
@@ -169,12 +172,12 @@ export const MOCK_PROPOSALS: Proposal[] = [
   },
   {
     id: 7,
-    title: "Lower Protocol Fee Rate to 0.3%",
+    title: 'Lower Protocol Fee Rate to 0.3%',
     description:
       "Reduce the protocol fee from 0.5% to 0.3% to pass more value back to liquidity providers and improve the protocol's competitiveness ahead of mainnet.",
-    type: "ParameterUpdate",
-    status: "Executed",
-    proposer: "GQRST...U8VW",
+    type: 'ParameterUpdate',
+    status: 'Executed',
+    proposer: 'GQRST...U8VW',
     createdAt: NOW - 9 * DAY,
     votingStartsAt: NOW - 9 * DAY,
     votingEndsAt: NOW - 2 * DAY,
@@ -186,7 +189,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votesAbstain: 4_700,
     quorumRequired: 100_000,
     parameterChanges: [
-      { parameter: "fee_rate_bps", currentValue: "50 (0.5%)", newValue: "30 (0.3%)" },
+      { parameter: 'fee_rate_bps', currentValue: '50 (0.5%)', newValue: '30 (0.3%)' },
     ],
   },
 ];
@@ -208,9 +211,9 @@ export function quorumReached(proposal: Proposal): boolean {
 
 export function timeRemaining(proposal: Proposal): string {
   const now = Math.floor(Date.now() / 1000);
-  if (proposal.status !== "Active") return "";
+  if (proposal.status !== 'Active') return '';
   const diff = proposal.votingEndsAt - now;
-  if (diff <= 0) return "Ended";
+  if (diff <= 0) return 'Ended';
   const days = Math.floor(diff / DAY);
   const hours = Math.floor((diff % DAY) / 3600);
   if (days > 0) return `${days}d ${hours}h remaining`;
@@ -219,9 +222,9 @@ export function timeRemaining(proposal: Proposal): string {
 }
 
 export function formatVotingPower(power: number): string {
-  if (power >= 1_000_000) return (power / 1_000_000).toFixed(2) + "M ILN";
-  if (power >= 1_000) return (power / 1_000).toFixed(1) + "K ILN";
-  return power.toFixed(0) + " ILN";
+  if (power >= 1_000_000) return (power / 1_000_000).toFixed(2) + 'M ILN';
+  if (power >= 1_000) return (power / 1_000).toFixed(1) + 'K ILN';
+  return power.toFixed(0) + ' ILN';
 }
 
 // ─── Mock voting state (per-session in-memory store) ──────────────────────────
@@ -266,8 +269,8 @@ export async function castVote(
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
   if (proposal) {
     const power = 1250;
-    if (choice === "For") proposal.votesFor += power;
-    else if (choice === "Against") proposal.votesAgainst += power;
+    if (choice === 'For') proposal.votesFor += power;
+    else if (choice === 'Against') proposal.votesAgainst += power;
     else proposal.votesAbstain += power;
   }
 
@@ -285,7 +288,7 @@ export async function executeProposal(
 
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
   if (proposal) {
-    proposal.status = "Executed";
+    proposal.status = 'Executed';
   }
 
   return Math.random().toString(16).substring(2, 18);
@@ -300,9 +303,9 @@ export async function vetoProposal(
   await new Promise((r) => setTimeout(r, 1200));
 
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
-  if (!proposal) throw new Error("Proposal not found");
+  if (!proposal) throw new Error('Proposal not found');
 
-  proposal.status = "Vetoed";
+  proposal.status = 'Vetoed';
   const record: VetoRecord = {
     proposalId,
     admin: adminAddress,
@@ -333,15 +336,15 @@ export async function getDelegationInfo(address: string): Promise<{
   // Mock implementation - replace with actual Soroban calls
   // In a real implementation, this would query the governance contract
   await new Promise((r) => setTimeout(r, 150));
-  
+
   // Simulate some users having delegations
   const mockDelegations = {
-    "GABC123": {
-      delegatedTo: "GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
+    GABC123: {
+      delegatedTo: 'GDEF456EXAMPLE789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
       delegatedAmount: 500,
       incomingDelegations: 0,
     },
-    "GDEF456": {
+    GDEF456: {
       delegatedTo: null,
       delegatedAmount: 0,
       incomingDelegations: 1200,
@@ -350,7 +353,7 @@ export async function getDelegationInfo(address: string): Promise<{
 
   const shortAddress = address.slice(0, 7);
   const mockData = mockDelegations[shortAddress as keyof typeof mockDelegations];
-  
+
   if (mockData) {
     return mockData;
   }
@@ -366,11 +369,7 @@ export async function getDelegationInfo(address: string): Promise<{
 // ─── Proposal creation ────────────────────────────────────────────────────────
 
 /** The four form-level proposal types exposed in the creation UI */
-export type CreateProposalFormType =
-  | "FeeRate"
-  | "AddToken"
-  | "RemoveToken"
-  | "MaxDiscountRate";
+export type CreateProposalFormType = 'FeeRate' | 'AddToken' | 'RemoveToken' | 'MaxDiscountRate';
 
 export interface AcceptedToken {
   address: string;
@@ -406,18 +405,18 @@ export interface CreateProposalPayload {
 // ─── Mock protocol parameter state ───────────────────────────────────────────
 
 const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
-  feeRateBps: 50,         // 0.5%
+  feeRateBps: 50, // 0.5%
   maxDiscountRateBps: 500, // 5%
   acceptedTokens: [
     {
-      address: "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
-      name: "USD Coin",
-      symbol: "USDC",
+      address: 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75',
+      name: 'USD Coin',
+      symbol: 'USDC',
     },
     {
-      address: "CDTKPWPLOURQA2SGTKTUQOWRCBZEORB4BWBOMJ3D3ZTQQSGE5F6JBQLV",
-      name: "Euro Coin",
-      symbol: "EURC",
+      address: 'CDTKPWPLOURQA2SGTKTUQOWRCBZEORB4BWBOMJ3D3ZTQQSGE5F6JBQLV',
+      name: 'Euro Coin',
+      symbol: 'EURC',
     },
   ],
   minProposalILN: 500,
@@ -446,15 +445,13 @@ export function isValidStellarAddress(address: string): boolean {
  */
 export async function lookupToken(address: string): Promise<AcceptedToken> {
   if (!isValidStellarAddress(address)) {
-    throw new Error("Invalid Stellar address. Must start with G and be 56 characters.");
+    throw new Error('Invalid Stellar address. Must start with G and be 56 characters.');
   }
 
   await new Promise((r) => setTimeout(r, 800));
 
   // Check if it's already an accepted token
-  const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.find(
-    (t) => t.address === address.trim()
-  );
+  const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.find((t) => t.address === address.trim());
   if (existing) {
     throw new Error(`${existing.symbol} is already an accepted token.`);
   }
@@ -462,19 +459,19 @@ export async function lookupToken(address: string): Promise<AcceptedToken> {
   // Simulate a small set of "known" testnet tokens
   const KNOWN_TOKENS: Record<string, AcceptedToken> = {
     CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC: {
-      address: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
-      name: "Wrapped Bitcoin",
-      symbol: "wBTC",
+      address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
+      name: 'Wrapped Bitcoin',
+      symbol: 'wBTC',
     },
     CAZF3TRE3TFUMYQ7GDBP2HMRH4CW4GI7XPQFVFYXFBXNJLKH2BLNSJP: {
-      address: "CAZF3TRE3TFUMYQ7GDBP2HMRH4CW4GI7XPQFVFYXFBXNJLKH2BLNSJP",
-      name: "Wrapped Ether",
-      symbol: "wETH",
+      address: 'CAZF3TRE3TFUMYQ7GDBP2HMRH4CW4GI7XPQFVFYXFBXNJLKH2BLNSJP',
+      name: 'Wrapped Ether',
+      symbol: 'wETH',
     },
     CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA: {
-      address: "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
-      name: "Stellar AQUA",
-      symbol: "AQUA",
+      address: 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',
+      name: 'Stellar AQUA',
+      symbol: 'AQUA',
     },
   };
 
@@ -484,7 +481,7 @@ export async function lookupToken(address: string): Promise<AcceptedToken> {
   // For unknown addresses, return a generic placeholder (real impl would query Horizon)
   return {
     address: address.trim(),
-    name: "Unknown Token",
+    name: 'Unknown Token',
     symbol: address.slice(0, 4).toUpperCase(),
   };
 }
@@ -506,40 +503,40 @@ export async function createProposal(
 
   // Map form type → internal ProposalType
   const typeMap: Record<CreateProposalFormType, ProposalType> = {
-    FeeRate: "ParameterUpdate",
-    MaxDiscountRate: "ParameterUpdate",
-    AddToken: "ProtocolUpgrade",
-    RemoveToken: "ProtocolUpgrade",
+    FeeRate: 'ParameterUpdate',
+    MaxDiscountRate: 'ParameterUpdate',
+    AddToken: 'ProtocolUpgrade',
+    RemoveToken: 'ProtocolUpgrade',
   };
 
   // Map form type → parameter change
   let parameterChanges: ParameterChange[] | undefined;
-  if (payload.formType === "FeeRate" && payload.newValueBps !== undefined) {
+  if (payload.formType === 'FeeRate' && payload.newValueBps !== undefined) {
     parameterChanges = [
       {
-        parameter: "fee_rate_bps",
+        parameter: 'fee_rate_bps',
         currentValue: `${MOCK_PROTOCOL_PARAMS.feeRateBps} (${MOCK_PROTOCOL_PARAMS.feeRateBps / 100}%)`,
         newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
       },
     ];
-  } else if (payload.formType === "MaxDiscountRate" && payload.newValueBps !== undefined) {
+  } else if (payload.formType === 'MaxDiscountRate' && payload.newValueBps !== undefined) {
     parameterChanges = [
       {
-        parameter: "max_discount_rate_bps",
+        parameter: 'max_discount_rate_bps',
         currentValue: `${MOCK_PROTOCOL_PARAMS.maxDiscountRateBps} (${MOCK_PROTOCOL_PARAMS.maxDiscountRateBps / 100}%)`,
         newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
       },
     ];
-  } else if (payload.formType === "AddToken" && payload.tokenAddress) {
+  } else if (payload.formType === 'AddToken' && payload.tokenAddress) {
     const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol);
     parameterChanges = [
       {
-        parameter: "accepted_tokens",
-        currentValue: `[${existing.join(", ")}]`,
-        newValue: `[${existing.join(", ")}, ${payload.tokenName ?? payload.tokenAddress.slice(0, 6)}]`,
+        parameter: 'accepted_tokens',
+        currentValue: `[${existing.join(', ')}]`,
+        newValue: `[${existing.join(', ')}, ${payload.tokenName ?? payload.tokenAddress.slice(0, 6)}]`,
       },
     ];
-  } else if (payload.formType === "RemoveToken" && payload.removeTokenAddress) {
+  } else if (payload.formType === 'RemoveToken' && payload.removeTokenAddress) {
     const token = MOCK_PROTOCOL_PARAMS.acceptedTokens.find(
       (t) => t.address === payload.removeTokenAddress
     );
@@ -548,9 +545,9 @@ export async function createProposal(
       .map((t) => t.symbol);
     parameterChanges = [
       {
-        parameter: "accepted_tokens",
-        currentValue: `[${MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol).join(", ")}]`,
-        newValue: `[${remaining.join(", ")}]${token ? ` (removes ${token.symbol})` : ""}`,
+        parameter: 'accepted_tokens',
+        currentValue: `[${MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol).join(', ')}]`,
+        newValue: `[${remaining.join(', ')}]${token ? ` (removes ${token.symbol})` : ''}`,
       },
     ];
   }
@@ -560,7 +557,7 @@ export async function createProposal(
     title: payload.title,
     description: payload.description,
     type: typeMap[payload.formType],
-    status: "Active",
+    status: 'Active',
     proposer: _signerAddress,
     createdAt: NOW_SEC,
     votingStartsAt: NOW_SEC,
@@ -604,19 +601,19 @@ export interface ParameterUpdateEvent {
 
 /** Human-readable labels for known protocol parameters. */
 const PARAMETER_LABELS: Record<string, string> = {
-  fee_rate_bps: "Protocol fee rate",
-  base_discount_rate: "Base discount rate",
-  max_discount_rate_bps: "Maximum discount rate",
-  quorum_threshold_bps: "Quorum threshold",
-  voting_period_seconds: "Voting period",
-  accepted_tokens: "Accepted tokens",
-  min_invoice_amount: "Minimum invoice amount",
-  reputation_threshold: "Reputation threshold",
+  fee_rate_bps: 'Protocol fee rate',
+  base_discount_rate: 'Base discount rate',
+  max_discount_rate_bps: 'Maximum discount rate',
+  quorum_threshold_bps: 'Quorum threshold',
+  voting_period_seconds: 'Voting period',
+  accepted_tokens: 'Accepted tokens',
+  min_invoice_amount: 'Minimum invoice amount',
+  reputation_threshold: 'Reputation threshold',
 };
 
 /** Map a raw parameter key to a friendly label, falling back to a prettified key. */
 export function parameterLabel(parameter: string): string {
-  return PARAMETER_LABELS[parameter] ?? parameter.replace(/_/g, " ");
+  return PARAMETER_LABELS[parameter] ?? parameter.replace(/_/g, ' ');
 }
 
 /**
@@ -632,7 +629,7 @@ export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
   const proposals = await fetchProposals();
 
   return proposals
-    .filter((p) => p.status === "Executed" && p.parameterChanges?.length)
+    .filter((p) => p.status === 'Executed' && p.parameterChanges?.length)
     .flatMap((p) => {
       // Execution time: when the proposal became executable, else when voting ended.
       const updatedAt = p.executableAfter ?? p.votingEndsAt;
@@ -653,33 +650,33 @@ export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
 export const MOCK_VOTES: VoteCastEvent[] = [
   {
     proposalId: 1,
-    proposalTitle: "Reduce Base Discount Rate to 3.5%",
-    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
-    vote: "For",
+    proposalTitle: 'Reduce Base Discount Rate to 3.5%',
+    voter: 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
+    vote: 'For',
     weight: 1250,
     timestamp: NOW - 1.5 * DAY,
   },
   {
     proposalId: 3,
-    proposalTitle: "Add EURC as Accepted Invoice Currency",
-    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
-    vote: "For",
+    proposalTitle: 'Add EURC as Accepted Invoice Currency',
+    voter: 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
+    vote: 'For',
     weight: 1250,
     timestamp: NOW - 10 * DAY,
   },
   {
     proposalId: 4,
-    proposalTitle: "Extend Voting Period to 10 Days",
-    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
-    vote: "Against",
+    proposalTitle: 'Extend Voting Period to 10 Days',
+    voter: 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
+    vote: 'Against',
     weight: 1250,
     timestamp: NOW - 25 * DAY,
   },
   {
     proposalId: 7,
-    proposalTitle: "Lower Protocol Fee Rate to 0.3%",
-    voter: "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ",
-    vote: "For",
+    proposalTitle: 'Lower Protocol Fee Rate to 0.3%',
+    voter: 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
+    vote: 'For',
     weight: 1250,
     timestamp: NOW - 5 * DAY,
   },
@@ -693,7 +690,7 @@ export async function fetchVotesForAddress(address: string): Promise<VoteCastEve
   await new Promise((r) => setTimeout(r, 400));
   // In a real implementation, we would filter contract events by the voter address.
   // For the mock, we return data if the address matches our mock voter.
-  if (address === "GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ") {
+  if (address === 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ') {
     return [...MOCK_VOTES].sort((a, b) => b.timestamp - a.timestamp);
   }
   return [];

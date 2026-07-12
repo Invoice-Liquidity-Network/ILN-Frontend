@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Transaction, Networks, StrKey } from "@stellar/stellar-sdk";
-import jwt from "jsonwebtoken";
-import { NETWORK_PASSPHRASE } from "@/constants";
+import { NextRequest, NextResponse } from 'next/server';
+import { Transaction, Networks, StrKey } from '@stellar/stellar-sdk';
+import jwt from 'jsonwebtoken';
+import { NETWORK_PASSPHRASE } from '@/constants';
 
 /**
  * SEP-10 Verify Endpoint
@@ -28,16 +28,13 @@ export async function POST(request: NextRequest) {
     if (!account || !signedTransactionXdr) {
       return NextResponse.json(
         { error: "Missing 'account' or 'transaction' in request body" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Validate the public key
     if (!StrKey.isValidEd25519PublicKey(account)) {
-      return NextResponse.json(
-        { error: "Invalid public key format" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Invalid public key format' }, { status: 400 });
     }
 
     try {
@@ -51,10 +48,7 @@ export async function POST(request: NextRequest) {
       // Check that the account is present in the transaction
       const envelopes = signedTransaction.getSignatures();
       if (envelopes.length === 0) {
-        return NextResponse.json(
-          { error: "Transaction is not signed" },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'Transaction is not signed' }, { status: 400 });
       }
 
       // Check that this is a valid challenge transaction
@@ -64,7 +58,7 @@ export async function POST(request: NextRequest) {
       // 3. The transaction hasn't been used before
 
       // Generate JWT token
-      const jwtSecret = process.env.JWT_SECRET_KEY || "your-secret-key";
+      const jwtSecret = process.env.JWT_SECRET_KEY || 'your-secret-key';
       const token = jwt.sign(
         {
           account,
@@ -72,22 +66,16 @@ export async function POST(request: NextRequest) {
           exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
         },
         jwtSecret,
-        { algorithm: "HS256" },
+        { algorithm: 'HS256' }
       );
 
       return NextResponse.json({ token });
     } catch (error) {
-      console.error("Transaction verification error:", error);
-      return NextResponse.json(
-        { error: "Invalid signed transaction" },
-        { status: 400 },
-      );
+      console.error('Transaction verification error:', error);
+      return NextResponse.json({ error: 'Invalid signed transaction' }, { status: 400 });
     }
   } catch (error) {
-    console.error("SEP-10 verification error:", error);
-    return NextResponse.json(
-      { error: "Failed to verify challenge" },
-      { status: 500 },
-    );
+    console.error('SEP-10 verification error:', error);
+    return NextResponse.json({ error: 'Failed to verify challenge' }, { status: 500 });
   }
 }

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { createContext, useCallback, useContext, ReactNode } from "react";
-import { toast as sonnerToast } from "sonner";
-import AppToaster from "@/components/AppToaster";
-import { TOAST_AUTO_DISMISS_MS } from "@/lib/toast-config";
+import React, { createContext, useCallback, useContext, ReactNode } from 'react';
+import { toast as sonnerToast } from 'sonner';
+import AppToaster from '@/components/AppToaster';
+import { TOAST_AUTO_DISMISS_MS } from '@/lib/toast-config';
 
-export type ToastType = "pending" | "success" | "error" | "info" | "warning";
+export type ToastType = 'pending' | 'success' | 'error' | 'info' | 'warning';
 
 export interface ToastAction {
   label: string;
@@ -22,14 +22,14 @@ export interface ToastMessage {
 }
 
 interface ToastContextType {
-  addToast: (toast: Omit<ToastMessage, "id">) => string;
-  updateToast: (id: string, updates: Partial<Omit<ToastMessage, "id">>) => void;
+  addToast: (toast: Omit<ToastMessage, 'id'>) => string;
+  updateToast: (id: string, updates: Partial<Omit<ToastMessage, 'id'>>) => void;
   removeToast: (id: string) => void;
 }
 
 export const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-function buildDescription(toast: Omit<ToastMessage, "id">): React.ReactNode | undefined {
+function buildDescription(toast: Omit<ToastMessage, 'id'>): React.ReactNode | undefined {
   if (React.isValidElement(toast.message)) {
     if (toast.txHash) {
       return (
@@ -43,40 +43,38 @@ function buildDescription(toast: Omit<ToastMessage, "id">): React.ReactNode | un
   }
 
   const parts: string[] = [];
-  if (typeof toast.message === "string") parts.push(toast.message);
+  if (typeof toast.message === 'string') parts.push(toast.message);
   if (toast.txHash) parts.push(`Tx: ${toast.txHash.slice(0, 8)}…`);
-  return parts.length > 0 ? parts.join(" · ") : undefined;
+  return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 
 function durationForType(type: ToastType): number | typeof Infinity {
-  if (type === "error" || type === "pending") return Infinity;
+  if (type === 'error' || type === 'pending') return Infinity;
   return TOAST_AUTO_DISMISS_MS;
 }
 
-function showSonnerToast(id: string, toast: Omit<ToastMessage, "id">) {
+function showSonnerToast(id: string, toast: Omit<ToastMessage, 'id'>) {
   const options = {
     id,
     description: buildDescription(toast),
     duration: durationForType(toast.type),
-    action: toast.action
-      ? { label: toast.action.label, onClick: toast.action.onClick }
-      : undefined,
+    action: toast.action ? { label: toast.action.label, onClick: toast.action.onClick } : undefined,
   };
 
   switch (toast.type) {
-    case "success":
+    case 'success':
       sonnerToast.success(toast.title, options);
       break;
-    case "error":
+    case 'error':
       sonnerToast.error(toast.title, options);
       break;
-    case "info":
+    case 'info':
       sonnerToast.info(toast.title, options);
       break;
-    case "warning":
+    case 'warning':
       sonnerToast.warning(toast.title, options);
       break;
-    case "pending":
+    case 'pending':
       sonnerToast.loading(toast.title, options);
       break;
     default:
@@ -85,16 +83,16 @@ function showSonnerToast(id: string, toast: Omit<ToastMessage, "id">) {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const addToast = useCallback((toast: Omit<ToastMessage, "id">) => {
+  const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
     const id = Math.random().toString(36).slice(2, 11);
     showSonnerToast(id, toast);
     return id;
   }, []);
 
-  const updateToast = useCallback((id: string, updates: Partial<Omit<ToastMessage, "id">>) => {
+  const updateToast = useCallback((id: string, updates: Partial<Omit<ToastMessage, 'id'>>) => {
     showSonnerToast(id, {
-      type: updates.type ?? "info",
-      title: updates.title ?? "Updated",
+      type: updates.type ?? 'info',
+      title: updates.title ?? 'Updated',
       ...updates,
     });
   }, []);
@@ -121,7 +119,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast() {
   const context = useContext(ToastContext);
   if (context === undefined) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
 }

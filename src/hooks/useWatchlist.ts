@@ -44,14 +44,17 @@ export function useWatchlist(walletAddress: string | null) {
     }
   }, [walletAddress]);
 
-  const saveWatchlist = useCallback((newList: WatchlistItem[]) => {
-    if (!walletAddress) return;
-    try {
-      localStorage.setItem(`watchlist_${walletAddress}`, JSON.stringify(newList));
-    } catch (e) {
-      console.error('Failed to save watchlist to local storage', e);
-    }
-  }, [walletAddress]);
+  const saveWatchlist = useCallback(
+    (newList: WatchlistItem[]) => {
+      if (!walletAddress) return;
+      try {
+        localStorage.setItem(`watchlist_${walletAddress}`, JSON.stringify(newList));
+      } catch (e) {
+        console.error('Failed to save watchlist to local storage', e);
+      }
+    },
+    [walletAddress]
+  );
 
   // Real-time polling with Page Visibility API
   useEffect(() => {
@@ -61,9 +64,7 @@ export function useWatchlist(walletAddress: string | null) {
       if (document.hidden) return;
 
       const ids = watchlist.map((item: WatchlistItem) => item.id);
-      const results = await Promise.allSettled(
-        ids.map((id: string) => getInvoice(BigInt(id)))
-      );
+      const results = await Promise.allSettled(ids.map((id: string) => getInvoice(BigInt(id))));
 
       setWatchlist((current: WatchlistItem[]) => {
         let changed = false;
@@ -113,53 +114,69 @@ export function useWatchlist(walletAddress: string | null) {
     };
   }, [walletAddress, watchlist.length, addToast, saveWatchlist]);
 
-  const addToWatchlist = useCallback((invoiceId: bigint) => {
-    const idStr = invoiceId.toString();
-    setWatchlist((current: WatchlistItem[]) => {
-      if (current.some((item: WatchlistItem) => item.id === idStr)) {
-        return current;
-      }
-      if (current.length >= MAX_WATCHLIST_SIZE) {
-        throw new Error(`Watchlist limit of ${MAX_WATCHLIST_SIZE} invoices reached. Please remove some before adding new ones.`);
-      }
-      const newList = [...current, { id: idStr, addedAt: Date.now() }];
-      saveWatchlist(newList);
-      return newList;
-    });
-  }, [saveWatchlist]);
-
-  const removeFromWatchlist = useCallback((invoiceId: bigint) => {
-    const idStr = invoiceId.toString();
-    previousStatusesRef.current.delete(idStr);
-    setWatchlist((current: WatchlistItem[]) => {
-      const newList = current.filter((item: WatchlistItem) => item.id !== idStr);
-      saveWatchlist(newList);
-      return newList;
-    });
-  }, [saveWatchlist]);
-
-  const toggleWatchlist = useCallback((invoiceId: bigint) => {
-    const idStr = invoiceId.toString();
-    setWatchlist((current: WatchlistItem[]) => {
-      if (current.some((item: WatchlistItem) => item.id === idStr)) {
-        previousStatusesRef.current.delete(idStr);
-        const newList = current.filter((item: WatchlistItem) => item.id !== idStr);
-        saveWatchlist(newList);
-        return newList;
-      } else {
+  const addToWatchlist = useCallback(
+    (invoiceId: bigint) => {
+      const idStr = invoiceId.toString();
+      setWatchlist((current: WatchlistItem[]) => {
+        if (current.some((item: WatchlistItem) => item.id === idStr)) {
+          return current;
+        }
         if (current.length >= MAX_WATCHLIST_SIZE) {
-          throw new Error(`Watchlist limit of ${MAX_WATCHLIST_SIZE} invoices reached. Please remove some before adding new ones.`);
+          throw new Error(
+            `Watchlist limit of ${MAX_WATCHLIST_SIZE} invoices reached. Please remove some before adding new ones.`
+          );
         }
         const newList = [...current, { id: idStr, addedAt: Date.now() }];
         saveWatchlist(newList);
         return newList;
-      }
-    });
-  }, [saveWatchlist]);
+      });
+    },
+    [saveWatchlist]
+  );
 
-  const isInWatchlist = useCallback((invoiceId: bigint) => {
-    return watchlist.some((item: WatchlistItem) => item.id === invoiceId.toString());
-  }, [watchlist]);
+  const removeFromWatchlist = useCallback(
+    (invoiceId: bigint) => {
+      const idStr = invoiceId.toString();
+      previousStatusesRef.current.delete(idStr);
+      setWatchlist((current: WatchlistItem[]) => {
+        const newList = current.filter((item: WatchlistItem) => item.id !== idStr);
+        saveWatchlist(newList);
+        return newList;
+      });
+    },
+    [saveWatchlist]
+  );
+
+  const toggleWatchlist = useCallback(
+    (invoiceId: bigint) => {
+      const idStr = invoiceId.toString();
+      setWatchlist((current: WatchlistItem[]) => {
+        if (current.some((item: WatchlistItem) => item.id === idStr)) {
+          previousStatusesRef.current.delete(idStr);
+          const newList = current.filter((item: WatchlistItem) => item.id !== idStr);
+          saveWatchlist(newList);
+          return newList;
+        } else {
+          if (current.length >= MAX_WATCHLIST_SIZE) {
+            throw new Error(
+              `Watchlist limit of ${MAX_WATCHLIST_SIZE} invoices reached. Please remove some before adding new ones.`
+            );
+          }
+          const newList = [...current, { id: idStr, addedAt: Date.now() }];
+          saveWatchlist(newList);
+          return newList;
+        }
+      });
+    },
+    [saveWatchlist]
+  );
+
+  const isInWatchlist = useCallback(
+    (invoiceId: bigint) => {
+      return watchlist.some((item: WatchlistItem) => item.id === invoiceId.toString());
+    },
+    [watchlist]
+  );
 
   return {
     watchlist,

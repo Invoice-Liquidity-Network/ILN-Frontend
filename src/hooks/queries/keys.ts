@@ -14,26 +14,25 @@
 
 export const invoiceKeys = {
   /** All invoices list. */
-  all: ["invoices"] as const,
+  all: ['invoices'] as const,
   /** A single invoice by id. */
-  detail: (id: bigint | string | number | null | undefined) =>
-    ["invoice", id?.toString()] as const,
+  detail: (id: bigint | string | number | null | undefined) => ['invoice', id?.toString()] as const,
   /** Total invoice count (cheap counter used by the homepage ticker). */
-  count: ["invoice-count"] as const,
+  count: ['invoice-count'] as const,
 };
 
 export const statsKeys = {
   /** Aggregated protocol stats (volume, funded, paid …). */
-  all: ["contract-stats"] as const,
+  all: ['contract-stats'] as const,
 };
 
 export const reputationKeys = {
-  detail: (address: string) => ["reputation", address] as const,
+  detail: (address: string) => ['reputation', address] as const,
 };
 
 export const governanceKeys = {
   /** Recent `ParameterUpdated` contract events for announcement banners. */
-  parameterUpdates: ["parameter-updates"] as const,
+  parameterUpdates: ['parameter-updates'] as const,
 };
 
 /**

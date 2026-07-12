@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { useApprovedTokens } from "@/hooks/useApprovedTokens";
-import TokenSelector from "@/components/TokenSelector";
-import type { Invoice } from "@/utils/soroban";
+import { useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import TokenSelector from '@/components/TokenSelector';
+import type { Invoice } from '@/utils/soroban';
 
 interface ChangeInvoiceTokenModalProps {
   invoice: Invoice;
@@ -21,25 +21,25 @@ export default function ChangeInvoiceTokenModal({
   const { address } = useWallet();
   const { execute, loading } = useTransaction();
   const { tokens } = useApprovedTokens();
-  const [selectedToken, setSelectedToken] = useState(invoice.token ?? "");
+  const [selectedToken, setSelectedToken] = useState(invoice.token ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const allowedTokens = tokens.filter((t) => t.isAllowed);
-  const hasChanged = selectedToken !== (invoice.token ?? "");
+  const hasChanged = selectedToken !== (invoice.token ?? '');
 
   const handleSubmit = async () => {
     if (!address || !hasChanged || loading) return;
     setError(null);
     try {
-      const { convertInvoiceToken } = await import("@/utils/soroban");
+      const { convertInvoiceToken } = await import('@/utils/soroban');
       const tx = await convertInvoiceToken(address, invoice.id, selectedToken);
-      const txHash = await execute(tx, "Convert invoice token");
+      const txHash = await execute(tx, 'Convert invoice token');
       if (txHash) {
         onSuccess(selectedToken);
         onClose();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Transaction failed.");
+      setError(err instanceof Error ? err.message : 'Transaction failed.');
     }
   };
 
@@ -73,7 +73,9 @@ export default function ChangeInvoiceTokenModal({
           />
 
           {error && (
-            <p className="text-sm text-error" role="alert">{error}</p>
+            <p className="text-sm text-error" role="alert">
+              {error}
+            </p>
           )}
         </div>
 
@@ -92,7 +94,7 @@ export default function ChangeInvoiceTokenModal({
             className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             data-testid="confirm-change-token"
           >
-            {loading ? "Confirming…" : "Confirm Change"}
+            {loading ? 'Confirming…' : 'Confirm Change'}
           </button>
         </div>
       </div>

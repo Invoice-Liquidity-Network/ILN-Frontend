@@ -4,11 +4,23 @@ import type { TokenYieldMetrics } from '@/utils/per-token-yield';
 
 const mockMetrics: TokenYieldMetrics[] = [
   {
-    token: { contractId: 'usdc-1', symbol: 'USDC', name: 'USD Coin', decimals: 7, iconLabel: 'USDC' },
+    token: {
+      contractId: 'usdc-1',
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 7,
+      iconLabel: 'USDC',
+    },
     totalYield: 10000000n,
   },
   {
-    token: { contractId: 'eurc-1', symbol: 'EURC', name: 'Euro Coin', decimals: 7, iconLabel: 'EURC' },
+    token: {
+      contractId: 'eurc-1',
+      symbol: 'EURC',
+      name: 'Euro Coin',
+      decimals: 7,
+      iconLabel: 'EURC',
+    },
     totalYield: 5000000n,
   },
 ];

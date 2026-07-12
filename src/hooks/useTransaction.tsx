@@ -1,15 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useMemo } from "react";
-import type { ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Transaction } from "@stellar/stellar-sdk";
-import { submitSignedTransaction } from "@/utils/soroban";
-import { useToast } from "@/context/ToastContext";
-import { useWallet } from "@/context/WalletContext";
-import { notifyTxSuccess } from "@/utils/txEvents";
-import { parseContractError, CONTRACT_ERROR_MAP, UNKNOWN_CONTRACT_ERROR } from "@/lib/contract/errors";
-import { TransactionErrorToast } from "@/components/transaction/TransactionErrorToast";
+import { useState, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Transaction } from '@stellar/stellar-sdk';
+import { submitSignedTransaction } from '@/utils/soroban';
+import { useToast } from '@/context/ToastContext';
+import { useWallet } from '@/context/WalletContext';
+import { notifyTxSuccess } from '@/utils/txEvents';
+import {
+  parseContractError,
+  CONTRACT_ERROR_MAP,
+  UNKNOWN_CONTRACT_ERROR,
+} from '@/lib/contract/errors';
+import { TransactionErrorToast } from '@/components/transaction/TransactionErrorToast';
 
 type SignTxFn = (txXdr: string) => Promise<string>;
 
@@ -40,7 +44,7 @@ function isWalletRejection(message: string) {
 
 function getOptions(options?: string | ExecuteOptions): ExecuteOptions {
   if (!options) return {};
-  return typeof options === "string" ? { title: options } : options;
+  return typeof options === 'string' ? { title: options } : options;
 }
 
 export function useTransaction(): UseTransactionResult {
@@ -59,9 +63,9 @@ export function useTransaction(): UseTransactionResult {
       try {
         return await signTx(txXdr);
       } catch (err: any) {
-        const message = err?.message || String(err || "Transaction cancelled");
+        const message = err?.message || String(err || 'Transaction cancelled');
         if (isWalletRejection(message)) {
-          throw new Error("Transaction cancelled");
+          throw new Error('Transaction cancelled');
         }
         throw err;
       } finally {
@@ -72,33 +76,33 @@ export function useTransaction(): UseTransactionResult {
   );
 
   const execute = useCallback(
-    async <T = string>(
+    async <T = string,>(
       txOrOperation: Transaction | TransactionOperation<T>,
       options?: string | ExecuteOptions
     ) => {
       if (!isConnected || !address) {
-        setError("Wallet not connected");
+        setError('Wallet not connected');
         return null;
       }
 
       const resolvedOptions = getOptions(options);
-      const title = resolvedOptions.title ?? "Processing transaction...";
-      const pendingMessage = resolvedOptions.pendingMessage ?? "Waiting for wallet signature...";
-      const successTitle = resolvedOptions.successTitle ?? "Transaction complete";
-      const successMessage = resolvedOptions.successMessage ?? "Your transaction was confirmed.";
+      const title = resolvedOptions.title ?? 'Processing transaction...';
+      const pendingMessage = resolvedOptions.pendingMessage ?? 'Waiting for wallet signature...';
+      const successTitle = resolvedOptions.successTitle ?? 'Transaction complete';
+      const successMessage = resolvedOptions.successMessage ?? 'Your transaction was confirmed.';
 
       setLoading(true);
       setError(null);
       setSuccess(false);
 
       const toastId = addToast({
-        type: "pending",
+        type: 'pending',
         title,
         message: pendingMessage,
       });
 
       const operation: TransactionOperation<T> =
-        typeof txOrOperation === "function"
+        typeof txOrOperation === 'function'
           ? txOrOperation
           : async (signTx) => {
               const { txHash } = await submitSignedTransaction({ tx: txOrOperation, signTx });
@@ -113,7 +117,7 @@ export function useTransaction(): UseTransactionResult {
         const result = await operation(signTxWithUi);
         setSuccess(true);
         updateToast(toastId, {
-          type: "success",
+          type: 'success',
           title: successTitle,
           message: successMessage,
         });
@@ -122,25 +126,29 @@ export function useTransaction(): UseTransactionResult {
         notifyTxSuccess();
         return result;
       } catch (err: any) {
-        const message = err?.message || String(err || "Transaction failed.");
+        const message = err?.message || String(err || 'Transaction failed.');
         const isRejected = isWalletRejection(message);
         setError(message);
 
-        let title = "Transaction failed";
+        let title = 'Transaction failed';
         let toastMessage: React.ReactNode = `${message}. Please try again or contact support if the issue persists.`;
 
         if (isRejected) {
-          title = "Transaction cancelled";
-          toastMessage = "Transaction cancelled";
+          title = 'Transaction cancelled';
+          toastMessage = 'Transaction cancelled';
         } else {
           const code = parseContractError(err);
           const errorInfo = code ? CONTRACT_ERROR_MAP[code] : UNKNOWN_CONTRACT_ERROR;
-          
+
           title = errorInfo.title;
-          
-          const hasTechnicalDetails = !!code || (message && message !== "Transaction failed." && message !== errorInfo.message);
-          const technicalDetails = hasTechnicalDetails 
-            ? (code ? `${code}\n${message}` : message) 
+
+          const hasTechnicalDetails =
+            !!code ||
+            (message && message !== 'Transaction failed.' && message !== errorInfo.message);
+          const technicalDetails = hasTechnicalDetails
+            ? code
+              ? `${code}\n${message}`
+              : message
             : undefined;
 
           toastMessage = (
@@ -153,13 +161,13 @@ export function useTransaction(): UseTransactionResult {
         }
 
         updateToast(toastId, {
-          type: "error",
+          type: 'error',
           title,
           message: toastMessage,
           action: isRejected
             ? undefined
             : {
-                label: "Retry",
+                label: 'Retry',
                 onClick: retry,
               },
         });

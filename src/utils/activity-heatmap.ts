@@ -1,5 +1,5 @@
-import type { ContractEventType } from "@/lib/contract-events";
-import type { Invoice } from "@/utils/soroban";
+import type { ContractEventType } from '@/lib/contract-events';
+import type { Invoice } from '@/utils/soroban';
 
 export interface DayActivity {
   count: number;
@@ -12,7 +12,7 @@ export interface AddressActivityRecord {
 }
 
 export interface ProfileActivityInput {
-  type: ContractEventType | "submit" | "fund" | "paid";
+  type: ContractEventType | 'submit' | 'fund' | 'paid';
   timestampMs: number;
   amount?: bigint;
 }
@@ -27,7 +27,7 @@ function toUtcDateKey(timestampMs: number): string {
 /** Aggregate activity counts and total amounts per UTC day for the last 52 weeks. */
 export function buildDailyActivityCounts(
   records: ProfileActivityInput[],
-  now = Date.now(),
+  now = Date.now()
 ): Map<string, DayActivity> {
   const activity = new Map<string, DayActivity>();
   const start = new Date(now);
@@ -48,7 +48,7 @@ export function buildDailyActivityCounts(
 
 export function deriveAddressActivityFromInvoices(
   invoices: Invoice[],
-  address: string,
+  address: string
 ): ProfileActivityInput[] {
   const activity: ProfileActivityInput[] = [];
 
@@ -57,13 +57,13 @@ export function deriveAddressActivityFromInvoices(
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) continue;
 
     if (invoice.freelancer === address) {
-      activity.push({ type: "submit", timestampMs, amount: invoice.amount });
+      activity.push({ type: 'submit', timestampMs, amount: invoice.amount });
     }
     if (invoice.funder === address) {
-      activity.push({ type: "fund", timestampMs, amount: invoice.amount });
+      activity.push({ type: 'fund', timestampMs, amount: invoice.amount });
     }
-    if (invoice.payer === address && invoice.status === "Paid") {
-      activity.push({ type: "paid", timestampMs, amount: invoice.amount });
+    if (invoice.payer === address && invoice.status === 'Paid') {
+      activity.push({ type: 'paid', timestampMs, amount: invoice.amount });
     }
   }
 
@@ -71,11 +71,11 @@ export function deriveAddressActivityFromInvoices(
 }
 
 const HEATMAP_COLORS = {
-  empty: "#ebedf0",
-  level1: "#9be9a8",
-  level2: "#40c463",
-  level3: "#30a14e",
-  level4: "#216e39",
+  empty: '#ebedf0',
+  level1: '#9be9a8',
+  level2: '#40c463',
+  level3: '#30a14e',
+  level4: '#216e39',
 } as const;
 
 export function getHeatmapIntensityColor(count: number, maxCount: number): string {
@@ -91,7 +91,7 @@ export { HEATMAP_COLORS };
 
 export function buildHeatmapGrid(
   activity: Map<string, DayActivity>,
-  now = Date.now(),
+  now = Date.now()
 ): { weeks: number[][]; maxCount: number; dayActivity: Map<string, DayActivity> } {
   const totalDays = WEEKS * DAYS_PER_WEEK;
   const days: string[] = [];
@@ -120,15 +120,15 @@ export function buildHeatmapGrid(
 }
 
 export function formatActivityTooltip(activity: DayActivity, dateKey: string): string {
-  const formatted = new Date(`${dateKey}T00:00:00Z`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  const formatted = new Date(`${dateKey}T00:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 
   if (activity.count === 0) return `No activity on ${formatted}`;
 
-  const label = activity.count === 1 ? "1 action" : `${activity.count} actions`;
+  const label = activity.count === 1 ? '1 action' : `${activity.count} actions`;
 
   if (activity.totalAmount > 0n) {
     const amount = (Number(activity.totalAmount) / 1e7).toFixed(2);

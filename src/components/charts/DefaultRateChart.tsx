@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -11,31 +11,27 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   type TooltipProps,
-} from "recharts";
+} from 'recharts';
 import {
   calculateMovingAverage,
   MonthlyDefaultBucket,
   MonthlyDefaultWithMA,
-} from "@/utils/defaultRate";
+} from '@/utils/defaultRate';
 
 const CHART_TICK_STYLE = {
-  fill: "var(--color-on-surface-variant, #94a3b8)",
+  fill: 'var(--color-on-surface-variant, #94a3b8)',
   fontSize: 11,
-  fontFamily: "inherit",
+  fontFamily: 'inherit',
 };
 
-const GRID_STROKE = "var(--color-outline-variant, #334155)";
+const GRID_STROKE = 'var(--color-outline-variant, #334155)';
 const THRESHOLD_PERCENT = 10;
 
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: TooltipProps<number, string>) {
+function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
 
-  const defaultRateEntry = payload.find((p) => p.dataKey === "defaultRate");
-  const maEntry = payload.find((p) => p.dataKey === "movingAverage");
+  const defaultRateEntry = payload.find((p) => p.dataKey === 'defaultRate');
+  const maEntry = payload.find((p) => p.dataKey === 'movingAverage');
 
   return (
     <div className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 shadow-xl">
@@ -46,13 +42,8 @@ function ChartTooltip({
         {defaultRateEntry && (
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: "#008080" }}
-              />
-              <span className="text-xs font-medium text-on-surface">
-                Default Rate
-              </span>
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: '#008080' }} />
+              <span className="text-xs font-medium text-on-surface">Default Rate</span>
             </div>
             <span className="text-xs font-bold text-on-surface">
               {(defaultRateEntry.value as number).toFixed(2)}%
@@ -62,13 +53,8 @@ function ChartTooltip({
         {maEntry && (
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: "#6366f1" }}
-              />
-              <span className="text-xs font-medium text-on-surface">
-                30-day MA
-              </span>
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: '#6366f1' }} />
+              <span className="text-xs font-medium text-on-surface">30-day MA</span>
             </div>
             <span className="text-xs font-bold text-on-surface">
               {(maEntry.value as number).toFixed(2)}%
@@ -86,9 +72,9 @@ function generateMockDefaults(): MonthlyDefaultBucket[] {
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now);
     d.setMonth(d.getMonth() - i);
-    const label = d.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
+    const label = d.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
     });
     const funded = Math.floor(Math.random() * 20) + 10;
     const defaulted = Math.floor(Math.random() * Math.min(3, funded));
@@ -113,11 +99,9 @@ export default function DefaultRateChart() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const baseUrl =
-          process.env.NEXT_PUBLIC_INDEXER_API_URL ??
-          "https://api.iln.example.com";
+        const baseUrl = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? 'https://api.iln.example.com';
         const res = await fetch(`${baseUrl}/analytics/defaults?period=12m`);
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) throw new Error('Failed to fetch');
         const json = await res.json();
         const withMA = calculateMovingAverage(json.monthly || json, 1);
         setChartData(withMA);
@@ -150,29 +134,21 @@ export default function DefaultRateChart() {
     if (chartData.length < 2) return null;
     const current = chartData[chartData.length - 1].defaultRate;
     const previous = chartData[chartData.length - 2].defaultRate;
-    if (current > previous) return "up";
-    if (current < previous) return "down";
-    return "flat";
+    if (current > previous) return 'up';
+    if (current < previous) return 'down';
+    return 'flat';
   }, [chartData]);
 
-  const trendArrow = trend === "up" ? "↑" : trend === "down" ? "↓" : "→";
+  const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
   const trendClass =
-    trend === "up"
-      ? "text-error"
-      : trend === "down"
-        ? "text-green-500"
-        : "text-on-surface-variant";
+    trend === 'up' ? 'text-error' : trend === 'down' ? 'text-green-500' : 'text-on-surface-variant';
 
   return (
     <div className="flex flex-col gap-6 rounded-[24px] border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-headline text-xl font-bold text-on-surface">
-            Default Rate Trend
-          </h3>
-          <p className="text-sm text-on-surface-variant">
-            Protocol health indicator
-          </p>
+          <h3 className="font-headline text-xl font-bold text-on-surface">Default Rate Trend</h3>
+          <p className="text-sm text-on-surface-variant">Protocol health indicator</p>
         </div>
       </div>
 
@@ -197,9 +173,7 @@ export default function DefaultRateChart() {
           <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
             Trend
           </span>
-          <span className={`font-headline text-2xl font-bold ${trendClass}`}>
-            {trendArrow}
-          </span>
+          <span className={`font-headline text-2xl font-bold ${trendClass}`}>{trendArrow}</span>
         </div>
       </div>
 
@@ -215,16 +189,11 @@ export default function DefaultRateChart() {
             <span className="material-symbols-outlined text-outline-variant/40 text-4xl">
               bar_chart
             </span>
-            <p className="text-sm font-medium text-on-surface-variant">
-              No default data available
-            </p>
+            <p className="text-sm font-medium text-on-surface-variant">No default data available</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -251,9 +220,9 @@ export default function DefaultRateChart() {
                 stroke="#ef4444"
                 strokeDasharray="5 5"
                 label={{
-                  value: "10% threshold",
-                  position: "insideTopRight",
-                  fill: "#ef4444",
+                  value: '10% threshold',
+                  position: 'insideTopRight',
+                  fill: '#ef4444',
                   fontSize: 10,
                 }}
               />
@@ -263,7 +232,7 @@ export default function DefaultRateChart() {
                 name="Default Rate %"
                 stroke="#008080"
                 strokeWidth={2}
-                dot={{ fill: "#008080", r: 3 }}
+                dot={{ fill: '#008080', r: 3 }}
                 activeDot={{ r: 5 }}
               />
               <Line
@@ -272,7 +241,7 @@ export default function DefaultRateChart() {
                 name="30-day MA"
                 stroke="#6366f1"
                 strokeWidth={2}
-                dot={{ fill: "#6366f1", r: 3 }}
+                dot={{ fill: '#6366f1', r: 3 }}
                 activeDot={{ r: 5 }}
               />
             </LineChart>

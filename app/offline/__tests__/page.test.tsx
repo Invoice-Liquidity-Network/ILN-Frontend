@@ -1,15 +1,15 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import OfflinePage from "../page";
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import OfflinePage from '../page';
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("OfflinePage", () => {
-  it("renders the offline page", () => {
-    Object.defineProperty(navigator, "onLine", {
+describe('OfflinePage', () => {
+  it('renders the offline page', () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
@@ -17,8 +17,8 @@ describe("OfflinePage", () => {
     expect(screen.getByText(/offline|connection/i)).toBeInTheDocument();
   });
 
-  it("displays offline icon when offline", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('displays offline icon when offline', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
@@ -29,8 +29,8 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("displays online icon when online", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('displays online icon when online', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
     });
@@ -43,8 +43,8 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("displays available offline features list when offline", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('displays available offline features list when offline', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
@@ -55,32 +55,32 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("shows continue button when online", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('shows continue button when online', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
     });
     render(<OfflinePage />);
     await waitFor(() => {
-      const continueButton = screen.queryByRole("button", { name: /continue/i });
+      const continueButton = screen.queryByRole('button', { name: /continue/i });
       if (continueButton) {
         expect(continueButton).toBeInTheDocument();
       }
     });
   });
 
-  it("shows dashboard link", () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('shows dashboard link', () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
     render(<OfflinePage />);
-    const dashboardLink = screen.getByRole("link", { name: /dashboard|go to/i });
+    const dashboardLink = screen.getByRole('link', { name: /dashboard|go to/i });
     expect(dashboardLink).toBeInTheDocument();
   });
 
-  it("displays status indicator", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('displays status indicator', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
@@ -90,8 +90,8 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("updates UI when online event fires", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('updates UI when online event fires', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
@@ -100,11 +100,11 @@ describe("OfflinePage", () => {
       expect(screen.getByText(/offline/i)).toBeInTheDocument();
     });
 
-    Object.defineProperty(navigator, "onLine", {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
     });
-    fireEvent(window, new Event("online"));
+    fireEvent(window, new Event('online'));
 
     await waitFor(() => {
       const heading = screen.queryByText(/connection restored|online/i);
@@ -114,8 +114,8 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("updates UI when offline event fires", async () => {
-    Object.defineProperty(navigator, "onLine", {
+  it('updates UI when offline event fires', async () => {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
     });
@@ -127,11 +127,11 @@ describe("OfflinePage", () => {
       }
     });
 
-    Object.defineProperty(navigator, "onLine", {
+    Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
-    fireEvent(window, new Event("offline"));
+    fireEvent(window, new Event('offline'));
 
     await waitFor(() => {
       const offlineHeading = screen.queryByText(/you're offline/i);
@@ -141,12 +141,12 @@ describe("OfflinePage", () => {
     });
   });
 
-  it("cleans up event listeners on unmount", () => {
-    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+  it('cleans up event listeners on unmount', () => {
+    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
     const { unmount } = render(<OfflinePage />);
     unmount();
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("online", expect.any(Function));
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("offline", expect.any(Function));
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('online', expect.any(Function));
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('offline', expect.any(Function));
     removeEventListenerSpy.mockRestore();
   });
 });

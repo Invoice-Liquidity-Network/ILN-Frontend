@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRecentProtocolFeed } from "@/hooks/useRecentProtocolFeed";
-import type { ProtocolFeedItem } from "@/utils/protocol-feed";
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRecentProtocolFeed } from '@/hooks/useRecentProtocolFeed';
+import type { ProtocolFeedItem } from '@/utils/protocol-feed';
 
 function FeedRow({ item, isNew }: { item: ProtocolFeedItem; isNew: boolean }) {
   return (
     <li
       data-feed-id={item.id}
       data-testid="recent-transaction-item"
-      data-animate-new={isNew ? "true" : "false"}
+      data-animate-new={isNew ? 'true' : 'false'}
       className={`flex items-center gap-4 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 ${
-        isNew ? "animate-in slide-in-from-top-4 duration-300" : ""
+        isNew ? 'animate-in slide-in-from-top-4 duration-300' : ''
       }`}
     >
       <span
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
         aria-hidden="true"
       >
-        <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <span
+          className="material-symbols-outlined text-xl"
+          style={{ fontVariationSettings: "'FILL' 1" }}
+        >
           {item.icon}
         </span>
       </span>
@@ -29,7 +32,9 @@ function FeedRow({ item, isNew }: { item: ProtocolFeedItem; isNew: boolean }) {
         <p className="text-xs text-on-surface-variant">
           <span className="font-semibold text-on-surface">{item.amount}</span> {item.token}
           <span className="mx-1.5 text-outline-variant">·</span>
-          <time dateTime={item.timestampMs > 0 ? new Date(item.timestampMs).toISOString() : undefined}>
+          <time
+            dateTime={item.timestampMs > 0 ? new Date(item.timestampMs).toISOString() : undefined}
+          >
             {item.dateLabel}
           </time>
         </p>

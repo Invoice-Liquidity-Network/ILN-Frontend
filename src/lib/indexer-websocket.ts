@@ -1,9 +1,9 @@
-import { INDEXER_WS_URL } from "@/constants";
-import type { ParsedContractEvent } from "@/lib/contract-events";
+import { INDEXER_WS_URL } from '@/constants';
+import type { ParsedContractEvent } from '@/lib/contract-events';
 
 export interface IndexerWebSocketOptions {
   onEvent: (event: ParsedContractEvent) => void;
-  onStatusChange?: (status: "connected" | "disconnected" | "error" | "connecting") => void;
+  onStatusChange?: (status: 'connected' | 'disconnected' | 'error' | 'connecting') => void;
   maxReconnectAttempts?: number;
   reconnectDelayMs?: number;
 }
@@ -17,12 +17,10 @@ const DEFAULT_MAX_RECONNECT_ATTEMPTS = 5;
 const DEFAULT_RECONNECT_DELAY_MS = 2000;
 const BUFFER_MAX_SIZE = 100;
 
-export function connectIndexerWebSocket(
-  options: IndexerWebSocketOptions,
-): IndexerWebSocketHandle {
+export function connectIndexerWebSocket(options: IndexerWebSocketOptions): IndexerWebSocketHandle {
   const maxAttempts = options.maxReconnectAttempts ?? DEFAULT_MAX_RECONNECT_ATTEMPTS;
   const reconnectDelay = options.reconnectDelayMs ?? DEFAULT_RECONNECT_DELAY_MS;
-  
+
   let attempt = 0;
   let closed = false;
   let ws: WebSocket | null = null;
@@ -47,42 +45,42 @@ export function connectIndexerWebSocket(
 
   const scheduleReconnect = () => {
     if (closed) return;
-    options.onStatusChange?.("disconnected");
-    
+    options.onStatusChange?.('disconnected');
+
     if (attempt >= maxAttempts) {
-      options.onStatusChange?.("error");
+      options.onStatusChange?.('error');
       return;
     }
-    
+
     attempt += 1;
     reconnectTimer = setTimeout(connect, reconnectDelay * attempt);
   };
 
   const connect = () => {
-    if (closed || typeof WebSocket === "undefined") {
-      options.onStatusChange?.("error");
+    if (closed || typeof WebSocket === 'undefined') {
+      options.onStatusChange?.('error');
       return;
     }
 
     clearReconnect();
     ws?.close();
-    
+
     try {
-      options.onStatusChange?.("connecting");
+      options.onStatusChange?.('connecting');
       ws = new WebSocket(INDEXER_WS_URL);
 
       ws.onopen = () => {
         attempt = 0;
-        options.onStatusChange?.("connected");
+        options.onStatusChange?.('connected');
         flushBuffer();
       };
 
       ws.onmessage = (message) => {
         try {
           const data = JSON.parse(message.data);
-          if (data.type === "contract_event" && data.event) {
+          if (data.type === 'contract_event' && data.event) {
             const event: ParsedContractEvent = data.event;
-            
+
             if (ws?.readyState === WebSocket.OPEN) {
               options.onEvent(event);
             } else {
@@ -93,12 +91,12 @@ export function connectIndexerWebSocket(
             }
           }
         } catch (error) {
-          console.error("[IndexerWebSocket] Failed to parse message:", error);
+          console.error('[IndexerWebSocket] Failed to parse message:', error);
         }
       };
 
       ws.onerror = () => {
-        options.onStatusChange?.("error");
+        options.onStatusChange?.('error');
       };
 
       ws.onclose = () => {
@@ -108,8 +106,8 @@ export function connectIndexerWebSocket(
         }
       };
     } catch (error) {
-      console.error("[IndexerWebSocket] Failed to create WebSocket:", error);
-      options.onStatusChange?.("error");
+      console.error('[IndexerWebSocket] Failed to create WebSocket:', error);
+      options.onStatusChange?.('error');
       scheduleReconnect();
     }
   };

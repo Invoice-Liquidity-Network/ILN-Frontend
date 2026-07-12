@@ -1,32 +1,29 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { 
-  isValidStellarAddress, 
-  getVotingPower as fetchVotingPower 
-} from "@/utils/governance";
-import { resolveFederatedAddress } from "@/utils/federation";
-import { useWallet } from "@/context/WalletContext";
-import { useTransaction } from "@/hooks/useTransaction";
-import { 
-  Users, 
-  UserPlus, 
-  UserMinus, 
-  AlertCircle, 
-  Loader2, 
-  CheckCircle2, 
+import React, { useState, useEffect, useMemo } from 'react';
+import { isValidStellarAddress, getVotingPower as fetchVotingPower } from '@/utils/governance';
+import { resolveFederatedAddress } from '@/utils/federation';
+import { useWallet } from '@/context/WalletContext';
+import { useTransaction } from '@/hooks/useTransaction';
+import {
+  Users,
+  UserPlus,
+  UserMinus,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
   RefreshCcw,
-  ShieldCheck
-} from "lucide-react";
+  ShieldCheck,
+} from 'lucide-react';
 
 export const DelegationPanel: React.FC = () => {
   const { address, isConnected } = useWallet();
   const { execute, loading: txLoading, error: txError } = useTransaction();
 
-  const [delegateAddress, setDelegateAddress] = useState("");
-  const [resolvedDelegate, setResolvedDelegate] = useState("");
+  const [delegateAddress, setDelegateAddress] = useState('');
+  const [resolvedDelegate, setResolvedDelegate] = useState('');
   const [resolving, setResolving] = useState(false);
-  
+
   // Mock delegation state
   const [currentDelegation, setCurrentDelegation] = useState<string | null>(null);
   const [ownBalance, setOwnBalance] = useState(1250);
@@ -46,15 +43,15 @@ export const DelegationPanel: React.FC = () => {
 
   const handleAddressChange = async (val: string) => {
     setDelegateAddress(val);
-    setResolvedDelegate("");
-    
-    if (val.includes("*")) {
+    setResolvedDelegate('');
+
+    if (val.includes('*')) {
       setResolving(true);
       try {
         const resolved = await resolveFederatedAddress(val);
         setResolvedDelegate(resolved);
       } catch (e) {
-        console.error("Federation resolution failed", e);
+        console.error('Federation resolution failed', e);
       } finally {
         setResolving(false);
       }
@@ -66,25 +63,25 @@ export const DelegationPanel: React.FC = () => {
   const isCycleDetected = useMemo(() => {
     // Mock cycle detection: If address matches a known "delegator to me"
     // In a real app, this would check a delegation graph or contract state.
-    const knownDelegatorsToMe = ["GABC123...", "GDEF456..."];
+    const knownDelegatorsToMe = ['GABC123...', 'GDEF456...'];
     return knownDelegatorsToMe.includes(resolvedDelegate);
   }, [resolvedDelegate]);
 
   const handleDelegate = async () => {
     if (!resolvedDelegate || isCycleDetected) return;
-    
+
     // In a real app, this would build a Soroban transaction
     // Mock: execute(delegateVotesTx)
     const success = await execute({} as any, `Delegating votes to ${resolvedDelegate}`);
     if (success) {
       setCurrentDelegation(resolvedDelegate);
-      setDelegateAddress("");
-      setResolvedDelegate("");
+      setDelegateAddress('');
+      setResolvedDelegate('');
     }
   };
 
   const handleUndelegate = async () => {
-    const success = await execute({} as any, "Removing vote delegation");
+    const success = await execute({} as any, 'Removing vote delegation');
     if (success) {
       setCurrentDelegation(null);
     }
@@ -95,7 +92,9 @@ export const DelegationPanel: React.FC = () => {
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center">
         <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-bold text-gray-900 mb-2">Vote Delegation</h3>
-        <p className="text-gray-500 mb-6 text-sm">Connect your wallet to delegate your voting power.</p>
+        <p className="text-gray-500 mb-6 text-sm">
+          Connect your wallet to delegate your voting power.
+        </p>
       </div>
     );
   }
@@ -125,7 +124,9 @@ export const DelegationPanel: React.FC = () => {
         <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border border-indigo-100 dark:border-indigo-800">
           <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">Current Status</p>
           <p className="text-sm font-semibold truncate">
-            {currentDelegation ? `Delegating to ${currentDelegation.slice(0, 6)}...` : "Self-voting"}
+            {currentDelegation
+              ? `Delegating to ${currentDelegation.slice(0, 6)}...`
+              : 'Self-voting'}
           </p>
         </div>
       </div>
@@ -133,7 +134,7 @@ export const DelegationPanel: React.FC = () => {
       <div className="space-y-6">
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            {currentDelegation ? "Change Delegate" : "Delegate Your Votes"}
+            {currentDelegation ? 'Change Delegate' : 'Delegate Your Votes'}
           </label>
           <div className="flex space-x-2">
             <div className="relative flex-grow">
@@ -155,15 +156,15 @@ export const DelegationPanel: React.FC = () => {
               disabled={!resolvedDelegate || isCycleDetected || txLoading}
               className={`px-6 py-2 rounded-xl font-bold flex items-center space-x-2 transition-all ${
                 !resolvedDelegate || isCycleDetected || txLoading
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md"
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
               }`}
             >
               <UserPlus className="w-4 h-4" />
               <span>Delegate</span>
             </button>
           </div>
-          
+
           {resolvedDelegate && !isCycleDetected && (
             <p className="mt-2 text-xs text-green-600 flex items-center">
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -174,7 +175,9 @@ export const DelegationPanel: React.FC = () => {
           {isCycleDetected && (
             <div className="mt-3 bg-red-50 border border-red-100 rounded-lg p-3 flex items-start space-x-2 text-red-800">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <p className="text-xs font-medium">You cannot delegate to an address that delegates back to you (Cycle detected).</p>
+              <p className="text-xs font-medium">
+                You cannot delegate to an address that delegates back to you (Cycle detected).
+              </p>
             </div>
           )}
         </div>
@@ -187,7 +190,9 @@ export const DelegationPanel: React.FC = () => {
                   <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Delegating TO</p>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+                    Delegating TO
+                  </p>
                   <p className="text-sm font-mono">{currentDelegation}</p>
                 </div>
               </div>

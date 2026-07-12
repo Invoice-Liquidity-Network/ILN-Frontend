@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useWallet } from "@/context/WalletContext";
-import { generateReferralCode, getReferralLink } from "@/utils/referrals";
-import { useReferralStats } from "@/hooks/useReferralStats";
-import { formatUSDC } from "@/utils/format";
-import { toast } from "sonner";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useWallet } from '@/context/WalletContext';
+import { generateReferralCode, getReferralLink } from '@/utils/referrals';
+import { useReferralStats } from '@/hooks/useReferralStats';
+import { formatUSDC } from '@/utils/format';
+import { toast } from 'sonner';
 
 interface ReferralHistoryEntry {
   invoiceId: bigint;
@@ -17,7 +17,7 @@ interface ReferralHistoryEntry {
 
 export default function ReferralWidget() {
   const { address, isConnected } = useWallet();
-  const [referralCode, setReferralCode] = useState<string>("");
+  const [referralCode, setReferralCode] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [history, setHistory] = useState<ReferralHistoryEntry[]>([]);
 
@@ -41,8 +41,8 @@ export default function ReferralWidget() {
         entries.push({
           invoiceId: BigInt(i + 1),
           address: `Referred User #${i + 1}`,
-          date: new Date(Date.now() - i * 604800000).toISOString().split("T")[0],
-          status: i % 5 === 0 ? "Pending" : "Settled",
+          date: new Date(Date.now() - i * 604800000).toISOString().split('T')[0],
+          status: i % 5 === 0 ? 'Pending' : 'Settled',
         });
       }
       setHistory(entries);
@@ -56,10 +56,10 @@ export default function ReferralWidget() {
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      toast.success("Referral link copied!");
+      toast.success('Referral link copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Failed to copy link.");
+      toast.error('Failed to copy link.');
     }
   };
 
@@ -77,10 +77,7 @@ export default function ReferralWidget() {
             Invite users and earn a portion of the protocol fees.
           </p>
         </div>
-        <Link
-          href="/referrals"
-          className="text-sm font-bold text-primary hover:underline"
-        >
+        <Link href="/referrals" className="text-sm font-bold text-primary hover:underline">
           View Full Dashboard →
         </Link>
       </div>
@@ -92,7 +89,7 @@ export default function ReferralWidget() {
             Referrals
           </p>
           <p className="text-2xl font-headline font-medium text-primary">
-            {statsLoading ? "..." : totalInvoices}
+            {statsLoading ? '...' : totalInvoices}
           </p>
         </div>
 
@@ -103,7 +100,7 @@ export default function ReferralWidget() {
           </p>
           <p className="text-2xl font-headline font-medium text-primary">
             {/* The hook doesn't provide explicit rewards, we use formatted volume or placeholder 0 */}
-            {statsLoading ? "..." : "$0.00"}
+            {statsLoading ? '...' : '$0.00'}
           </p>
           <p className="text-[10px] text-on-surface-variant mt-1">
             From {formatUSDC(totalVolume)} total volume
@@ -117,9 +114,9 @@ export default function ReferralWidget() {
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-surface transition-colors hover:bg-primary/90"
           >
             <span className="material-symbols-outlined text-[18px]">
-              {copied ? "check" : "share"}
+              {copied ? 'check' : 'share'}
             </span>
-            {copied ? "Link Copied!" : "Share Referral Link"}
+            {copied ? 'Link Copied!' : 'Share Referral Link'}
           </button>
         </div>
       </div>
@@ -134,7 +131,9 @@ export default function ReferralWidget() {
           </div>
         ) : history.length === 0 ? (
           <div className="rounded-lg border border-outline-variant/10 bg-surface-container-low p-6 text-center">
-            <p className="text-sm text-on-surface-variant">No referrals yet. Share your link to get started!</p>
+            <p className="text-sm text-on-surface-variant">
+              No referrals yet. Share your link to get started!
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-outline-variant/10">
@@ -148,13 +147,18 @@ export default function ReferralWidget() {
               </thead>
               <tbody className="divide-y divide-surface-dim">
                 {history.map((entry) => (
-                  <tr key={entry.invoiceId.toString()} className="hover:bg-surface-variant/10 transition-colors">
+                  <tr
+                    key={entry.invoiceId.toString()}
+                    className="hover:bg-surface-variant/10 transition-colors"
+                  >
                     <td className="px-4 py-2 font-mono">{entry.address}</td>
                     <td className="px-4 py-2 text-on-surface-variant">{entry.date}</td>
                     <td className="px-4 py-2">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          entry.status === "Settled" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                          entry.status === 'Settled'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-warning/10 text-warning'
                         }`}
                       >
                         {entry.status}

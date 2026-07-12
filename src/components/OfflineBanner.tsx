@@ -1,21 +1,23 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { WifiOff, X, ShieldCheck } from "lucide-react";
-import { useToast } from "@/context/ToastContext";
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { WifiOff, X, ShieldCheck } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 const DISMISS_ANIMATION_MS = 250;
 
-type SwStatus = "unknown" | "active" | "inactive";
+type SwStatus = 'unknown' | 'active' | 'inactive';
 
 async function triggerBackgroundSync(reg: ServiceWorkerRegistration): Promise<void> {
   try {
     // SyncManager is available in supporting browsers
-    if ("sync" in reg) {
-      await (reg as ServiceWorkerRegistration & {
-        sync: { register(tag: string): Promise<void> };
-      }).sync.register("sync-queued-requests");
+    if ('sync' in reg) {
+      await (
+        reg as ServiceWorkerRegistration & {
+          sync: { register(tag: string): Promise<void> };
+        }
+      ).sync.register('sync-queued-requests');
     }
   } catch {
     // Background sync not supported or not permitted — no-op
@@ -27,29 +29,29 @@ export default function OfflineBanner() {
   const { addToast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [swStatus, setSwStatus] = useState<SwStatus>("unknown");
+  const [swStatus, setSwStatus] = useState<SwStatus>('unknown');
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detect service worker registration status
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) {
-      setSwStatus("inactive");
+    if (!('serviceWorker' in navigator)) {
+      setSwStatus('inactive');
       return;
     }
 
     navigator.serviceWorker.ready
-      .then(() => setSwStatus("active"))
-      .catch(() => setSwStatus("inactive"));
+      .then(() => setSwStatus('active'))
+      .catch(() => setSwStatus('inactive'));
 
     // Also listen for SW state changes
     const handleControllerChange = () => {
       if (navigator.serviceWorker.controller) {
-        setSwStatus("active");
+        setSwStatus('active');
       }
     };
-    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     return () => {
-      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
@@ -65,24 +67,24 @@ export default function OfflineBanner() {
 
       // Resume React Query paused mutations and refetch active queries
       queryClient.resumePausedMutations();
-      void queryClient.refetchQueries({ type: "active" });
+      void queryClient.refetchQueries({ type: 'active' });
 
       // Trigger service worker background sync when available
-      if ("serviceWorker" in navigator) {
+      if ('serviceWorker' in navigator) {
         try {
           const reg = await navigator.serviceWorker.ready;
           await triggerBackgroundSync(reg);
           // Notify SW to sync any queued state
-          reg.active?.postMessage({ type: "SYNC_ON_RECONNECT" });
+          reg.active?.postMessage({ type: 'SYNC_ON_RECONNECT' });
         } catch {
           // SW may not be ready — React Query sync above is sufficient
         }
       }
 
       addToast({
-        type: "success",
-        title: "Back Online",
-        message: "Connection restored. Syncing queued requests now.",
+        type: 'success',
+        title: 'Back Online',
+        message: 'Connection restored. Syncing queued requests now.',
       });
 
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
@@ -98,12 +100,12 @@ export default function OfflineBanner() {
       setIsExiting(false);
     };
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
   }, [addToast, queryClient]);
@@ -117,21 +119,23 @@ export default function OfflineBanner() {
       role="alert"
       aria-live="assertive"
       className={`fixed left-0 right-0 top-0 z-50 bg-amber-500/90 backdrop-blur-sm transition-all duration-300 ${
-        isExiting ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+        isExiting ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
       }`}
     >
       <div className="flex items-center justify-between gap-4 px-4 py-2 text-sm">
         <div className="flex items-center gap-3 text-amber-900">
           <WifiOff className="h-4 w-4 shrink-0" />
           <div className="flex flex-col gap-0.5">
-            <span className="font-medium">You&apos;re offline. Some features may not be available.</span>
-            {swStatus === "active" && (
+            <span className="font-medium">
+              You&apos;re offline. Some features may not be available.
+            </span>
+            {swStatus === 'active' && (
               <span className="flex items-center gap-1 text-xs text-amber-800">
                 <ShieldCheck className="h-3 w-3" />
                 Offline cache active — cached invoices and portfolio are available.
               </span>
             )}
-            {swStatus === "inactive" && (
+            {swStatus === 'inactive' && (
               <span className="text-xs text-amber-800">
                 No offline cache — connect to the internet to use the app.
               </span>

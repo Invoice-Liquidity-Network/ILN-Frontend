@@ -1,6 +1,6 @@
-import { jsPDF } from "jspdf";
-import QRCode from "qrcode";
-import type { Invoice } from "@/utils/soroban";
+import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
+import type { Invoice } from '@/utils/soroban';
 
 /**
  * Client-side PDF export for an invoice (#21). The field extraction and filename
@@ -36,29 +36,29 @@ export function invoicePdfFilename(id: bigint): string {
 
 export function invoicePdfFields(invoice: Invoice, data: InvoicePdfData): PdfField[] {
   return [
-    { label: "Invoice ID", value: `#${invoice.id.toString()}` },
-    { label: "Submitter", value: invoice.freelancer },
-    { label: "Payer", value: invoice.payer },
-    { label: "Amount", value: `${data.amountFormatted} ${data.tokenSymbol}` },
-    { label: "Token", value: data.tokenSymbol },
-    { label: "Discount Rate", value: `${(invoice.discount_rate / 100).toFixed(2)}%` },
-    { label: "Due Date", value: data.dueDateFormatted },
-    { label: "Status", value: invoice.status },
+    { label: 'Invoice ID', value: `#${invoice.id.toString()}` },
+    { label: 'Submitter', value: invoice.freelancer },
+    { label: 'Payer', value: invoice.payer },
+    { label: 'Amount', value: `${data.amountFormatted} ${data.tokenSymbol}` },
+    { label: 'Token', value: data.tokenSymbol },
+    { label: 'Discount Rate', value: `${(invoice.discount_rate / 100).toFixed(2)}%` },
+    { label: 'Due Date', value: data.dueDateFormatted },
+    { label: 'Status', value: invoice.status },
   ];
 }
 
 export async function buildInvoicePdf(invoice: Invoice, data: InvoicePdfData): Promise<jsPDF> {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const margin = 48;
   let y = margin;
 
   // ── ILN branding ──
   doc.setFontSize(22);
   doc.setTextColor(20, 83, 45);
-  doc.text("ILN", margin, y);
+  doc.text('ILN', margin, y);
   doc.setFontSize(11);
   doc.setTextColor(90, 90, 90);
-  doc.text("Invoice Liquidity Network", margin + 44, y);
+  doc.text('Invoice Liquidity Network', margin + 44, y);
   y += 28;
 
   doc.setDrawColor(220, 220, 220);
@@ -78,10 +78,10 @@ export async function buildInvoicePdf(invoice: Invoice, data: InvoicePdfData): P
   // ── QR code linking to the detail page ──
   try {
     const qr = await QRCode.toDataURL(data.shareUrl, { margin: 1, width: 160 });
-    doc.addImage(qr, "PNG", 547 - 120, margin + 8, 120, 120);
+    doc.addImage(qr, 'PNG', 547 - 120, margin + 8, 120, 120);
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text("Scan to view invoice", 547 - 120, margin + 142);
+    doc.text('Scan to view invoice', 547 - 120, margin + 142);
   } catch {
     // A failed QR render must not block the rest of the document.
   }
@@ -96,11 +96,11 @@ export async function buildInvoicePdf(invoice: Invoice, data: InvoicePdfData): P
     doc.line(margin, y, pageWidth, y);
     y += 16;
     doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(20, 83, 45);
     doc.text(title, margin, y);
     y += 16;
-    doc.setFont("helvetica", "normal");
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(40, 40, 40);
   }
@@ -112,17 +112,17 @@ export async function buildInvoicePdf(invoice: Invoice, data: InvoicePdfData): P
   }
 
   if (data.paymentInstructions) {
-    sectionHeader("Payment Instructions");
+    sectionHeader('Payment Instructions');
     wrappedText(data.paymentInstructions);
   }
 
   if (data.notes) {
-    sectionHeader("Notes");
+    sectionHeader('Notes');
     wrappedText(data.notes.slice(0, 1000));
   }
 
   if (data.termsAndConditions) {
-    sectionHeader("Terms & Conditions");
+    sectionHeader('Terms & Conditions');
     wrappedText(data.termsAndConditions);
   }
 

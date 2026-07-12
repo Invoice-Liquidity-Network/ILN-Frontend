@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface QuorumProgressBarProps {
   votesCast: number;
@@ -17,7 +17,7 @@ function formatVotes(n: number): string {
 export default function QuorumProgressBar({
   votesCast,
   quorumRequired,
-  className = "",
+  className = '',
 }: QuorumProgressBarProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -29,14 +29,11 @@ export default function QuorumProgressBar({
 
   const quorumMet = votesCast >= quorumRequired;
   const clampedVotes = Math.max(0, Math.min(votesCast, quorumRequired));
-  const pct =
-    quorumRequired > 0
-      ? Math.min((clampedVotes / quorumRequired) * 100, 100)
-      : 0;
+  const pct = quorumRequired > 0 ? Math.min((clampedVotes / quorumRequired) * 100, 100) : 0;
   const fillWidth = mounted ? pct : 0;
   const remainingVotes = Math.max(quorumRequired - votesCast, 0);
-  const statusLabel = quorumMet ? "Quorum met" : "Quorum pending";
-  const screenReaderText = `${pct.toFixed(0)}% complete. ${statusLabel}. ${quorumMet ? "Required quorum reached." : `${formatVotes(remainingVotes)} remaining to reach quorum.`}`;
+  const statusLabel = quorumMet ? 'Quorum met' : 'Quorum pending';
+  const screenReaderText = `${pct.toFixed(0)}% complete. ${statusLabel}. ${quorumMet ? 'Required quorum reached.' : `${formatVotes(remainingVotes)} remaining to reach quorum.`}`;
 
   return (
     <div className={`space-y-2 ${className}`} data-testid="quorum-progress-bar">
@@ -48,11 +45,11 @@ export default function QuorumProgressBar({
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-1 font-medium ${
             quorumMet
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
-              : "border-amber-500/30 bg-amber-500/10 text-amber-700"
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-700'
           }`}
         >
-          {quorumMet ? "✓ Quorum met" : "• Quorum pending"}
+          {quorumMet ? '✓ Quorum met' : '• Quorum pending'}
         </span>
       </div>
       <div

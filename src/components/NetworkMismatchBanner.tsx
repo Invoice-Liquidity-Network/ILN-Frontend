@@ -1,11 +1,19 @@
-"use client";
+'use client';
 
-import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
-import { useWallet } from "@/context/WalletContext";
-import { formatNetworkLabel } from "@/utils/network";
+import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
+import { useWallet } from '@/context/WalletContext';
+import { formatNetworkLabel } from '@/utils/network';
 
 export default function NetworkMismatchBanner() {
-  const { networkMismatch, rpcMismatch, mismatchDetails, switchingNetwork, walletNetwork, isConnected, switchNetwork } = useWallet();
+  const {
+    networkMismatch,
+    rpcMismatch,
+    mismatchDetails,
+    switchingNetwork,
+    walletNetwork,
+    isConnected,
+    switchNetwork,
+  } = useWallet();
 
   if (!isConnected || !networkMismatch || !walletNetwork || !mismatchDetails) {
     return null;
@@ -23,14 +31,16 @@ export default function NetworkMismatchBanner() {
           <ul className="mt-1 list-inside list-disc space-y-0.5 text-on-error-container/90">
             {mismatchDetails.walletMismatch && (
               <li>
-                Wallet is on <strong>{formatNetworkLabel(mismatchDetails.walletNetwork)}</strong>, but this app
-                is configured for <strong>{formatNetworkLabel(mismatchDetails.appNetwork)}</strong>.
+                Wallet is on <strong>{formatNetworkLabel(mismatchDetails.walletNetwork)}</strong>,
+                but this app is configured for{' '}
+                <strong>{formatNetworkLabel(mismatchDetails.appNetwork)}</strong>.
               </li>
             )}
             {mismatchDetails.rpcMismatch && mismatchDetails.rpcNetwork && (
               <li>
-                RPC endpoint targets <strong>{formatNetworkLabel(mismatchDetails.rpcNetwork)}</strong>, but your
-                wallet is on <strong>{formatNetworkLabel(mismatchDetails.walletNetwork)}</strong>.
+                RPC endpoint targets{' '}
+                <strong>{formatNetworkLabel(mismatchDetails.rpcNetwork)}</strong>, but your wallet
+                is on <strong>{formatNetworkLabel(mismatchDetails.walletNetwork)}</strong>.
               </li>
             )}
           </ul>

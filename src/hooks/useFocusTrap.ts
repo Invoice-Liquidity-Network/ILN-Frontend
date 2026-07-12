@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 /**
  * Hook to trap focus within a container element.
@@ -7,7 +7,10 @@ import { useEffect, useRef } from "react";
  * @param isActive - Whether the focus trap should be active
  * @param onEscape - Callback when Escape key is pressed
  */
-export function useFocusTrap<T extends HTMLElement = HTMLElement>(isActive: boolean = true, onEscape?: () => void) {
+export function useFocusTrap<T extends HTMLElement = HTMLElement>(
+  isActive: boolean = true,
+  onEscape?: () => void
+) {
   const containerRef = useRef<T>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 

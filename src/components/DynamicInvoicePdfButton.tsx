@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
 
-const InvoicePdfButton = dynamic(() => import("./InvoicePdfButton"), {
+const InvoicePdfButton = dynamic(() => import('./InvoicePdfButton'), {
   ssr: false,
   loading: () => (
     <button

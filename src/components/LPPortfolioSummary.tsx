@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
-import { Invoice } from "@/utils/soroban";
-import { calculateYield, formatTokenAmount } from "@/utils/format";
-import { RISK_SORT_ORDER } from "@/utils/risk";
+import React, { useMemo } from 'react';
+import { Invoice } from '@/utils/soroban';
+import { calculateYield, formatTokenAmount } from '@/utils/format';
+import { RISK_SORT_ORDER } from '@/utils/risk';
 
 interface LPPortfolioSummaryProps {
   invoices: Invoice[];
@@ -22,22 +22,22 @@ function MetricCard({
   title: string;
   value: React.ReactNode;
   trend: string;
-  trendDirection: "up" | "down" | "neutral";
+  trendDirection: 'up' | 'down' | 'neutral';
   sparklineData: number[];
 }) {
   const trendColor =
-    trendDirection === "up"
-      ? "text-emerald-500"
-      : trendDirection === "down"
-      ? "text-red-500"
-      : "text-on-surface-variant";
+    trendDirection === 'up'
+      ? 'text-emerald-500'
+      : trendDirection === 'down'
+        ? 'text-red-500'
+        : 'text-on-surface-variant';
 
   const trendIcon =
-    trendDirection === "up"
-      ? "trending_up"
-      : trendDirection === "down"
-      ? "trending_down"
-      : "trending_flat";
+    trendDirection === 'up'
+      ? 'trending_up'
+      : trendDirection === 'down'
+        ? 'trending_down'
+        : 'trending_flat';
 
   // Simple sparkline path generator
   const max = Math.max(...sparklineData, 1);
@@ -58,7 +58,11 @@ function MetricCard({
           <span className="material-symbols-outlined text-[16px]">{trendIcon}</span>
           {trend}
         </div>
-        <svg viewBox="0 0 100 100" className="h-8 w-16 overflow-visible opacity-60" preserveAspectRatio="none">
+        <svg
+          viewBox="0 0 100 100"
+          className="h-8 w-16 overflow-visible opacity-60"
+          preserveAspectRatio="none"
+        >
           <polyline
             fill="none"
             stroke="currentColor"
@@ -66,7 +70,7 @@ function MetricCard({
             strokeLinecap="round"
             strokeLinejoin="round"
             className={trendColor}
-            points={points.join(" ")}
+            points={points.join(' ')}
           />
         </svg>
       </div>
@@ -97,9 +101,9 @@ export default function LPPortfolioSummary({
     });
 
     const averageRisk = riskCount > 0 ? Math.round(riskSum / riskCount) : 0;
-    let riskLabel = "Low";
-    if (averageRisk >= 2) riskLabel = "Medium";
-    if (averageRisk >= 3) riskLabel = "High";
+    let riskLabel = 'Low';
+    if (averageRisk >= 2) riskLabel = 'Medium';
+    if (averageRisk >= 3) riskLabel = 'High';
 
     return {
       totalInvested,
@@ -134,8 +138,8 @@ export default function LPPortfolioSummary({
       <MetricCard
         title="Active Positions"
         value={metrics.activePositions.toString()}
-        trend={metrics.activePositions > 0 ? "+1" : "0"}
-        trendDirection={metrics.activePositions > 0 ? "up" : "neutral"}
+        trend={metrics.activePositions > 0 ? '+1' : '0'}
+        trendDirection={metrics.activePositions > 0 ? 'up' : 'neutral'}
         sparklineData={positionsSparkline}
       />
       <MetricCard

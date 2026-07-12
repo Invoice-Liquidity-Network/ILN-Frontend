@@ -1,8 +1,8 @@
-export type ReputationEventType = "paid" | "defaulted" | "decay";
-export type ReputationRange = "30d" | "90d" | "all";
+export type ReputationEventType = 'paid' | 'defaulted' | 'decay';
+export type ReputationRange = '30d' | '90d' | 'all';
 
 export interface ReputationUpdatedEvent {
-  type: "ReputationUpdated";
+  type: 'ReputationUpdated';
   score: number;
   eventType: ReputationEventType;
   timestamp?: number;
@@ -21,16 +21,14 @@ const DAY_MS = 86_400_000;
 
 export function buildReputationHistory(
   events: ReputationUpdatedEvent[],
-  range: ReputationRange = "90d",
-  now = Date.now(),
+  range: ReputationRange = '90d',
+  now = Date.now()
 ): ReputationHistoryPoint[] {
   const minTimestamp =
-    range === "all"
-      ? 0
-      : Math.floor((now - (range === "30d" ? 30 : 90) * DAY_MS) / 1000);
+    range === 'all' ? 0 : Math.floor((now - (range === '30d' ? 30 : 90) * DAY_MS) / 1000);
 
   return events
-    .filter((event) => event.type === "ReputationUpdated")
+    .filter((event) => event.type === 'ReputationUpdated')
     .map((event) => {
       const timestamp = event.timestamp ?? (event.ledger ? event.ledger * 5 : 0);
       return {
@@ -43,7 +41,7 @@ export function buildReputationHistory(
           : new Date(timestamp * 1000).toLocaleDateString(),
       };
     })
-    .filter((point) => range === "all" || point.timestamp >= minTimestamp)
+    .filter((point) => range === 'all' || point.timestamp >= minTimestamp)
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
