@@ -34,11 +34,14 @@ export default function BuiltOnStellar() {
               className="inline-flex items-center gap-2 hover:text-primary transition-colors"
             >
               The performance of Stellar
-              <span className="material-symbols-outlined text-2xl align-middle">open_in_new</span>
+              <span className="material-symbols-outlined text-2xl align-middle" aria-hidden="true">
+                open_in_new
+              </span>
+              <span className="sr-only">(opens Stellar website in a new tab)</span>
             </a>
           </h2>
           <p className="text-on-surface-variant max-w-2xl mx-auto">
-            Leveraging the world's most efficient blockchain for payments and asset issuance.
+            Leveraging the world&apos;s most efficient blockchain for payments and asset issuance.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
