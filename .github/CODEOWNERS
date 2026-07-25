@@ -1,0 +1,35 @@
+# CODEOWNERS file for ILN-Frontend
+# This file defines who should be automatically requested for review on PRs
+# based on which files are changed.
+
+# Global fallback - all files
+* @Immex171
+
+# Core React hooks - wallet, contract interactions, data fetching
+src/hooks/ @Immex171
+
+# React Context providers - wallet, notifications, global state
+src/context/ @Immex171
+
+# API routes - backend endpoints, authentication, data APIs
+app/api/ @Immex171
+
+# GitHub Actions workflows - CI/CD, testing, deployment
+.github/workflows/ @Immex171
+
+# Governance utilities - voting, proposal management
+src/utils/governance.ts @Immex171
+
+# Contract layer - Stellar SDK integration, transaction signing
+src/lib/soroban.ts @Immex171
+src/lib/horizon.ts @Immex171
+src/lib/indexer-websocket.ts @Immex171
+
+# Core constants and configuration
+src/constants.ts @Immex171
+
+# Type definitions
+src/types/ @Immex171
+
+# Documentation
+docs/ @Immex171
