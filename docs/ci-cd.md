@@ -51,8 +51,7 @@ The following workflows use `namespace-profile-nursca`:
 - `visual-regression.yml` - Chromatic visual regression tests
 - `storybook-deploy.yml` - Storybook deployment to GitHub Pages
 - `lighthouse.yml` - Lighthouse performance budget tests
-- `accessibility-tests.yml` - Accessibility test suite
-- `accessibility.yml` - jest-axe accessibility tests
+- `accessibility.yml` - Consolidated accessibility test suite
 - `contract-tests.yml` - Stellar SDK contract integration tests
 
 Note: `workflow-lint.yml` uses `ubuntu-latest` (GitHub-hosted runner) as it only requires workflow validation tools.
@@ -124,8 +123,8 @@ Jobs:
 ### End-to-End Tests (e2e-tests.yml)
 
 Triggers:
-- Push to `main`
-- Pull requests targeting `main`
+- Push to `main` or `develop`
+- Pull requests targeting `main` or `develop`
 
 Jobs:
 - `e2e` - Playwright E2E test suite with artifact uploads
@@ -157,15 +156,14 @@ Triggers:
 Jobs:
 - `lighthouse` - Lighthouse CI performance budget validation
 
-### Accessibility Tests (accessibility.yml & accessibility-tests.yml)
+### Accessibility Tests (accessibility.yml)
 
 Triggers:
-- Push to `main`, `develop`, or `test/accessibility-axe-tests`
+- Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
-- `accessibility` - jest-axe accessibility validation
-- `accessibility` (tests workflow) - Multi-node accessibility tests
+- `accessibility` - Consolidated accessibility validation for the dedicated axe suite and page-level accessibility tests
 
 ### Contract Integration Tests (contract-tests.yml)
 
@@ -197,31 +195,16 @@ The following secrets must be configured in the repository settings:
 
 ## Discrepancy Notes
 
-### Potential Issues Identified
+### Current Notes
 
-1. **Duplicate Accessibility Workflows**: There are two accessibility workflow files (`accessibility.yml` and `accessibility-tests.yml`) that may serve similar purposes. Consider consolidating.
+1. **Shared Node version**: Workflows now consume `.nvmrc` so local development and CI stay aligned on the same Node baseline.
 
-2. **Node Version Inconsistency**: Workflows use different Node versions:
-   - `ci.yml`: Node 20.x
-   - `e2e-tests.yml`: Node 22
-   - `visual-regression.yml`: Node 22
-   - `lighthouse.yml`: Node 22
-   - `accessibility.yml`: Node 22
-   - `contract-tests.yml`: Node 22
-   - `storybook-deploy.yml`: Node 20
-   - `accessibility-tests.yml`: Node 18.x and 20.x (matrix)
-   
-   Consider standardizing on a single Node version across all workflows.
+2. **Dedicated accessibility workflow**: Accessibility checks now live in a single workflow with one required `accessibility` job, which avoids duplicate check names and redundant CI runs.
 
-3. **E2E Tests Not Required for Develop**: E2E tests only run on `main` branch pushes and PRs to `main`. Consider whether this should also be required for `develop` branch merges.
-
-4. **Accessibility Test in CI Workflow**: The `ci.yml` workflow runs accessibility tests as part of the `tests` job, which may be redundant with the dedicated accessibility workflows.
+3. **E2E coverage on develop**: The E2E suite now runs for both `main` and `develop` pushes and pull requests so regressions surface before `main` merges.
 
 ### Maintainer Action Required
 
 Please verify the following:
 - [ ] Confirm the actual branch protection rules configured in GitHub repository settings match the documentation above
-- [ ] Resolve Node version inconsistencies across workflows
-- [ ] Clarify whether duplicate accessibility workflows are intentional
-- [ ] Decide if E2E tests should be required for `develop` branch merges
 - [ ] Review and update custom runner configuration documentation if `namespace-profile-nursca` setup has changed

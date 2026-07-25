@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  axe-tests:
-    name: jest-axe Accessibility
+  accessibility:
+    name: accessibility
     runs-on: namespace-profile-nursca
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +24,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run accessibility tests
-        run: pnpm exec vitest run __tests__/accessibility --reporter=verbose
+        run: pnpm exec vitest run __tests__/accessibility.test.tsx __tests__/accessibility --reporter=verbose
         env:
           CI: true
 
@@ -43,4 +43,5 @@ jobs:
           path: |
             test-results/
             coverage/
+          if-no-files-found: ignore
           retention-days: 7
