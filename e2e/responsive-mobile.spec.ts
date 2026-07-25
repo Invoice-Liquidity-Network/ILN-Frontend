@@ -15,6 +15,12 @@ const pagesToScreenshot = [
   { name: 'marketplace', path: '/marketplace' },
   { name: 'submit', path: '/submit' },
   { name: 'dashboard', path: '/dashboard' },
+  { name: 'governance', path: '/governance' },
+  { name: 'governance-new', path: '/governance/new' },
+  { name: 'invoices', path: '/invoices' },
+  { name: 'invoices-batch', path: '/invoices/batch' },
+  { name: 'stats', path: '/stats' },
+  { name: 'tokens', path: '/tokens' },
   { name: 'wallet', path: '/' },
 ];
 
@@ -120,6 +126,56 @@ test.describe('mobile responsive layout', () => {
     await expectNoHorizontalOverflow(page);
     await expectTouchTargets(page);
     await screenshotPage(page, testInfo, 'wallet-modal');
+  });
+
+  test('governance page layout remains responsive', async ({ page }, testInfo) => {
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' });
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'governance');
+  });
+
+  test('governance new proposal form is mobile-friendly', async ({ page }, testInfo) => {
+    await page.goto('/governance/new', { waitUntil: 'domcontentloaded' });
+    // Verify form elements are visible and properly sized
+    const formInputs = page.locator('main input:visible, main textarea:visible, main select:visible');
+    await expect(formInputs.first()).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'governance-new');
+  });
+
+  test('invoices list page stays responsive', async ({ page }, testInfo) => {
+    await page.goto('/invoices', { waitUntil: 'domcontentloaded' });
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'invoices');
+  });
+
+  test('invoices batch form remains usable on mobile', async ({ page }, testInfo) => {
+    await page.goto('/invoices/batch', { waitUntil: 'domcontentloaded' });
+    const formInputs = page.locator('main input:visible, main textarea:visible');
+    await expect(formInputs.first()).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'invoices-batch');
+  });
+
+  test('stats dashboard displays correctly on mobile', async ({ page }, testInfo) => {
+    await page.goto('/stats', { waitUntil: 'domcontentloaded' });
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'stats');
+  });
+
+  test('tokens page layout is mobile responsive', async ({ page }, testInfo) => {
+    await page.goto('/tokens', { waitUntil: 'domcontentloaded' });
+    // Verify token list or table is visible
+    const mainContent = page.locator('main');
+    await expect(mainContent).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTargets(page);
+    await screenshotPage(page, testInfo, 'tokens');
   });
 
   for (const target of pagesToScreenshot) {
