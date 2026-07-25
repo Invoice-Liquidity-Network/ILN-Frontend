@@ -52,7 +52,7 @@ interface WalletContextType {
   switchNetwork: () => Promise<void>;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+export const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 const STORAGE_KEY = WALLET_ADDRESS_STORAGE_KEY;
 

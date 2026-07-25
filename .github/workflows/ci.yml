@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: namespace-profile-nursca
@@ -27,6 +31,12 @@ jobs:
 
       - name: Run ESLint
         run: pnpm run lint
+
+      - name: Check formatting with Prettier
+        run: pnpm run format:check
+
+      - name: Run TypeScript type check
+        run: pnpm exec tsc --noEmit
 
   tests:
     runs-on: namespace-profile-nursca

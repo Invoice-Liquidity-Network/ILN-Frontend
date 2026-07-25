@@ -128,7 +128,7 @@ export function usePositionPolling({
     };
 
     const lastActivity = { current: Date.now() };
-    let timerId: ReturnType<typeof setTimeout>;
+    let timerId: number;
 
     const getDelay = () => {
       if (document.hidden) return 5 * 60_000;

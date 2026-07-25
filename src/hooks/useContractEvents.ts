@@ -69,7 +69,7 @@ export function useContractEvents(enabled = true) {
             },
             onStatusChange: (status) => {
               setContractEventStreamingActive(status === 'connected');
-              if (status === 'error' || status === 'disconnected') {
+              if (status === 'disconnected') {
                 if (process.env.NODE_ENV === 'development') {
                   console.error('[ContractEventSync] Polling connection failed.');
                 }

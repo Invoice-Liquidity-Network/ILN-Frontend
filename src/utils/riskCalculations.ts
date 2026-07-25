@@ -7,8 +7,8 @@ export interface InvoiceRiskDetail {
   id: bigint;
   freelancer: string;
   amount: bigint;
-  discount_rate: bigint;
-  due_date: number;
+  discount_rate: number;
+  due_date: bigint;
   status: string;
   payerScore: PayerScore | null;
   riskLevel: 'Low' | 'Medium' | 'High' | 'Unknown';
@@ -51,7 +51,7 @@ export function calculateRiskFactors(payerScore: PayerScore | null, fundedDate: 
   if (!payerScore) {
     return {
       onTimePaymentRate: 0,
-      defaultCount: payerScore?.defaults ?? 0,
+      defaultCount: 0,
       fundingAge,
     };
   }
