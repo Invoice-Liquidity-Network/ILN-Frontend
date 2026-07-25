@@ -56,12 +56,15 @@ build-storybook.log
 next-env.d.ts
 
 fix.md
+pr.md
+PR_DESCRIPTION.md
 
 # generated / one-off summary docs (not canonical project docs)
 IMPLEMENTATION_SUMMARY.md
 IMPLEMENTATION_GUIDE_useWallet.md
 useWallet_SUMMARY.md
 useWallet_QUICK_REFERENCE.md
+docs/pr_description.md
 
 # storybook static output
 /storybook-static
