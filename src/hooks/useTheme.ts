@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useTheme() {
   const { theme, setTheme: setNextTheme, resolvedTheme, systemTheme } = useNextTheme();
   const [mounted, setMounted] = useState(false);
-  const transitionTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>();
   const mediaQueryListRef = useRef<MediaQueryList | null>(null);
 
   useEffect(() => {
