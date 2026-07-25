@@ -23,6 +23,8 @@ Thank you for your interest in contributing to the Invoice Liquidity Network (IL
    git remote add upstream https://github.com/Invoice-Liquidity-Network/ILN-Frontend.git
    ```
 
+**Note for Fork Contributors**: This repository uses a custom self-hosted GitHub Actions runner (`namespace-profile-nursca`) that is not available to forks. If you are working from a fork, you will need to modify workflow files to use GitHub-hosted runners (`ubuntu-latest`) instead. See [docs/ci-cd.md](docs/ci-cd.md) for details.
+
 ### 2. Install Dependencies
 
 ```bash
@@ -248,6 +250,27 @@ This repository uses Conventional Commits to power changelog generation via `git
   ```bash
   npm run generate:changelog
   ```
+
+## Branch Naming Convention
+
+To maintain consistency and enable automated tooling, all branches should follow the Conventional Commits prefix convention:
+
+- `feat/` - New features
+- `fix/` - Bug fixes
+- `docs/` - Documentation changes
+- `chore/` - Maintenance tasks (dependencies, tooling, etc.)
+- `perf/` - Performance improvements
+- `test/` - Test additions or modifications
+- `ci/` - CI/CD configuration changes
+- `refactor/` - Code refactoring (no functional changes)
+
+Examples:
+- `feat/add-invoice-submission-form`
+- `fix/stellar-wallet-connection`
+- `docs/update-contributing-guide`
+- `chore/upgrade-dependencies`
+
+This convention aligns with our commit message format and helps with changelog generation.
 
 ## Pull Request Requirements
 
