@@ -546,9 +546,11 @@ npm run chromatic
 
 Visual regression tests run automatically on:
 
-- Pull requests
+- Pull requests from maintainers (with access to repository secrets)
 - Pushes to main branch
 - Manual workflow dispatch
+
+**Note for first-time contributors**: Visual regression tests are skipped for fork PRs because they require the `CHROMATIC_PROJECT_TOKEN` secret, which is not available to forks. When the Chromatic check is skipped, you'll see a clear notice in the PR checks explaining why. Your code will still be tested by other CI checks (linting, unit tests, E2E tests). A maintainer will review visual changes when merging your PR.
 
 ### Approval Workflow
 
@@ -708,6 +710,37 @@ If you need help:
 - Review the [architecture documentation](docs/architecture.md)
 - Read the [design system guide](DESIGN.md)
 - Join community discussions (link to Discord/Slack if available)
+
+## Code Review and Code Owners
+
+This project uses a [CODEOWNERS](.github/CODEOWNERS) file to automatically request reviews from maintainers based on which files are changed in a pull request.
+
+### Ownership Rationale
+
+The following areas have designated code owners to ensure consistent review and maintainability:
+
+- **Core React hooks** (`src/hooks/`): Wallet integration, contract interactions, and data fetching logic require deep understanding of the application's reactive architecture.
+- **React Context providers** (`src/context/`): Global state management and wallet context are critical infrastructure that affect the entire application.
+- **API routes** (`app/api/`): Backend endpoints handle authentication, data APIs, and server-side logic that require security and performance considerations.
+- **GitHub Actions workflows** (`.github/workflows/`): CI/CD pipelines, testing, and deployment configurations need careful review to prevent breaking changes.
+- **Governance utilities** (`src/utils/governance.ts`): Voting and proposal management logic is domain-specific and requires governance expertise.
+- **Contract layer** (`src/lib/soroban.ts`, `src/lib/horizon.ts`, `src/lib/indexer-websocket.ts`): Stellar SDK integration, transaction signing, and indexer connections are critical blockchain infrastructure.
+- **Core constants and configuration** (`src/constants.ts`): Central configuration affects the entire application and requires careful review.
+- **Type definitions** (`src/types/`): TypeScript types define the contract for the entire codebase.
+- **Documentation** (`docs/`): Documentation changes require review to ensure accuracy and consistency.
+
+### How It Works
+
+When you open a PR, GitHub will automatically suggest reviewers based on the files you've changed. This helps ensure that:
+
+- Changes to critical infrastructure get appropriate review
+- Domain experts review changes in their areas of expertise
+- Review turnaround time is improved by routing to the right people
+- Knowledge is distributed across the team
+
+### Adding New Code Owners
+
+If you become a regular contributor to a specific area of the codebase, you can request to be added as a code owner. Contact a maintainer to discuss this.
 
 ## Code of Conduct
 

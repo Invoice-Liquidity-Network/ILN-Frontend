@@ -136,6 +136,8 @@ Writes require user approval via a wallet browser extension.
 
 Global wallet configuration, connection status, and transaction signing are coordinated by [WalletContext.tsx](file:///Users/marvellous/Desktop/ILN-Frontend/src/context/WalletContext.tsx).
 
+For detailed documentation on the `useWallet` hook, including SEP-10 authentication flow, JWT storage strategy, and usage patterns, see [docs/hooks/use-wallet.md](hooks/use-wallet.md).
+
 - **Multi-Provider Support**: Supports Freighter extension connectivity directly, with hook placeholders for WalletConnect.
 - **Role Detection**: On connection, the context scans all invoices on-chain to detect the active address's historical involvement. It assigns a list of roles (`freelancer`, `payer`, or `lp`) dynamically. This role assignment determines access permissions for specific dashboard sections.
 - **Network Verification**: The context performs periodic assertions (every 5 seconds) checking the wallet's configured network against `NEXT_PUBLIC_NETWORK_NAME` (e.g., `TESTNET`). If a mismatch is detected, a `networkMismatch` flag is raised, blocking transactions and prompting the user to switch networks.
