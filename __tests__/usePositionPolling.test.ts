@@ -1,18 +1,16 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { usePositionPolling } from '@/hooks/usePositionPolling';
 import type { Invoice } from '@/utils/soroban';
 import type { ToastMessage } from '@/context/ToastContext';
 import type { NotificationItem } from '@/context/NotificationContext';
 
 describe('usePositionPolling', () => {
-  const mockToast = jest.fn<string, [Omit<ToastMessage, 'id'>]>((toast) => {
+  const mockToast = vi.fn((_toast: Omit<ToastMessage, 'id'>) => {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 
-  const mockNotification = jest.fn<
-    NotificationItem,
-    [Omit<NotificationItem, 'createdAt' | 'read'>]
-  >((notification) => {
+  const mockNotification = vi.fn((notification: Omit<NotificationItem, 'createdAt' | 'read'>) => {
     return {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
@@ -35,13 +33,13 @@ describe('usePositionPolling', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('should notify on Funded → Paid transition', () => {
@@ -71,6 +69,9 @@ describe('usePositionPolling', () => {
       addToast: mockToast,
       addNotification: mockNotification,
     });
+
+    // Advance timer to trigger scheduled evaluation
+    vi.advanceTimersByTime(30_000);
 
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,6 +111,9 @@ describe('usePositionPolling', () => {
       addNotification: mockNotification,
     });
 
+    // Advance timer to trigger scheduled evaluation
+    vi.advanceTimersByTime(30_000);
+
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'error',
@@ -148,6 +152,9 @@ describe('usePositionPolling', () => {
       addNotification: mockNotification,
     });
 
+    // Advance timer to trigger scheduled evaluation
+    vi.advanceTimersByTime(30_000);
+
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'error',
@@ -180,7 +187,7 @@ describe('usePositionPolling', () => {
     );
 
     // Simulate polling interval
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
 
     // Should have called once for due date expiry
     expect(mockToast).toHaveBeenCalledTimes(1);
