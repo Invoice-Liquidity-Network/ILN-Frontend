@@ -54,6 +54,10 @@ git push --no-verify
 
 Do not make a habit of skipping — the same checks run in CI and will block your PR.
 
+### Editor configuration
+
+A `.editorconfig` file at the repository root gives every editor a consistent baseline (2-space indentation, LF line endings, UTF-8, final newline) before Prettier runs. Most editors support it natively or via a free plugin — see [editorconfig.org](https://editorconfig.org) for setup instructions.
+
 ### Prettier configuration
 
 Formatting rules live in `.prettierrc.json`. Files and directories excluded from formatting are listed in `.prettierignore`.
