@@ -86,15 +86,18 @@ The application supports a broad route surface for freelancers, payers, liquidit
 ### 🧩 Core Component Layers
 
 1. **Smart Contract Layer (`src/lib/invoice-nft.ts`, `src/lib/contract/`, and `src/utils/soroban.ts`)**
+
    - Connects frontend actions to the Soroban smart contract.
    - Reconstructs Invoice NFT metadata and tracks mint/burn/transfer event history by scanning Horizon transaction logs and simulating Soroban contract invocations.
 
 2. **State & Context Layer (`src/context/`)**
+
    - **`WalletContext`**: Monitors Freighter wallet connection, active address, and queries multi-token balances (USDC, EURC, XLM) on Stellar.
    - **`NotificationContext`**: Handles in-app notification center persistence via `localStorage` (caps at 20 logs).
    - **`ToastContext`**: Wraps Sonner-powered non-blocking alerts.
 
 3. **Background Polling & Sync (`src/hooks/usePositionPolling.ts`)**
+
    - Monitors state transitions of funded invoices (e.g. `Funded -> Paid`, `Funded -> Defaulted`, or `Funded -> Disputed`) for the connected LP. It runs queries every 60 seconds and notifies the LP about due date expiration.
 
 4. **Payer Email Reminders (`app/api/reminders/`)**
@@ -188,7 +191,7 @@ Here is a detailed guide of the configuration options available:
 | `NEXT_PUBLIC_NFT_EVENT_HINTS`          | `""`                                                       | Hints helper (e.g., `mint:Minted;transfer:Transfer;burn:Burned`). |
 | `NEXT_PUBLIC_API_MOCKING`              | `disabled`                                                 | Set to `enabled` to start MSW in local development.               |
 | `NEXT_PUBLIC_APP_VERSION`              | `dev`                                                      | Version label for release-note state.                             |
-| `NEXT_PUBLIC_CONTRACT_VERSION`         | `testnet:CD3TE3IA`                                        | Contract version label displayed in admin health checks.          |
+| `NEXT_PUBLIC_CONTRACT_VERSION`         | `testnet:CD3TE3IA`                                         | Contract version label displayed in admin health checks.          |
 
 ### 🗄️ Notifications, Databases & Email (Backend/Cron)
 
@@ -216,20 +219,35 @@ Here is a detailed guide of the configuration options available:
 
 ## 📸 Screenshots
 
-### 📊 Liquidity Provider Dashboard
+### 🏠 Homepage
 
-Provides LPs with real-time portfolio metrics, cash flow analysis, liquidity meters, and active funding statuses.
-![Liquidity Provider Dashboard](public/screenshots/lp_dashboard.png)
+The landing experience surfaces the ILN story, the testnet status, and the primary onboarding paths for freelancers and liquidity providers.
+![ILN Homepage](docs/screenshots/homepage.svg)
 
-### ✍️ Freelancer Dashboard
+### 📊 Marketplace Explorer
 
-Allows freelancers to manage invoice factoring parameters, submit new invoices, view reputation ratings, and review cash advance details.
-![Freelancer Dashboard](public/screenshots/freelancer_dashboard.png)
+A central marketplace listing active open invoices, discount rates, and funding opportunities for liquidity providers.
+![Marketplace Explorer](docs/screenshots/marketplace.svg)
 
-### 🔍 Marketplace Explorer
+### 🏛 Governance
 
-A central marketplace listing all active open invoices waiting for funding, detailed interest rates, and risk rankings.
-![Marketplace Explorer](public/screenshots/marketplace.png)
+The governance surface highlights proposals, voting status, and the contributor workflow for protocol decisions.
+![Governance](docs/screenshots/governance.svg)
+
+### 📈 Protocol Stats
+
+The stats experience summarizes protocol volume, activity, and performance metrics across the testnet deployment.
+![Protocol Stats](docs/screenshots/stats.svg)
+
+### 🏁 Leaderboard
+
+The leaderboard exposes the most active users and participants across the ILN ecosystem.
+![Leaderboard](docs/screenshots/leaderboard.svg)
+
+### 📊 Analytics Dashboard
+
+The analytics view brings together yield, volume, and market trends for deeper protocol analysis.
+![Analytics Dashboard](docs/screenshots/analytics.svg)
 
 ---
 
@@ -239,6 +257,8 @@ A central marketplace listing all active open invoices waiting for funding, deta
 - **Developer Quickstart**: Follow the full setup guide in [docs/developer-quickstart.md](docs/developer-quickstart.md).
 - **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
 - **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
+- **i18n Setup Guide**: Review the current i18n architecture and locale-addition workflow in [docs/i18n.md](docs/i18n.md).
+- **Frontend Error Code Reference**: See the mapped contract error codes and remediation guidance in [docs/error-codes.md](docs/error-codes.md).
 - **useWallet Hook Documentation**: Detailed guide for wallet integration and SEP-10 authentication in [docs/hooks/use-wallet.md](docs/hooks/use-wallet.md).
 - **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive setup instructions, testing standards, code style guidelines, Stellar-specific setup, and development workflow.
 - **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
