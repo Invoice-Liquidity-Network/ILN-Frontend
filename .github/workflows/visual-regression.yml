@@ -10,13 +10,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least-privilege permissions (#462)
+permissions:
+  contents: read
+
 jobs:
   chromatic:
     if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
     name: Chromatic Visual Regression
     runs-on: namespace-profile-nursca
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -25,7 +29,7 @@ jobs:
           version: '9.0.0'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -39,7 +43,7 @@ jobs:
           NODE_OPTIONS: '--max_old_space_size=4096'
 
       - name: Run Chromatic
-        uses: chromaui/action@latest
+        uses: chromaui/action@14cfaef73576e69f95f47f60058063f46ca38719 # v18.1.0
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           storybookBuildDir: storybook-static
@@ -51,7 +55,7 @@ jobs:
 
       - name: Upload Storybook build
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: storybook-static
           path: storybook-static/

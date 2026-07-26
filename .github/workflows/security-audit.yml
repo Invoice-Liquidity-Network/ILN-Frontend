@@ -1,0 +1,39 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run every Monday at 08:00 UTC to catch newly published CVEs
+    - cron: '0 8 * * 1'
+
+# Least-privilege permissions (#462)
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit security gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fail on high and critical severity vulnerabilities.
+      # Moderate vulnerabilities are reported but do not block the build.
+      # See docs/ci-cd.md for the triage / allowlist process.
+      - name: Run security audit (high+critical gate)
+        run: npm audit --audit-level=high
+
+      # Separate informational step for moderate findings — never blocks CI.
+      - name: Report moderate vulnerabilities (informational)
+        run: npm audit --audit-level=moderate || true

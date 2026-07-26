@@ -702,6 +702,26 @@ export const Variant: Story = {
 - Regenerate all baselines after major updates
 - Update this documentation as needed
 
+## Security Audit (CI Gate)
+
+A `npm audit --audit-level=high` step runs in CI on every push and PR (see `.github/workflows/security-audit.yml`). The build **fails** on high or critical severity vulnerabilities.
+
+### When the audit fails
+
+1. Run `npm audit` locally to see the full report.
+2. Apply available patches: `npm audit fix` (or `npm audit fix --force` for breaking-change patches — review the diff carefully).
+3. If no fix is available and the finding is a confirmed false positive for this project, open a tracking issue and follow the triage process in [docs/ci-cd.md](docs/ci-cd.md#security-audit-gate-issue-459).
+
+## License Compatibility Check
+
+All production dependencies must use permissive OSI-approved licenses. The allowed list is in `.license-checker.json`. CI checks this on every push and PR (see `.github/workflows/license-check.yml`).
+
+### When the license check fails
+
+1. Identify which new dependency introduced the non-allowed license.
+2. Look for a permissive-licensed alternative.
+3. If no alternative exists, follow the exception process in [docs/ci-cd.md](docs/ci-cd.md#license-compatibility-check-issue-460).
+
 ## Getting Help
 
 If you need help:

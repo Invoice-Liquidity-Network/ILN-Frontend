@@ -1,0 +1,48 @@
+name: License Compatibility Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Least-privilege permissions (#462)
+permissions:
+  contents: read
+
+jobs:
+  license-check:
+    name: Dependency License Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install license-checker
+        run: npm install --no-save license-checker@25.0.1
+
+      # Fail if any dependency uses a license outside the allowlist.
+      # The allowlist is defined in .license-checker.json at the repo root.
+      # See docs/ci-cd.md for the triage process for exceptions.
+      - name: Check dependency licenses
+        run: |
+          npx license-checker \
+            --production \
+            --onlyAllow "$(node -e "const c=require('./.license-checker.json'); console.log(c.allowedLicenses.join(';'))")" \
+            --excludePrivatePackages \
+            --out license-report.txt
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: license-report
+          path: license-report.txt
+          retention-days: 14
