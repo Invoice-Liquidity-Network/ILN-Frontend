@@ -142,6 +142,8 @@ API routes are used for server-only integration points:
 - `app/api/auth/challenge.ts` and `app/api/auth/verify.ts` support SEP-10-style auth helpers.
 - `app/api/notifications/[address]/route.ts` bridges notification reads by address.
 
+Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
+
 ## State, Providers, and UI Boundaries
 
 - `app/Providers.tsx` wires global providers, React Query, theme behavior, toasts, and local MSW startup when `NEXT_PUBLIC_API_MOCKING=enabled`.

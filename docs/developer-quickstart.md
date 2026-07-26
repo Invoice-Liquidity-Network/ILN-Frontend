@@ -84,6 +84,8 @@ The checked-in example contains safe defaults for Stellar Testnet and placeholde
 
 Use placeholder values only for routes you are not exercising. Never commit `.env.local`.
 
+For local Supabase-backed reminder flows, create the tables described in [docs/supabase-setup.md](supabase-setup.md) and apply [supabase/migrations/001_init_reminders.sql](../supabase/migrations/001_init_reminders.sql).
+
 ### Step 4: Validate Env Example Sync
 
 ```bash
@@ -216,4 +218,4 @@ ILN-Frontend/
 
 ## Next Steps
 
-Start with `app/page.tsx`, skim [docs/architecture.md](architecture.md), and read [CONTRIBUTING.md](../CONTRIBUTING.md) before opening a PR.
+Start with `app/page.tsx`, skim [docs/architecture.md](architecture.md), and read [CONTRIBUTING.md](../CONTRIBUTING.md) before opening a PR. For deeper context on local integrations and contributor workflows, also see [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
