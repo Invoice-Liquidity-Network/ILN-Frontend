@@ -102,9 +102,15 @@ src/
 │   ├── invoices/                # Invoice-specific management widgets
 │   ├── onboarding/              # Onboarding flow and spotlight helpers
 │   └── ui/                      # Base UI primitives
-├── context/                     # Wallet, notification, and toast contexts
-├── hooks/                       # Wallet, invoices, balances, polling, UX hooks
-│   └── queries/                 # React Query keys and query hooks
+├── context/                     # Context providers and consumer hooks (global state)
+│   ├── WalletContext.tsx         # Wallet state, network checks, roles, signing
+│   ├── NotificationContext.tsx   # In-app notification history
+│   ├── ToastContext.tsx          # Toast message layer over Sonner
+│   └── KeyboardShortcutsContext.tsx  # Keyboard shortcut and command palette state
+├── hooks/                       # Custom hooks (no createContext); may consume context
+│   ├── queries/                 # React Query keys and query hooks
+│   ├── useAuthenticatedWallet.ts  # SEP-10 auth layer on top of WalletContext
+│   └── useBrowserNotifications.ts # Browser Notification API wrapper
 ├── lib/                         # Env, Supabase, Horizon, events, notifications
 ├── screens/                     # Larger dashboard/screen compositions
 ├── utils/                       # Soroban, analytics, risk, exports, formatting
@@ -148,8 +154,40 @@ API routes are used for server-only integration points:
 - `WalletContext` owns wallet address, provider state, network checks, role detection, balances, and signing.
 - `NotificationContext` stores in-app notification history.
 - `ToastContext` wraps toast behavior while `AppToaster` renders the Sonner host.
+- `KeyboardShortcutsContext` manages keyboard shortcut state and global keydown listeners.
 - Page routes should compose feature components and hooks; reusable components should stay under `src/components/`.
 - Stellar SDK and RPC details should stay in `src/utils/soroban.ts`, `src/lib/`, or focused hooks rather than being called directly from presentational components.
+
+### Context vs Hooks Boundary
+
+- **`src/context/`** — React Context providers and their consumer hooks (e.g., `WalletProvider` + `useWallet`,
+  `ToastProvider` + `useToast`, `NotificationProvider` + `useNotification`,
+  `KeyboardShortcutsProvider` + `useKeyboardShortcuts`). Context files own _shared global state_ that must
+  be available to the entire subtree. If a file exports a `*Provider` or calls `createContext`, it belongs here.
+
+- **`src/hooks/`** — Custom React hooks that do NOT define new contexts. They may consume context hooks
+  to derive or transform state, manage local (component-level) state, wrap external APIs, or encapsulate
+  effect-heavy logic. If a file exports only hook functions (that consume context or are pure utilities),
+  it belongs here.
+
+### Naming Conventions
+
+- `useToast` — always imported from `@/context/ToastContext` (the former re-export `@/hooks/useToast` has been removed).
+- `useWallet` — always imported from `@/context/WalletContext` for basic wallet state.
+- `useAuthenticatedWallet` — imported from `@/hooks/useAuthenticatedWallet` for the SEP-10 auth layer on top of `WalletContext`.
+- `useNotification` (singular) — always imported from `@/context/NotificationContext` for in-app notification items.
+- `useBrowserNotifications` (plural) — imported from `@/hooks/useBrowserNotifications` for the browser Notification API (permissions, desktop notifications).
+
+### Avoiding Duplicate Polling & State
+
+Invoice status changes are the primary source of duplication risk. To keep RPC usage predictable:
+
+1. **React Query is the single source of truth** for contract reads. Hooks should prefer `useQuery`-based data
+   over direct contract calls to avoid bypassing cache and creating redundant network requests.
+2. **Notification polling** (`useNotificationEvents`, `usePositionPolling`) should share a single
+   invoice-change detection loop. Do not add a third polling hook that independently calls `getInvoice()`.
+3. **LocalStorage-derived state** (bookmarks, watchlist, address book, LP settings, widget layout)
+   is acceptable per-hook, but state computations should not duplicate logic already present in context providers.
 
 ## Environment Model
 

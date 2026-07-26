@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useWallet } from '../useWallet';
+import { useAuthenticatedWallet } from '../useAuthenticatedWallet';
 import { WalletProvider } from '@/context/WalletContext';
 import * as freighterApi from '@stellar/freighter-api';
 
@@ -16,7 +16,7 @@ const MOCK_JWT_TOKEN =
 const MOCK_CHALLENGE_XDR = 'AAAAAgAAAAA...'; // Simplified mock XDR
 const MOCK_SIGNED_CHALLENGE_XDR = 'AAAAAwAAAAA...'; // Simplified mock signed XDR
 
-describe('useWallet Hook', () => {
+describe('useAuthenticatedWallet Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (global.fetch as any).mockClear();
@@ -28,7 +28,7 @@ describe('useWallet Hook', () => {
 
   describe('Initial State', () => {
     it('should return disconnected state initially', () => {
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       expect(result.current.isConnected).toBe(false);
       expect(result.current.publicKey).toBeNull();
@@ -37,14 +37,14 @@ describe('useWallet Hook', () => {
 
     it('should throw error when used outside WalletProvider', () => {
       expect(() => {
-        renderHook(() => useWallet());
-      }).toThrow('useWallet must be used within a WalletProvider');
+        renderHook(() => useAuthenticatedWallet());
+      }).toThrow('useAuthenticatedWallet must be used within a WalletProvider');
     });
   });
 
   describe('Connection Flow', () => {
     it('should expose connect, disconnect, and signTransaction methods', () => {
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       expect(typeof result.current.connect).toBe('function');
       expect(typeof result.current.disconnect).toBe('function');
@@ -81,7 +81,7 @@ describe('useWallet Hook', () => {
       // Mock wallet signing
       (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
 
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       await act(async () => {
         await result.current.connect();
@@ -142,7 +142,7 @@ describe('useWallet Hook', () => {
 
       (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
 
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       // Connect first
       await act(async () => {
@@ -196,7 +196,7 @@ describe('useWallet Hook', () => {
 
       (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
 
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       await act(async () => {
         await result.current.connect();
@@ -245,7 +245,7 @@ describe('useWallet Hook', () => {
 
       (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
 
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       await act(async () => {
         await result.current.connect();
@@ -276,7 +276,7 @@ describe('useWallet Hook', () => {
         return Promise.reject(new Error('Unknown endpoint'));
       });
 
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       await expect(
         act(async () => {
@@ -289,7 +289,7 @@ describe('useWallet Hook', () => {
     });
 
     it('should throw error when signTransaction is called while disconnected', async () => {
-      const { result } = renderHook(() => useWallet(), { wrapper });
+      const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
       await expect(
         act(async () => {
