@@ -1,3 +1,13 @@
+/**
+ * Per-page accessibility suite for the LP Dashboard.
+ *
+ * Split with __tests__/accessibility.test.tsx (see that file's doc comment for the
+ * full picture): this file renders the `LPDashboard` component directly and adds
+ * structural checks - tab navigation, table semantics, button accessibility - that the
+ * root file doesn't assert. The root file instead renders `app/lp/page` (the route
+ * that wraps this component) under the full app Providers tree; the two therefore
+ * exercise different layers of the same feature, not the same target.
+ */
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, it, expect, vi } from 'vitest';
