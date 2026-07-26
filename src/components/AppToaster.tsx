@@ -13,6 +13,10 @@ export default function AppToaster() {
       richColors
       expand={false}
       gap={8}
+      // Accessibility enhancements
+      aria-live="polite"
+      role="region"
+      aria-label="Toast notifications"
       toastOptions={{
         classNames: {
           toast: 'font-sans',
