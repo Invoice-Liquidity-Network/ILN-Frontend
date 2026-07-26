@@ -1,10 +1,10 @@
-# useWallet Hook
+# useAuthenticatedWallet Hook
 
 A React hook for wallet connection with Stellar SEP-10 authentication support.
 
 ## Overview
 
-The `useWallet()` hook provides a clean, type-safe interface for:
+The `useAuthenticatedWallet()` hook provides a clean, type-safe interface for:
 
 - Connecting to Stellar wallets (Freighter, WalletConnect)
 - Performing SEP-10 authentication flow automatically on first connect
@@ -52,10 +52,10 @@ interface UseWalletReturn {
 ### Basic Connection Flow
 
 ```typescript
-import { useWallet } from "@/hooks/useWallet";
+import { useAuthenticatedWallet } from "@/hooks/useAuthenticatedWallet";
 
 export function WalletStatus() {
-  const { isConnected, publicKey, connect, disconnect, jwt } = useWallet();
+  const { isConnected, publicKey, connect, disconnect, jwt } = useAuthenticatedWallet();
 
   return (
     <div>
@@ -76,7 +76,7 @@ export function WalletStatus() {
 ### Signing Transactions
 
 ```typescript
-const { signTransaction, isConnected } = useWallet();
+const { signTransaction, isConnected } = useAuthenticatedWallet();
 
 async function submitTransaction() {
   if (!isConnected) {
@@ -97,7 +97,7 @@ async function submitTransaction() {
 ### Using JWT Token for Authenticated Requests
 
 ```typescript
-const { jwt } = useWallet();
+const { jwt } = useAuthenticatedWallet();
 
 async function fetchUserData() {
   const response = await fetch('/api/user/profile', {
@@ -182,7 +182,7 @@ Verifies the signed challenge and returns a JWT token.
 The hook provides comprehensive error handling:
 
 ```typescript
-const { connect } = useWallet();
+const { connect } = useAuthenticatedWallet();
 
 async function handleConnect() {
   try {
@@ -236,7 +236,7 @@ JWT_SECRET_KEY=your-jwt-secret
 
 ## Testing
 
-See [useWallet.test.ts](./__tests__/useWallet.test.ts) for comprehensive test examples including:
+See [useAuthenticatedWallet.test.ts](./__tests__/useAuthenticatedWallet.test.ts) for comprehensive test examples including:
 
 - Initial state validation
 - Connection flow with SEP-10
