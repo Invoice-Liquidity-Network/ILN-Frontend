@@ -953,6 +953,44 @@ Dev dependencies (test runners, linters, build tools) are excluded from the prod
 
 ---
 
+## Stale Assignment Policy
+
+To maintain effective Wave throughput and ensure issues don't get claimed and abandoned, this repository uses an automated stale assignment reclaimer.
+
+### How It Works
+
+The stale assignment bot runs daily and monitors assigned issues:
+
+1. **Warning Stage (7 days of inactivity)**
+   - If an issue has been assigned for 7+ days with no linked PR activity, a warning comment is added
+   - The issue is labeled with `stale-assignment-warning`
+   - The assignee is notified with instructions to either:
+     - Open a draft PR
+     - Comment with a progress update
+     - Unassign themselves if no longer working on it
+
+2. **Reclaim Stage (14 days of inactivity)**
+   - If no activity is detected for 14+ days, the assignment is automatically removed
+   - The issue is labeled with `assignment-reclaimed`
+   - Other contributors can then claim the issue
+
+### Configuration
+
+The timeout periods are configurable in `.github/workflows/stale-assignments.yml`:
+- `WARNING_DAYS`: Days before warning comment (default: 7)
+- `RECLAIM_DAYS`: Days before unassignment (default: 14)
+
+### For Contributors
+
+- **When claiming an issue**: Open a draft PR within 7 days to show active work
+- **If you need more time**: Comment on the issue with a progress update to reset the timer
+- **If you can't complete it**: Unassign yourself promptly so others can claim it
+- **After reclamation**: If your assignment was reclaimed but you're still working on it, re-assign yourself and open a PR promptly
+
+### Exemptions
+
+Issues with linked open PRs are automatically exempt from the stale assignment check.
+
 ## Code of Conduct
 
 Please be respectful and constructive in all interactions. We aim to create a welcoming environment for all contributors.
