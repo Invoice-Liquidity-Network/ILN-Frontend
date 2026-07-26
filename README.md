@@ -207,6 +207,7 @@ A central marketplace listing all active open invoices waiting for funding, deta
 
 ## 🔗 Useful Links & Documentation
 
+- **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
 - **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
 - **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
 - **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
