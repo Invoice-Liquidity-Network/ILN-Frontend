@@ -4,48 +4,90 @@ Welcome! This guide takes you from a fresh clone to a running local development 
 
 **Estimated setup time: 15-30 minutes**
 
+## ⚡ Fastest Option: GitHub Codespaces / Dev Container
+
+The repo ships a fully pre-configured **dev container** (`.devcontainer/devcontainer.json`) that gives you the exact same environment used in CI — Node 20.9.0, pnpm 9.0.0, and all recommended VS Code extensions — with zero local setup.
+
+### Option A — GitHub Codespaces (cloud, browser or VS Code)
+
+1. Click **Code → Codespaces → Create codespace on this branch** on the GitHub repo page.
+2. Wait ~2 minutes for the container to build and `pnpm install` to run automatically.
+3. Run the dev server:
+   ```bash
+   pnpm dev
+   ```
+4. Codespaces will forward port **3000** and prompt you to open it in your browser.
+
+### Option B — VS Code Dev Container (local Docker)
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+2. Open the cloned repository in VS Code.
+3. When prompted, click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the Command Palette).
+4. VS Code will build the image, run `pnpm install`, and forward ports automatically.
+
+### Verify the devcontainer works
+
+Once inside the container, run:
+
+```bash
+pnpm install   # should be instant — already run by postCreateCommand
+pnpm dev       # should start Next.js on http://localhost:3000
+```
+
+Both commands must succeed without errors for the environment to be considered healthy.
+
+---
+
 ## Prerequisites
+
+> **Skip this section if you are using GitHub Codespaces or a local dev container — everything below is handled automatically.**
 
 Before you start, ensure you have the following installed:
 
-### 1. Node.js 20+
+### 1. Node.js 20.9.0
+
+The project pins Node.js to **20.9.0** via `.nvmrc`. CI uses this exact version via `node-version-file: '.nvmrc'`.
 
 Check your current version:
 
 ```bash
-node --version
+node --version   # should print v20.9.0
 ```
 
-**Install:**
-
-- **macOS/Ubuntu**: Download from [nodejs.org](https://nodejs.org) or use your package manager:
-
-  ```bash
-  # macOS (Homebrew)
-  brew install node@20
-
-  # Ubuntu/Debian
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-  sudo apt-get install -y nodejs
-  ```
-
-- **Windows**: Download from [nodejs.org](https://nodejs.org) or use WSL
-- **WSL/Ubuntu**: Use Node Version Manager (nvm):
-  ```bash
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-  nvm install 20
-  ```
-
-### 2. pnpm (Optional but Recommended)
-
-This project uses npm by default but supports pnpm for faster dependency management.
+**Install with nvm (recommended):**
 
 ```bash
-# Install pnpm globally
-npm install -g pnpm
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Install and use the pinned version automatically from .nvmrc
+nvm install
+nvm use
+```
+
+**Alternative — system package managers:**
+
+```bash
+# macOS (Homebrew)
+brew install node@20
+
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+> ⚠️ Using a Node version other than 20.9.0 may cause subtle differences vs CI. The dev container pins the exact version automatically.
+
+### 2. pnpm 9.0.0
+
+This project uses **pnpm** (not npm) as the primary package manager. CI installs `pnpm@9.0.0` exactly.
+
+```bash
+# Install pnpm at the exact version used in CI
+npm install -g pnpm@9.0.0
 
 # Verify installation
-pnpm --version
+pnpm --version   # should print 9.0.0
 ```
 
 ### 3. Stellar CLI (Optional, for advanced testing)
@@ -88,14 +130,6 @@ cd ILN-Frontend
 
 ### Step 2: Install Dependencies
 
-Using npm:
-
-```bash
-npm install
-```
-
-Or with pnpm:
-
 ```bash
 pnpm install
 ```
@@ -122,12 +156,6 @@ The `.env.local` file contains:
 **Note:** These defaults are pre-configured for Stellar testnet. No modifications needed for local development.
 
 ### Step 4: Start the Development Server
-
-```bash
-npm run dev
-```
-
-Or with pnpm:
 
 ```bash
 pnpm dev
@@ -308,14 +336,14 @@ npm run build
 
 ## Useful Commands
 
-| Command             | Purpose                  |
-| ------------------- | ------------------------ |
-| `npm run dev`       | Start development server |
-| `npm test`          | Run all tests            |
-| `npm run test:a11y` | Run accessibility tests  |
-| `npm run build`     | Create production build  |
-| `npm start`         | Run production build     |
-| `npm run lint`      | Check code quality       |
+| Command              | Purpose                  |
+| -------------------- | ------------------------ |
+| `pnpm dev`           | Start development server |
+| `pnpm test`          | Run all tests            |
+| `pnpm run test:a11y` | Run accessibility tests  |
+| `pnpm run build`     | Create production build  |
+| `pnpm start`         | Run production build     |
+| `pnpm run lint`      | Check code quality       |
 
 ## Getting Help
 
