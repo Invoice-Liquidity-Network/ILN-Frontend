@@ -1,37 +1,35 @@
 # Documentation Index
 
-This directory contains the main contributor and operations documentation for the ILN Frontend project. Use this page as the starting point when you need context on architecture, testing, CI, accessibility, or implementation details.
+This directory contains comprehensive documentation for the ILN Frontend project.
 
-## Core Guides
+## Core Documentation
 
-- **[architecture.md](architecture.md)** - Frontend architecture overview covering design decisions, folder structure, and major data-flow patterns.
-- **[developer-quickstart.md](developer-quickstart.md)** - End-to-end setup guide from a fresh clone through local development and initial verification.
-- **[testing.md](testing.md)** - Testing strategy and conventions for Vitest, Playwright, and other quality checks.
-- **[ci-cd.md](ci-cd.md)** - GitHub Actions, deployment flow, and CI/CD runner guidance.
+- **[architecture.md](architecture.md)** - Frontend architecture overview covering design decisions, folder structure, data flow patterns, and architectural trade-offs. Essential for understanding the codebase structure and development conventions.
 
-## Quality and Performance
+- **[developer-quickstart.md](developer-quickstart.md)** - Step-by-step guide from fresh clone to running local development environment. Covers prerequisites, installation, and initial setup for all platforms.
 
-- **[LIGHTHOUSE_CI.md](LIGHTHOUSE_CI.md)** - Lighthouse CI performance budgets, thresholds, and report review guidance.
-- **[VISUAL_REGRESSION_WORKFLOW.md](VISUAL_REGRESSION_WORKFLOW.md)** - Chromatic visual regression workflow and approval process.
-- **[accessibility-audit-toast-notifications.md](accessibility-audit-toast-notifications.md)** - Accessibility audit notes for toast and notification flows.
-- **[accessibility-implementation-summary.md](accessibility-implementation-summary.md)** - Summary of accessibility implementation work and supporting details.
-- **[screen-reader-testing-guide.md](screen-reader-testing-guide.md)** - Manual testing checklist for screen-reader and keyboard accessibility.
+## Testing & Quality Assurance
 
-## Product and Domain Documentation
+- **[testing.md](testing.md)** - Comprehensive testing guide covering unit tests (Vitest), end-to-end tests (Playwright), and testing best practices.
 
-- **[api-routes.md](api-routes.md)** - Reference for the API routes that power the frontend experience.
-- **[contract-fixtures.md](contract-fixtures.md)** - Fixture and integration-test context for Stellar contract interactions.
-- **[error-codes.md](error-codes.md)** - Error code catalog and troubleshooting notes.
-- **[feature-flags.md](feature-flags.md)** - Overview of feature flags and current rollout settings.
-- **[i18n.md](i18n.md)** - Internationalization setup and translation workflow details.
-- **[repo-size-audit.md](repo-size-audit.md)** - Repository size analysis and optimization recommendations.
-- **[supabase-setup.md](supabase-setup.md)** - Supabase configuration and local setup notes.
+- **[VISUAL_REGRESSION_WORKFLOW.md](VISUAL_REGRESSION_WORKFLOW.md)** - Explains the Chromatic visual regression testing workflow, including how to approve/reject UI changes and add new Storybook stories.
 
-## Hooks and Examples
+- **[LIGHTHOUSE_CI.md](LIGHTHOUSE_CI.md)** - Documentation for Lighthouse CI performance budget tests, including performance thresholds, tested pages, and how to review reports.
 
-- **[hooks/](hooks/)** - Detailed documentation for custom React hooks, including the authenticated-wallet hook reference.
-- **[examples/](examples/)** - Example assets and snippets used across the documentation set.
+## CI/CD & Infrastructure
+
+- **[ci-cd.md](ci-cd.md)** - CI/CD pipeline documentation covering GitHub Actions workflows, deployment processes, and self-hosted runner configuration.
+
+## Domain-Specific Documentation
+
+- **[contract-fixtures.md](contract-fixtures.md)** - Documentation for contract test fixtures used in integration testing with Stellar smart contracts.
+
+- **[repo-size-audit.md](repo-size-audit.md)** - Repository size analysis and optimization recommendations for maintaining a lean codebase.
+
+## Hooks Documentation
+
+- **[hooks/](hooks/)** - Detailed documentation for custom React hooks, including usage examples and API references.
 
 ---
 
-Keep this index updated whenever new documentation is added to the docs directory so contributors can find it quickly.
+**Note**: This index should be updated whenever new documentation is added to the `docs/` directory to maintain discoverability.
