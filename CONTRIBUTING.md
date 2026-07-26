@@ -213,6 +213,39 @@ npm test -- --coverage
 npm test -- --update-snapshots
 ```
 
+#### Test File Organization
+
+This codebase currently has two coexisting test location conventions. Both are
+intentional and supported - use the one that matches what you're testing:
+
+1. **Colocated `__tests__/`** - next to the module under test, e.g.
+   `src/hooks/__tests__/useFoo.test.ts` for `src/hooks/useFoo.ts`, or
+   `src/components/governance/__tests__/Bar.test.tsx` for
+   `src/components/governance/Bar.tsx`. This is the default for unit tests of a
+   single hook, util, or component: `src/utils/__tests__`, `src/lib/__tests__`,
+   `src/hooks/__tests__`, and the various `src/components/**/__tests__` folders all
+   follow this pattern, as do `app/offline/__tests__` and
+   `app/pay/[id]/__tests__` for route-level components.
+2. **Centralized top-level `__tests__/`** - for suites that don't map 1:1 to a
+   single source file: cross-page or integration-style tests, and grouped
+   cross-cutting concerns in a named subdirectory, e.g. `__tests__/contract/`
+   (on-chain/contract integration tests), `__tests__/accessibility/` (per-page a11y
+   audits, `*.a11y.test.tsx`), and `__tests__/error-boundaries/`. Fixtures shared
+   across these live in `__tests__/fixtures/`.
+
+**When adding a new test**, prefer colocation (1) if it exercises a single
+hook/util/component in isolation. Use the centralized directory (2) if it's an
+integration suite spanning multiple modules/pages, or belongs to one of the
+existing grouped concerns above - add a new named subdirectory under `__tests__/`
+rather than a new flat top-level file if you're starting a new cross-cutting
+concern.
+
+Note: a number of component tests still live as flat files directly under
+`__tests__/` (not colocated) from before this convention was documented. Those are
+**not** being mass-moved as part of documenting this convention - this section
+only governs where *new* tests should go. Bulk migration to colocation is a
+candidate for a future dedicated issue.
+
 #### End-to-End Tests (Playwright)
 
 ```bash
