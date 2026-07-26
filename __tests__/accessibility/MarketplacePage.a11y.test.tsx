@@ -1,3 +1,10 @@
+/**
+ * Per-page accessibility suite for the Marketplace page.
+ *
+ * Split with __tests__/accessibility.test.tsx (see that file's doc comment for the
+ * full picture): the Marketplace page has no coverage there, so this file is the only
+ * a11y suite for it - not a duplicate of anything else.
+ */
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, it, expect, vi } from 'vitest';
