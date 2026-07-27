@@ -1,6 +1,6 @@
-# useWallet Hook Documentation
+# useAuthenticatedWallet Hook Documentation
 
-The `useWallet` hook provides wallet connection, SEP-10 authentication, and transaction signing for the ILN frontend. It integrates with the Freighter wallet and implements Stellar's SEP-10 authentication protocol.
+The `useAuthenticatedWallet` hook provides wallet connection, SEP-10 authentication, and transaction signing for the ILN frontend. It integrates with the Freighter wallet and implements Stellar's SEP-10 authentication protocol.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ The `useWallet` hook provides wallet connection, SEP-10 authentication, and tran
 ### 1. Wrap your app with WalletProvider
 
 ```tsx
-import { WalletProvider } from "@/context/WalletContext";
+import { WalletProvider } from '@/context/WalletContext';
 
 export default function App() {
   return (
@@ -32,10 +32,10 @@ export default function App() {
 ### 2. Use the hook in any component
 
 ```tsx
-import { useWallet } from "@/hooks/useWallet";
+import { useAuthenticatedWallet } from '@/hooks/useAuthenticatedWallet';
 
 export function MyComponent() {
-  const { isConnected, publicKey, connect, disconnect, jwt } = useWallet();
+  const { isConnected, publicKey, connect, disconnect, jwt } = useAuthenticatedWallet();
   // ...
 }
 ```
@@ -146,6 +146,7 @@ User               Hook              Wallet           Server
 ### Challenge Format
 
 The challenge is a Stellar transaction with:
+
 - Source: Server public key
 - Operation: ManageData with account address
 - Expiration: 15 minutes (configurable)
@@ -178,7 +179,7 @@ ManageData Operation:
 
 ```tsx
 export function ConnectButton() {
-  const { isConnected, connect } = useWallet();
+  const { isConnected, connect } = useAuthenticatedWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -188,7 +189,7 @@ export function ConnectButton() {
     try {
       await connect();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
+      setError(err instanceof Error ? err.message : 'Failed');
     } finally {
       setLoading(false);
     }
@@ -196,7 +197,7 @@ export function ConnectButton() {
 
   return (
     <button onClick={handleClick} disabled={loading || isConnected}>
-      {isConnected ? "Connected" : loading ? "Connecting..." : "Connect"}
+      {isConnected ? 'Connected' : loading ? 'Connecting...' : 'Connect'}
     </button>
   );
 }
@@ -206,7 +207,7 @@ export function ConnectButton() {
 
 ```tsx
 export function ProtectedContent() {
-  const { isConnected, jwt } = useWallet();
+  const { isConnected, jwt } = useAuthenticatedWallet();
 
   if (!isConnected || !jwt) {
     return <p>Please connect and authenticate</p>;
@@ -220,16 +221,16 @@ export function ProtectedContent() {
 
 ```tsx
 async function fetchUserData(jwt: string | null) {
-  if (!jwt) throw new Error("Not authenticated");
+  if (!jwt) throw new Error('Not authenticated');
 
-  const response = await fetch("/api/user/data", {
+  const response = await fetch('/api/user/data', {
     headers: {
       Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
-  if (!response.ok) throw new Error("Request failed");
+  if (!response.ok) throw new Error('Request failed');
   return response.json();
 }
 ```
@@ -238,7 +239,7 @@ async function fetchUserData(jwt: string | null) {
 
 ```tsx
 export function SignTransaction() {
-  const { signTransaction, isConnected } = useWallet();
+  const { signTransaction, isConnected } = useAuthenticatedWallet();
 
   const handleSubmit = async (txXdr: string) => {
     if (!isConnected) {
@@ -318,13 +319,13 @@ This is by design - SEP-10 is meant for session-based auth, not persistent login
 
 ### Common Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `useWallet must be used within a WalletProvider` | Hook used outside provider | Wrap component tree with `<WalletProvider>` |
-| `Failed to fetch SEP-10 challenge` | API endpoint missing | Implement `/api/auth/challenge` |
-| `Failed to verify challenge` | API endpoint missing | Implement `/api/auth/verify` |
-| `Wallet is not connected` | Called signTransaction while disconnected | Check `isConnected` before signing |
-| `Freighter not installed` | Extension not installed | Direct user to freighter.app |
+| Error                                            | Cause                                     | Solution                                    |
+| ------------------------------------------------ | ----------------------------------------- | ------------------------------------------- |
+| `useWallet must be used within a WalletProvider` | Hook used outside provider                | Wrap component tree with `<WalletProvider>` |
+| `Failed to fetch SEP-10 challenge`               | API endpoint missing                      | Implement `/api/auth/challenge`             |
+| `Failed to verify challenge`                     | API endpoint missing                      | Implement `/api/auth/verify`                |
+| `Wallet is not connected`                        | Called signTransaction while disconnected | Check `isConnected` before signing          |
+| `Freighter not installed`                        | Extension not installed                   | Direct user to freighter.app                |
 
 ### Error Recovery
 
@@ -340,11 +341,11 @@ authAttemptedRef.current = false; // Allows retry
 
 ```typescript
 // Check connection status
-const { isConnected, publicKey } = useWallet();
+const { isConnected, publicKey } = useAuthenticatedWallet();
 console.log(`Connected: ${isConnected}, Address: ${publicKey}`);
 
 // Check authentication
-const { jwt } = useWallet();
+const { jwt } = useAuthenticatedWallet();
 console.log(`Authenticated: ${jwt ? 'yes' : 'no'}`);
 
 // Decode JWT (client-side, for debugging)
@@ -372,14 +373,14 @@ The hook includes comprehensive unit tests covering:
 Run tests with:
 
 ```bash
-npm test useWallet
+npm test useAuthenticatedWallet
 ```
 
 ### Test Example
 
 ```typescript
 import { renderHook, act } from "@testing-library/react";
-import { useWallet } from "@/hooks/useWallet";
+import { useAuthenticatedWallet } from "@/hooks/useAuthenticatedWallet";
 import { WalletProvider } from "@/context/WalletContext";
 
 const wrapper = ({ children }) => (
@@ -387,7 +388,7 @@ const wrapper = ({ children }) => (
 );
 
 it("should connect wallet", async () => {
-  const { result } = renderHook(() => useWallet(), { wrapper });
+  const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
   await act(async () => {
     await result.current.connect();
@@ -413,6 +414,7 @@ it("should connect wallet", async () => {
 For SEP-10 to work, the backend must implement:
 
 1. **Challenge Endpoint** (`GET /api/auth/challenge`):
+
    - Validate account public key format
    - Create SEP-10 challenge transaction
    - Return as XDR (transaction envelope)
@@ -466,7 +468,7 @@ NEXT_PUBLIC_NETWORK_NAME=TESTNET
 ```
 ┌────────────────────────────────────┐
 │      React Component                │
-│  useWallet() ← <-- instantiate     │
+│  useAuthenticatedWallet() ← <-- instantiate     │
 └────────────────────────────────────┘
           ↓ consumes
 ┌────────────────────────────────────┐
@@ -514,6 +516,7 @@ NEXT_PUBLIC_NETWORK_NAME=TESTNET
 ## Future Enhancements
 
 Potential improvements:
+
 - [ ] Token refresh mechanism for extended sessions
 - [ ] Multiple provider support (WalletConnect, etc.)
 - [ ] Scope-based permissions (CEP-46)

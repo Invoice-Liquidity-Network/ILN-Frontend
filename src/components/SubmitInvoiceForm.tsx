@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useReducer, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -100,15 +108,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [submittedInvoiceId, setSubmittedInvoiceId] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   // Optional referral code — captured client-side; passed to the contract.
-  const [referralCode, setReferralCode] = useState('');
+  const [referralCode, setReferralCode] = useState(() => searchParams.get('ref') ?? '');
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const refParam = searchParams.get('ref');
-    if (refParam) {
-      setReferralCode(refParam);
-    }
-  }, [searchParams]);
 
   useEffect(
     () => () => {
@@ -154,10 +155,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   }, [form, effectiveTokenId, isConnected, selectedToken, tokensLoading, networkMismatch, t]);
 
   const displayErrors = useMemo(() => {
-    const combined = { ...errors };
+    const combined: Record<string, string | undefined> = { ...errors };
     for (const [key, val] of Object.entries(validationErrors)) {
       if (touched[key as keyof InvoiceFormValues] || touched.all) {
-        combined[key as keyof typeof combined] = val;
+        combined[key] = val;
       }
     }
     return combined;

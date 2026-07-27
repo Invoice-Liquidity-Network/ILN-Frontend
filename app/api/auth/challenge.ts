@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Keypair, TransactionBuilder, Networks, BASE_FEE } from '@stellar/stellar-sdk';
+import { Keypair, TransactionBuilder, Account, BASE_FEE, Operation } from '@stellar/stellar-sdk';
 import { NETWORK_PASSPHRASE } from '@/constants';
 
 /**
@@ -38,25 +38,21 @@ export async function GET(request: NextRequest) {
     const timeout = 15 * 60; // 15 minutes
 
     // Build the SEP-10 challenge transaction
-    const challenge = new TransactionBuilder(
-      new (require('@stellar/stellar-sdk').Account)(serverKeypair.publicKey(), '0'),
-      {
-        fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-        timebounds: {
-          minTime: now,
-          maxTime: now + timeout,
-        },
-      }
-    )
+    const challenge = new TransactionBuilder(new Account(serverKeypair.publicKey(), '0'), {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+      timebounds: {
+        minTime: now,
+        maxTime: now + timeout,
+      },
+    })
       .addOperation(
-        new (require('@stellar/stellar-sdk').ManageDataOp)({
+        Operation.manageData({
           name: 'SEP10 Challenge',
-          value: Buffer.alloc(64).toString('hex'), // 64 random bytes
+          value: Buffer.alloc(64).toString('hex'),
           source: accountPublicKey,
         })
       )
-      .setSigningKey(serverKeypair)
       .build();
 
     const challengeXdr = challenge.toXDR();
