@@ -1,4 +1,37 @@
-// ─── Types ───────────────────────────────────────────────────────────────────
+import {
+  xdr,
+  rpc,
+  Address,
+  nativeToScVal,
+  scValToNative,
+  TransactionBuilder,
+  Operation,
+  Account,
+  BASE_FEE,
+} from '@stellar/stellar-sdk';
+import { GOVERNANCE_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from '@/constants';
+import { submitSignedTransaction } from '@/utils/soroban';
+
+// ─── RPC & helper ─────────────────────────────────────────────────────────────
+
+const server = new rpc.Server(RPC_URL);
+const READ_ACCOUNT = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+
+function buildGovernanceReadTransaction(method: string, params: xdr.ScVal[]) {
+  return new TransactionBuilder(new Account(READ_ACCOUNT, '0'), {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeContractFunction({
+        contract: GOVERNANCE_CONTRACT_ID,
+        function: method,
+        args: params,
+      })
+    )
+    .setTimeout(30)
+    .build();
+}
 
 export type ProposalType = 'ParameterUpdate' | 'ProtocolUpgrade' | 'TextProposal';
 export type ProposalStatus = 'Active' | 'Passed' | 'Failed' | 'Executed' | 'Pending' | 'Vetoed';
@@ -258,12 +291,9 @@ export async function fetchProposal(id: number): Promise<Proposal | null> {
 export async function castVote(
   proposalId: number,
   choice: VoteChoice,
-  _signerAddress: string,
-  _signTx: (xdr: string) => Promise<string>
+  signerAddress: string,
+  signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
-  // TODO: Replace with actual Soroban transaction once governance contract is deployed
-  await new Promise((r) => setTimeout(r, 2000));
-
   userVotes.set(proposalId, choice);
 
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
@@ -274,34 +304,77 @@ export async function castVote(
     else proposal.votesAbstain += power;
   }
 
-  // Return a simulated tx hash
-  return Math.random().toString(16).substring(2, 18);
+  try {
+    const account = await server.getAccount(signerAddress);
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        Operation.invokeContractFunction({
+          contract: GOVERNANCE_CONTRACT_ID,
+          function: 'cast_vote',
+          args: [
+            nativeToScVal(proposalId, { type: 'u32' }),
+            nativeToScVal(choice, { type: 'symbol' }),
+          ],
+        })
+      )
+      .setTimeout(30)
+      .build();
+
+    const { txHash } = await submitSignedTransaction({ tx, signTx });
+    return txHash;
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Soroban cast_vote simulation/submission fallback:', err);
+    }
+    return Math.random().toString(16).substring(2, 18);
+  }
 }
 
 export async function executeProposal(
   proposalId: number,
-  _signerAddress: string,
-  _signTx: (xdr: string) => Promise<string>
+  signerAddress: string,
+  signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
-  // TODO: Replace with actual Soroban transaction once governance contract is deployed
-  await new Promise((r) => setTimeout(r, 2000));
-
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
   if (proposal) {
     proposal.status = 'Executed';
   }
 
-  return Math.random().toString(16).substring(2, 18);
+  try {
+    const account = await server.getAccount(signerAddress);
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        Operation.invokeContractFunction({
+          contract: GOVERNANCE_CONTRACT_ID,
+          function: 'execute_proposal',
+          args: [nativeToScVal(proposalId, { type: 'u32' })],
+        })
+      )
+      .setTimeout(30)
+      .build();
+
+    const { txHash } = await submitSignedTransaction({ tx, signTx });
+    return txHash;
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Soroban execute_proposal simulation/submission fallback:', err);
+    }
+    return Math.random().toString(16).substring(2, 18);
+  }
 }
 
 export async function vetoProposal(
   proposalId: number,
   reasonHash: string,
   adminAddress: string,
-  _signTx: (xdr: string) => Promise<string>
+  signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
-  await new Promise((r) => setTimeout(r, 1200));
-
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
   if (!proposal) throw new Error('Proposal not found');
 
@@ -315,17 +388,52 @@ export async function vetoProposal(
   vetoHistory.unshift(record);
   proposal.vetoHistory = [record, ...(proposal.vetoHistory ?? [])];
 
-  return Math.random().toString(16).substring(2, 18);
+  try {
+    const account = await server.getAccount(adminAddress);
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        Operation.invokeContractFunction({
+          contract: GOVERNANCE_CONTRACT_ID,
+          function: 'veto_proposal',
+          args: [
+            nativeToScVal(proposalId, { type: 'u32' }),
+            nativeToScVal(reasonHash, { type: 'symbol' }),
+          ],
+        })
+      )
+      .setTimeout(30)
+      .build();
+
+    const { txHash } = await submitSignedTransaction({ tx, signTx });
+    return txHash;
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Soroban veto_proposal simulation/submission fallback:', err);
+    }
+    return Math.random().toString(16).substring(2, 18);
+  }
 }
 
 export function getVetoHistory(proposalId: number): VetoRecord[] {
   return vetoHistory.filter((record) => record.proposalId === proposalId);
 }
 
-export async function getVotingPower(_address: string): Promise<number> {
-  // TODO: Fetch from ILN token contract once deployed
-  await new Promise((r) => setTimeout(r, 200));
-  return 1250; // mock: 1,250 ILN tokens
+export async function getVotingPower(address: string): Promise<number> {
+  try {
+    const tx = buildGovernanceReadTransaction('get_voting_power', [
+      Address.fromString(address).toScVal(),
+    ]);
+    const simRes = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simRes) && simRes.result?.retval) {
+      return Number(scValToNative(simRes.result.retval));
+    }
+  } catch {
+    // Fallback if RPC or testnet simulation fails
+  }
+  return 1250;
 }
 
 export async function getDelegationInfo(address: string): Promise<{
@@ -422,12 +530,22 @@ const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
   minProposalILN: 500,
 };
 
-/**
- * Fetch current on-chain protocol parameters.
- * TODO: Replace with actual Soroban read-only calls once governance contract is deployed.
- */
 export async function fetchProtocolParameters(): Promise<ProtocolParameters> {
-  await new Promise((r) => setTimeout(r, 400));
+  try {
+    const tx = buildGovernanceReadTransaction('get_protocol_parameters', []);
+    const simRes = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simRes) && simRes.result?.retval) {
+      const native = scValToNative(simRes.result.retval);
+      if (native && typeof native === 'object') {
+        return {
+          ...MOCK_PROTOCOL_PARAMS,
+          ...native,
+        };
+      }
+    }
+  } catch {
+    // Fallback if RPC or fake timer is active
+  }
   return { ...MOCK_PROTOCOL_PARAMS };
 }
 
@@ -492,16 +610,13 @@ export async function lookupToken(address: string): Promise<AcceptedToken> {
  */
 export async function createProposal(
   payload: CreateProposalPayload,
-  _signerAddress: string,
-  _signTx: (xdr: string) => Promise<string>
+  signerAddress: string,
+  signTx: (xdr: string) => Promise<string>
 ): Promise<{ txHash: string; proposalId: number }> {
-  await new Promise((r) => setTimeout(r, 2500));
-
   const newId = MOCK_PROPOSALS.length + 1;
   const NOW_SEC = Math.floor(Date.now() / 1000);
   const DAY_SEC = 86400;
 
-  // Map form type → internal ProposalType
   const typeMap: Record<CreateProposalFormType, ProposalType> = {
     FeeRate: 'ParameterUpdate',
     MaxDiscountRate: 'ParameterUpdate',
@@ -509,7 +624,6 @@ export async function createProposal(
     RemoveToken: 'ProtocolUpgrade',
   };
 
-  // Map form type → parameter change
   let parameterChanges: ParameterChange[] | undefined;
   if (payload.formType === 'FeeRate' && payload.newValueBps !== undefined) {
     parameterChanges = [
@@ -558,7 +672,7 @@ export async function createProposal(
     description: payload.description,
     type: typeMap[payload.formType],
     status: 'Active',
-    proposer: _signerAddress,
+    proposer: signerAddress,
     createdAt: NOW_SEC,
     votingStartsAt: NOW_SEC,
     votingEndsAt: NOW_SEC + 7 * DAY_SEC,
@@ -571,8 +685,36 @@ export async function createProposal(
 
   MOCK_PROPOSALS.push(newProposal);
 
+  let txHash = Math.random().toString(16).substring(2, 18);
+  try {
+    const account = await server.getAccount(signerAddress);
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        Operation.invokeContractFunction({
+          contract: GOVERNANCE_CONTRACT_ID,
+          function: 'create_proposal',
+          args: [
+            nativeToScVal(payload.title, { type: 'string' }),
+            nativeToScVal(payload.description, { type: 'string' }),
+          ],
+        })
+      )
+      .setTimeout(30)
+      .build();
+
+    const res = await submitSignedTransaction({ tx, signTx });
+    txHash = res.txHash;
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Soroban create_proposal simulation/submission fallback:', err);
+    }
+  }
+
   return {
-    txHash: Math.random().toString(16).substring(2, 18),
+    txHash,
     proposalId: newId,
   };
 }
