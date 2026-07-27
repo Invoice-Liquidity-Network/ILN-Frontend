@@ -56,14 +56,14 @@ graph TD
 
 ## Route Surface
 
-The primary route tree lives in `app/`. A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
+The primary route tree lives in `app/`. For a complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
+
+A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
 ```
 app/
 ├── admin/                       # Admin health and protocol configuration
-├── analytics/                   # Protocol analytics
-│   ├── freelancer/              # Freelancer cash-flow analytics
-│   └── leaderboard/             # Analytics leaderboard view
+├── analytics/                   # Freelancer-specific cash-flow analytics (FreelancerAnalyticsDashboard)
 ├── api/
 │   ├── auth/                    # SEP-10 challenge and verify helpers
 │   ├── feedback/                # GitHub-backed feedback submission
