@@ -157,7 +157,7 @@ Contributor references for these server integrations live in [docs/supabase-setu
 - `ToastContext` wraps toast behavior while `AppToaster` renders the Sonner host.
 - `KeyboardShortcutsContext` manages keyboard shortcut state and global keydown listeners.
 - Page routes should compose feature components and hooks; reusable components should stay under `src/components/`.
-- Stellar SDK and RPC details should stay in `src/utils/soroban.ts`, `src/lib/`, or focused hooks rather than being called directly from presentational components.
+- Stellar SDK and RPC details should stay in `src/utils/soroban.ts`, `src/lib/`, or focused hooks rather than being called directly from presentational components. Integration status of live vs. stubbed contract details are tracked in [docs/contract-integration-status.md](contract-integration-status.md).
 
 ### Context vs Hooks Boundary
 
