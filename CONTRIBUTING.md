@@ -147,6 +147,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Development Workflow
 
+### Pre-Push Checklist: `pnpm run verify`
+
+Before pushing a branch or opening a PR, run:
+
+```bash
+pnpm run verify
+```
+
+This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+
 ### Code Style and Formatting
 
 We use **ESLint** and **Prettier** to maintain consistent code quality.
@@ -243,7 +253,7 @@ concern.
 Note: a number of component tests still live as flat files directly under
 `__tests__/` (not colocated) from before this convention was documented. Those are
 **not** being mass-moved as part of documenting this convention - this section
-only governs where *new* tests should go. Bulk migration to colocation is a
+only governs where _new_ tests should go. Bulk migration to colocation is a
 candidate for a future dedicated issue.
 
 #### End-to-End Tests (Playwright)
@@ -298,6 +308,7 @@ To maintain consistency and enable automated tooling, all branches should follow
 - `refactor/` - Code refactoring (no functional changes)
 
 Examples:
+
 - `feat/add-invoice-submission-form`
 - `fix/stellar-wallet-connection`
 - `docs/update-contributing-guide`
@@ -310,17 +321,21 @@ This convention aligns with our commit message format and helps with changelog g
 ### Before Submitting a PR
 
 1. **Code Quality**:
+
+   - Run `pnpm run verify` (lint, env:check, format:check, tsc --noEmit, test) and ensure it passes — this mirrors CI exactly
    - Run `npm run lint:fix` to fix all linting errors
    - Run `npm run format` to ensure consistent formatting
    - Ensure zero ESLint warnings
 
 2. **Testing**:
+
    - Run `npm test` and ensure all tests pass
    - Run `npm run test:e2e` for critical user flows
    - Add tests for new features or bug fixes
    - Maintain test coverage above thresholds (90% lines, 90% functions, 80% branches)
 
 3. **Visual Changes**:
+
    - If your PR includes UI changes, run `npm run storybook`
    - Ensure Storybook stories are updated or added for new components
    - Chromatic will automatically run visual regression tests on your PR
@@ -372,6 +387,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
 ### Adding New Translations
 
 1. **Add strings to translation files**:
+
    - English: `public/locales/en/translation.json`
    - Spanish: `public/locales/es/translation.json`
    - Add new locales by creating corresponding directories
@@ -428,6 +444,7 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
 2. Copy `translation.json` from English locale
 3. Translate all strings
 4. Update `src/i18n.ts`:
+
    ```typescript
    import [locale] from "../public/locales/[locale]/translation.json";
 
@@ -487,6 +504,7 @@ MSW is configured for both Node (Vitest) and browser (Playwright) environments:
    ```
 
 3. **Use in tests**:
+
    ```typescript
    import { server } from '@/mocks/server';
 
@@ -590,11 +608,13 @@ Visual regression tests run automatically on:
 #### When Visual Changes Are Detected
 
 1. **Review Changes:**
+
    - Chromatic will comment on your PR with a link to review changes
    - Click the link to see before/after comparisons
    - Review each component change carefully
 
 2. **Approve Intentional Changes:**
+
    - If changes are intentional (new features, design updates):
      - Click "Accept" for each intended change in Chromatic
      - Add a comment explaining the change
@@ -610,17 +630,20 @@ Visual regression tests run automatically on:
 #### Best Practices
 
 1. **Component Stories:**
+
    - Write comprehensive stories covering all component states
    - Include edge cases (loading, error, empty states)
    - Test different prop combinations
    - Use realistic data in stories
 
 2. **Responsive Testing:**
+
    - Test components at different viewport sizes
    - Include mobile, tablet, and desktop breakpoints
    - Use Storybook's viewport addon for consistent testing
 
 3. **Accessibility:**
+
    - All stories are automatically tested with axe-core
    - Fix accessibility violations before merging
    - Use semantic HTML and proper ARIA attributes
@@ -699,11 +722,13 @@ export const Variant: Story = {
 #### Common Issues
 
 1. **Flaky Tests:**
+
    - Use `chromatic --exit-zero-on-changes` for non-blocking tests
    - Add delays for animations: `parameters: { chromatic: { delay: 300 } }`
    - Disable animations in test environment
 
 2. **Large Diffs:**
+
    - Check for font loading issues
    - Ensure consistent test environment
    - Use fixed dimensions for dynamic content
