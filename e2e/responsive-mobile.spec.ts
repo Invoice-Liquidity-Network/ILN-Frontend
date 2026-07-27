@@ -41,7 +41,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 async function expectTouchTargets(page: Page) {
   const tooSmall = await page
     .locator(
-      'nav button:visible, nav a:visible, main button:visible, main input:visible, main select:visible, main textarea:visible'
+      'button:visible, a:visible, input:visible, select:visible, textarea:visible, [role="button"]:visible'
     )
     .evaluateAll((elements) =>
       elements
@@ -49,13 +49,28 @@ async function expectTouchTargets(page: Page) {
           const rect = element.getBoundingClientRect();
           const label =
             element.getAttribute('aria-label') ||
-            element.textContent?.trim() ||
+            element.textContent?.trim().substring(0, 30) ||
             element.getAttribute('placeholder') ||
+            element.getAttribute('role') ||
             element.tagName;
-          return { label, width: Math.round(rect.width), height: Math.round(rect.height) };
+          const computedStyle = window.getComputedStyle(element);
+          const isHidden = computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0';
+          return { 
+            label, 
+            width: Math.round(rect.width), 
+            height: Math.round(rect.height),
+            tagName: element.tagName,
+            isHidden,
+            display: computedStyle.display,
+            visibility: computedStyle.visibility
+          };
         })
-        .filter((target) => target.width < 44 || target.height < 44)
+        .filter((target) => !target.isHidden && (target.width < 44 || target.height < 44))
     );
+
+  if (tooSmall.length > 0) {
+    console.error('Touch target violations found:', JSON.stringify(tooSmall, null, 2));
+  }
 
   expect(tooSmall).toEqual([]);
 }
