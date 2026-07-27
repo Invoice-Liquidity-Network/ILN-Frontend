@@ -6,6 +6,15 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
   turbopack: {},
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/payer',
+        destination: '/payer',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withPWA({

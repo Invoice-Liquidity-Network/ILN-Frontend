@@ -50,7 +50,7 @@ The application supports a broad route surface for freelancers, payers, liquidit
 │   ├── admin/                # Admin health and protocol configuration dashboard
 │   ├── analytics/            # Protocol, leaderboard, and freelancer analytics
 │   ├── api/                  # Auth, feedback, notifications, and reminder endpoints
-│   ├── dashboard/            # Personalized and payer dashboard routes
+│   ├── dashboard/            # Personalized dashboard routes
 │   ├── freelancer/           # Freelancer dashboard
 │   ├── governance/           # Proposal list, detail, creation, and explainer routes
 │   ├── i/[id]/               # Public invoice detail route

@@ -70,7 +70,6 @@ app/
 │   ├── notifications/[address]/ # Notification API bridge
 │   └── reminders/               # Supabase/Resend payer reminder cron
 ├── dashboard/                   # Personalized dashboard
-│   └── payer/                   # Payer dashboard
 ├── freelancer/                  # Freelancer workspace
 ├── governance/                  # Proposal list, detail, creation, explainer
 ├── i/[id]/                      # Public invoice detail
