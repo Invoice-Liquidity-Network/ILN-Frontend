@@ -144,10 +144,11 @@ API routes are used for server-only integration points:
 - `app/api/reminders/route.ts` reads Supabase reminder preferences and sends Resend emails when authorized by `CRON_SECRET`.
 - `app/api/reminders/unsubscribe/route.ts` updates reminder preferences.
 - `app/api/feedback/route.ts` can create GitHub issues from app feedback when GitHub credentials are configured.
-- `app/api/auth/challenge.ts` and `app/api/auth/verify.ts` support SEP-10-style auth helpers.
+- `app/api/auth/challenge.ts` and `app/api/auth/verify.ts` support SEP-10-style auth helpers:
+  - `GET /api/auth/challenge?account=<public_key>` generates a timebounded, signed Stellar transaction challenge.
+  - `POST /api/auth/verify` validates the signed transaction payload and issues a 24-hour JWT authentication token.
 - `app/api/notifications/[address]/route.ts` bridges notification reads by address.
-
-Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
+- Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
 
 ## State, Providers, and UI Boundaries
 
