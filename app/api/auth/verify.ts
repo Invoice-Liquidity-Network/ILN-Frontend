@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Transaction, Networks, StrKey } from '@stellar/stellar-sdk';
+import { Transaction, StrKey } from '@stellar/stellar-sdk';
 import jwt from 'jsonwebtoken';
 import { NETWORK_PASSPHRASE } from '@/constants';
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       // For now, we'll perform basic validation
 
       // Check that the account is present in the transaction
-      const envelopes = signedTransaction.getSignatures();
+      const envelopes = signedTransaction.signatures;
       if (envelopes.length === 0) {
         return NextResponse.json({ error: 'Transaction is not signed' }, { status: 400 });
       }
