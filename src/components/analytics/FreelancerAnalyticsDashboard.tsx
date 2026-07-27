@@ -108,12 +108,9 @@ export default function FreelancerAnalyticsDashboard() {
   }, [address, addToast]);
 
   useEffect(() => {
-    if (!isConnected) {
-      setInvoices([]);
-      setLoading(false);
-      return;
-    }
+    if (!isConnected) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchData();
     const interval = setInterval(() => void fetchData(), POLL_INTERVAL_MS);
     return () => clearInterval(interval);
@@ -278,7 +275,7 @@ export default function FreelancerAnalyticsDashboard() {
               {error}
             </div>
           ) : isEmpty ? (
-            <EmptyState connected />
+            <EmptyState variant="no-invoices" />
           ) : (
             <div className="space-y-8">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

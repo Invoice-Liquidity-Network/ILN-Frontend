@@ -18,18 +18,22 @@ For a deep dive into layout grids, elevation layers, and color tokens, read the 
 
 ## 🛠 Tech Stack
 
-- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) & React 19
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4 & PostCSS (Warm Industrial theme, Custom typography pairings)
+- **Framework**: [Next.js 16.2.4 (App Router)](https://nextjs.org/) & React 19.2.4
+- **Language**: TypeScript 5
+- **Package manager**: pnpm with a committed `pnpm-lock.yaml`
+- **Styling**: Tailwind CSS v4, PostCSS, and `next-themes` for light/dark theme state
 - **Blockchain Integration**:
-  - [@stellar/stellar-sdk](https://www.npmjs.com/package/@stellar/stellar-sdk) for smart contract interaction (Soroban)
-  - [@stellar/freighter-api](https://www.npmjs.com/package/@stellar/freighter-api) for connection with Freighter wallet
-- **Data Fetching & Cache**: [@tanstack/react-query](https://tanstack.com/query/latest) (React Query)
-- **Email Reminders**: [Supabase JS Client](https://supabase.com/docs/reference/javascript/introduction) & [Resend API](https://resend.com/)
-- **Visual Testing**: [Storybook](https://storybook.js.org/) & [Chromatic](https://www.chromatic.com/) for visual regression
-- **Mocking**: [Mock Service Worker (MSW)](https://mswjs.io/) for API mocking at the request boundary
-- **Testing**: Vitest for unit & snapshot coverage, Playwright for E2E testing
-- **Internationalization**: `i18next` and `react-i18next` for locales/translations
+  - `@stellar/stellar-sdk` for Soroban RPC, transaction simulation, XDR parsing, and Horizon reads
+  - `@stellar/freighter-api` for Freighter wallet connection and signing
+- **Data Fetching & Cache**: `@tanstack/react-query` (React Query)
+- **Internationalization**: `next-intl`, `i18next`, `i18next-browser-languagedetector`, and `react-i18next`
+- **PWA & Offline**: `next-pwa`, `public/manifest.json`, and generated service-worker assets
+- **Notifications & Email**: `sonner`, Supabase JS (`@supabase/supabase-js`), React Email, and Resend
+- **Charts & Exports**: `recharts`, `jspdf`, `papaparse`, `qrcode`, and `qrcode.react`
+- **Guided UX & Icons**: `react-joyride` and `lucide-react`
+- **Visual Testing**: Storybook 10 and Chromatic
+- **Mocking**: Mock Service Worker (MSW)
+- **Testing**: Vitest, Testing Library, jest-axe, Playwright, and Stryker
 
 ---
 
@@ -37,22 +41,30 @@ For a deep dive into layout grids, elevation layers, and color tokens, read the 
 
 For a deep dive into data flows, component interactions, and key trade-offs, refer to the [Frontend Architecture Overview](docs/architecture.md).
 
-The application is structured logically to support multiple participant roles (freelancers, payers, liquidity providers, and governance administrators).
+The application supports a broad route surface for freelancers, payers, liquidity providers, governance participants, admins, and protocol observers.
 
 ### 📁 Directory Layout
 
 ```
 ├── app/                      # Next.js App Router root
-│   ├── admin/                # Admin portal (parameters, contract governance)
-│   ├── analytics/            # Cash flow & volume charts
-│   ├── api/                  # API endpoints (reminders, feedback)
-│   ├── freelancer/           # Freelancer dashboard & invoice submission
-│   ├── governance/           # Voting portal
-│   ├── lp/                   # Liquidity Provider portfolio dashboard
+│   ├── admin/                # Admin health and protocol configuration dashboard
+│   ├── analytics/            # Protocol, leaderboard, and freelancer analytics
+│   ├── api/                  # Auth, feedback, notifications, and reminder endpoints
+│   ├── dashboard/            # Personalized dashboard routes
+│   ├── freelancer/           # Freelancer dashboard
+│   ├── governance/           # Proposal list, detail, creation, and explainer routes
+│   ├── i/[id]/               # Public invoice detail route
+│   ├── leaderboard/          # Protocol leaderboard
+│   ├── lp/                   # LP dashboard and invoice comparison route
 │   ├── marketplace/          # Open invoices explorer
-│   ├── payer/                # Payer dashboard & email reminders opt-in
-│   ├── profile/              # User settings & reputation profiles
-│   ├── submit/               # Submitter checkout & confirmation flows
+│   ├── offline/              # PWA offline fallback page
+│   ├── pay/[id]/             # Payer checkout and dispute flow
+│   ├── payer/                # Payer dashboard and reminder opt-in
+│   ├── profile/[address]/    # Reputation and activity profile
+│   ├── referrals/            # Referral dashboard
+│   ├── roadmap/              # Product roadmap
+│   ├── stats/                # Protocol stats
+│   ├── submit/               # Invoice submission flow
 │   └── Providers.tsx         # TanStack Query & MSW Provider setup
 ├── src/
 │   ├── components/           # Reusable UI components (Bells, Drawers, Badges)
@@ -62,18 +74,30 @@ The application is structured logically to support multiple participant roles (f
 │   └── utils/                # General helpers (reputation decay, health checks)
 ```
 
+### 🧩 Implemented Product Areas
+
+- **Invoice origination and management**: submit single invoices, batch invoices, review public invoice details, export tables, generate PDFs, and share invoice QR/deep links.
+- **Funding marketplace**: filter open invoices, inspect payer risk, fund invoices, compare opportunities, and track LP portfolio allocation, yield, and transfers.
+- **Payer workflows**: pay invoices, mark invoices as paid, open disputes, opt into reminders, and view payer-specific dashboard state.
+- **Analytics and stats**: protocol metrics, volume charts, token breakdowns, dispute rates, yield analytics, freelancer cash-flow analytics, and leaderboard views.
+- **Governance and admin**: proposal list/detail/create routes, voting and delegation components, token allowlist controls, parameter banners, admin health checks, and contract version display.
+- **Growth and engagement**: referrals dashboard, roadmap page, profile reputation charts, score simulator, notification center, command palette, onboarding, tours, PWA offline page, and theme support.
+
 ### 🧩 Core Component Layers
 
-1. **Smart Contract Layer (`src/lib/invoice-nft.ts` & `src/lib/contract/`)**
+1. **Smart Contract Layer (`src/lib/invoice-nft.ts`, `src/lib/contract/`, and `src/utils/soroban.ts`)**
+
    - Connects frontend actions to the Soroban smart contract.
-   - Reconstructs Invoice NFT metadata and tracks mint/burn/transfer event history by scanning the Horizon transaction logs and simulating Soroban contract invocations.
+   - Reconstructs Invoice NFT metadata and tracks mint/burn/transfer event history by scanning Horizon transaction logs and simulating Soroban contract invocations.
 
 2. **State & Context Layer (`src/context/`)**
+
    - **`WalletContext`**: Monitors Freighter wallet connection, active address, and queries multi-token balances (USDC, EURC, XLM) on Stellar.
    - **`NotificationContext`**: Handles in-app notification center persistence via `localStorage` (caps at 20 logs).
-   - **`ToastContext`**: Powers non-blocking alerts.
+   - **`ToastContext`**: Wraps Sonner-powered non-blocking alerts.
 
 3. **Background Polling & Sync (`src/hooks/usePositionPolling.ts`)**
+
    - Monitors state transitions of funded invoices (e.g. `Funded -> Paid`, `Funded -> Defaulted`, or `Funded -> Disputed`) for the connected LP. It runs queries every 60 seconds and notifies the LP about due date expiration.
 
 4. **Payer Email Reminders (`app/api/reminders/`)**
@@ -85,26 +109,30 @@ The application is structured logically to support multiple participant roles (f
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20.9.0 through Node 20.x (`.nvmrc` pins `20.9.0`)
+- pnpm 9+
+- Freighter browser extension configured for Stellar Testnet
 
 ### 1. Install Dependencies
 
 ```bash
-npm install
+corepack enable
+corepack prepare pnpm@9.0.0 --activate
+pnpm install
 ```
 
 ### 2. Configure Environment Variables
 
-Copy `.env.example` to `.env.local` (see the [Environment Variables](#-environment-variables-reference) section below for details):
+Copy `.env.local.example` to `.env.local` (see the [Environment Variables](#-environment-variables-reference) section below for details):
 
 ```bash
-cp .env.example .env.local
+cp .env.local.example .env.local
 ```
 
 ### 3. Run Development Server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser.
@@ -113,15 +141,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 - **Unit & Snapshot Tests (Vitest)**:
   ```bash
-  npm test
+  pnpm test
   ```
   To update Vitest snapshot files after intentional UI changes, run:
   ```bash
-  npm test -- --update-snapshots
+  pnpm test -- --update-snapshots
   ```
 - **End-to-End Tests (Playwright)**:
   ```bash
-  npm run test:e2e
+  pnpm run test:e2e
   ```
 
 ### 5. Storybook & Visual Regression
@@ -130,11 +158,11 @@ Storybook and Chromatic are used to check UI components for regressions.
 
 - **Start Storybook locally**:
   ```bash
-  npm run storybook
+  pnpm run storybook
   ```
 - **Run visual regression checks**:
   ```bash
-  npm run chromatic
+  pnpm run chromatic
   ```
 
 ---
@@ -161,6 +189,9 @@ Here is a detailed guide of the configuration options available:
 | `NEXT_PUBLIC_NFT_CONTRACT_ID`          | Defaults to contract ID                                    | Contract ID for Invoice NFTs (if separated from primary).         |
 | `NEXT_PUBLIC_NFT_METADATA_METHOD`      | `token_uri`                                                | Contract function that returns token metadata URI.                |
 | `NEXT_PUBLIC_NFT_EVENT_HINTS`          | `""`                                                       | Hints helper (e.g., `mint:Minted;transfer:Transfer;burn:Burned`). |
+| `NEXT_PUBLIC_API_MOCKING`              | `disabled`                                                 | Set to `enabled` to start MSW in local development.               |
+| `NEXT_PUBLIC_APP_VERSION`              | `dev`                                                      | Version label for release-note state.                             |
+| `NEXT_PUBLIC_CONTRACT_VERSION`         | `testnet:CD3TE3IA`                                         | Contract version label displayed in admin health checks.          |
 
 ### 🗄️ Notifications, Databases & Email (Backend/Cron)
 
@@ -188,20 +219,35 @@ Here is a detailed guide of the configuration options available:
 
 ## 📸 Screenshots
 
-### 📊 Liquidity Provider Dashboard
+### 🏠 Homepage
 
-Provides LPs with real-time portfolio metrics, cash flow analysis, liquidity meters, and active funding statuses.
-![Liquidity Provider Dashboard](public/screenshots/lp_dashboard.png)
+The landing experience surfaces the ILN story, the testnet status, and the primary onboarding paths for freelancers and liquidity providers.
+![ILN Homepage](docs/screenshots/homepage.svg)
 
-### ✍️ Freelancer Dashboard
+### 📊 Marketplace Explorer
 
-Allows freelancers to manage invoice factoring parameters, submit new invoices, view reputation ratings, and review cash advance details.
-![Freelancer Dashboard](public/screenshots/freelancer_dashboard.png)
+A central marketplace listing active open invoices, discount rates, and funding opportunities for liquidity providers.
+![Marketplace Explorer](docs/screenshots/marketplace.svg)
 
-### 🔍 Marketplace Explorer
+### 🏛 Governance
 
-A central marketplace listing all active open invoices waiting for funding, detailed interest rates, and risk rankings.
-![Marketplace Explorer](public/screenshots/marketplace.png)
+The governance surface highlights proposals, voting status, and the contributor workflow for protocol decisions.
+![Governance](docs/screenshots/governance.svg)
+
+### 📈 Protocol Stats
+
+The stats experience summarizes protocol volume, activity, and performance metrics across the testnet deployment.
+![Protocol Stats](docs/screenshots/stats.svg)
+
+### 🏁 Leaderboard
+
+The leaderboard exposes the most active users and participants across the ILN ecosystem.
+![Leaderboard](docs/screenshots/leaderboard.svg)
+
+### 📊 Analytics Dashboard
+
+The analytics view brings together yield, volume, and market trends for deeper protocol analysis.
+![Analytics Dashboard](docs/screenshots/analytics.svg)
 
 ---
 
@@ -209,8 +255,11 @@ A central marketplace listing all active open invoices waiting for funding, deta
 
 - **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
 - **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
+- **Developer Quickstart**: Follow the full setup guide in [docs/developer-quickstart.md](docs/developer-quickstart.md).
 - **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
 - **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
+- **i18n Setup Guide**: Review the current i18n architecture and locale-addition workflow in [docs/i18n.md](docs/i18n.md).
+- **Frontend Error Code Reference**: See the mapped contract error codes and remediation guidance in [docs/error-codes.md](docs/error-codes.md).
 - **useWallet Hook Documentation**: Detailed guide for wallet integration and SEP-10 authentication in [docs/hooks/use-wallet.md](docs/hooks/use-wallet.md).
 - **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive setup instructions, testing standards, code style guidelines, Stellar-specific setup, and development workflow.
 - **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
@@ -226,5 +275,5 @@ Contributions are welcome! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) fi
 1. Create a branch: `git checkout -b feature/your-feature-name`
 2. Make your changes and write stories for new components.
 3. Commit using conventional formats: `feat(scope): describe changes`
-4. Run testing commands: `npm run lint` and `npm run test`
+4. Run testing commands: `pnpm run lint`, `pnpm run env:check`, and `pnpm test`
 5. Open a Pull Request.

@@ -81,7 +81,7 @@ function MetricCard({
 export default function LPPortfolioSummary({
   invoices,
   payerRisks,
-  tokenMap,
+  tokenMap: _tokenMap,
   defaultToken,
 }: LPPortfolioSummaryProps) {
   const metrics = useMemo(() => {
@@ -94,8 +94,8 @@ export default function LPPortfolioSummary({
       totalInvested += inv.amount;
       currentYield += calculateYield(inv.amount, inv.discount_rate);
       const risk = payerRisks.get(inv.payer);
-      if (risk) {
-        riskSum += RISK_SORT_ORDER[risk] || 0;
+      if (risk && risk in RISK_SORT_ORDER) {
+        riskSum += RISK_SORT_ORDER[risk as keyof typeof RISK_SORT_ORDER] || 0;
         riskCount += 1;
       }
     });

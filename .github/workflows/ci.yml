@@ -32,6 +32,9 @@ jobs:
       - name: Run ESLint
         run: pnpm run lint
 
+      - name: Check env example sync
+        run: pnpm run env:check
+
       - name: Check formatting with Prettier
         run: pnpm run format:check
 
