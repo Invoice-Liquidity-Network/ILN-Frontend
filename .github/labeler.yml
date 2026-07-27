@@ -26,6 +26,7 @@ documentation:
 
 testing:
   - __tests__/**/*
+  - __tests__/**/e2e/**/*
   - e2e/**/*
   - vitest.setup.ts
   - vitest.shims.d.ts
