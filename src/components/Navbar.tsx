@@ -38,6 +38,7 @@ export default function Navbar() {
     { href: '/payer', label: t('nav.payInvoices') },
     { href: '/dashboard', label: t('nav.dashboard') },
     { href: '/analytics', label: t('nav.analytics') },
+    { href: '/stats', label: t('nav.stats') },
     { href: '/referrals', label: 'Referrals' },
   ];
 
@@ -89,6 +90,12 @@ export default function Navbar() {
             href="/analytics"
           >
             {t('nav.analytics')}
+          </Link>
+          <Link
+            className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
+            href="/stats"
+          >
+            {t('nav.stats')}
           </Link>
           {/* <a
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
