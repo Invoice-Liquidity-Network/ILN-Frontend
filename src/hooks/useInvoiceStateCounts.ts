@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAllInvoices, getInvoiceCount, Invoice } from '@/utils/soroban';
+import { parseContractError, CONTRACT_ERROR_MAP } from '@/lib/contract/errors';
 
 const STATES = ['PENDING', 'FUNDED', 'PAID', 'EXPIRED', 'CANCELLED', 'DISPUTED'];
 
@@ -35,8 +36,14 @@ export default function useInvoiceStateCounts() {
           setCounts(map);
           if (total === null) setTotal(Object.values(map).reduce((a, b) => a + b, 0));
         }
-      } catch (e: any) {
-        if (mounted) setError(e);
+      } catch (e: unknown) {
+        if (mounted) {
+          const code = parseContractError(e);
+          const message = code
+            ? CONTRACT_ERROR_MAP[code].message
+            : (e as Error)?.message || String(e || 'Failed to fetch invoice state counts');
+          setError(new Error(message));
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -44,6 +51,7 @@ export default function useInvoiceStateCounts() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { counts, total, loading, error } as const;

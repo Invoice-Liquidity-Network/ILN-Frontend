@@ -190,6 +190,16 @@ Invoice status changes are the primary source of duplication risk. To keep RPC u
 3. **LocalStorage-derived state** (bookmarks, watchlist, address book, LP settings, widget layout)
    is acceptable per-hook, but state computations should not duplicate logic already present in context providers.
 
+### Standardized Contract Error Handling
+
+All contract-calling hooks (both mutation/transaction hooks like `useTransaction` / `useInvoices` and data-fetching hooks like `useApprovedTokens`, `useInsurance`, and `useInvoiceStateCounts`) must standardize on the error-mapping utility in `@/lib/contract/errors`:
+
+1. **Error Parsing**: When catching contract errors or RPC submission failures, pass the caught error to `parseContractError(error)`.
+2. **Error Code Mapping**: Match recognized codes against `CONTRACT_ERROR_MAP[code]` to retrieve human-readable `title`, `message`, and `remediation` details. Fall back to `UNKNOWN_CONTRACT_ERROR` if unmapped.
+3. **User Communication**:
+   - Write operations (e.g. `useTransaction`) surface user feedback through `TransactionErrorToast` with mapped title, remediation, and optional technical details.
+   - Read operations surface mapped human-readable error messages via state or Toast notifications rather than unhandled raw exception strings.
+
 ## Environment Model
 
 The canonical local template is `.env.local.example`. Direct env references in `app/` and `src/` are checked by:

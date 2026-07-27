@@ -12,6 +12,11 @@ import { useWallet } from '@/context/WalletContext';
 import { useToast } from '@/context/ToastContext';
 import { isContractEventStreamingActive } from '@/lib/contract-event-stream-state';
 import { invoiceKeys, QUERY_TIMINGS } from '@/hooks/queries/keys';
+import {
+  parseContractError,
+  CONTRACT_ERROR_MAP,
+  UNKNOWN_CONTRACT_ERROR,
+} from '@/lib/contract/errors';
 
 const TERMINAL_STATUSES = ['Paid', 'Defaulted', 'Cancelled'];
 
@@ -79,10 +84,12 @@ export function useFundInvoice() {
       if (context?.previousInvoices) {
         queryClient.setQueryData(invoiceKeys.all, context.previousInvoices);
       }
+      const code = parseContractError(err);
+      const errorInfo = code ? CONTRACT_ERROR_MAP[code] : UNKNOWN_CONTRACT_ERROR;
       addToast({
         type: 'error',
-        title: 'Funding failed',
-        message: err instanceof Error ? err.message : 'Unknown error',
+        title: errorInfo.title,
+        message: errorInfo.message,
       });
     },
     onSettled: () => {

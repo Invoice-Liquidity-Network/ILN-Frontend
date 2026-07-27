@@ -9,6 +9,7 @@ import {
   getTokenMetadata,
   type TokenMetadata,
 } from '@/utils/soroban';
+import { parseContractError, CONTRACT_ERROR_MAP } from '@/lib/contract/errors';
 
 export interface ApprovedToken extends TokenMetadata {
   iconLabel: string;
@@ -92,9 +93,13 @@ export function useApprovedTokens() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(
-            loadError instanceof Error ? loadError.message : 'Failed to load approved tokens.'
-          );
+          const code = parseContractError(loadError);
+          const message = code
+            ? CONTRACT_ERROR_MAP[code].message
+            : loadError instanceof Error
+              ? loadError.message
+              : 'Failed to load approved tokens.';
+          setError(message);
           setTokens([]);
         }
       } finally {
