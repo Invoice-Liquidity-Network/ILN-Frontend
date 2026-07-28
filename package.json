@@ -23,7 +23,8 @@
     "build-storybook": "storybook build",
     "chromatic": "chromatic --exit-zero-on-changes",
     "prepare": "husky",
-    "generate:changelog": "npx git-cliff --config .gitcliff.toml"
+    "generate:changelog": "npx git-cliff --config .gitcliff.toml",
+    "scaffold:component": "npx tsx scripts/scaffold-component.ts"
   },
   "dependencies": {
     "@react-email/components": "1.0.12",

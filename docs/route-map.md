@@ -33,3 +33,5 @@ To prevent route drift and maintain a consolidated structure, the following redi
 - `/dashboard/payer` &rarr; `/payer`
 - `/analytics/freelancer` &rarr; `/analytics` (consolidated duplicate freelancer views)
 - `/analytics/leaderboard` &rarr; `/leaderboard` (consolidated duplicate leaderboard paths)
+- `/invoices/:id` &rarr; `/i/:id` (redirect legacy/long-form invoice detail path to canonical short-form `/i/[id]`)
+

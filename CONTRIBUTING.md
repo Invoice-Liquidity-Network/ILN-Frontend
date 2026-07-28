@@ -157,6 +157,35 @@ pnpm run verify
 
 This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
 
+### Makefile Support
+
+For contributors who prefer using `make`, a top-level `Makefile` is available mirroring standard `pnpm` tasks:
+
+| Target | Executed Command | Purpose |
+| :--- | :--- | :--- |
+| `make install` | `pnpm install` | Install dependencies |
+| `make dev` | `pnpm dev` | Start development server |
+| `make build` | `pnpm build` | Build production bundle |
+| `make test` | `pnpm test` | Run Vitest unit tests |
+| `make lint` | `pnpm lint` | Run ESLint check |
+| `make format` | `pnpm format` | Run Prettier formatter |
+| `make verify` | `pnpm verify` | Run full verification suite |
+
+### Component Scaffolding
+
+To quickly create a new React component along with its matching Storybook story and Vitest test stub following project conventions:
+
+```bash
+pnpm scaffold:component <ComponentName>
+# Or for nested components:
+pnpm scaffold:component ui/CustomCard
+```
+
+This command generates:
+- Component file: `src/components/<ComponentName>.tsx`
+- Storybook file: `src/components/<ComponentName>.stories.tsx`
+- Test stub file: `src/components/__tests__/<ComponentName>.test.tsx` (or inside the target subdirectory)
+
 ### Code Style and Formatting
 
 We use **ESLint** and **Prettier** to maintain consistent code quality.
