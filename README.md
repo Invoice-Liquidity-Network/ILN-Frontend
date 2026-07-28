@@ -258,6 +258,7 @@ The analytics view brings together yield, volume, and market trends for deeper p
 
 - **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
 - **Developer Quickstart**: Follow the full setup guide in [docs/developer-quickstart.md](docs/developer-quickstart.md).
+- **Troubleshooting Guide**: Consolidated list of local setup symptoms, Freighter connection, and database gotchas in [docs/troubleshooting.md](docs/troubleshooting.md).
 - **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
 - **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
 - **i18n Setup Guide**: Review the current i18n architecture and locale-addition workflow in [docs/i18n.md](docs/i18n.md).
