@@ -280,7 +280,9 @@ export async function castVote(
   if (signerAddress) {
     try {
       // Execute vote recording operation
-      const mockTxHash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const mockTxHash = Array.from({ length: 32 }, () =>
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
       return mockTxHash;
     } catch (err) {
       console.warn('On-chain vote recording fallback:', err);
@@ -306,7 +308,9 @@ export async function executeProposal(
 
   if (signerAddress) {
     try {
-      const mockTxHash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const mockTxHash = Array.from({ length: 32 }, () =>
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
       return mockTxHash;
     } catch (err) {
       console.warn('On-chain proposal execution fallback:', err);
