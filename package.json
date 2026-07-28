@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "pnpm run lint && pnpm run env:check && pnpm run format:check && pnpm exec tsc --noEmit && pnpm test",
+    "clean": "rm -rf .next .turbo storybook-static coverage test-results playwright-report .lighthouseci tsconfig.tsbuildinfo",
     "test:e2e": "playwright test",
     "test:mutation": "stryker run",
     "storybook": "storybook dev -p 6006",

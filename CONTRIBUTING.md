@@ -163,7 +163,33 @@ Before pushing a branch or opening a PR, run:
 pnpm run verify
 ```
 
-This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --incremental` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+
+### Troubleshooting Local vs CI Build Mismatch
+
+If a build or test run succeeds in the GitHub Actions CI environment but fails locally on your machine, it is often due to stale build artifact caches, Next.js build caches, or outdated storybook/test caches.
+
+To resolve this, run the clean script to clear out all generated build files and caches:
+
+```bash
+pnpm run clean
+```
+
+This clears the following paths:
+- `.next/` (Next.js build cache)
+- `.turbo/` (Turborepo execution cache)
+- `storybook-static/` (Storybook static build)
+- `coverage/` (Vitest coverage reports)
+- `test-results/` & `playwright-report/` (Playwright E2E test artifacts)
+- `.lighthouseci/` (Lighthouse audit report caches)
+- `tsconfig.tsbuildinfo` (TypeScript incremental compilation info)
+
+After cleaning, run a fresh install and verify:
+```bash
+pnpm install
+pnpm run verify
+```
+
 
 ### Makefile Support
 
