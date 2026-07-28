@@ -87,10 +87,50 @@ describe('/api/reminders API route', () => {
         { onConflict: 'address' }
       );
     });
+
+    it('should return 400 if address or email is missing', async () => {
+      const req = new NextRequest('http://localhost/api/reminders', {
+        method: 'POST',
+        body: JSON.stringify({ address: 'GABC123' }),
+      });
+
+      const response = await POST(req);
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Address and email are required');
+    });
+
+    it('should return 500 when Supabase upsert encounters an error', async () => {
+      mockSupabase.upsert.mockResolvedValue({ error: new Error('Database error') });
+
+      const req = new NextRequest('http://localhost/api/reminders', {
+        method: 'POST',
+        body: JSON.stringify({ address: 'GABC123', email: 'test@example.com' }),
+      });
+
+      const response = await POST(req);
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe('Failed to save preference');
+    });
   });
 
   describe('GET handler (Cron Trigger)', () => {
-    it('should send a reminder email for an invoice due in 72 hours', async () => {
+    it('should return 401 Unauthorized if Bearer token is missing or invalid', async () => {
+      const req = new NextRequest('http://localhost/api/reminders', {
+        headers: { authorization: 'Bearer invalid-secret' },
+      });
+
+      const response = await GET(req);
+      const body = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(body.error).toBe('Unauthorized');
+    });
+
+    it('should send a reminder email with List-Unsubscribe header for an invoice due in 72 hours', async () => {
       const now = Math.floor(Date.now() / 1000);
       const dueIn71Hours = now + 71 * 3600;
       const payerAddress = 'GPA123';
@@ -136,7 +176,63 @@ describe('/api/reminders API route', () => {
       expect(body.sentCount).toBe(1);
 
       const resendInstance = new Resend();
-      expect(resendInstance.emails.send).toHaveBeenCalled();
+      expect(resendInstance.emails.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: ['payer@example.com'],
+          headers: expect.objectContaining({
+            'List-Unsubscribe': expect.stringContaining('/api/reminders/unsubscribe?address=GPA123'),
+          }),
+        })
+      );
+    });
+
+    it('should handle Resend API delivery failures gracefully without inserting log', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const dueIn71Hours = now + 71 * 3600;
+      const payerAddress = 'GPA123';
+
+      const resendInstance = new Resend();
+      vi.mocked(resendInstance.emails.send).mockResolvedValueOnce({
+        data: null,
+        error: { name: 'resend_error', message: 'API key invalid' },
+      });
+
+      mockSupabase.eq.mockResolvedValueOnce({
+        data: [{ address: payerAddress, email: 'payer@example.com', enabled: true }],
+        error: null,
+      });
+
+      vi.mocked(soroban.getAllInvoices).mockResolvedValue([
+        {
+          id: 103n,
+          payer: payerAddress,
+          status: 'Funded',
+          due_date: BigInt(dueIn71Hours),
+          token: 'USDC_CONTRACT',
+          amount: 500000000n,
+          freelancer: 'GFL123',
+          discount_rate: 0,
+        },
+      ]);
+
+      vi.mocked(soroban.getTokenMetadata).mockResolvedValue({
+        contractId: 'USDC_CONTRACT',
+        symbol: 'USDC',
+        decimals: 7,
+        name: 'USD Coin',
+      });
+
+      mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
+
+      const req = new NextRequest('http://localhost/api/reminders', {
+        headers: { authorization: 'Bearer test-secret' },
+      });
+
+      const response = await GET(req);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.sentCount).toBe(0);
     });
 
     it('should not send duplicate emails for the same milestone', async () => {
