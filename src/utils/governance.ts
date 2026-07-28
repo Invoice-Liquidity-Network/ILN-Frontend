@@ -240,6 +240,7 @@ export function getUserVote(proposalId: number): VoteChoice | undefined {
 
 export async function fetchProposals(): Promise<Proposal[]> {
   // TODO: Replace with actual Soroban contract call once governance contract is deployed
+  // Ref: #111
   await new Promise((r) => setTimeout(r, 600));
   return MOCK_PROPOSALS.map((p) => ({
     ...p,
@@ -262,6 +263,7 @@ export async function castVote(
   _signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
   // TODO: Replace with actual Soroban transaction once governance contract is deployed
+  // Ref: #111
   await new Promise((r) => setTimeout(r, 2000));
 
   userVotes.set(proposalId, choice);
@@ -284,6 +286,7 @@ export async function executeProposal(
   _signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
   // TODO: Replace with actual Soroban transaction once governance contract is deployed
+  // Ref: #111
   await new Promise((r) => setTimeout(r, 2000));
 
   const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
@@ -324,6 +327,7 @@ export function getVetoHistory(proposalId: number): VetoRecord[] {
 
 export async function getVotingPower(_address: string): Promise<number> {
   // TODO: Fetch from ILN token contract once deployed
+  // Ref: #111
   await new Promise((r) => setTimeout(r, 200));
   return 1250; // mock: 1,250 ILN tokens
 }
@@ -425,6 +429,7 @@ const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
 /**
  * Fetch current on-chain protocol parameters.
  * TODO: Replace with actual Soroban read-only calls once governance contract is deployed.
+ * Ref: #111
  */
 export async function fetchProtocolParameters(): Promise<ProtocolParameters> {
   await new Promise((r) => setTimeout(r, 400));
@@ -442,6 +447,7 @@ export function isValidStellarAddress(address: string): boolean {
  * Validate and look up a token name from a Stellar asset address.
  * Returns the resolved AcceptedToken or throws a descriptive error.
  * TODO: Replace with real Stellar SDK / Horizon lookup once deployed.
+ * Ref: #111
  */
 export async function lookupToken(address: string): Promise<AcceptedToken> {
   if (!isValidStellarAddress(address)) {
@@ -489,6 +495,7 @@ export async function lookupToken(address: string): Promise<AcceptedToken> {
 /**
  * Submit a new governance proposal to the contract.
  * TODO: Replace with actual Soroban transaction once governance contract is deployed.
+ * Ref: #111
  */
 export async function createProposal(
   payload: CreateProposalPayload,
@@ -624,6 +631,7 @@ export function parameterLabel(parameter: string): string {
  *
  * TODO: Replace with a Soroban `getEvents` subscription for `ParameterUpdated`
  * contract events once the governance contract is deployed.
+ * Ref: #111
  */
 export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
   const proposals = await fetchProposals();
