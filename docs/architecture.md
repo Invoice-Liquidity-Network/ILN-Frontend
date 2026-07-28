@@ -56,14 +56,14 @@ graph TD
 
 ## Route Surface
 
-The primary route tree lives in `app/`. A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
+The primary route tree lives in `app/`. For a complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
+
+A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
 ```
 app/
 ├── admin/                       # Admin health and protocol configuration
-├── analytics/                   # Protocol analytics
-│   ├── freelancer/              # Freelancer cash-flow analytics
-│   └── leaderboard/             # Analytics leaderboard view
+├── analytics/                   # Freelancer-specific cash-flow analytics (FreelancerAnalyticsDashboard)
 ├── api/
 │   ├── auth/                    # SEP-10 challenge and verify helpers
 │   ├── feedback/                # GitHub-backed feedback submission
@@ -157,7 +157,7 @@ Contributor references for these server integrations live in [docs/supabase-setu
 - `ToastContext` wraps toast behavior while `AppToaster` renders the Sonner host.
 - `KeyboardShortcutsContext` manages keyboard shortcut state and global keydown listeners.
 - Page routes should compose feature components and hooks; reusable components should stay under `src/components/`.
-- Stellar SDK and RPC details should stay in `src/utils/soroban.ts`, `src/lib/`, or focused hooks rather than being called directly from presentational components.
+- Stellar SDK and RPC details should stay in `src/utils/soroban.ts`, `src/lib/`, or focused hooks rather than being called directly from presentational components. Integration status of live vs. stubbed contract details are tracked in [docs/contract-integration-status.md](contract-integration-status.md).
 
 ### Context vs Hooks Boundary
 
