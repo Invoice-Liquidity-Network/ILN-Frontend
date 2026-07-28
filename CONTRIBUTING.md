@@ -8,7 +8,27 @@ Thank you for your interest in contributing to the Invoice Liquidity Network (IL
 - **npm**: Version 9 or higher
 - **Git**: For version control
 
+## Issue Leveling and Label Curation
+
+To help contributors find tasks aligned with their experience and available time, we triage issues by **Complexity** and **Context/Familiarity requirements**. 
+
+### "Good First Issue" vs. "Trivial Complexity"
+
+- **Good First Issue**:
+  - **Context Requirement**: Low. A newcomer with no previous knowledge of our domain (Stellar/Soroban, invoice factoring, localized routing configurations) should be able to solve it using common web development skills.
+  - **Self-Contained**: The task has a clear start and end point, affects isolated files, and does not require complex integrations or cross-cutting structural modifications.
+  - **Examples**: Implementing helper scripts (such as `pnpm run clean`), writing troubleshooting documentation, adding static content/badges, fixing localized stylesheets.
+  - **Label**: `good-first-issue`
+
+- **Trivial Complexity**:
+  - **Context Requirement**: Variable (often High). While the code changes themselves might be extremely small (e.g. changing 2 lines in a React context or smart contract call), it requires specific familiarity with the codebase, history, or integration layers to understand *why* the change is needed and how to do it safely.
+  - **Examples**: Tweaking a Freighter smart contract connection event listener, altering a specific Supabase permission or RLS script.
+  - **Label**: `complexity: trivial`
+
+For a curated list of candidate issues matching these criteria, see [good-first-issue-candidates.md](docs/good-first-issue-candidates.md).
+
 ## Getting Started
+
 
 ### 1. Fork and Clone the Repository
 
@@ -35,12 +55,20 @@ The `prepare` script runs `husky` automatically, registering the hooks in `.husk
 
 ### What the hooks do
 
-| Hook         | Trigger      | Action                                                               |
-| ------------ | ------------ | -------------------------------------------------------------------- |
-| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only      |
-| `pre-push`   | `git push`   | Runs `tsc --noEmit` to catch type errors before the branch is pushed |
+| Hook         | Trigger      | Action                                                                  |
+| ------------ | ------------ | ----------------------------------------------------------------------- |
+| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only         |
+| `pre-push`   | `git push`   | Runs `tsc --incremental` to cache and catch type errors before pushing |
 
-Hooks are scoped to staged files via `lint-staged`, so they typically complete in well under 10 seconds.
+### Husky Hook Performance & Caching
+
+To optimize the contributor experience, we audited the performance of the Husky hooks:
+- **`pre-commit` (`npx lint-staged`)**: Takes ~1.9s to run when no staged files need formatting, and typically under 5–10s for formatted staged edits.
+- **`pre-push` (`tsc`)**: Switching from a full typecheck (`npx tsc --noEmit`) to an incremental typecheck (`npx tsc --incremental`) improves performance significantly:
+  - **Cold Run (Full check / clean config)**: ~32.3 seconds.
+  - **Warm Run (Incremental / local cache)**: ~8.4 seconds (a ~74% speedup).
+
+The generated `tsconfig.tsbuildinfo` build cache file is ignored in `.gitignore` to keep git diffs clean.
 
 ### Skipping hooks (not recommended)
 
@@ -155,7 +183,33 @@ Before pushing a branch or opening a PR, run:
 pnpm run verify
 ```
 
-This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --incremental` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+
+### Troubleshooting Local vs CI Build Mismatch
+
+If a build or test run succeeds in the GitHub Actions CI environment but fails locally on your machine, it is often due to stale build artifact caches, Next.js build caches, or outdated storybook/test caches.
+
+To resolve this, run the clean script to clear out all generated build files and caches:
+
+```bash
+pnpm run clean
+```
+
+This clears the following paths:
+- `.next/` (Next.js build cache)
+- `.turbo/` (Turborepo execution cache)
+- `storybook-static/` (Storybook static build)
+- `coverage/` (Vitest coverage reports)
+- `test-results/` & `playwright-report/` (Playwright E2E test artifacts)
+- `.lighthouseci/` (Lighthouse audit report caches)
+- `tsconfig.tsbuildinfo` (TypeScript incremental compilation info)
+
+After cleaning, run a fresh install and verify:
+```bash
+pnpm install
+pnpm run verify
+```
+
 
 ### Makefile Support
 
@@ -806,6 +860,7 @@ export const Variant: Story = {
 
 If you need help:
 
+- Check the consolidated troubleshooting guide: [docs/troubleshooting.md](docs/troubleshooting.md) for local environment setup issues, Freighter, Supabase or Resend gotchas.
 - Check existing [GitHub Issues](https://github.com/Invoice-Liquidity-Network/ILN-Frontend/issues)
 - Review the [architecture documentation](docs/architecture.md)
 - Read the [design system guide](DESIGN.md)
