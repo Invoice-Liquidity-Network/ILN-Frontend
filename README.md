@@ -1,5 +1,8 @@
 # Invoice Liquidity Network (ILN) Frontend
 
+[![CI](https://github.com/invoice-liquidity-network/ILN-Frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/invoice-liquidity-network/ILN-Frontend/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/invoice-liquidity-network/ILN-Frontend/graph/badge.svg?flag=unittests)](https://codecov.io/gh/invoice-liquidity-network/ILN-Frontend)
+
 An open-source invoice factoring protocol built on the Stellar network. ILN bridges the gap between freelancers seeking immediate payment and liquidity providers looking for short-term yields.
 
 ---
