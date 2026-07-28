@@ -860,6 +860,7 @@ export const Variant: Story = {
 
 If you need help:
 
+- Check the consolidated troubleshooting guide: [docs/troubleshooting.md](docs/troubleshooting.md) for local environment setup issues, Freighter, Supabase or Resend gotchas.
 - Check existing [GitHub Issues](https://github.com/Invoice-Liquidity-Network/ILN-Frontend/issues)
 - Review the [architecture documentation](docs/architecture.md)
 - Read the [design system guide](DESIGN.md)
