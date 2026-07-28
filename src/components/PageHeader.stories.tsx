@@ -43,7 +43,7 @@ export const WithBreadcrumbs: Story = {
     title: 'Invoice Details',
     breadcrumbs: [
       { label: 'Dashboard', href: '/dashboard' },
-      { label: 'Invoices', href: '/invoices' },
+      { label: 'Marketplace', href: '/marketplace' },
       { label: 'Invoice #42' },
     ],
   },
@@ -55,7 +55,7 @@ export const FullExample: Story = {
     description: 'Review invoice information and track payment status.',
     breadcrumbs: [
       { label: 'Dashboard', href: '/dashboard' },
-      { label: 'Invoices', href: '/invoices' },
+      { label: 'Marketplace', href: '/marketplace' },
       { label: 'Invoice #42' },
     ],
     actions: (
