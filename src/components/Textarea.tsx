@@ -5,7 +5,14 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   label?: string;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({ className, error, id, label, 'aria-describedby': ariaDescribedBy, ...props }) => {
+export const Textarea: React.FC<TextareaProps> = ({
+  className,
+  error,
+  id,
+  label,
+  'aria-describedby': ariaDescribedBy,
+  ...props
+}) => {
   const errorId = id && error ? `${id}-error` : undefined;
   const describedBy = [ariaDescribedBy, errorId].filter(Boolean).join(' ') || undefined;
 

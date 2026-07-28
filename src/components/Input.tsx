@@ -5,7 +5,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   label?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ className, error, id, label, 'aria-describedby': ariaDescribedBy, ...props }) => {
+export const Input: React.FC<InputProps> = ({
+  className,
+  error,
+  id,
+  label,
+  'aria-describedby': ariaDescribedBy,
+  ...props
+}) => {
   const errorId = id && error ? `${id}-error` : undefined;
   const describedBy = [ariaDescribedBy, errorId].filter(Boolean).join(' ') || undefined;
 
