@@ -20,7 +20,8 @@
     "governance": "Governance",
     "payInvoices": "Pay Invoices",
     "dashboard": "Dashboard",
-    "analytics": "Analytics",
+    "analytics": "My Analytics",
+    "stats": "Protocol Stats",
     "docs": "Docs"
   },
   "landing": {
