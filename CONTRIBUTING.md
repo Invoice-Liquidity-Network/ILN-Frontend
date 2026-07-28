@@ -256,6 +256,19 @@ Note: a number of component tests still live as flat files directly under
 only governs where _new_ tests should go. Bulk migration to colocation is a
 candidate for a future dedicated issue.
 
+#### Flaky Test Detection & Quarantine Process
+
+- **Automated Detection**: A scheduled CI workflow (`flaky-test-detection.yml`) runs the full test suite 3× sequentially on a weekly schedule (every Sunday at 03:00 UTC) to identify intermittent test failures without burdening per-PR CI run times.
+- **Quarantining a Flaky Test**:
+  1. Open a GitHub Issue titled `flaky: <Test Description / Suite Name>` detailing the failure log and frequency.
+  2. Mark the flaky test using `.skip` (e.g. `it.skip(...)` or `describe.skip(...)`) in code.
+  3. Include a comment above the `.skip` referencing the tracking issue URL:
+     ```typescript
+     // Quarantined due to flakiness - see https://github.com/Invoice-Liquidity-Network/ILN-Frontend/issues/<issue_number>
+     it.skip('handles dynamic timer updates without race conditions', () => { ... });
+     ```
+  4. Fix the underlying timing or async race condition in a follow-up PR and remove `.skip`.
+
 #### End-to-End Tests (Playwright)
 
 ```bash
