@@ -1,0 +1,33 @@
+declare module 'next-pwa' {
+  import type { NextConfig } from 'next';
+
+  export interface RuntimeCachingRule {
+    urlPattern: RegExp | ((options: { request: Request; url: URL }) => boolean);
+    handler: 'CacheFirst' | 'CacheOnly' | 'NetworkFirst' | 'NetworkOnly' | 'StaleWhileRevalidate';
+    options?: {
+      cacheName?: string;
+      expiration?: {
+        maxEntries?: number;
+        maxAgeSeconds?: number;
+      };
+      networkTimeoutSeconds?: number;
+    };
+  }
+
+  export interface PWAConfig {
+    dest?: string;
+    disable?: boolean;
+    register?: boolean;
+    scope?: string;
+    skipWaiting?: boolean;
+    sw?: string;
+    runtimeCaching?: RuntimeCachingRule[];
+    subdomains?: boolean;
+  }
+
+  function withPWA(
+    pwaConfig?: PWAConfig
+  ): (nextConfig?: NextConfig & { allowedDevOrigins?: string[] }) => NextConfig;
+
+  export default withPWA;
+}

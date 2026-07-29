@@ -13,6 +13,7 @@ import {
   CONTRACT_ERROR_MAP,
   UNKNOWN_CONTRACT_ERROR,
 } from '@/lib/contract/errors';
+import { formatContractError } from '@/utils/contractErrorFormatter';
 import { TransactionErrorToast } from '@/components/transaction/TransactionErrorToast';
 
 type SignTxFn = (txXdr: string) => Promise<string>;
@@ -110,6 +111,7 @@ export function useTransaction(): UseTransactionResult {
             };
 
       const retry = async () => {
+        // eslint-disable-next-line react-hooks/immutability
         await execute(txOrOperation, options);
       };
 
@@ -126,9 +128,10 @@ export function useTransaction(): UseTransactionResult {
         notifyTxSuccess();
         return result;
       } catch (err: any) {
-        const message = err?.message || String(err || 'Transaction failed.');
-        const isRejected = isWalletRejection(message);
-        setError(message);
+        const formattedErr = formatContractError(err);
+        const message = formattedErr.message;
+        const isRejected = formattedErr.code === 'USER_REJECTED' || isWalletRejection(message);
+        setError(formattedErr.userFriendlyMessage);
 
         let title = 'Transaction failed';
         let toastMessage: React.ReactNode = `${message}. Please try again or contact support if the issue persists.`;
