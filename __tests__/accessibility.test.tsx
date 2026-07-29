@@ -1,3 +1,21 @@
+/**
+ * Cross-page accessibility + keyboard-navigation smoke suite.
+ *
+ * Split with __tests__/accessibility/*.a11y.test.tsx (see that directory for the
+ * counterpart doc comment):
+ * - This file renders real pages through the full app `Providers` tree (i18n, wallet,
+ *   toast, notifications) and axe-checks Home, Pay/Invoice, LP Dashboard, Governance,
+ *   Leaderboard, and Freelancer. It's the only place that a11y-checks the Leaderboard
+ *   and Freelancer pages, and the only place that exercises tab-order keyboard
+ *   navigation across pages.
+ * - It intentionally re-checks Home/Governance/LP Dashboard for axe violations even
+ *   though those pages also have dedicated per-page files, since this file mounts them
+ *   under the real Providers tree (different mocking depth) rather than in isolation -
+ *   that's a deliberate regression safety net, not accidental duplication.
+ * - It does NOT cover Analytics or Marketplace pages, or per-page structural assertions
+ *   (heading hierarchy, landmarks, table/list semantics, form control labeling) - see
+ *   the per-page files for those.
+ */
 import { render, screen, waitFor } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi, beforeEach } from 'vitest';

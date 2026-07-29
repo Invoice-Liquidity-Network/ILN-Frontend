@@ -1,3 +1,10 @@
+/**
+ * Per-page accessibility suite for the Analytics page.
+ *
+ * Split with __tests__/accessibility.test.tsx (see that file's doc comment for the
+ * full picture): the Analytics page has no coverage there, so this file is the only
+ * a11y suite for it - not a duplicate of anything else.
+ */
 import { render, waitFor } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, it, expect, vi } from 'vitest';
