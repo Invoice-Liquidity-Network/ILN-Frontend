@@ -1,3 +1,14 @@
+/**
+ * Per-page accessibility suite for the Governance page.
+ *
+ * Split with __tests__/accessibility.test.tsx (see that file's doc comment for the
+ * full picture): this file adds granular structural checks - heading hierarchy,
+ * filter control labeling, link accessibility, status indicator semantics - that the
+ * root file doesn't assert. The root file additionally axe-checks this page under the
+ * full app Providers tree and covers cross-page keyboard tab order; that overlap on
+ * the basic "no axe violations" check is an intentional regression safety net, not
+ * redundant duplication.
+ */
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, it, expect, vi } from 'vitest';

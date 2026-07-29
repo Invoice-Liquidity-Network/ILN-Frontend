@@ -13,6 +13,7 @@ export default function AppToaster() {
       richColors
       expand={false}
       gap={8}
+      // Accessibility - Sonner handles ARIA attributes internally
       toastOptions={{
         classNames: {
           toast: 'font-sans',

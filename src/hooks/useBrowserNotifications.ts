@@ -1,19 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
-export type NotificationPermissionState = NotificationPermission | 'loading';
+export type BrowserNotificationPermissionState = NotificationPermission | 'loading';
 
-export function useNotifications() {
-  const [permission, setPermission] = useState<NotificationPermissionState>('loading');
-
-  useEffect(() => {
+export function useBrowserNotifications() {
+  const [permission, setPermission] = useState<BrowserNotificationPermissionState>(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-    } else {
-      setPermission('denied');
+      return Notification.permission;
     }
-  }, []);
+    return 'denied';
+  });
 
   const requestPermission = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
