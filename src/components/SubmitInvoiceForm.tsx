@@ -469,6 +469,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       value={form.payer}
                       onBlur={() => handleBlur('payer')}
                       aria-describedby={displayErrors.payer ? 'payer-error' : undefined}
+                      aria-invalid={Boolean(displayErrors.payer)}
                       onChange={(event) => {
                         setField('payer', event.target.value);
                         setAddressBookQuery(event.target.value);
@@ -519,6 +520,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       value={form.amount}
                       onBlur={() => handleBlur('amount')}
                       aria-describedby={displayErrors.amount ? 'amount-error' : undefined}
+                      aria-invalid={Boolean(displayErrors.amount)}
                       onChange={(event) => handleAmountChange(event.target.value)}
                       className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="5000.00"
@@ -563,6 +565,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       value={form.dueDate}
                       onBlur={() => handleBlur('dueDate')}
                       aria-describedby={displayErrors.dueDate ? 'due-date-error' : undefined}
+                      aria-invalid={Boolean(displayErrors.dueDate)}
                       onChange={(event) => setField('dueDate', event.target.value)}
                       min={getMinimumDueDate()}
                       className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
@@ -626,6 +629,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                       aria-describedby={
                         displayErrors.discountRate ? 'discount-rate-error' : undefined
                       }
+                      aria-invalid={Boolean(displayErrors.discountRate)}
                       onChange={(event) => setField('discountRate', event.target.value)}
                       className="w-full rounded-2xl bg-surface-container-low px-4 py-3.5 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="3.00"
