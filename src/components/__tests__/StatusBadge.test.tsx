@@ -16,14 +16,14 @@
  * in the "My Funded" tab where badges are rendered.
  */
 
-import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import LPDashboard from "../LPDashboard";
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import LPDashboard from '../LPDashboard';
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
-vi.mock("../../hooks/useInvoices", () => ({
+vi.mock('../../hooks/useInvoices', () => ({
   useInvoices: vi.fn(),
   useFundInvoice: vi.fn(() => ({
     mutate: vi.fn(),
@@ -31,19 +31,19 @@ vi.mock("../../hooks/useInvoices", () => ({
   })),
 }));
 
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoices } from '@/hooks/useInvoices';
 
-vi.mock("@stellar/freighter-api", () => ({
+vi.mock('@stellar/freighter-api', () => ({
   isConnected: vi.fn().mockResolvedValue(false),
   getAddress: vi.fn().mockResolvedValue({ address: null }),
   setAllowed: vi.fn().mockResolvedValue(false),
   signTransaction: vi.fn(),
-  getNetwork: vi.fn().mockResolvedValue({ network: "TESTNET" }),
+  getNetwork: vi.fn().mockResolvedValue({ network: 'TESTNET' }),
 }));
 
-const LP_ADDRESS = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6";
+const LP_ADDRESS = 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6';
 
-vi.mock("../../context/WalletContext", () => ({
+vi.mock('../../context/WalletContext', () => ({
   useWallet: () => ({
     address: LP_ADDRESS,
     connect: vi.fn(),
@@ -51,9 +51,9 @@ vi.mock("../../context/WalletContext", () => ({
   }),
 }));
 
-vi.mock("../../context/ToastContext", () => ({
+vi.mock('../../context/ToastContext', () => ({
   useToast: () => ({
-    addToast: vi.fn(() => "toast-id"),
+    addToast: vi.fn(() => 'toast-id'),
     updateToast: vi.fn(),
   }),
 }));
@@ -61,7 +61,7 @@ vi.mock("../../context/ToastContext", () => ({
 const getAllInvoices = vi.fn();
 const getUsdcAllowance = vi.fn();
 
-vi.mock("../../utils/soroban", () => ({
+vi.mock('../../utils/soroban', () => ({
   getAllInvoices: (...args: unknown[]) => getAllInvoices(...args),
   getUsdcAllowance: (...args: unknown[]) => getUsdcAllowance(...args),
   buildApproveUsdcTransaction: vi.fn(),
@@ -76,10 +76,10 @@ vi.mock("../../utils/soroban", () => ({
 function makeInvoice(id: bigint, status: string) {
   return {
     id,
-    freelancer: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-    payer:      "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
-    amount:     1_000_000_000n,
-    due_date:   1_900_000_000n,
+    freelancer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    payer: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY',
+    amount: 1_000_000_000n,
+    due_date: 1_900_000_000n,
     discount_rate: 300,
     status,
     funder: LP_ADDRESS, // owned by the connected wallet → appears in "My Funded"
@@ -96,58 +96,58 @@ async function renderMyFundedTab(invoice: any) {
   render(<LPDashboard />);
 
   // Wait for the list to load then switch tab
-  fireEvent.click(await screen.findByRole("button", { name: "My Funded" }));
+  fireEvent.click(await screen.findByRole('button', { name: 'My Funded' }));
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-describe("StatusBadge – all five invoice statuses", () => {
+describe('StatusBadge – all five invoice statuses', () => {
   beforeEach(() => {
     (useInvoices as any).mockReset();
     getUsdcAllowance.mockReset();
   });
 
   it("renders the 'Funded' badge with blue classes", async () => {
-    await renderMyFundedTab(makeInvoice(10n, "Funded"));
+    await renderMyFundedTab(makeInvoice(10n, 'Funded'));
 
     await waitFor(() => {
-      const badge = screen.getByText("Funded");
+      const badge = screen.getByText('Funded');
       expect(badge).toBeInTheDocument();
-      expect(badge.className).toContain("bg-blue-100");
-      expect(badge.className).toContain("text-blue-700");
+      expect(badge.className).toContain('bg-blue-100');
+      expect(badge.className).toContain('text-blue-700');
     });
   });
 
   it("renders the 'Paid' badge with green classes", async () => {
-    await renderMyFundedTab(makeInvoice(11n, "Paid"));
+    await renderMyFundedTab(makeInvoice(11n, 'Paid'));
 
     await waitFor(() => {
-      const badge = screen.getByText("Paid");
+      const badge = screen.getByText('Paid');
       expect(badge).toBeInTheDocument();
-      expect(badge.className).toContain("bg-green-100");
-      expect(badge.className).toContain("text-green-700");
+      expect(badge.className).toContain('bg-green-100');
+      expect(badge.className).toContain('text-green-700');
     });
   });
 
   it("renders the 'Defaulted' badge with red classes", async () => {
-    await renderMyFundedTab(makeInvoice(12n, "Defaulted"));
+    await renderMyFundedTab(makeInvoice(12n, 'Defaulted'));
 
     await waitFor(() => {
-      const badge = screen.getByText("Defaulted");
+      const badge = screen.getByText('Defaulted');
       expect(badge).toBeInTheDocument();
-      expect(badge.className).toContain("bg-red-100");
-      expect(badge.className).toContain("text-red-700");
+      expect(badge.className).toContain('bg-red-100');
+      expect(badge.className).toContain('text-red-700');
     });
   });
 
   it("renders the 'Cancelled' badge with red classes", async () => {
-    await renderMyFundedTab(makeInvoice(13n, "Cancelled"));
+    await renderMyFundedTab(makeInvoice(13n, 'Cancelled'));
 
     await waitFor(() => {
-      const badge = screen.getByText("Cancelled");
+      const badge = screen.getByText('Cancelled');
       expect(badge).toBeInTheDocument();
-      expect(badge.className).toContain("bg-red-100");
-      expect(badge.className).toContain("text-red-700");
+      expect(badge.className).toContain('bg-red-100');
+      expect(badge.className).toContain('text-red-700');
     });
   });
 
@@ -159,12 +159,12 @@ describe("StatusBadge – all five invoice statuses", () => {
   it("renders a 'Fund' action button (not a badge) for Pending invoices in Discovery", async () => {
     const pendingInvoice = {
       id: 14n,
-      freelancer: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-      payer:      "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
-      amount:     1_000_000_000n,
-      due_date:   1_900_000_000n,
+      freelancer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      payer: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY',
+      amount: 1_000_000_000n,
+      due_date: 1_900_000_000n,
       discount_rate: 300,
-      status: "Pending",
+      status: 'Pending',
       funder: null,
     };
 
@@ -176,34 +176,30 @@ describe("StatusBadge – all five invoice statuses", () => {
     render(<LPDashboard />);
 
     // Default tab is Discovery
-    expect(await screen.findByRole("button", { name: "Fund" })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Fund' })).toBeInTheDocument();
     // Status badge should not appear in Discovery rows
-    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+    expect(screen.queryByText('Pending')).not.toBeInTheDocument();
   });
 
-  it("renders multiple invoices with distinct correct badges simultaneously", async () => {
+  it('renders multiple invoices with distinct correct badges simultaneously', async () => {
     (useInvoices as any).mockReturnValue({
-      data: [
-        makeInvoice(20n, "Funded"),
-        makeInvoice(21n, "Paid"),
-        makeInvoice(22n, "Defaulted"),
-      ],
+      data: [makeInvoice(20n, 'Funded'), makeInvoice(21n, 'Paid'), makeInvoice(22n, 'Defaulted')],
       isLoading: false,
       dataUpdatedAt: Date.now(),
     });
 
     render(<LPDashboard />);
-    fireEvent.click(await screen.findByRole("button", { name: "My Funded" }));
+    fireEvent.click(await screen.findByRole('button', { name: 'My Funded' }));
 
     await waitFor(() => {
-      const funded = screen.getByText("Funded");
-      expect(funded.className).toContain("bg-blue-100");
+      const funded = screen.getByText('Funded');
+      expect(funded.className).toContain('bg-blue-100');
 
-      const paid = screen.getByText("Paid");
-      expect(paid.className).toContain("bg-green-100");
+      const paid = screen.getByText('Paid');
+      expect(paid.className).toContain('bg-green-100');
 
-      const defaulted = screen.getByText("Defaulted");
-      expect(defaulted.className).toContain("bg-red-100");
+      const defaulted = screen.getByText('Defaulted');
+      expect(defaulted.className).toContain('bg-red-100');
     });
   });
 });

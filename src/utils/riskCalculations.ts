@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { Invoice } from "@/utils/soroban";
-import { PayerScore } from "@/utils/risk";
+import { Invoice } from '@/utils/soroban';
+import { PayerScore } from '@/utils/risk';
 
 export interface InvoiceRiskDetail {
   id: bigint;
   freelancer: string;
   amount: bigint;
-  discount_rate: bigint;
-  due_date: number;
+  discount_rate: number;
+  due_date: bigint;
   status: string;
   payerScore: PayerScore | null;
-  riskLevel: "Low" | "Medium" | "High" | "Unknown";
+  riskLevel: 'Low' | 'Medium' | 'High' | 'Unknown';
   riskScore: number;
   riskFactors: {
     onTimePaymentRate: number;
@@ -44,24 +44,20 @@ export interface RiskReport {
 /**
  * Calculate risk factors for an invoice based on payer history
  */
-export function calculateRiskFactors(
-  payerScore: PayerScore | null,
-  fundedDate: number,
-) {
+export function calculateRiskFactors(payerScore: PayerScore | null, fundedDate: number) {
   const now = Math.floor(Date.now() / 1000);
   const fundingAge = Math.floor((now - fundedDate) / (60 * 60 * 24)); // days
 
   if (!payerScore) {
     return {
       onTimePaymentRate: 0,
-      defaultCount: payerScore?.defaults ?? 0,
+      defaultCount: 0,
       fundingAge,
     };
   }
 
   const total = payerScore.settled_on_time + payerScore.defaults;
-  const onTimePaymentRate =
-    total > 0 ? (payerScore.settled_on_time / total) * 100 : 0;
+  const onTimePaymentRate = total > 0 ? (payerScore.settled_on_time / total) * 100 : 0;
 
   return {
     onTimePaymentRate,
@@ -75,7 +71,7 @@ export function calculateRiskFactors(
  */
 export function calculateInvoiceRiskScore(
   payerScore: PayerScore | null,
-  fundingAge: number,
+  fundingAge: number
 ): number {
   if (!payerScore) return 50; // Neutral for unknown payers
 
@@ -98,9 +94,7 @@ export function calculateInvoiceRiskScore(
 /**
  * Calculate portfolio-level risk metrics
  */
-export function calculatePortfolioRiskMetrics(
-  invoiceRisks: InvoiceRiskDetail[],
-) {
+export function calculatePortfolioRiskMetrics(invoiceRisks: InvoiceRiskDetail[]) {
   if (invoiceRisks.length === 0) {
     return {
       averageRiskScore: 0,
@@ -113,17 +107,13 @@ export function calculatePortfolioRiskMetrics(
   }
 
   const averageRiskScore =
-    invoiceRisks.reduce((sum, inv) => sum + inv.riskScore, 0) /
-    invoiceRisks.length;
+    invoiceRisks.reduce((sum, inv) => sum + inv.riskScore, 0) / invoiceRisks.length;
 
   const distribution = {
-    highRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === "High")
-      .length,
-    mediumRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === "Medium")
-      .length,
-    lowRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === "Low").length,
-    unknownRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === "Unknown")
-      .length,
+    highRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === 'High').length,
+    mediumRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === 'Medium').length,
+    lowRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === 'Low').length,
+    unknownRiskCount: invoiceRisks.filter((inv) => inv.riskLevel === 'Unknown').length,
   };
 
   const totalFunded = invoiceRisks.reduce((sum, inv) => sum + inv.amount, 0n);
@@ -141,14 +131,14 @@ export function calculatePortfolioRiskMetrics(
  */
 export function generateRiskTrendData(
   invoiceRisks: InvoiceRiskDetail[],
-  days: number = 30,
+  days: number = 30
 ): RiskTrendData[] {
   const now = Date.now();
   const trends: RiskTrendData[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(now - i * 24 * 60 * 60 * 1000);
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = date.toISOString().split('T')[0];
 
     // Simulate historical data with slight variations
     const variation = Math.sin((i / days) * Math.PI) * 5;
@@ -156,17 +146,12 @@ export function generateRiskTrendData(
 
     trends.push({
       date: dateStr,
-      averageRisk: Math.max(
-        0,
-        Math.min(100, metrics.averageRiskScore + variation),
-      ),
+      averageRisk: Math.max(0, Math.min(100, metrics.averageRiskScore + variation)),
       lowRiskCount: metrics.lowRiskCount,
       mediumRiskCount: metrics.mediumRiskCount,
       highRiskCount: metrics.highRiskCount,
       totalPortfolioRisk:
-        (metrics.highRiskCount * 3 +
-          metrics.mediumRiskCount * 2 +
-          metrics.lowRiskCount) /
+        (metrics.highRiskCount * 3 + metrics.mediumRiskCount * 2 + metrics.lowRiskCount) /
         Math.max(1, invoiceRisks.length),
     });
   }
@@ -179,9 +164,9 @@ export function generateRiskTrendData(
  */
 export const RISK_FACTOR_EXPLANATIONS: Record<string, string> = {
   onTimePaymentRate:
-    "Percentage of invoices this payer has settled by the due date. Higher is better.",
+    'Percentage of invoices this payer has settled by the due date. Higher is better.',
   defaultCount:
-    "Number of defaults or missed payments. Lower is better. Any defaults significantly increase risk.",
+    'Number of defaults or missed payments. Lower is better. Any defaults significantly increase risk.',
   fundingAge:
-    "Days since this invoice was funded. Longer-funded invoices carry slightly higher default risk.",
+    'Days since this invoice was funded. Longer-funded invoices carry slightly higher default risk.',
 };

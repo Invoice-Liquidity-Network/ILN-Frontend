@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 export interface Command {
   id: string;
   label: string;
   action: () => void;
-  category: "navigation" | "action" | "settings";
+  category: 'navigation' | 'action' | 'settings';
 }
 
-const RECENT_COMMANDS_KEY = "iln_recent_commands";
-const MAX_RECENT = 5;
+const RECENT_COMMANDS_KEY = 'iln_recent_commands';
+const MAX_RECENT = 10;
 
 function fuzzyMatch(text: string, query: string): boolean {
   const lowerText = text.toLowerCase();
@@ -27,92 +27,91 @@ function fuzzyMatch(text: string, query: string): boolean {
 
 export function useCommandPalette(onOpenShortcuts?: () => void) {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
   const router = useRouter();
-
   const commands: Command[] = useMemo(
     () => [
       {
-        id: "dashboard",
-        label: "Go to Dashboard",
-        action: () => router.push("/dashboard"),
-        category: "navigation",
+        id: 'dashboard',
+        label: 'Go to Dashboard',
+        action: () => router.push('/dashboard'),
+        category: 'navigation',
       },
       {
-        id: "analytics",
-        label: "Go to Analytics",
-        action: () => router.push("/analytics"),
-        category: "navigation",
+        id: 'analytics',
+        label: 'Go to Analytics',
+        action: () => router.push('/analytics'),
+        category: 'navigation',
       },
       {
-        id: "governance",
-        label: "Go to Governance",
-        action: () => router.push("/governance"),
-        category: "navigation",
+        id: 'governance',
+        label: 'Go to Governance',
+        action: () => router.push('/governance'),
+        category: 'navigation',
       },
       {
-        id: "freelancer",
-        label: "Go to Freelancer",
-        action: () => router.push("/freelancer"),
-        category: "navigation",
+        id: 'freelancer',
+        label: 'Go to Freelancer',
+        action: () => router.push('/freelancer'),
+        category: 'navigation',
       },
       {
-        id: "lp",
-        label: "Go to LP Dashboard",
-        action: () => router.push("/lp"),
-        category: "navigation",
+        id: 'lp',
+        label: 'Go to LP Dashboard',
+        action: () => router.push('/lp'),
+        category: 'navigation',
       },
       {
-        id: "payer",
-        label: "Go to Payer",
-        action: () => router.push("/dashboard/payer"),
-        category: "navigation",
+        id: 'payer',
+        label: 'Go to Payer',
+        action: () => router.push('/dashboard/payer'),
+        category: 'navigation',
       },
       {
-        id: "submit",
-        label: "Submit new invoice",
-        action: () => router.push("/submit"),
-        category: "action",
+        id: 'submit',
+        label: 'Submit new invoice',
+        action: () => router.push('/submit'),
+        category: 'action',
       },
       {
-        id: "fund",
-        label: "Browse invoices to fund",
-        action: () => router.push("/lp"),
-        category: "action",
+        id: 'fund',
+        label: 'Browse invoices to fund',
+        action: () => router.push('/lp'),
+        category: 'action',
       },
       {
-        id: "history",
-        label: "View transaction history",
-        action: () => router.push("/analytics"),
-        category: "action",
+        id: 'history',
+        label: 'View transaction history',
+        action: () => router.push('/analytics'),
+        category: 'action',
       },
       {
-        id: "notifications",
-        label: "Open notification settings",
-        action: () => alert("Notification settings coming soon"),
-        category: "settings",
+        id: 'notifications',
+        label: 'Open notification settings',
+        action: () => alert('Notification settings coming soon'),
+        category: 'settings',
       },
       {
-        id: "addressbook",
-        label: "Open address book",
-        action: () => alert("Address book coming soon"),
-        category: "settings",
+        id: 'addressbook',
+        label: 'Open address book',
+        action: () => alert('Address book coming soon'),
+        category: 'settings',
       },
       {
-        id: "darkmode",
-        label: "Toggle dark mode",
-        action: () => document.documentElement.classList.toggle("dark"),
-        category: "settings",
+        id: 'darkmode',
+        label: 'Toggle dark mode',
+        action: () => document.documentElement.classList.toggle('dark'),
+        category: 'settings',
       },
       {
-        id: "shortcuts",
-        label: "Keyboard shortcuts",
+        id: 'shortcuts',
+        label: 'Keyboard shortcuts',
         action: () => onOpenShortcuts?.(),
-        category: "settings",
+        category: 'settings',
       },
     ],
-    [router, onOpenShortcuts],
+    [router, onOpenShortcuts]
   );
 
   useEffect(() => {
@@ -126,26 +125,26 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
 
   const open = useCallback(() => {
     setIsOpen(true);
-    setQuery("");
+    setQuery('');
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setQuery("");
+    setQuery('');
   }, []);
 
   const executeCommand = useCallback(
     (command: Command) => {
-      const updated = [
-        command.id,
-        ...recentCommandIds.filter((id) => id !== command.id),
-      ].slice(0, MAX_RECENT);
+      const updated = [command.id, ...recentCommandIds.filter((id) => id !== command.id)].slice(
+        0,
+        MAX_RECENT
+      );
       setRecentCommandIds(updated);
       localStorage.setItem(RECENT_COMMANDS_KEY, JSON.stringify(updated));
       command.action();
       close();
     },
-    [recentCommandIds, close],
+    [recentCommandIds, close]
   );
 
   const filteredCommands = useMemo(() => {
@@ -161,7 +160,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
           id: `invoice-${invoiceId}`,
           label: `Invoice #${invoiceId}`,
           action: () => router.push(`/i/${invoiceId}`),
-          category: "navigation" as const,
+          category: 'navigation' as const,
         },
       ];
     }
@@ -171,14 +170,14 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
     };
 
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   return {

@@ -1,4 +1,4 @@
-import { DailyFundingBucket } from "../components/charts/FundingChart";
+import { DailyFundingBucket } from '../components/charts/FundingChart';
 
 export function transformFundingData(data: DailyFundingBucket[]) {
   return data.map((bucket) => {

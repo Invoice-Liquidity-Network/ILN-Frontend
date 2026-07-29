@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { Role, STEPS_BY_ROLE } from "./steps";
-import Spotlight from "./Spotlight";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { Role, STEPS_BY_ROLE } from './steps';
+import Spotlight from './Spotlight';
+import { useRouter } from 'next/navigation';
 
 export default function OnboardingFlow() {
   const { address, isConnected } = useWallet();
@@ -32,7 +32,7 @@ export default function OnboardingFlow() {
 
   const handleComplete = () => {
     if (address) {
-      localStorage.setItem(`iln_onboarding_completed_${address}`, "true");
+      localStorage.setItem(`iln_onboarding_completed_${address}`, 'true');
     }
     setIsVisible(false);
     setRole(null);
@@ -67,19 +67,17 @@ export default function OnboardingFlow() {
           </div>
           <h2 className="text-3xl font-headline mb-3">Welcome to ILN!</h2>
           <p className="text-on-surface-variant mb-8 leading-relaxed">
-            We noticed this is your first time connecting. What are you looking
-            to do on the Invoice Liquidity Network?
+            We noticed this is your first time connecting. What are you looking to do on the Invoice
+            Liquidity Network?
           </p>
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => setRole("freelancer")}
+              onClick={() => setRole('freelancer')}
               className="flex items-center gap-4 p-4 rounded-2xl border border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high transition-colors text-left group"
             >
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-blue-600">
-                  publish
-                </span>
+                <span className="material-symbols-outlined text-blue-600">publish</span>
               </div>
               <div>
                 <p className="font-bold text-on-surface">I'm a Freelancer</p>
@@ -90,18 +88,14 @@ export default function OnboardingFlow() {
             </button>
 
             <button
-              onClick={() => setRole("lp")}
+              onClick={() => setRole('lp')}
               className="flex items-center gap-4 p-4 rounded-2xl border border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high transition-colors text-left group"
             >
               <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-emerald-600">
-                  monitoring
-                </span>
+                <span className="material-symbols-outlined text-emerald-600">monitoring</span>
               </div>
               <div>
-                <p className="font-bold text-on-surface">
-                  I'm a Liquidity Provider
-                </p>
+                <p className="font-bold text-on-surface">I'm a Liquidity Provider</p>
                 <p className="text-xs text-on-surface-variant mt-0.5">
                   Fund invoices to earn yield
                 </p>
@@ -110,21 +104,17 @@ export default function OnboardingFlow() {
 
             <button
               onClick={() => {
-                setRole("payer");
-                router.push("/dashboard/payer");
+                setRole('payer');
+                router.push('/dashboard/payer');
               }}
               className="flex items-center gap-4 p-4 rounded-2xl border border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high transition-colors text-left group"
             >
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-purple-600">
-                  payments
-                </span>
+                <span className="material-symbols-outlined text-purple-600">payments</span>
               </div>
               <div>
                 <p className="font-bold text-on-surface">I'm a Payer</p>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  Settle invoices on-chain
-                </p>
+                <p className="text-xs text-on-surface-variant mt-0.5">Settle invoices on-chain</p>
               </div>
             </button>
           </div>

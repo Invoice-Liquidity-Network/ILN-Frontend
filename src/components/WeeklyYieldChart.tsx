@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -10,9 +10,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
-import { TokenYieldMetrics } from "@/utils/per-token-yield";
-import { formatTokenAmount } from "@/utils/format";
+} from 'recharts';
+import { TokenYieldMetrics } from '@/utils/per-token-yield';
+import { formatTokenAmount } from '@/utils/format';
 
 interface WeeklyYieldChartProps {
   invoices: any[];
@@ -39,19 +39,19 @@ export default function WeeklyYieldChart({
   const tokenSymbols = new Set<string>();
 
   invoices
-    .filter((inv) => inv.status === "Paid" && inv.funded_at)
+    .filter((inv) => inv.status === 'Paid' && inv.funded_at)
     .forEach((inv) => {
       const token = metrics.find(
-        (m) => m.token.contractId === (inv.token || metrics[0]?.token.contractId),
+        (m) => m.token.contractId === (inv.token || metrics[0]?.token.contractId)
       );
       if (!token) return;
 
       const fundedDate = new Date(Number(inv.funded_at) * 1000);
       const weekStart = new Date(fundedDate);
       weekStart.setDate(fundedDate.getDate() - fundedDate.getDay());
-      const weekKey = weekStart.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
+      const weekKey = weekStart.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
       });
 
       tokenSymbols.add(token.token.symbol);
@@ -80,7 +80,7 @@ export default function WeeklyYieldChart({
         }
       });
       return dataPoint;
-    },
+    }
   );
 
   // Sort chronologically
@@ -91,7 +91,7 @@ export default function WeeklyYieldChart({
   });
 
   // Color palette for tokens
-  const colors = ["#6366f1", "#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b"];
+  const colors = ['#6366f1', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b'];
 
   return (
     <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6">
@@ -108,18 +108,18 @@ export default function WeeklyYieldChart({
             />
             <XAxis
               dataKey="week"
-              tick={{ fill: "var(--color-on-surface-variant)", fontSize: 12 }}
+              tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 12 }}
             />
             <YAxis
-              tick={{ fill: "var(--color-on-surface-variant)", fontSize: 12 }}
-              label={{ value: "Yield (Token Amount)", angle: -90, position: "insideLeft" }}
+              tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 12 }}
+              label={{ value: 'Yield (Token Amount)', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "var(--color-surface-container)",
-                border: "1px solid var(--color-outline-variant)",
+                backgroundColor: 'var(--color-surface-container)',
+                border: '1px solid var(--color-outline-variant)',
               }}
-              labelStyle={{ color: "var(--color-on-surface)" }}
+              labelStyle={{ color: 'var(--color-on-surface)' }}
               formatter={(value: number) => value.toFixed(4)}
             />
             <Legend />
