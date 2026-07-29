@@ -16,7 +16,10 @@ export default function Navbar() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setLangOpen(false);
       }
     }
@@ -34,7 +37,10 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
-        <Link href="/" className="text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity">
+        <Link
+          href="/"
+          className="text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity"
+        >
           ILN
         </Link>
         <div className="hidden md:flex items-center gap-8">
@@ -61,7 +67,7 @@ export default function Navbar() {
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
-            href="/payer"
+            href="/dashboard/payer"
           >
             {t("nav.payInvoices")}
           </Link>
@@ -100,7 +106,9 @@ export default function Navbar() {
                 <button
                   onClick={() => changeLanguage("en")}
                   className={`w-full px-4 py-3 text-sm text-left hover:bg-surface-variant transition-colors flex items-center gap-3 ${
-                    currentLang === "en" ? "bg-primary-container text-on-primary-container font-bold" : "text-on-surface-variant"
+                    currentLang === "en"
+                      ? "bg-primary-container text-on-primary-container font-bold"
+                      : "text-on-surface-variant"
                   }`}
                 >
                   <span className="text-base">🇺🇸</span>
@@ -109,7 +117,9 @@ export default function Navbar() {
                 <button
                   onClick={() => changeLanguage("es")}
                   className={`w-full px-4 py-3 text-sm text-left hover:bg-surface-variant transition-colors flex items-center gap-3 ${
-                    currentLang === "es" ? "bg-primary-container text-on-primary-container font-bold" : "text-on-surface-variant"
+                    currentLang === "es"
+                      ? "bg-primary-container text-on-primary-container font-bold"
+                      : "text-on-surface-variant"
                   }`}
                 >
                   <span className="text-base">🇪🇸</span>
@@ -131,7 +141,6 @@ export default function Navbar() {
 
           <WalletButton />
         </div>
-
       </div>
     </nav>
   );
