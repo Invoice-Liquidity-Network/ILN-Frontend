@@ -900,3 +900,57 @@ If you become a regular contributor to a specific area of the codebase, you can 
 ## Code of Conduct
 
 Please be respectful and constructive in all interactions. We aim to create a welcoming environment for all contributors.
+
+---
+
+## Feature Flag Lifecycle
+
+ILN uses `NEXT_PUBLIC_*_ENABLED` environment variable flags to gate features that are not yet live. Flags are a short-term tool — they must not accumulate indefinitely.
+
+### Current flags
+
+| Flag | Default | Purpose |
+| ---- | ------- | ------- |
+| `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` | `false` | Liquidity insurance pooling panel |
+| `NEXT_PUBLIC_NFT_ENABLED` | `false` | Soroban Invoice NFT metadata displays |
+| `NEXT_PUBLIC_ORACLE_ENABLED` | `false` | Oracle verification badges |
+
+### Lifecycle stages
+
+```
+[Draft]  →  [Gated / false]  →  [Gated / true (canary)]  →  [Shipped → removed]
+```
+
+1. **Gated / false** — Feature is in development. All code paths are wrapped with `if (env.NEXT_PUBLIC_*_ENABLED)`. The flag defaults to `false` in `src/lib/env.ts` and is listed in `.env.local.example`.
+2. **Gated / true (canary)** — Feature is complete and under observation. The flag is set to `true` in production environment variables but the conditional code paths remain.
+3. **Shipped** — Feature has been stable for at least one full sprint. **The flag must be removed.** See the removal checklist below.
+
+### Adding a new flag
+
+1. Add the env var to `src/lib/env.ts` using `booleanEnv('NEXT_PUBLIC_MY_FEATURE_ENABLED')`.
+2. Add an entry to `.env.local.example` with value `false` and a comment describing the feature.
+3. Document it in the table above in this section.
+4. Open an issue to track the flag's removal, linked to the shipping milestone.
+
+### Removing a flag (cleanup checklist)
+
+When a feature ships and the flag is no longer needed:
+
+- [ ] Remove the `NEXT_PUBLIC_*_ENABLED` entry from `src/lib/env.ts`.
+- [ ] Remove the entry from `.env.local.example`.
+- [ ] Delete all `if (env.NEXT_PUBLIC_*_ENABLED)` conditional branches and their `else` paths (keep only the enabled code).
+- [ ] Remove the flag from the table in this section of `CONTRIBUTING.md`.
+- [ ] Update `README.md` if the flag appeared in the Environment Variables Reference table.
+- [ ] Run the audit script to confirm no stale references remain:
+  ```bash
+  pnpm exec tsx scripts/audit-feature-flags.ts
+  ```
+
+### Automated auditing
+
+The repo includes `scripts/audit-feature-flags.ts`, which scans the codebase and reports:
+- Which flags exist and where they are referenced.
+- Flags with zero code references (candidates for cleanup).
+- Flags whose default is `true` (candidates for full removal).
+
+This script runs as an **informational, non-blocking** CI step on every PR that touches flag-gated code (see `.github/workflows/feature-flag-audit.yml`). The report appears in the GitHub Actions job summary.
