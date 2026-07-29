@@ -39,7 +39,7 @@ beforeEach(() => {
 describe('DelegationPanel', () => {
   it('renders the delegation panel', () => {
     render(<DelegationPanel />);
-    expect(screen.getByText(/delegat/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/delegat/i)[0]).toBeInTheDocument();
   });
 
   it('validates stellar addresses', async () => {
