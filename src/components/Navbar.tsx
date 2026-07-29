@@ -47,7 +47,7 @@ export default function Navbar() {
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
         <Link
           href="/"
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight hover:opacity-80 transition-opacity"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl font-bold text-primary tracking-tight transition-opacity hover:opacity-80"
         >
           ILN
         </Link>
@@ -75,7 +75,7 @@ export default function Navbar() {
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
-            href="/payer"
+            href="/dashboard/payer"
           >
             {t('nav.payInvoices')}
           </Link>
