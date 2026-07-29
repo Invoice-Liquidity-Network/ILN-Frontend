@@ -180,11 +180,9 @@ describe('soroban – getWalletRoles', () => {
       due_date: 1n,
       discount_rate: 100,
     };
-    (scValToNative as any).mockReturnValueOnce(inv);
-    (rpc.Api.isSimulationSuccess as any).mockReturnValueOnce(true).mockReturnValueOnce(false);
-    mockServer.simulateTransaction
-      .mockResolvedValueOnce({ result: { retval: {} } })
-      .mockResolvedValueOnce({ error: 'fail' });
+    (scValToNative as any).mockReturnValue([inv]);
+    (rpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+    mockServer.simulateTransaction.mockResolvedValue({ result: { retval: [inv] } });
     const roles = await getWalletRoles(ADDR);
     expect(roles).toContain('freelancer');
   });
@@ -730,11 +728,9 @@ describe('soroban – getWalletRoles extended', () => {
       due_date: 1n,
       discount_rate: 100,
     };
-    (scValToNative as any).mockReturnValueOnce(inv);
-    (rpc.Api.isSimulationSuccess as any).mockReturnValueOnce(true).mockReturnValueOnce(false);
-    mockServer.simulateTransaction
-      .mockResolvedValueOnce({ result: { retval: {} } })
-      .mockResolvedValueOnce({ error: 'fail' });
+    (scValToNative as any).mockReturnValue([inv]);
+    (rpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+    mockServer.simulateTransaction.mockResolvedValue({ result: { retval: [inv] } });
     const roles = await getWalletRoles(ADDR);
     expect(roles).toContain('payer');
   });
@@ -751,11 +747,9 @@ describe('soroban – getWalletRoles extended', () => {
       due_date: 1n,
       discount_rate: 100,
     };
-    (scValToNative as any).mockReturnValueOnce(inv);
-    (rpc.Api.isSimulationSuccess as any).mockReturnValueOnce(true).mockReturnValueOnce(false);
-    mockServer.simulateTransaction
-      .mockResolvedValueOnce({ result: { retval: {} } })
-      .mockResolvedValueOnce({ error: 'fail' });
+    (scValToNative as any).mockReturnValue([inv]);
+    (rpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+    mockServer.simulateTransaction.mockResolvedValue({ result: { retval: [inv] } });
     const roles = await getWalletRoles(ADDR);
     expect(roles).toContain('lp');
   });
