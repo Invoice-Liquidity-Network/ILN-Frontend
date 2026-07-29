@@ -1,15 +1,67 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { TESTNET_USDC_TOKEN_ID } from "@/constants";
-import { getApprovedTokenIds, getTokenMetadata, type TokenMetadata } from "@/utils/soroban";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { TESTNET_EURC_TOKEN_ID, TESTNET_USDC_TOKEN_ID, TESTNET_XLM_TOKEN_ID } from '@/constants';
+import {
+  adminApproveToken,
+  adminRemoveToken,
+  getApprovedTokenIds,
+  getTokenMetadata,
+  type TokenMetadata,
+} from '@/utils/soroban';
 
 export interface ApprovedToken extends TokenMetadata {
   iconLabel: string;
+  logo: string;
+  isAllowed: boolean;
+  unavailableReason?: string;
 }
 
+const KNOWN_TOKENS: TokenMetadata[] = [
+  {
+    contractId: TESTNET_USDC_TOKEN_ID,
+    name: 'USD Coin',
+    symbol: 'USDC',
+    decimals: 7,
+  },
+  {
+    contractId: TESTNET_EURC_TOKEN_ID,
+    name: 'Euro Coin',
+    symbol: 'EURC',
+    decimals: 7,
+  },
+  {
+    contractId: TESTNET_XLM_TOKEN_ID,
+    name: 'Stellar Lumens',
+    symbol: 'XLM',
+    decimals: 7,
+  },
+];
+
 function toIconLabel(symbol: string): string {
-  return symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TK";
+  return (
+    symbol
+      .replace(/[^A-Z0-9]/gi, '')
+      .slice(0, 2)
+      .toUpperCase() || 'TK'
+  );
+}
+
+function toLogo(symbol: string): string {
+  return `/tokens/${symbol.toLowerCase()}.svg`;
+}
+
+function toApprovedToken(token: TokenMetadata, allowedIds: Set<string>): ApprovedToken {
+  const isAllowed = allowedIds.has(token.contractId);
+  return {
+    ...token,
+    iconLabel: toIconLabel(token.symbol),
+    logo: toLogo(token.symbol),
+    isAllowed,
+    unavailableReason: isAllowed
+      ? undefined
+      : 'This token is not currently approved for ILN invoices.',
+  };
 }
 
 export function useApprovedTokens() {
@@ -27,18 +79,22 @@ export function useApprovedTokens() {
       try {
         const tokenIds = await getApprovedTokenIds();
         const metadata = await Promise.all(tokenIds.map((tokenId) => getTokenMetadata(tokenId)));
+        const allowedIds = new Set(tokenIds);
+        const byContractId = new Map<string, TokenMetadata>();
+
+        KNOWN_TOKENS.forEach((token) => byContractId.set(token.contractId, token));
+        metadata.forEach((token) => byContractId.set(token.contractId, token));
 
         if (!cancelled) {
           setTokens(
-            metadata.map((token) => ({
-              ...token,
-              iconLabel: toIconLabel(token.symbol),
-            })),
+            Array.from(byContractId.values()).map((token) => toApprovedToken(token, allowedIds))
           );
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load approved tokens.");
+          setError(
+            loadError instanceof Error ? loadError.message : 'Failed to load approved tokens.'
+          );
           setTokens([]);
         }
       } finally {
@@ -57,10 +113,54 @@ export function useApprovedTokens() {
 
   const tokenMap = useMemo(
     () => new Map(tokens.map((token) => [token.contractId, token])),
-    [tokens],
+    [tokens]
   );
 
-  const defaultToken = tokens[0] ?? tokenMap.get(TESTNET_USDC_TOKEN_ID) ?? null;
+  const usdcToken = tokenMap.get(TESTNET_USDC_TOKEN_ID);
+  const defaultToken = usdcToken?.isAllowed
+    ? usdcToken
+    : (tokens.find((token) => token.isAllowed) ?? usdcToken ?? null);
+
+  /** Validate a Stellar contract address (56-char G-address or C-address). */
+  const validateTokenAddress = useCallback((address: string): boolean => {
+    return /^[GC][A-Z2-7]{55}$/.test(address.trim());
+  }, []);
+
+  /**
+   * Approve a new token: builds + signs the `add_token` contract call.
+   * @param adminAddress - connected admin wallet address
+   * @param tokenId      - token contract ID to approve
+   * @param signTx       - wallet signing function from WalletContext
+   */
+  const approveToken = useCallback(
+    async (adminAddress: string, tokenId: string, signTx: (xdr: string) => Promise<string>) => {
+      if (!validateTokenAddress(tokenId)) {
+        throw new Error('Invalid token contract address.');
+      }
+      const tx = await adminApproveToken(adminAddress, tokenId);
+      const signed = await signTx(tx.toXDR());
+      return signed;
+    },
+    [validateTokenAddress]
+  );
+
+  /**
+   * Remove an existing token: builds + signs the `remove_token` contract call.
+   * @param adminAddress - connected admin wallet address
+   * @param tokenId      - token contract ID to remove
+   * @param signTx       - wallet signing function from WalletContext
+   */
+  const removeToken = useCallback(
+    async (adminAddress: string, tokenId: string, signTx: (xdr: string) => Promise<string>) => {
+      if (!validateTokenAddress(tokenId)) {
+        throw new Error('Invalid token contract address.');
+      }
+      const tx = await adminRemoveToken(adminAddress, tokenId);
+      const signed = await signTx(tx.toXDR());
+      return signed;
+    },
+    [validateTokenAddress]
+  );
 
   return {
     tokens,
@@ -68,5 +168,8 @@ export function useApprovedTokens() {
     defaultToken,
     isLoading,
     error,
+    validateTokenAddress,
+    approveToken,
+    removeToken,
   };
 }

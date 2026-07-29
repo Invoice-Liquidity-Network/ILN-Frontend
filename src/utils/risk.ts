@@ -1,6 +1,6 @@
 // ─── Risk score types and helpers ─────────────────────────────────────────────
 
-export type RiskLevel = "Low" | "Medium" | "High" | "Unknown";
+export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Unknown';
 
 export interface PayerScore {
   score: number;
@@ -9,10 +9,10 @@ export interface PayerScore {
 }
 
 export function scoreToRiskLevel(score: number | null | undefined): RiskLevel {
-  if (score === null || score === undefined) return "Unknown";
-  if (score >= 70) return "Low";
-  if (score >= 40) return "Medium";
-  return "High";
+  if (score === null || score === undefined) return 'Unknown';
+  if (score >= 70) return 'Low';
+  if (score >= 40) return 'Medium';
+  return 'High';
 }
 
 export const RISK_SORT_ORDER: Record<RiskLevel, number> = {

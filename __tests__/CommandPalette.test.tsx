@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { useRouter } from "next/navigation";
-import CommandPalette from "../components/CommandPalette";
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useRouter } from 'next/navigation';
+import CommandPalette from '../components/CommandPalette';
 
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
 
-describe("CommandPalette", () => {
+describe('CommandPalette', () => {
   const mockPush = vi.fn();
 
   beforeEach(() => {
@@ -16,216 +16,216 @@ describe("CommandPalette", () => {
     (useRouter as any).mockReturnValue({ push: mockPush });
   });
 
-  it("opens with Cmd+K on Mac", () => {
+  it('opens with Cmd+K on Mac', () => {
     render(<CommandPalette />);
     expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(screen.getByPlaceholderText(/type a command/i)).toBeInTheDocument();
   });
 
-  it("opens with Ctrl+K on Windows", () => {
+  it('opens with Ctrl+K on Windows', () => {
     render(<CommandPalette />);
     expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     expect(screen.getByPlaceholderText(/type a command/i)).toBeInTheDocument();
   });
 
-  it("closes with Escape", () => {
+  it('closes with Escape', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(screen.getByPlaceholderText(/type a command/i)).toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
   });
 
-  it("closes when clicking backdrop", () => {
+  it('closes when clicking backdrop', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    
-    const backdrop = screen.getByPlaceholderText(/type a command/i).closest(".fixed");
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+
+    const backdrop = screen.getByPlaceholderText(/type a command/i).closest('.fixed');
     fireEvent.click(backdrop!);
-    
+
     expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
   });
 
-  it("fuzzy search filters commands correctly", () => {
+  it('fuzzy search filters commands correctly', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "dash" } });
+    fireEvent.change(input, { target: { value: 'dash' } });
 
-    expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Go to LP Dashboard")).toBeInTheDocument();
-    expect(screen.queryByText("Go to Analytics")).not.toBeInTheDocument();
+    expect(screen.getByText('Go to Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Go to LP Dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('Go to Analytics')).not.toBeInTheDocument();
   });
 
-  it("fuzzy search works with non-contiguous characters", () => {
+  it('fuzzy search works with non-contiguous characters', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "goan" } });
+    fireEvent.change(input, { target: { value: 'goan' } });
 
-    expect(screen.getByText("Go to Analytics")).toBeInTheDocument();
+    expect(screen.getByText('Go to Analytics')).toBeInTheDocument();
   });
 
-  it("invoice lookup by number navigates correctly", async () => {
+  it('invoice lookup by number navigates correctly', async () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "123" } });
+    fireEvent.change(input, { target: { value: '123' } });
 
-    expect(screen.getByText("Invoice #123")).toBeInTheDocument();
+    expect(screen.getByText('Invoice #123')).toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: 'Enter' });
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/i/123");
+      expect(mockPush).toHaveBeenCalledWith('/i/123');
     });
   });
 
-  it("invoice lookup works with # prefix", async () => {
+  it('invoice lookup works with # prefix', async () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "#456" } });
+    fireEvent.change(input, { target: { value: '#456' } });
 
-    expect(screen.getByText("Invoice #456")).toBeInTheDocument();
+    expect(screen.getByText('Invoice #456')).toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: 'Enter' });
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/i/456");
+      expect(mockPush).toHaveBeenCalledWith('/i/456');
     });
   });
 
-  it("arrow keys navigate results", () => {
+  it('arrow keys navigate results', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "go" } });
+    fireEvent.change(input, { target: { value: 'go' } });
 
     const results = screen.getAllByText(/^Go to/);
     expect(results.length).toBeGreaterThan(1);
 
     // First item should be selected by default
-    expect(results[0].closest("div")).toHaveClass("bg-blue-50");
+    expect(results[0].closest('div')).toHaveClass('bg-blue-50');
 
     // Arrow down
-    fireEvent.keyDown(window, { key: "ArrowDown" });
-    expect(results[1].closest("div")).toHaveClass("bg-blue-50");
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    expect(results[1].closest('div')).toHaveClass('bg-blue-50');
 
     // Arrow up
-    fireEvent.keyDown(window, { key: "ArrowUp" });
-    expect(results[0].closest("div")).toHaveClass("bg-blue-50");
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    expect(results[0].closest('div')).toHaveClass('bg-blue-50');
   });
 
-  it("Enter executes selected command", async () => {
+  it('Enter executes selected command', async () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "analytics" } });
+    fireEvent.change(input, { target: { value: 'analytics' } });
 
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/analytics");
+      expect(mockPush).toHaveBeenCalledWith('/analytics');
     });
   });
 
-  it("clicking a command executes it", async () => {
+  it('clicking a command executes it', async () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "governance" } });
+    fireEvent.change(input, { target: { value: 'governance' } });
 
-    const command = screen.getByText("Go to Governance");
+    const command = screen.getByText('Go to Governance');
     fireEvent.click(command);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/governance");
+      expect(mockPush).toHaveBeenCalledWith('/governance');
     });
   });
 
-  it("tracks recent commands in localStorage", async () => {
+  it('tracks recent commands in localStorage', async () => {
     render(<CommandPalette />);
-    
+
     // Execute a command
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "analytics" } });
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.change(input, { target: { value: 'analytics' } });
+    fireEvent.keyDown(window, { key: 'Enter' });
 
     await waitFor(() => {
-      const stored = localStorage.getItem("iln_recent_commands");
+      const stored = localStorage.getItem('iln_recent_commands');
       expect(stored).toBeTruthy();
       const recent = JSON.parse(stored!);
-      expect(recent).toContain("analytics");
+      expect(recent).toContain('analytics');
     });
   });
 
-  it("shows recent commands when opened without query", async () => {
+  it('shows recent commands when opened without query', async () => {
     // Pre-populate recent commands
-    localStorage.setItem("iln_recent_commands", JSON.stringify(["analytics", "dashboard"]));
+    localStorage.setItem('iln_recent_commands', JSON.stringify(['analytics', 'dashboard']));
 
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
-    expect(screen.getByText("Go to Analytics")).toBeInTheDocument();
-    expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
+    expect(screen.getByText('Go to Analytics')).toBeInTheDocument();
+    expect(screen.getByText('Go to Dashboard')).toBeInTheDocument();
   });
 
-  it("limits recent commands to 5", async () => {
+  it('limits recent commands to 5', async () => {
     render(<CommandPalette />);
 
-    const commands = ["analytics", "dashboard", "governance", "freelancer", "lp", "payer"];
-    
+    const commands = ['analytics', 'dashboard', 'governance', 'freelancer', 'lp', 'payer'];
+
     for (const cmd of commands) {
-      fireEvent.keyDown(window, { key: "k", metaKey: true });
+      fireEvent.keyDown(window, { key: 'k', metaKey: true });
       const input = screen.getByPlaceholderText(/type a command/i);
       fireEvent.change(input, { target: { value: cmd } });
-      fireEvent.keyDown(window, { key: "Enter" });
+      fireEvent.keyDown(window, { key: 'Enter' });
       await waitFor(() => expect(mockPush).toHaveBeenCalled());
       mockPush.mockClear();
     }
 
-    const stored = localStorage.getItem("iln_recent_commands");
+    const stored = localStorage.getItem('iln_recent_commands');
     const recent = JSON.parse(stored!);
     expect(recent.length).toBe(5);
-    expect(recent).not.toContain("analytics"); // First one should be dropped
+    expect(recent).not.toContain('analytics'); // First one should be dropped
   });
 
-  it("shows empty state when no commands match", () => {
+  it('shows empty state when no commands match', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "xyz123notfound" } });
+    fireEvent.change(input, { target: { value: 'xyz123notfound' } });
 
-    expect(screen.getByText("No commands found")).toBeInTheDocument();
+    expect(screen.getByText('No commands found')).toBeInTheDocument();
   });
 
-  it("shows empty state when no recent commands", () => {
+  it('shows empty state when no recent commands', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
-    expect(screen.getByText("No recent commands")).toBeInTheDocument();
+    expect(screen.getByText('No recent commands')).toBeInTheDocument();
   });
 
-  it("opens shortcuts modal with ? outside input", () => {
+  it('opens shortcuts modal with ? outside input', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "?" });
-    expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByText('Keyboard shortcuts')).toBeInTheDocument();
   });
 
-  it("does not open shortcuts modal from input fields", () => {
+  it('does not open shortcuts modal from input fields', () => {
     render(
       <div>
         <input aria-label="test-input" />
@@ -233,28 +233,28 @@ describe("CommandPalette", () => {
       </div>
     );
 
-    const input = screen.getByLabelText("test-input");
+    const input = screen.getByLabelText('test-input');
     input.focus();
-    fireEvent.keyDown(input, { key: "?" });
+    fireEvent.keyDown(input, { key: '?' });
 
-    expect(screen.queryByText("Keyboard shortcuts")).not.toBeInTheDocument();
+    expect(screen.queryByText('Keyboard shortcuts')).not.toBeInTheDocument();
   });
 
-  it("resets selection when query changes", () => {
+  it('resets selection when query changes', () => {
     render(<CommandPalette />);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
     const input = screen.getByPlaceholderText(/type a command/i);
-    fireEvent.change(input, { target: { value: "go" } });
+    fireEvent.change(input, { target: { value: 'go' } });
 
     // Navigate down
-    fireEvent.keyDown(window, { key: "ArrowDown" });
-    fireEvent.keyDown(window, { key: "ArrowDown" });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
 
     // Change query - should reset to first item
-    fireEvent.change(input, { target: { value: "submit" } });
+    fireEvent.change(input, { target: { value: 'submit' } });
 
     const results = screen.getAllByText(/submit/i);
-    expect(results[0].closest("div")).toHaveClass("bg-blue-50");
+    expect(results[0].closest('div')).toHaveClass('bg-blue-50');
   });
 });

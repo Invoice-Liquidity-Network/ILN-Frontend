@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Footer from "@/components/Footer";
-import LPDashboard from "@/components/LPDashboard";
-import Navbar from "@/components/Navbar";
+import Footer from '@/components/Footer';
+import LPDashboard from '@/components/LPDashboard';
+import Navbar from '@/components/Navbar';
 
 export default function LPDashboardPage() {
   return (

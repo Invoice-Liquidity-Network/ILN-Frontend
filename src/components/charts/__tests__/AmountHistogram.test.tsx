@@ -1,24 +1,72 @@
-import { describe, it, expect } from "vitest";
-import { 
-    getBucketIndex, 
-    aggregateHistogramData, 
-    calculateMedian,
-    HistogramBucket
-} from "../AmountHistogram";
-import { Invoice } from "../../../utils/soroban";
+import { describe, it, expect } from 'vitest';
+import {
+  getBucketIndex,
+  aggregateHistogramData,
+  calculateMedian,
+  HistogramBucket,
+} from '../AmountHistogram';
+import { Invoice } from '../../../utils/soroban';
 
 const mockInvoices: Invoice[] = [
-  { id: 1n, amount: 50_0000000n, status: "Funded", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 }, // $50 (Bucket 0)
-  { id: 2n, amount: 150_0000000n, status: "Paid", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },   // $150 (Bucket 1)
-  { id: 3n, amount: 600_0000000n, status: "Defaulted", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 }, // $600 (Bucket 2)
-  { id: 4n, amount: 2000_0000000n, status: "Pending", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 }, // $2000 (Bucket 3)
-  { id: 5n, amount: 7000_0000000n, status: "Funded", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 }, // $7000 (Bucket 4)
-  { id: 6n, amount: 15000_0000000n, status: "Paid", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 }, // $15000 (Bucket 5)
+  {
+    id: 1n,
+    amount: 50_0000000n,
+    status: 'Funded',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $50 (Bucket 0)
+  {
+    id: 2n,
+    amount: 150_0000000n,
+    status: 'Paid',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $150 (Bucket 1)
+  {
+    id: 3n,
+    amount: 600_0000000n,
+    status: 'Defaulted',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $600 (Bucket 2)
+  {
+    id: 4n,
+    amount: 2000_0000000n,
+    status: 'Pending',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $2000 (Bucket 3)
+  {
+    id: 5n,
+    amount: 7000_0000000n,
+    status: 'Funded',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $7000 (Bucket 4)
+  {
+    id: 6n,
+    amount: 15000_0000000n,
+    status: 'Paid',
+    freelancer: 'A',
+    payer: 'B',
+    due_date: 0n,
+    discount_rate: 0,
+  }, // $15000 (Bucket 5)
 ];
 
-describe("AmountHistogram Utilities", () => {
-  describe("getBucketIndex", () => {
-    it("assigns amounts to correct bucket indices", () => {
+describe('AmountHistogram Utilities', () => {
+  describe('getBucketIndex', () => {
+    it('assigns amounts to correct bucket indices', () => {
       expect(getBucketIndex(50)).toBe(0);
       expect(getBucketIndex(100)).toBe(0);
       expect(getBucketIndex(101)).toBe(1);
@@ -33,10 +81,10 @@ describe("AmountHistogram Utilities", () => {
     });
   });
 
-  describe("aggregateHistogramData", () => {
-    it("correctly aggregates counts and volume per bucket and status", () => {
+  describe('aggregateHistogramData', () => {
+    it('correctly aggregates counts and volume per bucket and status', () => {
       const data = aggregateHistogramData(mockInvoices);
-      
+
       // Bucket 0: $50, Funded
       expect(data[0].count).toBe(1);
       expect(data[0].funded).toBe(1);
@@ -55,25 +103,65 @@ describe("AmountHistogram Utilities", () => {
     });
   });
 
-  describe("calculateMedian", () => {
-    it("calculates median for even number of invoices", () => {
+  describe('calculateMedian', () => {
+    it('calculates median for even number of invoices', () => {
       const invoices: Invoice[] = [
-        { id: 1n, amount: 100_0000000n, status: "A", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },
-        { id: 2n, amount: 200_0000000n, status: "A", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },
+        {
+          id: 1n,
+          amount: 100_0000000n,
+          status: 'A',
+          freelancer: 'A',
+          payer: 'B',
+          due_date: 0n,
+          discount_rate: 0,
+        },
+        {
+          id: 2n,
+          amount: 200_0000000n,
+          status: 'A',
+          freelancer: 'A',
+          payer: 'B',
+          due_date: 0n,
+          discount_rate: 0,
+        },
       ];
       expect(calculateMedian(invoices)).toBe(150);
     });
 
-    it("calculates median for odd number of invoices", () => {
+    it('calculates median for odd number of invoices', () => {
       const invoices: Invoice[] = [
-        { id: 1n, amount: 100_0000000n, status: "A", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },
-        { id: 2n, amount: 200_0000000n, status: "A", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },
-        { id: 3n, amount: 300_0000000n, status: "A", freelancer: "A", payer: "B", due_date: 0n, discount_rate: 0 },
+        {
+          id: 1n,
+          amount: 100_0000000n,
+          status: 'A',
+          freelancer: 'A',
+          payer: 'B',
+          due_date: 0n,
+          discount_rate: 0,
+        },
+        {
+          id: 2n,
+          amount: 200_0000000n,
+          status: 'A',
+          freelancer: 'A',
+          payer: 'B',
+          due_date: 0n,
+          discount_rate: 0,
+        },
+        {
+          id: 3n,
+          amount: 300_0000000n,
+          status: 'A',
+          freelancer: 'A',
+          payer: 'B',
+          due_date: 0n,
+          discount_rate: 0,
+        },
       ];
       expect(calculateMedian(invoices)).toBe(200);
     });
 
-    it("returns 0 for empty list", () => {
+    it('returns 0 for empty list', () => {
       expect(calculateMedian([])).toBe(0);
     });
   });

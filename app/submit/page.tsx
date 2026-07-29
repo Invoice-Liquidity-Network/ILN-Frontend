@@ -1,8 +1,10 @@
-"use client";
+'use client';
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import SubmitInvoiceForm from "@/components/SubmitInvoiceForm";
+import { Suspense } from 'react';
+
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import SubmitInvoiceForm from '@/components/SubmitInvoiceForm';
 
 export default function SubmitRoute() {
   return (
@@ -10,7 +12,9 @@ export default function SubmitRoute() {
       <Navbar />
       <section className="pt-32 pb-16 px-4 sm:px-8">
         <div className="mx-auto max-w-4xl">
-          <SubmitInvoiceForm />
+          <Suspense fallback={null}>
+            <SubmitInvoiceForm />
+          </Suspense>
         </div>
       </section>
       <Footer />

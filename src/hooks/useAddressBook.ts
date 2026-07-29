@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
-import { useWallet } from "@/context/WalletContext";
+import { useState, useCallback, useEffect } from 'react';
+import { useWallet } from '@/context/WalletContext';
 
 interface AddressBookEntry {
   id: string;
@@ -7,7 +7,7 @@ interface AddressBookEntry {
   nickname: string;
 }
 
-const STORAGE_KEY_PREFIX = "iln-address-book-";
+const STORAGE_KEY_PREFIX = 'iln-address-book-';
 
 export default function useAddressBook() {
   const { address: walletAddress } = useWallet();
@@ -23,7 +23,7 @@ export default function useAddressBook() {
       try {
         setAddressBook(JSON.parse(stored));
       } catch (e) {
-        console.error("Failed to parse address book from localStorage", e);
+        console.error('Failed to parse address book from localStorage', e);
         setAddressBook([]);
       }
     } else {
@@ -33,10 +33,7 @@ export default function useAddressBook() {
 
   const saveAddressBook = useCallback(() => {
     if (!walletAddress) return;
-    localStorage.setItem(
-      `${STORAGE_KEY_PREFIX}${walletAddress}`,
-      JSON.stringify(addressBook)
-    );
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}${walletAddress}`, JSON.stringify(addressBook));
   }, [walletAddress, addressBook]);
 
   const addAddress = useCallback(
@@ -46,11 +43,7 @@ export default function useAddressBook() {
       if (addressBook.some((entry) => entry.address === address)) {
         // Update the nickname if address exists
         setAddressBook(
-          addressBook.map((entry) =>
-            entry.address === address
-              ? { ...entry, nickname }
-              : entry
-          )
+          addressBook.map((entry) => (entry.address === address ? { ...entry, nickname } : entry))
         );
         return;
       }
@@ -63,20 +56,15 @@ export default function useAddressBook() {
         ]);
         return;
       }
-      setAddressBook((prev) => [
-        ...prev,
-        { id: Date.now().toString(), address, nickname },
-      ]);
+      setAddressBook((prev) => [...prev, { id: Date.now().toString(), address, nickname }]);
     },
     [addressBook]
   );
 
   const updateAddress = useCallback(
-    (id: string, updates: Partial<Omit<AddressBookEntry, "id">>) => {
+    (id: string, updates: Partial<Omit<AddressBookEntry, 'id'>>) => {
       setAddressBook((prev) =>
-        prev.map((entry) =>
-          entry.id === id ? { ...entry, ...updates } : entry
-        )
+        prev.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry))
       );
     },
     []

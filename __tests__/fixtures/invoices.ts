@@ -1,12 +1,12 @@
-import type { Invoice } from "../../utils/soroban";
+import type { Invoice } from '../../utils/soroban';
 
 export const FIXTURE_ADDRESSES = {
-  freelancerAlpha: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-  freelancerBeta: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY",
-  freelancerGamma: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6",
-  payerAlpha: "GDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD2",
-  payerBeta: "GEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF",
-  lp: "GFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+  freelancerAlpha: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+  freelancerBeta: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBRY',
+  freelancerGamma: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC6',
+  payerAlpha: 'GDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD2',
+  payerBeta: 'GEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF',
+  lp: 'GFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
 };
 
 export const invoiceFixtures: Record<string, Invoice> = {
@@ -17,8 +17,8 @@ export const invoiceFixtures: Record<string, Invoice> = {
     amount: 1_500_000_000n,
     due_date: 1_810_353_600n,
     discount_rate: 250,
-    status: "Pending",
-    token: "token-usdc",
+    status: 'Pending',
+    token: 'token-usdc',
   },
   funded: {
     id: 2n,
@@ -27,10 +27,10 @@ export const invoiceFixtures: Record<string, Invoice> = {
     amount: 2_250_000_000n,
     due_date: 1_808_798_400n,
     discount_rate: 400,
-    status: "Funded",
+    status: 'Funded',
     funder: FIXTURE_ADDRESSES.lp,
     funded_at: 1_777_363_200n,
-    token: "token-eurc",
+    token: 'token-eurc',
   },
   partiallyFunded: {
     id: 3n,
@@ -39,10 +39,10 @@ export const invoiceFixtures: Record<string, Invoice> = {
     amount: 3_100_000_000n,
     due_date: 1_809_316_800n,
     discount_rate: 525,
-    status: "PartiallyFunded",
+    status: 'PartiallyFunded',
     funder: FIXTURE_ADDRESSES.lp,
     funded_at: 1_777_536_000n,
-    token: "token-usdc",
+    token: 'token-usdc',
   },
   paid: {
     id: 4n,
@@ -51,10 +51,10 @@ export const invoiceFixtures: Record<string, Invoice> = {
     amount: 975_000_000n,
     due_date: 1_778_400_000n,
     discount_rate: 300,
-    status: "Paid",
+    status: 'Paid',
     funder: FIXTURE_ADDRESSES.lp,
     funded_at: 1_746_964_800n,
-    token: "token-eurc",
+    token: 'token-eurc',
   },
   defaulted: {
     id: 5n,
@@ -63,10 +63,10 @@ export const invoiceFixtures: Record<string, Invoice> = {
     amount: 4_500_000_000n,
     due_date: 1_772_352_000n,
     discount_rate: 650,
-    status: "Defaulted",
+    status: 'Defaulted',
     funder: FIXTURE_ADDRESSES.lp,
     funded_at: 1_740_916_800n,
-    token: "token-usdc",
+    token: 'token-usdc',
   },
 };
 

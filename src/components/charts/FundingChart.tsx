@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -10,12 +10,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   type TooltipProps,
-} from "recharts";
-import { transformFundingData } from "@/utils/funding";
+} from 'recharts';
+import { transformFundingData } from '@/utils/funding';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type TimeRange = "7D" | "30D" | "90D" | "All";
+export type TimeRange = '7D' | '30D' | '90D' | 'All';
 
 export interface TokenFunding {
   symbol: string;
@@ -33,21 +33,21 @@ export interface DailyFundingBucket {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TIME_RANGES: TimeRange[] = ["7D", "30D", "90D", "All"];
+const TIME_RANGES: TimeRange[] = ['7D', '30D', '90D', 'All'];
 
 const TOKEN_COLORS: Record<string, string> = {
-  USDC: "var(--color-primary, #008080)",
-  EURC: "var(--color-secondary, #2e7d32)",
-  XLM: "var(--color-tertiary, #d32f2f)",
+  USDC: 'var(--color-primary, #008080)',
+  EURC: 'var(--color-secondary, #2e7d32)',
+  XLM: 'var(--color-tertiary, #d32f2f)',
 };
 
 const CHART_TICK_STYLE = {
-  fill: "var(--color-on-surface-variant, #94a3b8)",
+  fill: 'var(--color-on-surface-variant, #94a3b8)',
   fontSize: 11,
-  fontFamily: "inherit",
+  fontFamily: 'inherit',
 };
 
-const GRID_STROKE = "var(--color-outline-variant, #334155)";
+const GRID_STROKE = 'var(--color-outline-variant, #334155)';
 
 // ─── Mock Data Generator ─────────────────────────────────────────────────────
 
@@ -55,15 +55,15 @@ function generateMockFunding(range: TimeRange): DailyFundingBucket[] {
   const buckets: DailyFundingBucket[] = [];
   const now = new Date();
   let days = 30;
-  if (range === "7D") days = 7;
-  else if (range === "90D") days = 90;
-  else if (range === "All") days = 180;
+  if (range === '7D') days = 7;
+  else if (range === '90D') days = 90;
+  else if (range === 'All') days = 180;
 
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
     const usdc = Math.floor(Math.random() * 10_000) + 2_000;
     const eurc = Math.floor(Math.random() * 5_000) + 1_000;
     const xlm = Math.floor(Math.random() * 2_000) + 500;
@@ -74,9 +74,9 @@ function generateMockFunding(range: TimeRange): DailyFundingBucket[] {
       total_usdc_equiv: usdc + eurc * 1.08 + xlm * 0.12, // rough estimation
       invoices_funded: Math.floor(Math.random() * 5) + 1,
       tokens: [
-        { symbol: "USDC", amount: usdc, color: TOKEN_COLORS.USDC },
-        { symbol: "EURC", amount: eurc, color: TOKEN_COLORS.EURC },
-        { symbol: "XLM", amount: xlm, color: TOKEN_COLORS.XLM },
+        { symbol: 'USDC', amount: usdc, color: TOKEN_COLORS.USDC },
+        { symbol: 'EURC', amount: eurc, color: TOKEN_COLORS.EURC },
+        { symbol: 'XLM', amount: xlm, color: TOKEN_COLORS.XLM },
       ],
     });
   }
@@ -85,11 +85,7 @@ function generateMockFunding(range: TimeRange): DailyFundingBucket[] {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: TooltipProps<number, string>) {
+function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
 
   // We need to access the original data to show number of invoices
@@ -105,10 +101,7 @@ function ChartTooltip({
         {payload.map((entry) => (
           <div key={entry.name} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-xs font-medium text-on-surface">{entry.name}</span>
             </div>
             <span className="text-xs font-bold text-on-surface">
@@ -119,12 +112,10 @@ function ChartTooltip({
         <div className="my-1 h-px bg-outline-variant/10" />
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs font-bold text-on-surface">Total Funding</span>
-          <span className="text-xs font-extrabold text-primary">
-            ${total.toLocaleString()}
-          </span>
+          <span className="text-xs font-extrabold text-primary">${total.toLocaleString()}</span>
         </div>
         <p className="mt-1 text-[10px] text-on-surface-variant italic">
-          {data.invoices_funded} invoice{data.invoices_funded !== 1 ? "s" : ""} funded
+          {data.invoices_funded} invoice{data.invoices_funded !== 1 ? 's' : ''} funded
         </p>
       </div>
     </div>
@@ -134,7 +125,7 @@ function ChartTooltip({
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function FundingChart() {
-  const [range, setRange] = useState<TimeRange>("30D");
+  const [range, setRange] = useState<TimeRange>('30D');
   const [data, setData] = useState<DailyFundingBucket[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -142,9 +133,9 @@ export default function FundingChart() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? "https://api.iln.example.com";
+        const baseUrl = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? 'https://api.iln.example.com';
         const res = await fetch(`${baseUrl}/v1/analytics/funding?period=${range.toLowerCase()}`);
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) throw new Error('Failed to fetch');
         const json = await res.json();
         setData(json.daily);
       } catch (err) {
@@ -179,8 +170,8 @@ export default function FundingChart() {
               onClick={() => setRange(r)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 range === r
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               {r}
@@ -207,10 +198,7 @@ export default function FundingChart() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={transformedData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
+            <AreaChart data={transformedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 {Object.entries(TOKEN_COLORS).map(([symbol, color]) => (
                   <linearGradient
@@ -237,7 +225,7 @@ export default function FundingChart() {
                 tick={CHART_TICK_STYLE}
                 tickLine={false}
                 axisLine={false}
-                interval={range === "7D" ? 0 : "preserveStartEnd"}
+                interval={range === '7D' ? 0 : 'preserveStartEnd'}
               />
               <YAxis
                 tick={CHART_TICK_STYLE}
@@ -246,7 +234,7 @@ export default function FundingChart() {
                 tickFormatter={(v: number) => (v >= 1000 ? `${v / 1000}k` : v.toString())}
               />
               <Tooltip content={<ChartTooltip />} />
-              
+
               <Area
                 type="monotone"
                 dataKey="USDC"

@@ -1,22 +1,19 @@
 export default function OpenSource() {
   const cards = [
     {
-      icon: "bug_report",
-      title: "Fix a Security Bug",
-      description:
-        "Help us harden the protocol.",
+      icon: 'bug_report',
+      title: 'Fix a Security Bug',
+      description: 'Help us harden the protocol.',
     },
     {
-      icon: "add_box",
-      title: "Build a New Feature",
-      description:
-        "Contribute to our core Soroban contracts or the frontend dashboard ecosystem.",
+      icon: 'add_box',
+      title: 'Build a New Feature',
+      description: 'Contribute to our core Soroban contracts or the frontend dashboard ecosystem.',
     },
     {
-      icon: "edit_note",
-      title: "Write Documentation",
-      description:
-        "Help others build on ILN by improving our guides and technical API references.",
+      icon: 'edit_note',
+      title: 'Write Documentation',
+      description: 'Help others build on ILN by improving our guides and technical API references.',
     },
   ];
 
@@ -33,8 +30,8 @@ export default function OpenSource() {
           <div>
             <h2 className="text-4xl font-headline mb-4">Built in the open.</h2>
             <p className="text-on-surface/60 max-w-xl">
-              ILN is a public utility. We believe financial infrastructure
-              should be transparent, verifiable, and community-driven.
+              ILN is a public utility. We believe financial infrastructure should be transparent,
+              verifiable, and community-driven.
             </p>
           </div>
           <div className="flex gap-4">
@@ -57,9 +54,7 @@ export default function OpenSource() {
               <h4 className="font-bold mb-3 group-hover:text-primary-container transition-colors">
                 {card.title}
               </h4>
-              <p className="text-on-surface/60 text-sm leading-relaxed">
-                {card.description}
-              </p>
+              <p className="text-on-surface/60 text-sm leading-relaxed">{card.description}</p>
             </div>
           ))}
         </div>

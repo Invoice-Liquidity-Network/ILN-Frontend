@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('useWatchlist', () => {
   const walletAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-  
+
   beforeEach(() => {
     localStorage.clear();
   });
@@ -16,7 +16,7 @@ describe('useWatchlist', () => {
 
   it('should add an invoice to the watchlist', () => {
     const { result } = renderHook(() => useWatchlist(walletAddress));
-    
+
     act(() => {
       result.current.addToWatchlist(1n);
     });
@@ -24,7 +24,7 @@ describe('useWatchlist', () => {
     expect(result.current.watchlist).toHaveLength(1);
     expect(result.current.watchlist[0].id).toBe('1');
     expect(result.current.watchlist[0].addedAt).toBeDefined();
-    
+
     // Check localStorage
     const stored = JSON.parse(localStorage.getItem(`watchlist_${walletAddress}`) || '[]');
     expect(stored).toHaveLength(1);
@@ -33,7 +33,7 @@ describe('useWatchlist', () => {
 
   it('should remove an invoice from the watchlist', () => {
     const { result } = renderHook(() => useWatchlist(walletAddress));
-    
+
     act(() => {
       result.current.addToWatchlist(1n);
       result.current.addToWatchlist(2n);
@@ -51,7 +51,7 @@ describe('useWatchlist', () => {
 
   it('should toggle an invoice in the watchlist', () => {
     const { result } = renderHook(() => useWatchlist(walletAddress));
-    
+
     act(() => {
       result.current.toggleWatchlist(1n);
     });
@@ -68,7 +68,7 @@ describe('useWatchlist', () => {
 
   it('should check if an invoice is in the watchlist', () => {
     const { result } = renderHook(() => useWatchlist(walletAddress));
-    
+
     act(() => {
       result.current.addToWatchlist(1n);
     });
@@ -79,7 +79,7 @@ describe('useWatchlist', () => {
 
   it('should enforce the maximum watchlist limit of 50', () => {
     const { result } = renderHook(() => useWatchlist(walletAddress));
-    
+
     // Fill up to the limit
     act(() => {
       for (let i = 1; i <= 50; i++) {
@@ -94,7 +94,9 @@ describe('useWatchlist', () => {
       act(() => {
         result.current.addToWatchlist(51n);
       });
-    }).toThrow('Watchlist limit of 50 invoices reached. Please remove some before adding new ones.');
+    }).toThrow(
+      'Watchlist limit of 50 invoices reached. Please remove some before adding new ones.'
+    );
 
     // Still at 50
     expect(result.current.watchlist).toHaveLength(50);

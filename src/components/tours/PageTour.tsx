@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * PageTour — Issue #169
@@ -8,9 +8,9 @@
  * via the HelpMenu component.
  */
 
-import React, { useCallback, useState } from "react";
-import { Joyride, type EventData, STATUS, type Step } from "react-joyride";
-import { TOURS, type TourId } from "./tourDefinitions";
+import React, { useCallback, useState } from 'react';
+import { Joyride, type EventData, STATUS, type Step } from 'react-joyride';
+import { TOURS, type TourId } from './tourDefinitions';
 
 interface PageTourProps {
   tourId: TourId;
@@ -46,18 +46,18 @@ export function PageTour({ tourId, run, onFinish }: PageTourProps) {
       scrollToFirstStep
       onEvent={handleCallback}
       options={{
-        primaryColor: "#2563eb",
+        primaryColor: '#2563eb',
         zIndex: 10000,
         showProgress: true,
-        buttons: ["back", "close", "primary", "skip"],
-        overlayClickAction: "close",
+        buttons: ['back', 'close', 'primary', 'skip'],
+        overlayClickAction: 'close',
       }}
       locale={{
-        skip: "Skip tour",
-        last: "Finish",
-        next: "Next →",
-        back: "← Back",
-        close: "Close",
+        skip: 'Skip tour',
+        last: 'Finish',
+        next: 'Next →',
+        back: '← Back',
+        close: 'Close',
       }}
     />
   );

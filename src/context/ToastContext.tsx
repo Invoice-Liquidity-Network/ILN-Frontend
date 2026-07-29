@@ -1,73 +1,145 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from "react";
-import Toast from "../components/Toast";
+import React, { createContext, useCallback, useContext, ReactNode, useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
+import AppToaster from '@/components/AppToaster';
+import { TOAST_AUTO_DISMISS_MS } from '@/lib/toast-config';
 
-export type ToastType = "pending" | "success" | "error";
+export type ToastType = 'pending' | 'success' | 'error' | 'info' | 'warning';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 export interface ToastMessage {
   id: string;
   type: ToastType;
   title: string;
-  message?: string;
+  message?: string | React.ReactNode;
   txHash?: string;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
-  addToast: (toast: Omit<ToastMessage, "id">) => string;
-  updateToast: (id: string, updates: Partial<Omit<ToastMessage, "id">>) => void;
+  addToast: (toast: Omit<ToastMessage, 'id'>) => string;
+  updateToast: (id: string, updates: Partial<Omit<ToastMessage, 'id'>>) => void;
   removeToast: (id: string) => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+export const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+function buildDescription(toast: Omit<ToastMessage, 'id'>): React.ReactNode | undefined {
+  if (React.isValidElement(toast.message)) {
+    if (toast.txHash) {
+      return (
+        <div className="flex flex-col gap-2">
+          {toast.message}
+          <div className="text-xs opacity-80">Tx: {toast.txHash.slice(0, 8)}…</div>
+        </div>
+      );
+    }
+    return toast.message;
+  }
+
+  const parts: string[] = [];
+  if (typeof toast.message === 'string') parts.push(toast.message);
+  if (toast.txHash) parts.push(`Tx: ${toast.txHash.slice(0, 8)}…`);
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+function durationForType(type: ToastType): number | typeof Infinity {
+  if (type === 'error' || type === 'pending') return Infinity;
+  return TOAST_AUTO_DISMISS_MS;
+}
+
+function showSonnerToast(id: string, toast: Omit<ToastMessage, 'id'>) {
+  const options = {
+    id,
+    description: buildDescription(toast),
+    duration: durationForType(toast.type),
+    action: toast.action ? { label: toast.action.label, onClick: toast.action.onClick } : undefined,
+  };
+
+  switch (toast.type) {
+    case 'success':
+      sonnerToast.success(toast.title, options);
+      break;
+    case 'error':
+      sonnerToast.error(toast.title, options);
+      break;
+    case 'info':
+      sonnerToast.info(toast.title, options);
+      break;
+    case 'warning':
+      sonnerToast.warning(toast.title, options);
+      break;
+    case 'pending':
+      sonnerToast.loading(toast.title, options);
+      break;
+    default:
+      sonnerToast(toast.title, options);
+  }
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const timers = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const [announcement, setAnnouncement] = useState('');
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    if (timers.current[id]) {
-      clearTimeout(timers.current[id]);
-      delete timers.current[id];
+  const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
+    const id = Math.random().toString(36).slice(2, 11);
+
+    // Announce to screen readers
+    let messageText = '';
+    if (typeof toast.message === 'string') {
+      messageText = toast.message;
+    } else if (toast.message && React.isValidElement(toast.message)) {
+      // For React elements, extract text content if possible
+      // This is a simplified approach - in production you might want more robust extraction
+      messageText = 'Additional details available';
     }
+
+    const announcementText = `${toast.title}${messageText ? `. ${messageText}` : ''}`;
+    setAnnouncement(announcementText);
+
+    // Clear announcement after screen readers have time to read it
+    setTimeout(() => setAnnouncement(''), 1000);
+
+    showSonnerToast(id, toast);
+    return id;
   }, []);
 
-  const addToast = useCallback((toast: Omit<ToastMessage, "id">) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { ...toast, id }]);
-    
-    // Only auto-dismiss if not pending
-    if (toast.type !== "pending") {
-      timers.current[id] = setTimeout(() => {
-        removeToast(id);
-      }, 6000);
-    }
-    
-    return id;
-  }, [removeToast]);
+  const updateToast = useCallback((id: string, updates: Partial<Omit<ToastMessage, 'id'>>) => {
+    // Announce updates to screen readers
+    const message = typeof updates.message === 'string' ? updates.message : '';
+    const announcementText = `Updated: ${updates.title || 'Toast'}${message ? `. ${message}` : ''}`;
+    setAnnouncement(announcementText);
 
-  const updateToast = useCallback((id: string, updates: Partial<Omit<ToastMessage, "id">>) => {
-    setToasts((prev) =>
-      prev.map((toast) => (toast.id === id ? { ...toast, ...updates } : toast))
-    );
+    // Clear announcement after screen readers have time to read it
+    setTimeout(() => setAnnouncement(''), 1000);
 
-    // If updated to success or error, start the 6s timer
-    if (updates.type && updates.type !== "pending") {
-      if (timers.current[id]) clearTimeout(timers.current[id]);
-      timers.current[id] = setTimeout(() => {
-        removeToast(id);
-      }, 6000);
-    }
-  }, [removeToast]);
+    showSonnerToast(id, {
+      type: updates.type ?? 'info',
+      title: updates.title ?? 'Updated',
+      ...updates,
+    });
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    sonnerToast.dismiss(id);
+  }, []);
 
   return (
     <ToastContext.Provider value={{ addToast, updateToast, removeToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-        {toasts.map((toast) => (
-          <Toast key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
-        ))}
+      <AppToaster />
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        id="toast-live-region"
+      >
+        {announcement}
       </div>
     </ToastContext.Provider>
   );
@@ -76,7 +148,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast() {
   const context = useContext(ToastContext);
   if (context === undefined) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
 }
