@@ -105,7 +105,7 @@ export default function OnboardingFlow() {
             <button
               onClick={() => {
                 setRole('payer');
-                router.push('/payer');
+                router.push('/dashboard/payer');
               }}
               className="flex items-center gap-4 p-4 rounded-2xl border border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high transition-colors text-left group"
             >

@@ -65,7 +65,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
       {
         id: 'payer',
         label: 'Go to Payer',
-        action: () => router.push('/payer'),
+        action: () => router.push('/dashboard/payer'),
         category: 'navigation',
       },
       {
@@ -89,13 +89,13 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
       {
         id: 'notifications',
         label: 'Open notification settings',
-        action: () => router.push('/settings/notifications'),
+        action: () => alert('Notification settings coming soon'),
         category: 'settings',
       },
       {
         id: 'addressbook',
         label: 'Open address book',
-        action: () => router.push('/settings/address-book'),
+        action: () => alert('Address book coming soon'),
         category: 'settings',
       },
       {
@@ -133,11 +133,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     setQuery('');
   }, []);
 
-  const toggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-    setQuery('');
-  }, []);
-
   const executeCommand = useCallback(
     (command: Command) => {
       const updated = [command.id, ...recentCommandIds.filter((id) => id !== command.id)].slice(
@@ -151,11 +146,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     },
     [recentCommandIds, close]
   );
-
-  const clearHistory = useCallback(() => {
-    setRecentCommandIds([]);
-    localStorage.removeItem(RECENT_COMMANDS_KEY);
-  }, []);
 
   const filteredCommands = useMemo(() => {
     if (!query) {
@@ -178,6 +168,18 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     return commands.filter((cmd) => fuzzyMatch(cmd.label, query));
   }, [query, commands, recentCommandIds, router]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return {
     isOpen,
     query,
@@ -186,7 +188,5 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     executeCommand,
     open,
     close,
-    toggle,
-    clearHistory,
   };
 }
