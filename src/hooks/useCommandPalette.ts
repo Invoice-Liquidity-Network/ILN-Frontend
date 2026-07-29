@@ -118,6 +118,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     const stored = localStorage.getItem(RECENT_COMMANDS_KEY);
     if (stored) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRecentCommandIds(JSON.parse(stored));
       } catch {}
     }
@@ -180,6 +181,15 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  const toggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setRecentCommandIds([]);
+    localStorage.removeItem(RECENT_COMMANDS_KEY);
+  }, []);
+
   return {
     isOpen,
     query,
@@ -188,5 +198,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     executeCommand,
     open,
     close,
+    toggle,
+    clearHistory,
   };
 }
