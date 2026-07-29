@@ -13,6 +13,21 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
         destination: '/payer',
         permanent: true,
       },
+      {
+        source: '/analytics/freelancer',
+        destination: '/analytics',
+        permanent: true,
+      },
+      {
+        source: '/analytics/leaderboard',
+        destination: '/leaderboard',
+        permanent: true,
+      },
+      {
+        source: '/invoices/:id',
+        destination: '/i/:id',
+        permanent: true,
+      },
     ];
   },
 };

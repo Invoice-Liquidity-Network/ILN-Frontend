@@ -17,13 +17,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "pnpm run lint && pnpm run env:check && pnpm run format:check && pnpm exec tsc --noEmit && pnpm test",
+    "clean": "rm -rf .next .turbo storybook-static coverage test-results playwright-report .lighthouseci tsconfig.tsbuildinfo",
     "test:e2e": "playwright test",
     "test:mutation": "stryker run",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "chromatic --exit-zero-on-changes",
     "prepare": "husky",
-    "generate:changelog": "npx git-cliff --config .gitcliff.toml"
+    "generate:changelog": "npx git-cliff --config .gitcliff.toml",
+    "scaffold:component": "npx tsx scripts/scaffold-component.ts"
   },
   "dependencies": {
     "@react-email/components": "1.0.12",
