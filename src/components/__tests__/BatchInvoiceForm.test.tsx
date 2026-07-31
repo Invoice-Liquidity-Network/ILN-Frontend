@@ -113,4 +113,26 @@ describe('BatchInvoiceForm', () => {
     render(<BatchInvoiceForm onSuccess={vi.fn()} />);
     expect(screen.queryByText(/batch/i)).toBeInTheDocument();
   });
+
+  it('rejects 51-row CSV file exceeding contract batch limit with a clear notification', async () => {
+    render(<BatchInvoiceForm onSuccess={vi.fn()} />);
+    const header = 'payer,amount,token,discount_rate,due_date';
+    const rows = Array.from({ length: 51 }, (_, i) =>
+      `GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC${i % 10},100.00,USDC,3.00,2025-12-31`
+    );
+    const file = new File([[header, ...rows].join('\n')], 'over_limit.csv', { type: 'text/csv' });
+    const input = document.getElementById('csv-upload') as HTMLInputElement | null;
+    if (input) {
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(addToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'warning',
+            title: 'Rows Truncated',
+            message: 'Only the first 50 rows were loaded.',
+          })
+        );
+      });
+    }
+  });
 });

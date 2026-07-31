@@ -1,20 +1,20 @@
 /**
- * Integration Example: Using useWallet Hook
+ * Integration Example: Using useAuthenticatedWallet Hook
  *
- * This file demonstrates how to integrate the useWallet hook
+ * This file demonstrates how to integrate the useAuthenticatedWallet hook
  * into your components for wallet connection and authentication.
  */
 
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/hooks/useWallet';
+import { useAuthenticatedWallet } from '@/hooks/useAuthenticatedWallet';
 
 /**
  * Example 1: Simple Wallet Connection Component
  */
 export function WalletConnectionExample() {
-  const { isConnected, publicKey, connect, disconnect } = useWallet();
+  const { isConnected, publicKey, connect, disconnect } = useAuthenticatedWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +68,7 @@ export function WalletConnectionExample() {
  * Example 2: Authenticated API Calls with JWT
  */
 export function UserProfileExample() {
-  const { isConnected, jwt } = useWallet();
+  const { isConnected, jwt } = useAuthenticatedWallet();
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +130,7 @@ export function UserProfileExample() {
  * Example 3: Transaction Signing Component
  */
 export function TransactionSigningExample() {
-  const { isConnected, publicKey, signTransaction } = useWallet();
+  const { isConnected, signTransaction } = useAuthenticatedWallet();
   const [txXdr, setTxXdr] = useState('');
   const [signedTx, setSignedTx] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -204,7 +204,7 @@ export function TransactionSigningExample() {
  * Example 4: Authentication Status Component
  */
 export function AuthStatusExample() {
-  const { isConnected, publicKey, jwt } = useWallet();
+  const { isConnected, publicKey, jwt } = useAuthenticatedWallet();
 
   return (
     <div className="p-4 bg-gray-100 rounded space-y-2 text-sm">
@@ -253,7 +253,7 @@ export function ProtectedComponent({
     <p className="text-yellow-600">Please connect and authenticate to access this content</p>
   ),
 }: ProtectedComponentProps) {
-  const { isConnected, jwt } = useWallet();
+  const { isConnected, jwt } = useAuthenticatedWallet();
 
   if (!isConnected || !jwt) {
     return fallback;

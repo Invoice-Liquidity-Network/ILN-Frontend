@@ -133,17 +133,15 @@ export default function AddressBookPage() {
                   <div className="flex flex-col gap-2 w-[300px]">
                     <input
                       defaultValue={entry.address}
-                      onChange={(e) => {
-                        // In a real implementation, we'd update form state
-                        console.log('Address changed:', e.target.value);
+                      onChange={(_e) => {
+                        // TODO: In a real implementation, we'd update form state
                       }}
                       className="w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                     <input
                       defaultValue={entry.nickname}
-                      onChange={(e) => {
-                        // In a real implementation, we'd update form state
-                        console.log('Nickname changed:', e.target.value);
+                      onChange={(_e) => {
+                        // TODO: In a real implementation, we'd update form state
                       }}
                       className="w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />

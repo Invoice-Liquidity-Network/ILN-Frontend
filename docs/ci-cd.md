@@ -237,13 +237,116 @@ Every workflow file must declare an explicit `permissions:` block. Omitting the 
 | `security-audit.yml` | `read` | — | — |
 | `license-check.yml` | `read` | — | — |
 
-`lighthouse.yml` needs `statuses: write` so LHCI can post commit status checks via `GITHUB_TOKEN`.
+## Per-Workflow Environment Variables
 
-### CHROMATIC_PROJECT_TOKEN
+This section documents the environment variables that each workflow sets or implicitly requires. It is the authoritative reference for understanding what env context a workflow runs under, and flags potential gaps where a missing variable could cause a silent failure.
 
-- **Storage**: Repository secret. To restrict to protected branches only, move to a `production` environment and add `environment: production` to the job.
-- **Rotation**: Rotate from the Chromatic project settings page whenever a contributor with access leaves.
-- **Scope**: Only grants access to the specific Chromatic project.
+### `ci.yml` — Lint, Tests, Build
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `build` | _(none set explicitly)_ | — | The build step does **not** set `NEXT_PUBLIC_STELLAR_NETWORK` or any feature flags. Next.js will use the defaults baked into `src/lib/env.ts` (e.g. `NEXT_PUBLIC_STELLAR_NETWORK=testnet`). This is intentional — the build verifies that the app compiles with fallback values only. |
+
+**Gap:** If a future feature flag is added without a hardcoded default in `src/lib/env.ts`, the CI build may silently build with the flag disabled. Always provide a sensible default in `env.ts`.
+
+---
+
+### `lighthouse.yml` — Lighthouse Performance Budget
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `lighthouse` | `CI` | inline `env:` | `true` — suppresses interactive prompts |
+| `lighthouse` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:` | `testnet` — ensures Soroban RPC points to testnet during the build |
+| `lighthouse` | `LHCI_GITHUB_TOKEN` | `secrets.GITHUB_TOKEN` | Used to post Lighthouse results as a PR status check |
+
+**Note:** All other `NEXT_PUBLIC_*` variables use their defaults from `src/lib/env.ts`. Feature flags (`NEXT_PUBLIC_NFT_ENABLED`, `NEXT_PUBLIC_INSURANCE_POOL_ENABLED`, `NEXT_PUBLIC_ORACLE_ENABLED`) default to `false` in this workflow, meaning the Lighthouse audit runs against the baseline feature set.
+
+---
+
+### `e2e-tests.yml` — Playwright End-to-End Tests
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `e2e` | `NEXT_PUBLIC_API_MOCKING` | inline `env:` | `"enabled"` — activates MSW mock service worker so tests run without a live Soroban RPC |
+
+**Note:** No `NEXT_PUBLIC_STELLAR_NETWORK` is set. The app uses the `testnet` default from `src/lib/env.ts`. Tests run against mocked network responses via MSW.
+
+---
+
+### `accessibility.yml` — Accessibility Tests
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `accessibility` | `CI` | inline `env:` | `true` — disables watch mode, ensures clean exit |
+
+**Note:** No network variables are needed; accessibility tests use Vitest with jsdom and do not connect to Stellar.
+
+---
+
+### `contract-tests.yml` — Contract Integration Tests
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `contract-tests` | `CI` | inline `env:` | `true` |
+
+**Note:** Contract tests mock the Stellar SDK at the module boundary via `vi.mock()` and do not require live network access. No Soroban RPC URL is needed.
+
+---
+
+### `visual-regression.yml` — Chromatic Visual Regression
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `chromatic` | `NODE_OPTIONS` | inline `env:` | `--max_old_space_size=4096` — prevents OOM during Storybook build with large component library |
+| `chromatic` | `CHROMATIC_PROJECT_TOKEN` | `secrets.CHROMATIC_PROJECT_TOKEN` | Required for Chromatic authentication. Workflow is skipped if unset (fork PRs). |
+
+---
+
+### `storybook-deploy.yml` — Storybook GitHub Pages Deployment
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| _(none)_ | — | — | Storybook build uses no env vars. Components render with mocked data. |
+
+---
+
+### `bundle-size.yml` — Bundle Size Regression Tracking
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| `bundle-size` | `CI` | inline `env:` | `true` |
+| `bundle-size` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:` | `testnet` — keeps the build consistent with `lighthouse.yml` |
+| `bundle-size` | `ANALYZE` | inline `env:` | `true` — enables `@next/bundle-analyzer` output if configured |
+
+---
+
+### `feature-flag-audit.yml` — Feature Flag Audit (Informational)
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| _(none)_ | — | — | The audit script reads source files only; no env vars are needed at runtime. |
+
+---
+
+### `mutation-testing.yml` — Stryker Mutation Testing (Scheduled)
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| _(none)_ | — | — | Runs on the `ubuntu-latest` runner (not the custom runner). Uses `npm ci` for install. |
+
+**Gap:** This workflow uses `node: '20'` (generic) rather than `node-version-file: '.nvmrc'`. This means mutation tests may run on a slightly different Node patch than CI. Consider aligning with `.nvmrc`.
+
+---
+
+### `workflow-lint.yml` — GitHub Actions Workflow Linting
+
+| Job | Variable | Source | Value / Note |
+| --- | -------- | ------ | ------------ |
+| _(none)_ | — | — | Uses `ubuntu-latest`. Only validates YAML syntax with `actionlint`. |
+
+---
+
+## Discrepancy Notes
 
 ---
 
@@ -290,8 +393,13 @@ MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0, CC-BY-3.0, CC-
 2. **Dedicated accessibility workflow**: Accessibility checks live in a single workflow with one required `accessibility` job.
 3. **E2E coverage on develop**: The E2E suite now runs for both `main` and `develop` pushes and PRs.
 
+4. **Feature flag build consistency**: The `ci.yml` build job does not set feature flags. If a flag lacks a default in `src/lib/env.ts`, it will silently build as disabled. All new flags must have a defined default.
+
+5. **Mutation testing Node alignment**: `mutation-testing.yml` uses `node: '20'` (generic) instead of `node-version-file: '.nvmrc'`. Consider updating it to use the pinned version.
+
 ### Maintainer Action Required
 
 - [ ] Confirm branch protection rules in GitHub repository settings match the documentation above
 - [ ] Review and update custom runner configuration documentation if `namespace-profile-nursca` setup has changed
-- [ ] Pin `pnpm/action-setup@v4` to a full SHA in a follow-up PR
+- [ ] Add `bundle-size` to branch protection required checks (once baseline is established)
+- [ ] Update `mutation-testing.yml` to use `node-version-file: '.nvmrc'` for version consistency

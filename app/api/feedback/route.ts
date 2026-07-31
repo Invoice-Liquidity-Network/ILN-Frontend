@@ -60,7 +60,7 @@ ${feedback}
       return NextResponse.json({ success: true, issueUrl: issue.html_url });
     } else {
       // For development or if GitHub is not configured
-      console.log('Feedback received (no GitHub config):', body);
+      console.warn('Feedback received (no GitHub config):', body);
     }
 
     return NextResponse.json({ success: true });

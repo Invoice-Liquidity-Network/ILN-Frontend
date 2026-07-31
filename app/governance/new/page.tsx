@@ -33,7 +33,7 @@ interface FormData {
 export default function NewGovernanceProposalPage() {
   const router = useRouter();
   const { address, isConnected } = useWallet();
-  const { execute, loading: txLoading } = useTransaction();
+  const { loading: txLoading } = useTransaction();
   const { tokens } = useApprovedTokens();
   const { balances, isLoading: balancesLoading } = useBalances(tokens);
 
@@ -68,20 +68,32 @@ export default function NewGovernanceProposalPage() {
   }, []);
 
   useEffect(() => {
-    setResolvedToken(null);
-    setTokenLookupError(null);
+    let cancelled = false;
     const debounceLookup = setTimeout(async () => {
-      const address = formData.tokenAddress.trim();
-      if (formData.formType === 'AddToken' && address) {
+      const addr = formData.tokenAddress.trim();
+      if (formData.formType === 'AddToken' && addr) {
         try {
-          const token = await lookupToken(address);
-          setResolvedToken(token);
-        } catch (e: any) {
-          setTokenLookupError(e.message);
+          const token = await lookupToken(addr);
+          if (!cancelled) {
+            setResolvedToken(token);
+            setTokenLookupError(null);
+          }
+        } catch (e: unknown) {
+          if (!cancelled) {
+            const msg = e instanceof Error ? e.message : String(e);
+            setTokenLookupError(msg);
+            setResolvedToken(null);
+          }
         }
+      } else if (!cancelled) {
+        setResolvedToken(null);
+        setTokenLookupError(null);
       }
     }, 500);
-    return () => clearTimeout(debounceLookup);
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceLookup);
+    };
   }, [formData.tokenAddress, formData.formType]);
 
   const handleChange = (
@@ -173,8 +185,9 @@ IPFS Hash: ${ipfsHash}`,
       // In a real scenario, this would involve building a transaction, signing it, and submitting.
       // For now, we simulate the redirect.
       router.push(`/governance/${proposalId}`);
-    } catch (e: any) {
-      alert(`Failed to create proposal: ${e.message}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      alert(`Failed to create proposal: ${msg}`);
     }
   };
 
@@ -263,7 +276,10 @@ IPFS Hash: ${ipfsHash}`,
             name="formType"
             value={formData.formType}
             onChange={handleChange}
+            onBlur={validateForm}
             className="mt-1 block w-full"
+            aria-describedby={formErrors.formType ? 'formType-error' : undefined}
+            aria-invalid={Boolean(formErrors.formType)}
             required
           >
             <option value="">Select an action type</option>
@@ -273,7 +289,9 @@ IPFS Hash: ${ipfsHash}`,
             <option value="RemoveToken">Remove Accepted Token</option>
           </Select>
           {formErrors.formType && (
-            <p className="text-red-500 text-sm mt-1">{formErrors.formType}</p>
+            <p id="formType-error" className="text-red-500 text-sm mt-1">
+              {formErrors.formType}
+            </p>
           )}
         </label>
 
@@ -284,11 +302,18 @@ IPFS Hash: ${ipfsHash}`,
             name="title"
             value={formData.title}
             onChange={handleChange}
+            onBlur={validateForm}
             className="mt-1 block w-full"
             placeholder="e.g., Reduce Base Discount Rate to 3.5%"
+            aria-describedby={formErrors.title ? 'title-error' : undefined}
+            aria-invalid={Boolean(formErrors.title)}
             required
           />
-          {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
+          {formErrors.title && (
+            <p id="title-error" className="text-red-500 text-sm mt-1">
+              {formErrors.title}
+            </p>
+          )}
         </label>
 
         <label className="block">
@@ -297,13 +322,18 @@ IPFS Hash: ${ipfsHash}`,
             name="description"
             value={formData.description}
             onChange={handleChange}
+            onBlur={validateForm}
             className="mt-1 block w-full"
             rows={5}
             placeholder="Provide a detailed explanation for your proposal..."
+            aria-describedby={formErrors.description ? 'description-error' : undefined}
+            aria-invalid={Boolean(formErrors.description)}
             required
           />
           {formErrors.description && (
-            <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>
+            <p id="description-error" className="text-red-500 text-sm mt-1">
+              {formErrors.description}
+            </p>
           )}
         </label>
 
@@ -315,14 +345,19 @@ IPFS Hash: ${ipfsHash}`,
               name="newValueBps"
               value={formData.newValueBps}
               onChange={handleChange}
+              onBlur={validateForm}
               className="mt-1 block w-full"
               placeholder="e.g., 350 for 3.5% (0-5000)"
               min={0}
               max={5000}
+              aria-describedby={formErrors.newValueBps ? 'newValueBps-error' : undefined}
+              aria-invalid={Boolean(formErrors.newValueBps)}
               required
             />
             {formErrors.newValueBps && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.newValueBps}</p>
+              <p id="newValueBps-error" className="text-red-500 text-sm mt-1">
+                {formErrors.newValueBps}
+              </p>
             )}
           </label>
         )}
@@ -335,8 +370,11 @@ IPFS Hash: ${ipfsHash}`,
               name="tokenAddress"
               value={formData.tokenAddress}
               onChange={handleChange}
+              onBlur={validateForm}
               className="mt-1 block w-full"
               placeholder="e.g., G... (Stellar asset issuer address)"
+              aria-describedby={formErrors.tokenAddress ? 'tokenAddress-error' : undefined}
+              aria-invalid={Boolean(formErrors.tokenAddress)}
               required
             />
             {resolvedToken && (
@@ -345,7 +383,9 @@ IPFS Hash: ${ipfsHash}`,
               </p>
             )}
             {formErrors.tokenAddress && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.tokenAddress}</p>
+              <p id="tokenAddress-error" className="text-red-500 text-sm mt-1">
+                {formErrors.tokenAddress}
+              </p>
             )}
           </label>
         )}
@@ -357,7 +397,12 @@ IPFS Hash: ${ipfsHash}`,
               name="removeTokenAddress"
               value={formData.removeTokenAddress}
               onChange={handleChange}
+              onBlur={validateForm}
               className="mt-1 block w-full"
+              aria-describedby={
+                formErrors.removeTokenAddress ? 'removeTokenAddress-error' : undefined
+              }
+              aria-invalid={Boolean(formErrors.removeTokenAddress)}
               required
             >
               <option value="">Select a token to remove</option>
@@ -368,7 +413,9 @@ IPFS Hash: ${ipfsHash}`,
               ))}
             </Select>
             {formErrors.removeTokenAddress && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.removeTokenAddress}</p>
+              <p id="removeTokenAddress-error" className="text-red-500 text-sm mt-1">
+                {formErrors.removeTokenAddress}
+              </p>
             )}
           </label>
         )}

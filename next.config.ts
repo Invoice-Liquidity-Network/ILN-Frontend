@@ -1,11 +1,34 @@
 import type { NextConfig } from 'next';
-// @ts-ignore
 import withPWA from 'next-pwa';
 
 const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
   turbopack: {},
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/payer',
+        destination: '/payer',
+        permanent: true,
+      },
+      {
+        source: '/analytics/freelancer',
+        destination: '/analytics',
+        permanent: true,
+      },
+      {
+        source: '/analytics/leaderboard',
+        destination: '/leaderboard',
+        permanent: true,
+      },
+      {
+        source: '/invoices/:id',
+        destination: '/i/:id',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withPWA({

@@ -16,6 +16,7 @@ import {
 import { submitInvoicesBatch } from '@/utils/soroban';
 import TokenSelector from './TokenSelector';
 
+// Enforces maximum 50 rows per batch, matching the contract's submit_invoices_batch() instruction (source of truth)
 const MAX_BATCH_SIZE = 50;
 
 export interface BatchInvoiceRow extends InvoiceFormValues {

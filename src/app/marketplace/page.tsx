@@ -578,7 +578,7 @@ export default function MarketplacePage() {
                     [
                       {
                         label: 'Token',
-                        get: () =>
+                        get: (inv: Invoice) =>
                           tokenMap.get(inv.token ?? defaultToken?.contractId ?? '')?.symbol ??
                           'USDC',
                       },

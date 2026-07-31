@@ -21,9 +21,11 @@ import {
   createProposal,
   fetchParameterUpdates,
   fetchVotesForAddress,
+  fetchProposals,
+  fetchProtocolParameters,
+  castVote,
   timeRemaining,
   getUserVote,
-  castVote,
   MOCK_PROPOSALS,
   MOCK_VOTES,
   type CreateProposalPayload,
@@ -156,6 +158,23 @@ describe('governance – lookupToken', () => {
     vi.runAllTimers();
     const token = await promise;
     expect(token.name).toBe('Unknown Token');
+  });
+
+  it('returns Unknown Token with truncated symbol for unknown valid G-address', async () => {
+    vi.useFakeTimers();
+    const promise = lookupToken('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    vi.runAllTimers();
+    const token = await promise;
+    expect(token.symbol).toBe('GAAA');
+    expect(token.name).toBe('Unknown Token');
+  });
+
+  it('rejects C-prefixed token contract addresses as invalid', async () => {
+    // Token contract IDs on Stellar start with C, not G
+    // lookupToken validates for G-prefix, so C-prefixed addresses are rejected
+    await expect(
+      lookupToken('CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75')
+    ).rejects.toThrow('Invalid Stellar address');
   });
 });
 
@@ -380,5 +399,131 @@ describe('governance – MOCK_VOTES', () => {
       expect(vote).toHaveProperty('weight');
       expect(vote).toHaveProperty('timestamp');
     }
+  });
+});
+
+describe('governance – fetchProtocolParameters values', () => {
+  it('returns correct fee rate', async () => {
+    vi.useFakeTimers();
+    const promise = fetchProtocolParameters();
+    vi.runAllTimers();
+    const params = await promise;
+    vi.useRealTimers();
+    expect(params.feeRateBps).toBe(50);
+  });
+
+  it('returns correct max discount rate', async () => {
+    vi.useFakeTimers();
+    const promise = fetchProtocolParameters();
+    vi.runAllTimers();
+    const params = await promise;
+    vi.useRealTimers();
+    expect(params.maxDiscountRateBps).toBe(500);
+  });
+
+  it('returns accepted tokens with USDC and EURC', async () => {
+    vi.useFakeTimers();
+    const promise = fetchProtocolParameters();
+    vi.runAllTimers();
+    const params = await promise;
+    vi.useRealTimers();
+    const symbols = params.acceptedTokens.map((t) => t.symbol);
+    expect(symbols).toContain('USDC');
+    expect(symbols).toContain('EURC');
+  });
+
+  it('returns correct min proposal ILN', async () => {
+    vi.useFakeTimers();
+    const promise = fetchProtocolParameters();
+    vi.runAllTimers();
+    const params = await promise;
+    vi.useRealTimers();
+    expect(params.minProposalILN).toBe(500);
+  });
+});
+
+describe('governance – createProposal parameter change values', () => {
+  it('FeeRate proposal includes correct current/new values', async () => {
+    vi.useFakeTimers();
+    const payload: CreateProposalPayload = {
+      formType: 'FeeRate',
+      title: 'Lower fee',
+      description: 'Reduce fee',
+      newValueBps: 30,
+    };
+    const promise = createProposal(payload, SIGNER, mockSignTx);
+    vi.runAllTimers();
+    const result = await promise;
+    vi.useRealTimers();
+
+    const created = MOCK_PROPOSALS.find((p) => p.id === result.proposalId);
+    const change = created?.parameterChanges?.[0];
+    expect(change?.parameter).toBe('fee_rate_bps');
+    expect(change?.currentValue).toContain('50');
+    expect(change?.newValue).toContain('30');
+    expect(change?.newValue).toContain('0.3');
+  });
+
+  it('MaxDiscountRate proposal includes correct parameter name', async () => {
+    vi.useFakeTimers();
+    const payload: CreateProposalPayload = {
+      formType: 'MaxDiscountRate',
+      title: 'Lower discount',
+      description: 'Reduce discount',
+      newValueBps: 350,
+    };
+    const promise = createProposal(payload, SIGNER, mockSignTx);
+    vi.runAllTimers();
+    const result = await promise;
+    vi.useRealTimers();
+
+    const created = MOCK_PROPOSALS.find((p) => p.id === result.proposalId);
+    expect(created?.parameterChanges?.[0].parameter).toBe('max_discount_rate_bps');
+  });
+
+  it('AddToken proposal includes token name in new value', async () => {
+    vi.useFakeTimers();
+    const payload: CreateProposalPayload = {
+      formType: 'AddToken',
+      title: 'Add wBTC',
+      description: 'Add wrapped Bitcoin',
+      tokenAddress: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
+      tokenName: 'Wrapped Bitcoin',
+    };
+    const promise = createProposal(payload, SIGNER, mockSignTx);
+    vi.runAllTimers();
+    const result = await promise;
+    vi.useRealTimers();
+
+    const created = MOCK_PROPOSALS.find((p) => p.id === result.proposalId);
+    expect(created?.parameterChanges?.[0].newValue).toContain('Wrapped Bitcoin');
+  });
+});
+
+describe('governance – fetchProposals session state', () => {
+  it('includes userVote from session state', async () => {
+    vi.useFakeTimers();
+    const votePromise = castVote(3, 'For', SIGNER, mockSignTx);
+    vi.runAllTimers();
+    await votePromise;
+
+    const proposalPromise = fetchProposals();
+    vi.runAllTimers();
+    const proposals = await proposalPromise;
+    vi.useRealTimers();
+
+    const proposal = proposals.find((p) => p.id === 3);
+    expect(proposal?.userVote).toBe('For');
+  });
+
+  it('proposal without user vote has undefined userVote', async () => {
+    vi.useFakeTimers();
+    const proposalPromise = fetchProposals();
+    vi.runAllTimers();
+    const proposals = await proposalPromise;
+    vi.useRealTimers();
+
+    const proposal = proposals.find((p) => p.id === 2);
+    expect(proposal?.userVote).toBeUndefined();
   });
 });

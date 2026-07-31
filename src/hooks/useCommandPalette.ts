@@ -65,7 +65,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
       {
         id: 'payer',
         label: 'Go to Payer',
-        action: () => router.push('/payer'),
+        action: () => router.push('/dashboard/payer'),
         category: 'navigation',
       },
       {
@@ -89,13 +89,13 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
       {
         id: 'notifications',
         label: 'Open notification settings',
-        action: () => router.push('/settings/notifications'),
+        action: () => alert('Notification settings coming soon'),
         category: 'settings',
       },
       {
         id: 'addressbook',
         label: 'Open address book',
-        action: () => router.push('/settings/address-book'),
+        action: () => alert('Address book coming soon'),
         category: 'settings',
       },
       {
@@ -118,6 +118,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     const stored = localStorage.getItem(RECENT_COMMANDS_KEY);
     if (stored) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRecentCommandIds(JSON.parse(stored));
       } catch {}
     }
@@ -130,11 +131,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setQuery('');
-  }, []);
-
-  const toggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
     setQuery('');
   }, []);
 
@@ -151,11 +147,6 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     },
     [recentCommandIds, close]
   );
-
-  const clearHistory = useCallback(() => {
-    setRecentCommandIds([]);
-    localStorage.removeItem(RECENT_COMMANDS_KEY);
-  }, []);
 
   const filteredCommands = useMemo(() => {
     if (!query) {
@@ -177,6 +168,27 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
 
     return commands.filter((cmd) => fuzzyMatch(cmd.label, query));
   }, [query, commands, recentCommandIds, router]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setRecentCommandIds([]);
+    localStorage.removeItem(RECENT_COMMANDS_KEY);
+  }, []);
 
   return {
     isOpen,
