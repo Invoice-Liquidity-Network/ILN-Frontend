@@ -182,4 +182,32 @@ GTEST123,1000.00,USDC,3.50,2024-12-31`;
     // Should show total amount in summary
     expect(screen.getByText('Total Amount')).toBeInTheDocument();
   });
+
+  it('rejects/truncates 51-row CSV client-side with clear message matching 50-row contract limit', async () => {
+    render(<BatchInvoiceForm onSuccess={mockOnSuccess} />);
+
+    // Build a CSV with 51 rows
+    const header = 'payer,amount,token,discount_rate,due_date';
+    const rows = Array.from({ length: 51 }, (_, i) =>
+      `GTEST${i}EXAMPLE456DEF789GHI012JKL345MNO678PQR901STU234VWX567YZ,1000.00,USDC,3.50,2024-12-31`
+    );
+    const csvContent = [header, ...rows].join('\n');
+
+    const file = new File([csvContent], 'test_51.csv', { type: 'text/csv' });
+    const input = screen.getByLabelText('Click to upload CSV file').querySelector('input');
+
+    if (input) {
+      fireEvent.change(input, { target: { files: [file] } });
+    }
+
+    await waitFor(() => {
+      expect(mockAddToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'warning',
+          title: 'Rows Truncated',
+          message: 'Only the first 50 rows were loaded.',
+        })
+      );
+    });
+  });
 });
