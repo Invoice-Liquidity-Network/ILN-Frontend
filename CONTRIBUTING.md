@@ -10,25 +10,25 @@ Thank you for your interest in contributing to the Invoice Liquidity Network (IL
 
 ## Issue Leveling and Label Curation
 
-To help contributors find tasks aligned with their experience and available time, we triage issues by **Complexity** and **Context/Familiarity requirements**. 
+To help contributors find tasks aligned with their experience and available time, we triage issues by **Complexity** and **Context/Familiarity requirements**.
 
 ### "Good First Issue" vs. "Trivial Complexity"
 
 - **Good First Issue**:
+
   - **Context Requirement**: Low. A newcomer with no previous knowledge of our domain (Stellar/Soroban, invoice factoring, localized routing configurations) should be able to solve it using common web development skills.
   - **Self-Contained**: The task has a clear start and end point, affects isolated files, and does not require complex integrations or cross-cutting structural modifications.
   - **Examples**: Implementing helper scripts (such as `pnpm run clean`), writing troubleshooting documentation, adding static content/badges, fixing localized stylesheets.
   - **Label**: `good-first-issue`
 
 - **Trivial Complexity**:
-  - **Context Requirement**: Variable (often High). While the code changes themselves might be extremely small (e.g. changing 2 lines in a React context or smart contract call), it requires specific familiarity with the codebase, history, or integration layers to understand *why* the change is needed and how to do it safely.
+  - **Context Requirement**: Variable (often High). While the code changes themselves might be extremely small (e.g. changing 2 lines in a React context or smart contract call), it requires specific familiarity with the codebase, history, or integration layers to understand _why_ the change is needed and how to do it safely.
   - **Examples**: Tweaking a Freighter smart contract connection event listener, altering a specific Supabase permission or RLS script.
   - **Label**: `complexity: trivial`
 
 For a curated list of candidate issues matching these criteria, see [good-first-issue-candidates.md](docs/good-first-issue-candidates.md).
 
 ## Getting Started
-
 
 ### 1. Fork and Clone the Repository
 
@@ -55,14 +55,15 @@ The `prepare` script runs `husky` automatically, registering the hooks in `.husk
 
 ### What the hooks do
 
-| Hook         | Trigger      | Action                                                                  |
-| ------------ | ------------ | ----------------------------------------------------------------------- |
-| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only         |
+| Hook         | Trigger      | Action                                                                 |
+| ------------ | ------------ | ---------------------------------------------------------------------- |
+| `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only        |
 | `pre-push`   | `git push`   | Runs `tsc --incremental` to cache and catch type errors before pushing |
 
 ### Husky Hook Performance & Caching
 
 To optimize the contributor experience, we audited the performance of the Husky hooks:
+
 - **`pre-commit` (`npx lint-staged`)**: Takes ~1.9s to run when no staged files need formatting, and typically under 5–10s for formatted staged edits.
 - **`pre-push` (`tsc`)**: Switching from a full typecheck (`npx tsc --noEmit`) to an incremental typecheck (`npx tsc --incremental`) improves performance significantly:
   - **Cold Run (Full check / clean config)**: ~32.3 seconds.
@@ -196,6 +197,7 @@ pnpm run clean
 ```
 
 This clears the following paths:
+
 - `.next/` (Next.js build cache)
 - `.turbo/` (Turborepo execution cache)
 - `storybook-static/` (Storybook static build)
@@ -205,25 +207,25 @@ This clears the following paths:
 - `tsconfig.tsbuildinfo` (TypeScript incremental compilation info)
 
 After cleaning, run a fresh install and verify:
+
 ```bash
 pnpm install
 pnpm run verify
 ```
 
-
 ### Makefile Support
 
 For contributors who prefer using `make`, a top-level `Makefile` is available mirroring standard `pnpm` tasks:
 
-| Target | Executed Command | Purpose |
-| :--- | :--- | :--- |
-| `make install` | `pnpm install` | Install dependencies |
-| `make dev` | `pnpm dev` | Start development server |
-| `make build` | `pnpm build` | Build production bundle |
-| `make test` | `pnpm test` | Run Vitest unit tests |
-| `make lint` | `pnpm lint` | Run ESLint check |
-| `make format` | `pnpm format` | Run Prettier formatter |
-| `make verify` | `pnpm verify` | Run full verification suite |
+| Target         | Executed Command | Purpose                     |
+| :------------- | :--------------- | :-------------------------- |
+| `make install` | `pnpm install`   | Install dependencies        |
+| `make dev`     | `pnpm dev`       | Start development server    |
+| `make build`   | `pnpm build`     | Build production bundle     |
+| `make test`    | `pnpm test`      | Run Vitest unit tests       |
+| `make lint`    | `pnpm lint`      | Run ESLint check            |
+| `make format`  | `pnpm format`    | Run Prettier formatter      |
+| `make verify`  | `pnpm verify`    | Run full verification suite |
 
 ### Component Scaffolding
 
@@ -236,6 +238,7 @@ pnpm scaffold:component ui/CustomCard
 ```
 
 This command generates:
+
 - Component file: `src/components/<ComponentName>.tsx`
 - Storybook file: `src/components/<ComponentName>.stories.tsx`
 - Test stub file: `src/components/__tests__/<ComponentName>.test.tsx` (or inside the target subdirectory)
@@ -909,11 +912,11 @@ ILN uses `NEXT_PUBLIC_*_ENABLED` environment variable flags to gate features tha
 
 ### Current flags
 
-| Flag | Default | Purpose |
-| ---- | ------- | ------- |
-| `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` | `false` | Liquidity insurance pooling panel |
-| `NEXT_PUBLIC_NFT_ENABLED` | `false` | Soroban Invoice NFT metadata displays |
-| `NEXT_PUBLIC_ORACLE_ENABLED` | `false` | Oracle verification badges |
+| Flag                                 | Default | Purpose                               |
+| ------------------------------------ | ------- | ------------------------------------- |
+| `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` | `false` | Liquidity insurance pooling panel     |
+| `NEXT_PUBLIC_NFT_ENABLED`            | `false` | Soroban Invoice NFT metadata displays |
+| `NEXT_PUBLIC_ORACLE_ENABLED`         | `false` | Oracle verification badges            |
 
 ### Lifecycle stages
 
@@ -949,6 +952,7 @@ When a feature ships and the flag is no longer needed:
 ### Automated auditing
 
 The repo includes `scripts/audit-feature-flags.ts`, which scans the codebase and reports:
+
 - Which flags exist and where they are referenced.
 - Flags with zero code references (candidates for cleanup).
 - Flags whose default is `true` (candidates for full removal).

@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getBucketIndex,
-  aggregateHistogramData,
-  calculateMedian,
-  HistogramBucket,
-} from '../AmountHistogram';
+import { getBucketIndex, aggregateHistogramData, calculateMedian } from '../AmountHistogram';
 import { Invoice } from '../../../utils/soroban';
 
 const mockInvoices: Invoice[] = [

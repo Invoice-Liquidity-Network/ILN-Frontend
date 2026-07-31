@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '../app/api/auth/challenge';
 import { POST } from '../app/api/auth/verify';
-import { Keypair } from '@stellar/stellar-sdk';
 
 describe('/api/auth Integration Tests', () => {
   const validPublicKey = 'GD6WACCBH6M6V45TXWZ6T375LMDRCFEHQVQLJLT3GMS6I4DZEATSTJZZ';

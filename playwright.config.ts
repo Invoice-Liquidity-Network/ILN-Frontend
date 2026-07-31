@@ -35,10 +35,14 @@ export default defineConfig({
   webServer: isRemoteBaseUrl
     ? undefined
     : {
-        command: 'pnpm dev',
+        // In CI, build+start a production server: next-pwa only injects a full
+        // service worker precache manifest for production builds, and the
+        // offline/PWA specs need that to get real signal. Locally, `pnpm dev`
+        // is faster for iteration and doesn't affect those specs' assertions.
+        command: process.env.CI ? 'pnpm build && pnpm start' : 'pnpm dev',
         url: 'http://127.0.0.1:3000',
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: process.env.CI ? 240_000 : 120_000,
         env: {
           NEXT_PUBLIC_API_MOCKING: process.env.NEXT_PUBLIC_API_MOCKING || 'enabled',
         },

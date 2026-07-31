@@ -6,8 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import VoteSection from '@/components/VoteSection';
-import VoteProgressBar from '@/components/VoteProgressBar';
-import QuorumProgressBar from '@/components/QuorumProgressBar';
 import { GOVERNANCE_ADMIN_ADDRESS } from '@/constants';
 import { useToast } from '@/context/ToastContext';
 import { useWallet } from '@/context/WalletContext';
@@ -25,7 +23,6 @@ import {
   getVotingPower,
   quorumReached,
   timeRemaining,
-  totalVotes,
   vetoProposal,
 } from '@/utils/governance';
 
@@ -193,7 +190,7 @@ export default function ProposalDetailPage() {
   const router = useRouter();
   const { address, isConnected, connect, signTx } = useWallet();
   const { addToast, updateToast } = useToast();
-  const { execute, loading: isVoting, signingModal } = useTransaction();
+  const { execute, loading: isVoting } = useTransaction();
 
   const proposalId = Number(params.id);
 
@@ -314,7 +311,6 @@ export default function ProposalDetailPage() {
   const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0;
 
   const remaining = proposal ? timeRemaining(proposal) : '';
-  const total = proposal ? totalVotes(proposal) : 0;
   const quorum = proposal ? quorumReached(proposal) : false;
   const now = Math.floor(Date.now() / 1000);
   const timelockRemaining =

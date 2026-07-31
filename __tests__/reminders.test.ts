@@ -180,7 +180,9 @@ describe('/api/reminders API route', () => {
         expect.objectContaining({
           to: ['payer@example.com'],
           headers: expect.objectContaining({
-            'List-Unsubscribe': expect.stringContaining('/api/reminders/unsubscribe?address=GPA123'),
+            'List-Unsubscribe': expect.stringContaining(
+              '/api/reminders/unsubscribe?address=GPA123'
+            ),
           }),
         })
       );

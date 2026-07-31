@@ -43,7 +43,10 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300">
+    <nav
+      aria-label={t('nav.mainNavigation')}
+      className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/15 shadow-sm h-20 transition-colors duration-300"
+    >
       <div className="flex justify-between items-center px-8 h-full max-w-7xl mx-auto">
         <Link
           href="/"

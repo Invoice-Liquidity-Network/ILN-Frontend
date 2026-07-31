@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 import ProposalDetailPage from '../app/governance/[id]/page';
-import { useRouter } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
 import { useTransaction } from '@/hooks/useTransaction';
 import { useToast } from '@/context/ToastContext';

@@ -15,10 +15,7 @@ import { formatUSDC, formatAddress, formatDate } from '@/utils/format';
 import { rpc, TransactionBuilder } from '@stellar/stellar-sdk';
 import { RPC_URL, NETWORK_PASSPHRASE } from '@/constants';
 import { paginate, pageCountFor } from '@/utils/pagination';
-import SkeletonRow, { FREELANCER_COLUMNS } from '@/components/SkeletonRow';
 import { ExportButton } from '@/components/ExportButton';
-import { EmptyState } from '@/components/EmptyState';
-import { FreelancerEmptyIllustration } from '@/components/illustrations/EmptyIllustrations';
 
 const server = new rpc.Server(RPC_URL);
 

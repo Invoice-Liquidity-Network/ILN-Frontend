@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Info, TrendingUp, AlertTriangle } from 'lucide-react';
+import { TrendingUp, AlertTriangle } from 'lucide-react';
 
 interface ScoreSimulatorProps {
   currentPaid: number;
@@ -12,7 +12,7 @@ interface ScoreSimulatorProps {
 export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
   currentPaid,
   currentSubmitted,
-  currentDefaulted,
+  currentDefaulted: _currentDefaulted,
 }) => {
   const [additionalPaid, setAdditionalPaid] = useState<number>(0);
   const [additionalDefaulted, setAdditionalDefaulted] = useState<number>(0);
@@ -36,7 +36,7 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
   useEffect(() => {
     // Simple animation logic for the score transition
     if (typeof projectedScore === 'number') {
-      let start = typeof displayScore === 'number' ? displayScore : 0;
+      const start = typeof displayScore === 'number' ? displayScore : 0;
       const end = projectedScore;
       const duration = 500;
       const startTime = performance.now();

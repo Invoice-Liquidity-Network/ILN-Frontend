@@ -23,6 +23,13 @@ declare module 'next-pwa' {
     sw?: string;
     runtimeCaching?: RuntimeCachingRule[];
     subdomains?: boolean;
+    fallbacks?: {
+      document?: string;
+      image?: string;
+      audio?: string;
+      video?: string;
+      font?: string;
+    };
   }
 
   function withPWA(

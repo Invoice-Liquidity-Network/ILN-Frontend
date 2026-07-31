@@ -60,10 +60,10 @@ jobs:
           TOTAL_BYTES=$(( JS_BYTES + CSS_BYTES ))
 
           # Convert to KB / MB for display
-          JS_KB=$(echo "scale=1; $JS_BYTES/1024" | bc)
-          CSS_KB=$(echo "scale=1; $CSS_BYTES/1024" | bc)
-          TOTAL_KB=$(echo "scale=1; $TOTAL_BYTES/1024" | bc)
-          TOTAL_MB=$(echo "scale=2; $TOTAL_BYTES/1024/1024" | bc)
+          JS_KB=$(awk "BEGIN { printf \"%.1f\", $JS_BYTES/1024 }")
+          CSS_KB=$(awk "BEGIN { printf \"%.1f\", $CSS_BYTES/1024 }")
+          TOTAL_KB=$(awk "BEGIN { printf \"%.1f\", $TOTAL_BYTES/1024 }")
+          TOTAL_MB=$(awk "BEGIN { printf \"%.2f\", $TOTAL_BYTES/1024/1024 }")
 
           echo "js_bytes=$JS_BYTES"   >> "$GITHUB_OUTPUT"
           echo "css_bytes=$CSS_BYTES" >> "$GITHUB_OUTPUT"
@@ -112,7 +112,7 @@ jobs:
           TOTAL_BYTES=${{ steps.measure.outputs.total_bytes }}
           TOTAL_KB=${{ steps.measure.outputs.total_kb }}
 
-          echo "Budget   : $(echo 'scale=1; 3145728/1024/1024' | bc) MB"
+          echo "Budget   : $(awk 'BEGIN { printf "%.1f", 3145728/1024/1024 }') MB"
           echo "Actual   : ${TOTAL_KB} KB"
 
           if [ "$TOTAL_BYTES" -gt "$MAX_TOTAL_BYTES" ]; then

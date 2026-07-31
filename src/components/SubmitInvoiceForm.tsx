@@ -348,7 +348,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
             <div className="mt-4">
               <Link
                 href="/invoices/batch"
-                className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                className="-my-2.5 inline-flex items-center gap-2 py-2.5 text-sm text-primary hover:underline font-medium"
               >
                 <span className="material-symbols-outlined text-[18px]">upload_file</span>
                 Submit multiple invoices (CSV/Batch)

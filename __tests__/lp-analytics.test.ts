@@ -1,7 +1,6 @@
 import { expect, test, describe } from 'vitest';
 import {
   calculateLPMetrics,
-  getMonthlyYieldData,
   getOutcomeBreakdown,
   getPayerPerformance,
 } from '../utils/lp-analytics';

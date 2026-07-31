@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import FundConfirmModal from '../src/components/FundConfirmModal';
 import { Invoice } from '../src/utils/soroban';
@@ -50,7 +50,7 @@ vi.mock('../src/utils/soroban', () => ({
 
 vi.mock('../src/utils/format', () => ({
   formatTokenAmount: (val: bigint) => (Number(val) / 10 ** 7).toString(),
-  formatDate: (val: bigint) => '2026-01-01',
+  formatDate: (_val: bigint) => '2026-01-01',
   calculateYield: (val: bigint, rate: number) => (val * BigInt(rate)) / 10000n,
   formatAddress: (val: string) => val.slice(0, 4),
 }));

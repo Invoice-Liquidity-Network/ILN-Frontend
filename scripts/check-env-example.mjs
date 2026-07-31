@@ -43,13 +43,19 @@ function readEnvNamesFromExample() {
 }
 
 function readAllowlist() {
-  const content = readFileSync(path.join(ROOT, ALLOWLIST_FILE), 'utf8');
+  let content;
+  try {
+    content = readFileSync(path.join(ROOT, ALLOWLIST_FILE), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return new Set();
+    throw error;
+  }
 
   return new Set(
     content
       .split('\n')
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#')),
+      .filter((line) => line && !line.startsWith('#'))
   );
 }
 
@@ -81,8 +87,10 @@ if (missing.length > 0) {
   for (const name of missing) {
     console.error(`- ${name}`);
   }
-  console.error(`\nAdd public/config vars to ${EXAMPLE_FILE} or runtime-only exceptions to ${ALLOWLIST_FILE}.`);
+  console.error(
+    `\nAdd public/config vars to ${EXAMPLE_FILE} or runtime-only exceptions to ${ALLOWLIST_FILE}.`
+  );
   process.exit(1);
 }
 
-console.log(`${EXAMPLE_FILE} covers all direct app/ and src/ env references.`);
+console.error(`${EXAMPLE_FILE} covers all direct app/ and src/ env references.`);

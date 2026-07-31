@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { isValidStellarAddress, getVotingPower as fetchVotingPower } from '@/utils/governance';
+import { isValidStellarAddress } from '@/utils/governance';
 import { resolveFederatedAddress } from '@/utils/federation';
 import { useWallet } from '@/context/WalletContext';
 import { useTransaction } from '@/hooks/useTransaction';
@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  RefreshCcw,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -26,9 +25,9 @@ export const DelegationPanel: React.FC = () => {
 
   // Mock delegation state
   const [currentDelegation, setCurrentDelegation] = useState<string | null>(null);
-  const [ownBalance, setOwnBalance] = useState(1250);
-  const [incomingDelegations, setIncomingDelegations] = useState(450);
-  const [loading, setLoading] = useState(true);
+  const [ownBalance, _setOwnBalance] = useState(1250);
+  const [incomingDelegations, _setIncomingDelegations] = useState(450);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isConnected && address) {

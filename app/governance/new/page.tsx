@@ -266,7 +266,7 @@ IPFS Hash: ${ipfsHash}`,
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-3xl">
+    <main className="container mx-auto p-6 max-w-3xl">
       <h1 className="text-3xl font-bold mb-6">Create New Governance Proposal</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -450,6 +450,6 @@ IPFS Hash: ${ipfsHash}`,
           Submit Proposal
         </Button>
       </form>
-    </div>
+    </main>
   );
 }

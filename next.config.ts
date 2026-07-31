@@ -35,6 +35,9 @@ export default withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
+  fallbacks: {
+    document: '/offline',
+  },
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

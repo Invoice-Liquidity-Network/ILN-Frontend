@@ -34,7 +34,7 @@ const submitSignedTransaction = vi.fn();
 vi.mock('../../hooks/useInvoices', () => ({
   useInvoices: vi.fn(),
   useFundInvoice: vi.fn(() => ({
-    mutate: vi.fn((id, { onSuccess, onError }) => {
+    mutate: vi.fn((_id, { onSuccess: _onSuccess, onError: _onError }) => {
       // Manual trigger for testing
     }),
     isPending: false,

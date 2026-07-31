@@ -262,10 +262,16 @@ export default function FreelancerAnalyticsDashboard() {
               </button>
             </div>
           ) : loading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div
+              className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="sr-only">Loading analytics data…</span>
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
+                  aria-hidden="true"
                   className="h-32 animate-pulse rounded-2xl bg-surface-container-low"
                 />
               ))}
