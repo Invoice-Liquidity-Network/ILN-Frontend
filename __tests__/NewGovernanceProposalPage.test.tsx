@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import NewGovernanceProposalPage from '../app/governance/new/page.tsx';
 import { useRouter } from 'next/navigation';

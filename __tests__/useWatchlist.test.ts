@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useWatchlist } from '../hooks/useWatchlist';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('useWatchlist', () => {
   const walletAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';

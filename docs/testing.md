@@ -10,13 +10,13 @@ The repository uses a layered testing setup rather than a single test tool. Use 
 
 ## When to use which tool
 
-| Scenario | Preferred tool | Why |
-| --- | --- | --- |
-| Pure logic, state hooks, or small component behavior | Vitest | Fast feedback, easy to run locally, and already used across `__tests__/` and `src/**/__tests__`. |
-| Full user journey in a browser | Playwright | Exercises real navigation and interaction across the app. |
-| Accessibility regressions for a component | jest-axe | Best fit for screen-reader and semantic HTML issues. |
-| UI consistency and visual diffs | Storybook + Chromatic | Lets contributors review component states and catch unintended styling changes. |
-| API or contract responses that should be deterministic | MSW | Keeps tests isolated from external services and matches the current mock setup. |
+| Scenario                                               | Preferred tool        | Why                                                                                              |
+| ------------------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------------------ |
+| Pure logic, state hooks, or small component behavior   | Vitest                | Fast feedback, easy to run locally, and already used across `__tests__/` and `src/**/__tests__`. |
+| Full user journey in a browser                         | Playwright            | Exercises real navigation and interaction across the app.                                        |
+| Accessibility regressions for a component              | jest-axe              | Best fit for screen-reader and semantic HTML issues.                                             |
+| UI consistency and visual diffs                        | Storybook + Chromatic | Lets contributors review component states and catch unintended styling changes.                  |
+| API or contract responses that should be deterministic | MSW                   | Keeps tests isolated from external services and matches the current mock setup.                  |
 
 ## Test locations and conventions
 

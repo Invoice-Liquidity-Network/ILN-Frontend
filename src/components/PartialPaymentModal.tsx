@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Invoice, TokenMetadata } from '@/utils/soroban';
 import { formatTokenAmount } from '@/utils/format';
 

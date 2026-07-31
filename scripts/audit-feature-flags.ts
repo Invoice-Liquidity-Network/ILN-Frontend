@@ -12,7 +12,6 @@
  *   node --experimental-strip-types scripts/audit-feature-flags.ts
  */
 
-import { execSync } from 'child_process';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 
@@ -179,11 +178,7 @@ function buildReport(): FlagReport[] {
       status = 'unused';
     } else if (defaultVal?.includes('true') && !defaultVal.includes('false')) {
       status = 'always-on';
-    } else if (
-      defaultVal?.includes('false') &&
-      !defaultVal.includes('true') &&
-      usages.length > 0
-    ) {
+    } else if (defaultVal?.includes('false') && !defaultVal.includes('true') && usages.length > 0) {
       // Flag defaults to false — "always-off" unless there's an override path
       // We conservatively mark as 'active' since the override may be in .env.local
       status = 'active';
@@ -207,9 +202,9 @@ function buildReport(): FlagReport[] {
 function printReport(reports: FlagReport[]): void {
   const separator = '─'.repeat(80);
 
-  console.log('\n' + separator);
-  console.log('  ILN Frontend — Feature Flag Audit');
-  console.log(separator + '\n');
+  console.error('\n' + separator);
+  console.error('  ILN Frontend — Feature Flag Audit');
+  console.error(separator + '\n');
 
   const byStatus = {
     active: reports.filter((r) => r.status === 'active'),
@@ -218,12 +213,12 @@ function printReport(reports: FlagReport[]): void {
     unused: reports.filter((r) => r.status === 'unused'),
   };
 
-  console.log(`Total flags found: ${reports.length}`);
-  console.log(`  ✅  active     : ${byStatus.active.length}`);
-  console.log(`  🔴  always-on  : ${byStatus['always-on'].length}`);
-  console.log(`  ⚪  always-off : ${byStatus['always-off'].length}`);
-  console.log(`  ⚠️   unused     : ${byStatus.unused.length}`);
-  console.log('');
+  console.error(`Total flags found: ${reports.length}`);
+  console.error(`  ✅  active     : ${byStatus.active.length}`);
+  console.error(`  🔴  always-on  : ${byStatus['always-on'].length}`);
+  console.error(`  ⚪  always-off : ${byStatus['always-off'].length}`);
+  console.error(`  ⚠️   unused     : ${byStatus.unused.length}`);
+  console.error('');
 
   for (const report of reports) {
     const icon =
@@ -235,39 +230,41 @@ function printReport(reports: FlagReport[]): void {
             ? '⚪'
             : '⚠️';
 
-    console.log(`${icon}  ${report.name}`);
-    console.log(
+    console.error(`${icon}  ${report.name}`);
+    console.error(
       `    status        : ${report.status}${report.defaultValue ? ` (default: ${report.defaultValue})` : ''}`
     );
-    console.log(`    defined in env : ${report.defined ? 'yes' : 'no — consider adding to src/lib/env.ts'}`);
-    console.log(`    usage count   : ${report.usages.length}`);
+    console.error(
+      `    defined in env : ${report.defined ? 'yes' : 'no — consider adding to src/lib/env.ts'}`
+    );
+    console.error(`    usage count   : ${report.usages.length}`);
 
     if (report.usages.length > 0) {
-      console.log('    references:');
+      console.error('    references:');
       for (const u of report.usages) {
-        console.log(`      ${u.file}:${u.line}`);
-        console.log(`        ${u.snippet}`);
+        console.error(`      ${u.file}:${u.line}`);
+        console.error(`        ${u.snippet}`);
       }
     }
 
     if (report.status === 'unused') {
-      console.log(
+      console.error(
         '    ⚠️  ACTION: This flag has no code references. Consider removing it from env.ts and .env.local.example.'
       );
     }
 
     if (report.status === 'always-on') {
-      console.log(
+      console.error(
         '    🔴 ACTION: This flag defaults to true. If the feature is fully shipped, remove the flag and all conditional checks.'
       );
     }
 
-    console.log('');
+    console.error('');
   }
 
-  console.log(separator);
-  console.log('  For the flag lifecycle policy, see CONTRIBUTING.md § Feature Flag Lifecycle.');
-  console.log(separator + '\n');
+  console.error(separator);
+  console.error('  For the flag lifecycle policy, see CONTRIBUTING.md § Feature Flag Lifecycle.');
+  console.error(separator + '\n');
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────

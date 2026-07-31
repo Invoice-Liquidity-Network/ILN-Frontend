@@ -6,17 +6,18 @@ This document describes the bundle size tracking strategy, threshold policy, and
 
 ILN Frontend carries several heavy production dependencies:
 
-| Package | Purpose | Approx. weight |
-| ------- | ------- | -------------- |
-| `recharts` | Cash flow & analytics charts | ~450 KB |
-| `jspdf` | Invoice PDF export | ~300 KB |
-| `@react-email/components` | Email preview rendering | ~200 KB |
-| `next-pwa` | Progressive Web App support | ~100 KB |
-| `@stellar/stellar-sdk` | Soroban smart contract calls | ~600 KB |
+| Package                   | Purpose                      | Approx. weight |
+| ------------------------- | ---------------------------- | -------------- |
+| `recharts`                | Cash flow & analytics charts | ~450 KB        |
+| `jspdf`                   | Invoice PDF export           | ~300 KB        |
+| `@react-email/components` | Email preview rendering      | ~200 KB        |
+| `next-pwa`                | Progressive Web App support  | ~100 KB        |
+| `@stellar/stellar-sdk`    | Soroban smart contract calls | ~600 KB        |
 
 Lighthouse's Core Web Vitals audit provides a point-in-time performance budget, but it does not track bundle size _changes_ between PRs. A gradual creep — where each PR adds 5–10 KB — would never trigger a single threshold violation but could double the bundle over 20 PRs.
 
 The `bundle-size.yml` workflow addresses this by:
+
 1. Measuring JavaScript and CSS output sizes on every PR.
 2. Posting a summary comment showing current sizes against the budget.
 3. Failing the check if the absolute threshold is breached.
@@ -25,11 +26,11 @@ The `bundle-size.yml` workflow addresses this by:
 
 ### Absolute budget
 
-| Asset type | Budget |
-| ---------- | ------ |
-| JavaScript (`.next/static/chunks/**/*.js`) | — |
-| CSS (`.next/static/css/**/*.css`) | — |
-| **Total (JS + CSS)** | **3,072 KB (3 MB)** |
+| Asset type                                 | Budget              |
+| ------------------------------------------ | ------------------- |
+| JavaScript (`.next/static/chunks/**/*.js`) | —                   |
+| CSS (`.next/static/css/**/*.css`)          | —                   |
+| **Total (JS + CSS)**                       | **3,072 KB (3 MB)** |
 
 A PR will **fail** if the combined JS + CSS output exceeds **3 MB**. This threshold is conservative — the current baseline is well under 3 MB — but provides a hard stop against catastrophic regressions (e.g., accidentally bundling server-only code into the client).
 
@@ -81,10 +82,9 @@ If a PR triggers the delta warning or exceeds the absolute threshold, here are t
 Wrap large, lazily-needed components with `next/dynamic`:
 
 ```tsx
-const YieldAnalyticsChart = dynamic(
-  () => import('@/components/YieldAnalyticsChart'),
-  { ssr: false }
-);
+const YieldAnalyticsChart = dynamic(() => import('@/components/YieldAnalyticsChart'), {
+  ssr: false,
+});
 ```
 
 ### 2. Tree-shake imports
@@ -113,6 +113,7 @@ Look for unexpectedly large modules in the client bundle (e.g., `stellar-sdk` su
 ### 4. Audit new dependencies before adding
 
 Before adding a new package, check its size on [bundlephobia.com](https://bundlephobia.com). Prefer packages with:
+
 - Side-effect-free ESM exports
 - Tree-shaking support
 - Gzipped size < 50 KB for utility libraries

@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PayInvoicePage from '../page';
 import * as soroban from '../../../../utils/soroban';
 import { useWallet } from '../../../../context/WalletContext';

@@ -17,12 +17,14 @@ All GitHub Actions workflows in this repository use a custom/self-hosted runner 
 ### Runner Configuration Location
 
 The runner is configured at the organization/repository level in GitHub Actions settings. Maintainers with admin access can view and modify runner configuration in:
+
 - Repository Settings → Actions → Runners
 - Organization Settings → Actions → Runners (if configured at org level)
 
 ### Fallback Behavior
 
 If `namespace-profile-nursca` becomes unavailable:
+
 - **For this repository**: Workflows will fail until the runner is restored
 - **For forks**: Forks will not have access to this custom runner
 
@@ -35,6 +37,7 @@ If you are working from a fork, you must modify workflow files to use GitHub-hos
 3. Be aware that test execution times may differ on GitHub-hosted runners
 
 Example change:
+
 ```yaml
 # Before
 runs-on: namespace-profile-nursca
@@ -46,6 +49,7 @@ runs-on: ubuntu-latest
 ### Workflows Using Custom Runner
 
 The following workflows use `namespace-profile-nursca`:
+
 - `ci.yml` - Lint, unit tests, build
 - `e2e-tests.yml` - End-to-end Playwright tests
 - `visual-regression.yml` - Chromatic visual regression tests
@@ -112,10 +116,12 @@ Note: E2E tests (`End-to-End Tests / e2e`) are **not required** for `develop` br
 ### CI Workflow (ci.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `lint` - ESLint validation
 - `tests` - Unit tests + accessibility tests
 - `build` - Production build verification
@@ -123,64 +129,78 @@ Jobs:
 ### End-to-End Tests (e2e-tests.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `e2e` - Playwright E2E test suite with artifact uploads
 
 ### Visual Regression Tests (visual-regression.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `chromatic` - Chromatic visual regression testing (requires `CHROMATIC_PROJECT_TOKEN` secret)
 
 ### Storybook Deployment (storybook-deploy.yml)
 
 Triggers:
+
 - Push to `main`
 - Manual workflow dispatch
 
 Jobs:
+
 - `build-and-deploy` - Builds Storybook and deploys to GitHub Pages
 
 ### Lighthouse Performance Budget (lighthouse.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `lighthouse` - Lighthouse CI performance budget validation
 
 ### Accessibility Tests (accessibility.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `accessibility` - Consolidated accessibility validation for the dedicated axe suite and page-level accessibility tests
 
 ### Contract Integration Tests (contract-tests.yml)
 
 Triggers:
+
 - Push to `main` or `develop`
 - Pull requests targeting `main` or `develop`
 
 Jobs:
+
 - `contract-tests` - Stellar SDK contract tests with 90% coverage enforcement
 
 ### Workflow Lint (workflow-lint.yml)
 
 Triggers:
+
 - Push to `main` or `develop` with changes to `.github/workflows/**`
 - Pull requests with changes to `.github/workflows/**`
 
 Jobs:
+
 - `actionlint` - GitHub Actions workflow syntax validation
 
 ## Required Secrets
@@ -188,9 +208,11 @@ Jobs:
 The following secrets must be configured in the repository settings:
 
 ### Chromatic
+
 - `CHROMATIC_PROJECT_TOKEN` - Project token for Chromatic visual regression testing
 
 ### Other Secrets
+
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions (no manual configuration needed)
 
 ## Per-Workflow Environment Variables
@@ -199,9 +221,9 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `ci.yml` — Lint, Tests, Build
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `build` | _(none set explicitly)_ | — | The build step does **not** set `NEXT_PUBLIC_STELLAR_NETWORK` or any feature flags. Next.js will use the defaults baked into `src/lib/env.ts` (e.g. `NEXT_PUBLIC_STELLAR_NETWORK=testnet`). This is intentional — the build verifies that the app compiles with fallback values only. |
+| Job     | Variable                | Source | Value / Note                                                                                                                                                                                                                                                                          |
+| ------- | ----------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build` | _(none set explicitly)_ | —      | The build step does **not** set `NEXT_PUBLIC_STELLAR_NETWORK` or any feature flags. Next.js will use the defaults baked into `src/lib/env.ts` (e.g. `NEXT_PUBLIC_STELLAR_NETWORK=testnet`). This is intentional — the build verifies that the app compiles with fallback values only. |
 
 **Gap:** If a future feature flag is added without a hardcoded default in `src/lib/env.ts`, the CI build may silently build with the flag disabled. Always provide a sensible default in `env.ts`.
 
@@ -209,11 +231,11 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `lighthouse.yml` — Lighthouse Performance Budget
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `lighthouse` | `CI` | inline `env:` | `true` — suppresses interactive prompts |
-| `lighthouse` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:` | `testnet` — ensures Soroban RPC points to testnet during the build |
-| `lighthouse` | `LHCI_GITHUB_TOKEN` | `secrets.GITHUB_TOKEN` | Used to post Lighthouse results as a PR status check |
+| Job          | Variable                      | Source                 | Value / Note                                                       |
+| ------------ | ----------------------------- | ---------------------- | ------------------------------------------------------------------ |
+| `lighthouse` | `CI`                          | inline `env:`          | `true` — suppresses interactive prompts                            |
+| `lighthouse` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:`          | `testnet` — ensures Soroban RPC points to testnet during the build |
+| `lighthouse` | `LHCI_GITHUB_TOKEN`           | `secrets.GITHUB_TOKEN` | Used to post Lighthouse results as a PR status check               |
 
 **Note:** All other `NEXT_PUBLIC_*` variables use their defaults from `src/lib/env.ts`. Feature flags (`NEXT_PUBLIC_NFT_ENABLED`, `NEXT_PUBLIC_INSURANCE_POOL_ENABLED`, `NEXT_PUBLIC_ORACLE_ENABLED`) default to `false` in this workflow, meaning the Lighthouse audit runs against the baseline feature set.
 
@@ -221,8 +243,8 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `e2e-tests.yml` — Playwright End-to-End Tests
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
+| Job   | Variable                  | Source        | Value / Note                                                                            |
+| ----- | ------------------------- | ------------- | --------------------------------------------------------------------------------------- |
 | `e2e` | `NEXT_PUBLIC_API_MOCKING` | inline `env:` | `"enabled"` — activates MSW mock service worker so tests run without a live Soroban RPC |
 
 **Note:** No `NEXT_PUBLIC_STELLAR_NETWORK` is set. The app uses the `testnet` default from `src/lib/env.ts`. Tests run against mocked network responses via MSW.
@@ -231,9 +253,9 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `accessibility.yml` — Accessibility Tests
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `accessibility` | `CI` | inline `env:` | `true` — disables watch mode, ensures clean exit |
+| Job             | Variable | Source        | Value / Note                                     |
+| --------------- | -------- | ------------- | ------------------------------------------------ |
+| `accessibility` | `CI`     | inline `env:` | `true` — disables watch mode, ensures clean exit |
 
 **Note:** No network variables are needed; accessibility tests use Vitest with jsdom and do not connect to Stellar.
 
@@ -241,9 +263,9 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `contract-tests.yml` — Contract Integration Tests
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `contract-tests` | `CI` | inline `env:` | `true` |
+| Job              | Variable | Source        | Value / Note |
+| ---------------- | -------- | ------------- | ------------ |
+| `contract-tests` | `CI`     | inline `env:` | `true`       |
 
 **Note:** Contract tests mock the Stellar SDK at the module boundary via `vi.mock()` and do not require live network access. No Soroban RPC URL is needed.
 
@@ -251,44 +273,44 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `visual-regression.yml` — Chromatic Visual Regression
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `chromatic` | `NODE_OPTIONS` | inline `env:` | `--max_old_space_size=4096` — prevents OOM during Storybook build with large component library |
-| `chromatic` | `CHROMATIC_PROJECT_TOKEN` | `secrets.CHROMATIC_PROJECT_TOKEN` | Required for Chromatic authentication. Workflow is skipped if unset (fork PRs). |
+| Job         | Variable                  | Source                            | Value / Note                                                                                   |
+| ----------- | ------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `chromatic` | `NODE_OPTIONS`            | inline `env:`                     | `--max_old_space_size=4096` — prevents OOM during Storybook build with large component library |
+| `chromatic` | `CHROMATIC_PROJECT_TOKEN` | `secrets.CHROMATIC_PROJECT_TOKEN` | Required for Chromatic authentication. Workflow is skipped if unset (fork PRs).                |
 
 ---
 
 ### `storybook-deploy.yml` — Storybook GitHub Pages Deployment
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| _(none)_ | — | — | Storybook build uses no env vars. Components render with mocked data. |
+| Job      | Variable | Source | Value / Note                                                          |
+| -------- | -------- | ------ | --------------------------------------------------------------------- |
+| _(none)_ | —        | —      | Storybook build uses no env vars. Components render with mocked data. |
 
 ---
 
 ### `bundle-size.yml` — Bundle Size Regression Tracking
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| `bundle-size` | `CI` | inline `env:` | `true` |
-| `bundle-size` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:` | `testnet` — keeps the build consistent with `lighthouse.yml` |
-| `bundle-size` | `ANALYZE` | inline `env:` | `true` — enables `@next/bundle-analyzer` output if configured |
+| Job           | Variable                      | Source        | Value / Note                                                  |
+| ------------- | ----------------------------- | ------------- | ------------------------------------------------------------- |
+| `bundle-size` | `CI`                          | inline `env:` | `true`                                                        |
+| `bundle-size` | `NEXT_PUBLIC_STELLAR_NETWORK` | inline `env:` | `testnet` — keeps the build consistent with `lighthouse.yml`  |
+| `bundle-size` | `ANALYZE`                     | inline `env:` | `true` — enables `@next/bundle-analyzer` output if configured |
 
 ---
 
 ### `feature-flag-audit.yml` — Feature Flag Audit (Informational)
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| _(none)_ | — | — | The audit script reads source files only; no env vars are needed at runtime. |
+| Job      | Variable | Source | Value / Note                                                                 |
+| -------- | -------- | ------ | ---------------------------------------------------------------------------- |
+| _(none)_ | —        | —      | The audit script reads source files only; no env vars are needed at runtime. |
 
 ---
 
 ### `mutation-testing.yml` — Stryker Mutation Testing (Scheduled)
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| _(none)_ | — | — | Runs on the `ubuntu-latest` runner (not the custom runner). Uses `npm ci` for install. |
+| Job      | Variable | Source | Value / Note                                                                           |
+| -------- | -------- | ------ | -------------------------------------------------------------------------------------- |
+| _(none)_ | —        | —      | Runs on the `ubuntu-latest` runner (not the custom runner). Uses `npm ci` for install. |
 
 **Gap:** This workflow uses `node: '20'` (generic) rather than `node-version-file: '.nvmrc'`. This means mutation tests may run on a slightly different Node patch than CI. Consider aligning with `.nvmrc`.
 
@@ -296,9 +318,9 @@ This section documents the environment variables that each workflow sets or impl
 
 ### `workflow-lint.yml` — GitHub Actions Workflow Linting
 
-| Job | Variable | Source | Value / Note |
-| --- | -------- | ------ | ------------ |
-| _(none)_ | — | — | Uses `ubuntu-latest`. Only validates YAML syntax with `actionlint`. |
+| Job      | Variable | Source | Value / Note                                                        |
+| -------- | -------- | ------ | ------------------------------------------------------------------- |
+| _(none)_ | —        | —      | Uses `ubuntu-latest`. Only validates YAML syntax with `actionlint`. |
 
 ---
 
@@ -319,6 +341,7 @@ This section documents the environment variables that each workflow sets or impl
 ### Maintainer Action Required
 
 Please verify the following:
+
 - [ ] Confirm the actual branch protection rules configured in GitHub repository settings match the documentation above
 - [ ] Review and update custom runner configuration documentation if `namespace-profile-nursca` setup has changed
 - [ ] Add `bundle-size` to branch protection required checks (once baseline is established)

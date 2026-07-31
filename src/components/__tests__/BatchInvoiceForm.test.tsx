@@ -89,7 +89,7 @@ describe('BatchInvoiceForm', () => {
 
   it('enables submit button only with valid data', async () => {
     render(<BatchInvoiceForm onSuccess={vi.fn()} />);
-    let submitButton = screen.queryByRole('button', { name: /submit|send/i });
+    const submitButton = screen.queryByRole('button', { name: /submit|send/i });
     if (submitButton) {
       expect(submitButton).toBeDisabled();
     }

@@ -25,7 +25,7 @@ vi.mock('react-i18next', () => ({
 
 describe('RoadmapPage', () => {
   it('renders roadmap page with header', () => {
-    const { asFragment } = render(<RoadmapPage />);
+    render(<RoadmapPage />);
 
     // Check for main heading
     expect(screen.getByText('ILN Roadmap')).toBeInTheDocument();

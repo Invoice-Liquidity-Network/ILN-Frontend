@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import SubmitInvoiceForm from '../components/SubmitInvoiceForm';
 import { ToastProvider } from '../context/ToastContext';
-import { WalletProvider } from '../context/WalletContext';
 
 // Mock the hooks used in SubmitInvoiceForm
 vi.mock('../hooks/useApprovedTokens', () => ({

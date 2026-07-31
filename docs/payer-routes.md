@@ -9,10 +9,12 @@ Summary
 Purpose of each route
 
 - /dashboard/payer
+
   - Canonical "Invoice Inbox" for payers.
   - Shows all invoices addressed to the connected wallet, supports settling, dispute/appeal flows, and overview totals.
 
 - /payer (deprecated)
+
   - Previously contained the payer dashboard implementation.
   - Now performs a server-side redirect to /dashboard/payer to preserve existing links/bookmarks.
 

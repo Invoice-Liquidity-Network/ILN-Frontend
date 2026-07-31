@@ -8,22 +8,22 @@ The current implementation expects two tables:
 
 ### `public.reminder_preferences`
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `address` | `text` | Primary key; stores the wallet address that opted in to reminders. |
-| `email` | `text` | Required email address for reminder delivery. |
-| `enabled` | `boolean` | Defaults to `true`; the unsubscribe flow flips this to `false`. |
-| `updated_at` | `timestamptz` | Defaults to `now()` and is refreshed on each upsert. |
+| Column       | Type          | Notes                                                              |
+| ------------ | ------------- | ------------------------------------------------------------------ |
+| `address`    | `text`        | Primary key; stores the wallet address that opted in to reminders. |
+| `email`      | `text`        | Required email address for reminder delivery.                      |
+| `enabled`    | `boolean`     | Defaults to `true`; the unsubscribe flow flips this to `false`.    |
+| `updated_at` | `timestamptz` | Defaults to `now()` and is refreshed on each upsert.               |
 
 ### `public.sent_reminders`
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Default `gen_random_uuid()`; primary key. |
-| `invoice_id` | `text` | The invoice identifier used to avoid duplicate reminder emails. |
-| `milestone` | `int` | Expected values are `24` or `72`. |
-| `sent_at` | `timestamptz` | Timestamp of the reminder dispatch. |
-| `email` | `text` | The address that received the reminder. |
+| Column       | Type          | Notes                                                           |
+| ------------ | ------------- | --------------------------------------------------------------- |
+| `id`         | `uuid`        | Default `gen_random_uuid()`; primary key.                       |
+| `invoice_id` | `text`        | The invoice identifier used to avoid duplicate reminder emails. |
+| `milestone`  | `int`         | Expected values are `24` or `72`.                               |
+| `sent_at`    | `timestamptz` | Timestamp of the reminder dispatch.                             |
+| `email`      | `text`        | The address that received the reminder.                         |
 
 ### Indexes and constraints
 

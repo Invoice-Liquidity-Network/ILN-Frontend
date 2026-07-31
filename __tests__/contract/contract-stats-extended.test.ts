@@ -6,7 +6,7 @@
  * - PartiallyFunded status counting
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildHistoricalVolume, get_contract_stats, TOKEN_COLORS } from '@/utils/contract-stats';
+import { buildHistoricalVolume, get_contract_stats } from '@/utils/contract-stats';
 import type { Invoice } from '@/utils/soroban';
 
 vi.mock('@/constants', () => ({

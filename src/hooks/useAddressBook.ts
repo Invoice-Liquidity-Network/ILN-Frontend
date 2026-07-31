@@ -31,11 +31,6 @@ export default function useAddressBook() {
     }
   }, [walletAddress]);
 
-  const saveAddressBook = useCallback(() => {
-    if (!walletAddress) return;
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${walletAddress}`, JSON.stringify(addressBook));
-  }, [walletAddress, addressBook]);
-
   const addAddress = useCallback(
     (address: string, nickname: string) => {
       if (!address || !nickname) return;

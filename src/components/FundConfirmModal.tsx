@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWallet } from '@/context/WalletContext';
-import { useToast } from '@/context/ToastContext';
 import { useTransaction } from '@/hooks/useTransaction';
 import TokenSelector, { TokenAmount } from './TokenSelector';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
@@ -12,9 +11,8 @@ import {
   Invoice,
   submitSignedTransaction,
 } from '@/utils/soroban';
-import { formatTokenAmount, formatDate, calculateYield } from '@/utils/format';
-import { useFundInvoice } from '@/hooks/useInvoices';
-import { getPayerScore, PayerScoreResult } from '@/utils/soroban';
+import { formatTokenAmount, calculateYield } from '@/utils/format';
+import { PayerScoreResult } from '@/utils/soroban';
 import { fetchProtocolParameters } from '@/utils/governance';
 import FieldTooltip from './FieldTooltip';
 
@@ -33,8 +31,7 @@ export default function FundConfirmModal({
   onSuccess,
   payerScore,
 }: FundConfirmModalProps) {
-  const { address, signTx } = useWallet();
-  const { addToast, updateToast } = useToast();
+  const { address } = useWallet();
   const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
   const isApproving = txLoading; // or more specific state if needed
   const isFunding = txLoading;

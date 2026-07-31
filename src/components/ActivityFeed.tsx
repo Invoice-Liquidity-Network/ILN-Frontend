@@ -274,7 +274,7 @@ function formatEventTypeLabel(type: InvoiceEventType) {
 export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
   const [events, setEvents] = useState<InvoiceEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
 
   const fetchEvents = useCallback(async () => {

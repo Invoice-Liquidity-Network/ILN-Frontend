@@ -106,15 +106,15 @@ cp .env.local.example .env.local
 
 The checked-in example contains safe defaults for Stellar Testnet and placeholders for env-gated integrations. Local UI development works with the testnet defaults, but these integrations require real credentials:
 
-| Integration | Variables | Required when |
-| --- | --- | --- |
-| Supabase browser/client reads | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Testing notification/reminder persistence against Supabase |
-| Supabase server writes | `SUPABASE_SERVICE_ROLE_KEY` | Running reminder cron behavior that bypasses RLS |
-| Resend email delivery | `RESEND_API_KEY` | Sending payer reminder emails |
-| Protected reminder cron | `CRON_SECRET` | Calling `GET /api/reminders` outside local experiments |
-| GitHub feedback API | `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO` | Creating GitHub issues from feedback submissions |
-| WalletConnect | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Testing WalletConnect flows |
-| SEP-10 auth | `SEP10_SERVER_SECRET_KEY`, `JWT_SECRET_KEY` | Testing challenge/verify auth routes with non-default secrets |
+| Integration                   | Variables                                                   | Required when                                                 |
+| ----------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| Supabase browser/client reads | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Testing notification/reminder persistence against Supabase    |
+| Supabase server writes        | `SUPABASE_SERVICE_ROLE_KEY`                                 | Running reminder cron behavior that bypasses RLS              |
+| Resend email delivery         | `RESEND_API_KEY`                                            | Sending payer reminder emails                                 |
+| Protected reminder cron       | `CRON_SECRET`                                               | Calling `GET /api/reminders` outside local experiments        |
+| GitHub feedback API           | `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`               | Creating GitHub issues from feedback submissions              |
+| WalletConnect                 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`                      | Testing WalletConnect flows                                   |
+| SEP-10 auth                   | `SEP10_SERVER_SECRET_KEY`, `JWT_SECRET_KEY`                 | Testing challenge/verify auth routes with non-default secrets |
 
 Use placeholder values only for routes you are not exercising. Never commit `.env.local`.
 
@@ -145,19 +145,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Common Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev` | Start the local Next.js dev server |
-| `pnpm run lint` | Run ESLint |
-| `pnpm run env:check` | Verify `.env.local.example` covers env references |
-| `pnpm run format:check` | Check Prettier formatting |
-| `pnpm test` | Run Vitest |
-| `pnpm run test:a11y` | Run accessibility tests |
-| `pnpm run test:e2e` | Run Playwright tests |
-| `pnpm run build` | Create a production build |
-| `pnpm start` | Serve the production build |
-| `pnpm run storybook` | Start Storybook on port 6006 |
-| `pnpm run build-storybook` | Build static Storybook output |
+| Command                    | Purpose                                           |
+| -------------------------- | ------------------------------------------------- |
+| `pnpm dev`                 | Start the local Next.js dev server                |
+| `pnpm run lint`            | Run ESLint                                        |
+| `pnpm run env:check`       | Verify `.env.local.example` covers env references |
+| `pnpm run format:check`    | Check Prettier formatting                         |
+| `pnpm test`                | Run Vitest                                        |
+| `pnpm run test:a11y`       | Run accessibility tests                           |
+| `pnpm run test:e2e`        | Run Playwright tests                              |
+| `pnpm run build`           | Create a production build                         |
+| `pnpm start`               | Serve the production build                        |
+| `pnpm run storybook`       | Start Storybook on port 6006                      |
+| `pnpm run build-storybook` | Build static Storybook output                     |
 
 ## Troubleshooting
 

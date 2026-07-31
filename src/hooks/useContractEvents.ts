@@ -85,8 +85,8 @@ export function useContractEvents(enabled = true) {
     return handle;
   }, [queryClient]);
 
-  const connectPolling = useCallback(
-    (attempt: number) => {
+  const _connectPolling = useCallback(
+    function connectPollingAttempt(attempt: number) {
       setConnectionType('polling');
       const handle = connectHorizonTransactionStream({
         onEvent: (event) => {
@@ -106,7 +106,7 @@ export function useContractEvents(enabled = true) {
               }
               setError(`Connection lost. Retrying... (${attempt + 1}/${MAX_RETRIES})`);
               setRetryCount(attempt + 1);
-              retryTimeout.current = setTimeout(() => connectPolling(attempt + 1), delay);
+              retryTimeout.current = setTimeout(() => connectPollingAttempt(attempt + 1), delay);
             } else {
               setError('Failed to connect after 3 attempts. Please refresh manually.');
               if (process.env.NODE_ENV === 'development') {
