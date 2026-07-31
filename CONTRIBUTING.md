@@ -240,6 +240,12 @@ This command generates:
 - Storybook file: `src/components/<ComponentName>.stories.tsx`
 - Test stub file: `src/components/__tests__/<ComponentName>.test.tsx` (or inside the target subdirectory)
 
+### Issue and PR Assignment Policy
+
+Issues that are assigned to a contributor are expected to move forward promptly. If an issue remains assigned without a linked PR update for 7 days, the repository automation will post a reminder comment. If the issue still shows no linked PR activity after 14 days, the assignee is automatically removed so the issue can be claimed by someone else.
+
+The thresholds and message text are configurable through the workflow inputs and repository variables used by [.github/workflows/stale-assignments.yml](.github/workflows/stale-assignments.yml). Contributors should keep assignments current, open or update a linked PR early, and unassign themselves if they can no longer work on the issue.
+
 ### Code Style and Formatting
 
 We use **ESLint** and **Prettier** to maintain consistent code quality.
@@ -896,6 +902,44 @@ When you open a PR, GitHub will automatically suggest reviewers based on the fil
 ### Adding New Code Owners
 
 If you become a regular contributor to a specific area of the codebase, you can request to be added as a code owner. Contact a maintainer to discuss this.
+
+## Stale Assignment Policy
+
+To maintain effective Wave throughput and ensure issues don't get claimed and abandoned, this repository uses an automated stale assignment reclaimer.
+
+### How It Works
+
+The stale assignment bot runs daily and monitors assigned issues:
+
+1. **Warning Stage (7 days of inactivity)**
+   - If an issue has been assigned for 7+ days with no linked PR activity, a warning comment is added
+   - The issue is labeled with `stale-assignment-warning`
+   - The assignee is notified with instructions to either:
+     - Open a draft PR
+     - Comment with a progress update
+     - Unassign themselves if no longer working on it
+
+2. **Reclaim Stage (14 days of inactivity)**
+   - If no activity is detected for 14+ days, the assignment is automatically removed
+   - The issue is labeled with `assignment-reclaimed`
+   - Other contributors can then claim the issue
+
+### Configuration
+
+The timeout periods are configurable in `.github/workflows/stale-assignments.yml`:
+- `WARNING_DAYS`: Days before warning comment (default: 7)
+- `RECLAIM_DAYS`: Days before unassignment (default: 14)
+
+### For Contributors
+
+- **When claiming an issue**: Open a draft PR within 7 days to show active work
+- **If you need more time**: Comment on the issue with a progress update to reset the timer
+- **If you can't complete it**: Unassign yourself promptly so others can claim it
+- **After reclamation**: If your assignment was reclaimed but you're still working on it, re-assign yourself and open a PR promptly
+
+### Exemptions
+
+Issues with linked open PRs are automatically exempt from the stale assignment check.
 
 ## Code of Conduct
 

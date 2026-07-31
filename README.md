@@ -256,6 +256,7 @@ The analytics view brings together yield, volume, and market trends for deeper p
 
 ## 🔗 Useful Links & Documentation
 
+- **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
 - **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
 - **Developer Quickstart**: Follow the full setup guide in [docs/developer-quickstart.md](docs/developer-quickstart.md).
 - **Troubleshooting Guide**: Consolidated list of local setup symptoms, Freighter connection, and database gotchas in [docs/troubleshooting.md](docs/troubleshooting.md).
