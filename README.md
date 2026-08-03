@@ -15,7 +15,6 @@ An open-source invoice factoring protocol built on the Stellar network. ILN lets
 
 - [Overview](#overview)
 - [Key Features](#key-features)
-- [Screenshots](#screenshots)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -48,39 +47,6 @@ The app is a single Next.js project (App Router) that talks directly to Soroban 
 - **Governance & admin** — create/list/vote on proposals, delegate voting power, manage the token allowlist, and view protocol health and contract version info.
 - **Growth & engagement** — referrals, product roadmap, reputation profiles with a score simulator, an in-app notification center, a command palette, onboarding tours, and a PWA offline fallback page.
 - **Internationalization & theming** — multi-locale support via `next-intl`/`i18next`, with light/dark theme support.
-
-## Screenshots
-
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/homepage.svg" alt="ILN Homepage" width="100%"><br>
-      <sub><b>Homepage</b></sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/marketplace.svg" alt="Marketplace Explorer" width="100%"><br>
-      <sub><b>Marketplace</b></sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/governance.svg" alt="Governance" width="100%"><br>
-      <sub><b>Governance</b></sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/stats.svg" alt="Protocol Stats" width="100%"><br>
-      <sub><b>Protocol Stats</b></sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/leaderboard.svg" alt="Leaderboard" width="100%"><br>
-      <sub><b>Leaderboard</b></sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/analytics.svg" alt="Analytics Dashboard" width="100%"><br>
-      <sub><b>Analytics</b></sub>
-    </td>
-  </tr>
-</table>
 
 ## Tech Stack
 
