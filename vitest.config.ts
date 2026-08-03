@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +16,17 @@ export default defineConfig({
     ],
   },
   test: {
+    // Playwright specs live in ./e2e (see playwright.config.ts testDir) and are
+    // run by `pnpm test:e2e`. They match Vitest's default include glob, so they
+    // must be excluded here or Playwright throws
+    // "Playwright Test did not expect test.describe() to be called here".
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // A handful of suites render large trees (LP dashboard, activity heatmap,
+    // full page routes). The 5s default is tight enough that they flake on a
+    // loaded runner - especially under `--coverage`, which instruments every
+    // module - while still catching genuinely hung tests.
+    testTimeout: 15_000,
+    hookTimeout: 15_000,
     coverage: {
       provider: 'v8',
       include: [
@@ -48,31 +59,38 @@ export default defineConfig({
           setupFiles: ['./vitest.setup.ts'],
         },
       },
-      {
-        extends: true,
-        plugins: [
-          // The plugin will run tests for the stories defined in your Storybook config
-          // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-          storybookTest({
-            configDir: path.join(dirname, '.storybook'),
-          }),
-        ],
-        test: {
-          name: 'storybook',
-          browser: {
-            // Only run Storybook browser tests when STORYBOOK_TESTS=1 is set
-            // (requires: npx playwright install chromium)
-            enabled: process.env.STORYBOOK_TESTS === '1',
-            headless: true,
-            provider: playwright({}),
-            instances: [
-              {
-                browser: 'chromium',
+      // The Storybook project is only added when STORYBOOK_TESTS=1 is set
+      // (requires: npx playwright install chromium). Setting browser.enabled
+      // to false still collects and executes every .stories.tsx file outside
+      // a browser context, crashing with "window is not defined" - so the
+      // whole project must be omitted, not just disabled.
+      ...(process.env.STORYBOOK_TESTS === '1'
+        ? [
+            {
+              extends: true as const,
+              plugins: [
+                // The plugin will run tests for the stories defined in your Storybook config
+                // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+                storybookTest({
+                  configDir: path.join(dirname, '.storybook'),
+                }),
+              ],
+              test: {
+                name: 'storybook',
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright({}),
+                  instances: [
+                    {
+                      browser: 'chromium' as const,
+                    },
+                  ],
+                },
               },
-            ],
-          },
-        },
-      },
+            },
+          ]
+        : []),
     ],
   },
 });

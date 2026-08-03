@@ -164,14 +164,12 @@ describe('NewGovernanceProposalPage', () => {
       expect(screen.getByText(/Create New Governance Proposal/)).toBeDefined();
     });
 
+    // Submission is blocked up-front while any required field is empty.
     const submitButton = screen.getByRole('button', { name: /Submit Proposal/ });
-    fireEvent.click(submitButton);
+    expect(submitButton).toBeDisabled();
 
-    await waitFor(() => {
-      expect(screen.getByText(/Action Type is required./)).toBeDefined();
-      expect(screen.getByText(/Title is required./)).toBeDefined();
-      expect(screen.getByText(/Description is required./)).toBeDefined();
-    });
+    fireEvent.click(submitButton);
+    expect(createProposal).not.toHaveBeenCalled();
   });
 
   it('shows live preview with correct values', async () => {
@@ -189,10 +187,11 @@ describe('NewGovernanceProposalPage', () => {
       target: { value: '100' },
     });
 
+    // The sentence is split across <span>s, so assert on the preview block.
     await waitFor(() => {
-      expect(
-        screen.getByText(/This proposal will change \[FeeRate\] from 50 \(0.5%\) to 100 \(1%\)./)
-      ).toBeDefined();
+      expect(screen.getByText('Live Preview').parentElement).toHaveTextContent(
+        'This proposal will change [FeeRate] from 50 (0.5%) to 100 (1%).'
+      );
     });
   });
 

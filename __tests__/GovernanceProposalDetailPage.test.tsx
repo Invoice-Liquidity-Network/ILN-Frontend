@@ -15,6 +15,21 @@ vi.mock('@/context/WalletContext', () => ({
   useWallet: vi.fn(),
 }));
 
+// These pages render the app chrome (notification bell), which needs the
+// notification context.
+vi.mock('@/context/NotificationContext', () => ({
+  useNotification: () => ({
+    notifications: [],
+    unreadCount: 0,
+    setNotifications: vi.fn(),
+    addNotification: vi.fn(),
+    markAsRead: vi.fn(),
+    markAllAsRead: vi.fn(),
+    clearUnread: vi.fn(),
+    isRead: vi.fn(() => true),
+  }),
+}));
+
 vi.mock('@/hooks/useTransaction', () => ({
   useTransaction: vi.fn(),
 }));

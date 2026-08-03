@@ -43,15 +43,19 @@ jobs:
 
       - name: Post audit summary to job summary
         if: always()
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          echo "## 🚩 Feature Flag Audit Report" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat /tmp/flag-audit-report.txt >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "> ℹ️ This report is **informational only** and does not block merging." >> "$GITHUB_STEP_SUMMARY"
-          echo "> See [CONTRIBUTING.md](../blob/${{ github.head_ref }}/CONTRIBUTING.md#feature-flag-lifecycle) for the flag lifecycle policy." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## 🚩 Feature Flag Audit Report"
+            echo ""
+            echo '```'
+            cat /tmp/flag-audit-report.txt
+            echo '```'
+            echo ""
+            echo "> ℹ️ This report is **informational only** and does not block merging."
+            echo "> See [CONTRIBUTING.md](../blob/$HEAD_REF/CONTRIBUTING.md#feature-flag-lifecycle) for the flag lifecycle policy."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload audit report artifact
         if: always()

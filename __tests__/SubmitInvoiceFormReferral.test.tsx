@@ -23,6 +23,11 @@ vi.mock('../src/context/WalletContext', () => ({
   }),
 }));
 
+// SubmitInvoiceForm reads the toast context (directly and via useTransaction).
+vi.mock('../src/context/ToastContext', () => ({
+  useToast: () => ({ addToast: vi.fn(() => 'toast-id'), updateToast: vi.fn() }),
+}));
+
 // Mock useTransaction
 vi.mock('../src/hooks/useTransaction', () => ({
   useTransaction: () => ({

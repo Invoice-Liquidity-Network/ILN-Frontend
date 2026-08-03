@@ -544,8 +544,11 @@ export default function ProposalDetailPage() {
                 )}
               </div>
 
-              {/* Execute button (Passed proposals) */}
-              {isPassed && (
+              {/* Execute button (Passed proposals with no timelock information).
+                  When `executableAfter` is known, the timelock panel above owns
+                  the execute affordance so it stays gated on the delay and is
+                  not rendered twice. */}
+              {isPassed && !proposal?.executableAfter && (
                 <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-3">
                   <div className="flex items-center gap-2 text-primary">
                     <span className="material-symbols-outlined text-[20px]">rocket_launch</span>

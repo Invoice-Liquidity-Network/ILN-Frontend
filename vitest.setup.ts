@@ -17,20 +17,26 @@ class ResizeObserverMock {
 }
 global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
+// Files that opt into `@vitest-environment node` (e.g. route-handler tests)
+// have no DOM, so the browser-only shims below are applied conditionally.
+const hasDom = typeof window !== 'undefined';
+
 // Mock matchMedia for testing components that use prefers-reduced-motion
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+if (hasDom) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // Mock react-query
 vi.mock('@tanstack/react-query', () => ({
@@ -90,7 +96,9 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+if (hasDom) {
+  Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+}
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
 // Mock react 'use' hook for Next.js params
@@ -108,8 +116,10 @@ vi.mock('react', async () => {
   };
 });
 
-// Initialize i18n
-import './src/i18n';
+// Initialize i18n (browser-only: the language detector needs a DOM)
+if (hasDom) {
+  await import('./src/i18n');
+}
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => server.resetHandlers());

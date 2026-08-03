@@ -23,7 +23,10 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
         permanent: true,
       },
       {
-        source: '/invoices/:id',
+        // Excludes "batch", which is a real static route (app/invoices/batch)
+        // rather than an invoice id - without this, it would be redirected to
+        // /i/batch and crash trying to parse "batch" as an invoice id.
+        source: '/invoices/:id((?!batch$).*)',
         destination: '/i/:id',
         permanent: true,
       },

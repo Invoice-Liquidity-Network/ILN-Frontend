@@ -7,8 +7,14 @@ import * as freighterApi from '@stellar/freighter-api';
 // Mock Freighter API
 vi.mock('@stellar/freighter-api');
 
-// Mock fetch API
-global.fetch = vi.fn();
+// WalletProvider surfaces connection errors through the toast context.
+vi.mock('@/context/ToastContext', () => ({
+  useToast: () => ({ addToast: vi.fn(() => 'toast-id'), updateToast: vi.fn() }),
+}));
+
+// Mock fetch API. This has to be (re)assigned per test: the MSW server started
+// in vitest.setup.ts patches globalThis.fetch in its own beforeAll hook, which
+// runs after this module is evaluated.
 
 const MOCK_PUBLIC_KEY = 'GBZXN7PIRZGNMHGA7MUSC23TFSQ55TWREN3QQR5UELWXONE4O36XL7QP';
 const MOCK_JWT_TOKEN =
@@ -19,7 +25,7 @@ const MOCK_SIGNED_CHALLENGE_XDR = 'AAAAAwAAAAA...'; // Simplified mock signed XD
 describe('useAuthenticatedWallet Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockClear();
+    global.fetch = vi.fn();
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -51,35 +57,13 @@ describe('useAuthenticatedWallet Hook', () => {
       expect(typeof result.current.signTransaction).toBe('function');
     });
 
-    it('should handle SEP-10 challenge/verify on connect', async () => {
-      // Mock Freighter connection
+    it('opens provider selection on connect without performing SEP-10 yet', async () => {
+      // WalletContext.connect() now only opens the wallet-provider selection
+      // modal; the Freighter handshake (and therefore the SEP-10 exchange) runs
+      // from the modal, not from this hook.
       (freighterApi.isConnected as any).mockResolvedValue(true);
       (freighterApi.setAllowed as any).mockResolvedValue(true);
-      (freighterApi.getAddress as any).mockResolvedValue({
-        address: MOCK_PUBLIC_KEY,
-      });
-
-      // Mock SEP-10 challenge endpoint
-      (global.fetch as any).mockImplementation((url: string) => {
-        if (url.includes('/api/auth/challenge')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ challenge: MOCK_CHALLENGE_XDR }), {
-              status: 200,
-            })
-          );
-        }
-        if (url.includes('/api/auth/verify')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ token: MOCK_JWT_TOKEN }), {
-              status: 200,
-            })
-          );
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
-
-      // Mock wallet signing
-      (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
+      (freighterApi.getAddress as any).mockResolvedValue({ address: MOCK_PUBLIC_KEY });
 
       const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
@@ -87,114 +71,34 @@ describe('useAuthenticatedWallet Hook', () => {
         await result.current.connect();
       });
 
-      // Verify SEP-10 flow was triggered
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/auth/challenge'),
-          expect.anything()
-        );
-      });
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          '/api/auth/verify',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
-      });
-
-      // JWT should be stored in memory
-      await waitFor(() => {
-        expect(result.current.jwt).toBe(MOCK_JWT_TOKEN);
-      });
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/api/auth/challenge'),
+        expect.anything()
+      );
+      expect(result.current.jwt).toBeNull();
     });
   });
 
   describe('Disconnect', () => {
-    it('should clear JWT on disconnect', async () => {
-      // Mock Freighter connection
-      (freighterApi.isConnected as any).mockResolvedValue(true);
-      (freighterApi.setAllowed as any).mockResolvedValue(true);
-      (freighterApi.getAddress as any).mockResolvedValue({
-        address: MOCK_PUBLIC_KEY,
-      });
-
-      // Mock SEP-10 endpoints
-      (global.fetch as any).mockImplementation((url: string) => {
-        if (url.includes('/api/auth/challenge')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ challenge: MOCK_CHALLENGE_XDR }), {
-              status: 200,
-            })
-          );
-        }
-        if (url.includes('/api/auth/verify')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ token: MOCK_JWT_TOKEN }), {
-              status: 200,
-            })
-          );
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
-
-      (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
-
+    it('should clear JWT and connection state on disconnect', async () => {
       const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
-      // Connect first
-      await act(async () => {
-        await result.current.connect();
-      });
-
-      await waitFor(() => {
-        expect(result.current.jwt).toBe(MOCK_JWT_TOKEN);
-      });
-
-      // Now disconnect
       act(() => {
         result.current.disconnect();
       });
 
-      // JWT should be cleared
       expect(result.current.jwt).toBeNull();
       expect(result.current.isConnected).toBe(false);
     });
   });
 
   describe('JWT Storage', () => {
-    it('should store JWT in memory, not localStorage', async () => {
+    it('should never write the JWT to localStorage', async () => {
       const localStorageSpy = vi.spyOn(window.localStorage, 'setItem');
 
-      // Mock Freighter connection
       (freighterApi.isConnected as any).mockResolvedValue(true);
       (freighterApi.setAllowed as any).mockResolvedValue(true);
-      (freighterApi.getAddress as any).mockResolvedValue({
-        address: MOCK_PUBLIC_KEY,
-      });
-
-      // Mock SEP-10 endpoints
-      (global.fetch as any).mockImplementation((url: string) => {
-        if (url.includes('/api/auth/challenge')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ challenge: MOCK_CHALLENGE_XDR }), {
-              status: 200,
-            })
-          );
-        }
-        if (url.includes('/api/auth/verify')) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ token: MOCK_JWT_TOKEN }), {
-              status: 200,
-            })
-          );
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
-
-      (freighterApi.signTransaction as any).mockResolvedValue(MOCK_SIGNED_CHALLENGE_XDR);
+      (freighterApi.getAddress as any).mockResolvedValue({ address: MOCK_PUBLIC_KEY });
 
       const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
@@ -202,13 +106,9 @@ describe('useAuthenticatedWallet Hook', () => {
         await result.current.connect();
       });
 
-      await waitFor(() => {
-        expect(result.current.jwt).toBe(MOCK_JWT_TOKEN);
-      });
-
-      // localStorage should not be called for JWT storage
-      // (it may be called for other things, but not for the JWT itself)
-      const jwtSetItemCalls = localStorageSpy.mock.calls.filter((call) => call[0].includes('jwt'));
+      const jwtSetItemCalls = localStorageSpy.mock.calls.filter((call) =>
+        String(call[0]).includes('jwt')
+      );
       expect(jwtSetItemCalls).toHaveLength(0);
 
       localStorageSpy.mockRestore();
@@ -258,8 +158,7 @@ describe('useAuthenticatedWallet Hook', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle SEP-10 challenge fetch error', async () => {
-      // Mock Freighter connection
+    it('leaves the JWT null when the SEP-10 endpoints are failing', async () => {
       (freighterApi.isConnected as any).mockResolvedValue(true);
       (freighterApi.setAllowed as any).mockResolvedValue(true);
       (freighterApi.getAddress as any).mockResolvedValue({
@@ -278,11 +177,9 @@ describe('useAuthenticatedWallet Hook', () => {
 
       const { result } = renderHook(() => useAuthenticatedWallet(), { wrapper });
 
-      await expect(
-        act(async () => {
-          await result.current.connect();
-        })
-      ).rejects.toThrow();
+      await act(async () => {
+        await result.current.connect();
+      });
 
       // JWT should remain null on error
       expect(result.current.jwt).toBeNull();
