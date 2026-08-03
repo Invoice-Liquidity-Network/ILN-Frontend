@@ -15,10 +15,12 @@ import {
   isValidStellarAddress,
   lookupToken,
 } from '@/utils/governance';
+import { CONTRACT_ERROR_MAP, parseContractError } from '@/lib/contract/errors';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Select } from '@/components/Select';
 import { Textarea } from '@/components/Textarea';
+import FieldTooltip from '@/components/FieldTooltip';
 import { Loader2 } from 'lucide-react';
 
 interface FormData {
@@ -80,7 +82,12 @@ export default function NewGovernanceProposalPage() {
           }
         } catch (e: unknown) {
           if (!cancelled) {
-            const msg = e instanceof Error ? e.message : String(e);
+            const code = parseContractError(e);
+            const msg = code
+              ? CONTRACT_ERROR_MAP[code].message
+              : e instanceof Error
+                ? e.message
+                : String(e);
             setTokenLookupError(msg);
             setResolvedToken(null);
           }
@@ -367,7 +374,10 @@ IPFS Hash: ${ipfsHash}`,
 
         {formData.formType === 'AddToken' && (
           <label className="block">
-            <span className="text-zinc-700 dark:text-zinc-300">Token Address (G...)</span>
+            <span className="inline-flex items-center text-zinc-700 dark:text-zinc-300">
+              Token Address (G...)
+              <FieldTooltip content="ILN does not support fee-on-transfer tokens. The token must transfer the exact amount specified, with no fee deducted." />
+            </span>
             <Input
               type="text"
               name="tokenAddress"
