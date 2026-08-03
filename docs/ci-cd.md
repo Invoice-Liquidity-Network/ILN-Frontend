@@ -53,7 +53,6 @@ The following workflows use `namespace-profile-nursca`:
 - `ci.yml` - Lint, unit tests, build
 - `e2e-tests.yml` - End-to-end Playwright tests
 - `visual-regression.yml` - Chromatic visual regression tests
-- `storybook-deploy.yml` - Storybook deployment to GitHub Pages
 - `lighthouse.yml` - Lighthouse performance budget tests
 - `accessibility.yml` - Consolidated accessibility test suite
 - `contract-tests.yml` - Stellar SDK contract integration tests
@@ -147,17 +146,6 @@ Triggers:
 Jobs:
 
 - `chromatic` - Chromatic visual regression testing (requires `CHROMATIC_PROJECT_TOKEN` secret)
-
-### Storybook Deployment (storybook-deploy.yml)
-
-Triggers:
-
-- Push to `main`
-- Manual workflow dispatch
-
-Jobs:
-
-- `build-and-deploy` - Builds Storybook and deploys to GitHub Pages
 
 ### Lighthouse Performance Budget (lighthouse.yml)
 
@@ -277,14 +265,6 @@ This section documents the environment variables that each workflow sets or impl
 | ----------- | ------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `chromatic` | `NODE_OPTIONS`            | inline `env:`                     | `--max_old_space_size=4096` — prevents OOM during Storybook build with large component library |
 | `chromatic` | `CHROMATIC_PROJECT_TOKEN` | `secrets.CHROMATIC_PROJECT_TOKEN` | Required for Chromatic authentication. Workflow is skipped if unset (fork PRs).                |
-
----
-
-### `storybook-deploy.yml` — Storybook GitHub Pages Deployment
-
-| Job      | Variable | Source | Value / Note                                                          |
-| -------- | -------- | ------ | --------------------------------------------------------------------- |
-| _(none)_ | —        | —      | Storybook build uses no env vars. Components render with mocked data. |
 
 ---
 
