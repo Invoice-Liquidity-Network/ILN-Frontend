@@ -1,13 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/**
+ * Route handlers are server-side: run them in a Node environment so the Stellar
+ * SDK gets real Buffer/Uint8Array instances (jsdom's Buffer polyfill makes
+ * Keypair.fromSecret throw "private key must be hex string or Uint8Array").
+ *
+ * @vitest-environment node
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '../app/api/auth/challenge';
 import { POST } from '../app/api/auth/verify';
 
 describe('/api/auth Integration Tests', () => {
-  const validPublicKey = 'GD6WACCBH6M6V45TXWZ6T375LMDRCFEHQVQLJLT3GMS6I4DZEATSTJZZ';
+  const validPublicKey = 'GDVEU3DD4KOFECV66VIHWEZOYX4ZKR3WV27L464SIIPOU2IUI3JCZA57';
+  // The challenge route needs a real signing key; the hard-coded fallback in the
+  // route is not a valid Stellar secret, so provide one explicitly.
+  const serverSecret = 'SADQOBYHA4DQOBYHA4DQOBYHA4DQOBYHA4DQOBYHA4DQOBYHA4DQP54X';
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('SEP10_SERVER_SECRET_KEY', serverSecret);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('GET /api/auth/challenge (SEP-10 Challenge)', () => {

@@ -89,7 +89,8 @@ describe('FundConfirmModal - Token Mismatch Warning', () => {
     fireEvent.click(selectorBtn);
 
     // Select XLM from the options
-    const xlmOption = screen.getByRole('option', { name: /XLM/i });
+    // The option list renders twice (desktop dropdown + mobile sheet).
+    const xlmOption = screen.getAllByRole('option', { name: /XLM/i })[0];
     fireEvent.click(xlmOption);
 
     // Should show the warning
@@ -106,7 +107,8 @@ describe('FundConfirmModal - Token Mismatch Warning', () => {
     const selectorBtn = screen.getByRole('button', { name: /USDC/i });
     fireEvent.click(selectorBtn);
 
-    const xlmOption = screen.getByRole('option', { name: /XLM/i });
+    // The option list renders twice (desktop dropdown + mobile sheet).
+    const xlmOption = screen.getAllByRole('option', { name: /XLM/i })[0];
     fireEvent.click(xlmOption);
 
     const fundBtn = screen.getByText('Currency Mismatch');

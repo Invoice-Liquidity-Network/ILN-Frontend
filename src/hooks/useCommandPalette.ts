@@ -169,17 +169,9 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
     return commands.filter((cmd) => fuzzyMatch(cmd.label, query));
   }, [query, commands, recentCommandIds, router]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  // Cmd/Ctrl+K is owned by KeyboardShortcutsContext, which invokes the `toggle`
+  // registered by CommandPalette. A second listener here toggled the palette a
+  // second time for the same keypress, so it never actually opened.
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => !prev);

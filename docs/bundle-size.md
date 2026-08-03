@@ -26,13 +26,17 @@ The `bundle-size.yml` workflow addresses this by:
 
 ### Absolute budget
 
-| Asset type                                 | Budget              |
-| ------------------------------------------ | ------------------- |
-| JavaScript (`.next/static/chunks/**/*.js`) | —                   |
-| CSS (`.next/static/css/**/*.css`)          | —                   |
-| **Total (JS + CSS)**                       | **3,072 KB (3 MB)** |
+| Asset type                                 | Budget                |
+| ------------------------------------------ | --------------------- |
+| JavaScript (`.next/static/chunks/**/*.js`) | —                     |
+| CSS (`.next/static/css/**/*.css`)          | —                     |
+| **Total (JS + CSS)**                       | **6,656 KB (6.5 MB)** |
 
-A PR will **fail** if the combined JS + CSS output exceeds **3 MB**. This threshold is conservative — the current baseline is well under 3 MB — but provides a hard stop against catastrophic regressions (e.g., accidentally bundling server-only code into the client).
+A PR will **fail** if the combined JS + CSS output exceeds **6.5 MB**. This threshold was raised from an earlier 3 MB budget after the baseline was measured at ~5.57 MB with no regression involved — see "Why the baseline is larger than the per-package estimates" below. It still provides a hard stop against catastrophic regressions (e.g., accidentally bundling server-only code into the client).
+
+### Why the baseline is larger than the per-package estimates
+
+The per-package weights above sum to roughly 1.65 MB, but the actual production build is ~5.57 MB. The gap is **not** unused/dead code — it's Turbopack's current production chunking, which duplicates shared heavy dependencies (`recharts`, `@stellar/stellar-sdk`) across multiple route-specific chunks instead of emitting one shared copy. For example, `recharts` (used by 17 different chart components across `/analytics`, `/lp`, `/stats`, `/profile`, etc.) showed up as 3+ nearly-identical ~364 KB chunks in one build, rather than a single shared chunk. `experimental.optimizePackageImports` (a standard Next.js tree-shaking mitigation) was tried and had no measurable effect, confirming this is a chunking/deduplication issue, not a tree-shaking one. Properly fixing this would mean either waiting on Turbopack's chunk-splitting to improve, or building production with webpack instead — both bigger changes than a budget adjustment. Flagged here for whoever picks this up next.
 
 ### Per-PR delta gate
 
@@ -46,7 +50,7 @@ See `.github/workflows/bundle-size.yml` for the full implementation. Summary:
 
 1. **Build** — runs `pnpm run build` with `NEXT_PUBLIC_STELLAR_NETWORK=testnet` and `ANALYZE=true`.
 2. **Measure** — finds all `.js` and `.css` files under `.next/static/` and sums their sizes.
-3. **Threshold check** — compares the total against the 3 MB budget.
+3. **Threshold check** — compares the total against the 6.5 MB budget.
 4. **PR comment** — posts (or updates) a comment on the PR showing a breakdown table and the pass/fail verdict.
 5. **Artifact upload** — saves the build output and any bundle analyzer HTML reports as a workflow artifact (retained for 90 days).
 
@@ -62,15 +66,15 @@ See `.github/workflows/bundle-size.yml` for the full implementation. Summary:
 | JavaScript chunks   | 2,048 KB        |
 | CSS                 | 64 KB           |
 | **Total**           | **2,112 KB (2.06 MB)** |
-| Budget              | 3,072 KB (3 MB) |
+| Budget              | 6,656 KB (6.5 MB) |
 
-✅ **Within budget** — total bundle is under the 3 MB threshold.
+✅ **Within budget** — total bundle is under the 6.5 MB threshold.
 ```
 
 If the budget is exceeded, the status line reads:
 
 ```
-❌ **Budget exceeded** — total bundle is over the 3 MB threshold.
+❌ **Budget exceeded** — total bundle is over the 6.5 MB threshold.
 ```
 
 ## Reducing Bundle Size

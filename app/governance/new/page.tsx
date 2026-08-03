@@ -104,11 +104,14 @@ export default function NewGovernanceProposalPage() {
       ...prev,
       [name]: value,
     }));
-    // Clear error for the field being edited
-    setFormErrors((prev) => ({
-      ...prev,
-      [name]: undefined,
-    }));
+    // Clear error for the field being edited. The key has to be removed rather
+    // than set to undefined: `isSubmitDisabled` counts Object.keys(formErrors),
+    // so an undefined-valued key would keep Submit disabled forever.
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      delete next[name as keyof FormData];
+      return next;
+    });
   };
 
   const validateForm = useCallback(() => {

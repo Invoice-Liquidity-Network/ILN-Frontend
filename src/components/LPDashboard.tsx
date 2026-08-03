@@ -327,7 +327,7 @@ export default function LPDashboard() {
     }
   };
 
-  const _handleKeyDown = (
+  const handleRowKeyDown = (
     e: React.KeyboardEvent<HTMLTableRowElement>,
     invoice: any,
     index: number
@@ -851,8 +851,11 @@ export default function LPDashboard() {
                       return (
                         <tr
                           key={invoice.id.toString()}
+                          role="row"
+                          tabIndex={0}
                           className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
                           onClick={() => !isBelowThreshold && handleFund(invoice)}
+                          onKeyDown={(event) => handleRowKeyDown(event, invoice, index)}
                         >
                           <td className="px-6 py-5">
                             <input

@@ -4,6 +4,9 @@ import { useTransaction } from '../useTransaction';
 
 vi.mock('@/context/WalletContext', () => ({ useWallet: vi.fn() }));
 vi.mock('@/utils/soroban', () => ({ submitSignedTransaction: vi.fn() }));
+vi.mock('@/context/ToastContext', () => ({
+  useToast: () => ({ addToast: vi.fn(() => 'toast-id'), updateToast: vi.fn() }),
+}));
 
 import { useWallet } from '@/context/WalletContext';
 import { submitSignedTransaction } from '@/utils/soroban';

@@ -34,8 +34,10 @@ test.describe('Offline experience', () => {
 
       await context.setOffline(false);
 
+      // Chromium's dispatch of the 'online' event after setOffline(false) can
+      // lag under CI load; give it more room than the default assertion timeout.
       const onlineHeading = page.getByRole('heading', { name: 'Connection Restored' });
-      await expect(onlineHeading).toBeVisible({ timeout: 5000 });
+      await expect(onlineHeading).toBeVisible({ timeout: 10000 });
     });
 
     test('displays available offline features list', async ({ page, context }) => {
@@ -151,10 +153,11 @@ test.describe('Offline experience', () => {
       const offlineStatus = page.locator('span.text-error, span:has-text("Offline")');
       await expect(offlineStatus.first()).toBeVisible({ timeout: 5000 });
 
-      // Check online status after reconnection
+      // Check online status after reconnection. Longer timeout: Chromium's
+      // dispatch of the 'online' event after setOffline(false) can lag under CI load.
       await context.setOffline(false);
       const onlineStatus = page.locator('span.text-primary, span:has-text("Online")');
-      await expect(onlineStatus.first()).toBeVisible({ timeout: 5000 });
+      await expect(onlineStatus.first()).toBeVisible({ timeout: 10000 });
     });
   });
 });

@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { getBucketIndex, aggregateHistogramData, calculateMedian } from '../AmountHistogram';
 import { Invoice } from '../../../utils/soroban';
 
+// Amounts use the 6-decimal USDC scale that tokenAmountToNumber() assumes.
 const mockInvoices: Invoice[] = [
   {
     id: 1n,
-    amount: 50_0000000n,
+    amount: 50_000000n,
     status: 'Funded',
     freelancer: 'A',
     payer: 'B',
@@ -14,7 +15,7 @@ const mockInvoices: Invoice[] = [
   }, // $50 (Bucket 0)
   {
     id: 2n,
-    amount: 150_0000000n,
+    amount: 150_000000n,
     status: 'Paid',
     freelancer: 'A',
     payer: 'B',
@@ -23,7 +24,7 @@ const mockInvoices: Invoice[] = [
   }, // $150 (Bucket 1)
   {
     id: 3n,
-    amount: 600_0000000n,
+    amount: 600_000000n,
     status: 'Defaulted',
     freelancer: 'A',
     payer: 'B',
@@ -32,7 +33,7 @@ const mockInvoices: Invoice[] = [
   }, // $600 (Bucket 2)
   {
     id: 4n,
-    amount: 2000_0000000n,
+    amount: 2000_000000n,
     status: 'Pending',
     freelancer: 'A',
     payer: 'B',
@@ -41,7 +42,7 @@ const mockInvoices: Invoice[] = [
   }, // $2000 (Bucket 3)
   {
     id: 5n,
-    amount: 7000_0000000n,
+    amount: 7000_000000n,
     status: 'Funded',
     freelancer: 'A',
     payer: 'B',
@@ -50,7 +51,7 @@ const mockInvoices: Invoice[] = [
   }, // $7000 (Bucket 4)
   {
     id: 6n,
-    amount: 15000_0000000n,
+    amount: 15000_000000n,
     status: 'Paid',
     freelancer: 'A',
     payer: 'B',
@@ -103,7 +104,7 @@ describe('AmountHistogram Utilities', () => {
       const invoices: Invoice[] = [
         {
           id: 1n,
-          amount: 100_0000000n,
+          amount: 100_000000n,
           status: 'A',
           freelancer: 'A',
           payer: 'B',
@@ -112,7 +113,7 @@ describe('AmountHistogram Utilities', () => {
         },
         {
           id: 2n,
-          amount: 200_0000000n,
+          amount: 200_000000n,
           status: 'A',
           freelancer: 'A',
           payer: 'B',
@@ -127,7 +128,7 @@ describe('AmountHistogram Utilities', () => {
       const invoices: Invoice[] = [
         {
           id: 1n,
-          amount: 100_0000000n,
+          amount: 100_000000n,
           status: 'A',
           freelancer: 'A',
           payer: 'B',
@@ -136,7 +137,7 @@ describe('AmountHistogram Utilities', () => {
         },
         {
           id: 2n,
-          amount: 200_0000000n,
+          amount: 200_000000n,
           status: 'A',
           freelancer: 'A',
           payer: 'B',
@@ -145,7 +146,7 @@ describe('AmountHistogram Utilities', () => {
         },
         {
           id: 3n,
-          amount: 300_0000000n,
+          amount: 300_000000n,
           status: 'A',
           freelancer: 'A',
           payer: 'B',

@@ -39,11 +39,15 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
       const start = typeof displayScore === 'number' ? displayScore : 0;
       const end = projectedScore;
       const duration = 500;
-      const startTime = performance.now();
+      // Anchor on the first frame's timestamp: performance.now() is not
+      // guaranteed to share a time origin with requestAnimationFrame, and a
+      // negative elapsed time drove the displayed score far below the real one.
+      let startTime: number | null = null;
 
       const animate = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime;
         const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+        const progress = Math.min(Math.max(elapsed / duration, 0), 1);
         const current = start + (end - start) * progress;
 
         setDisplayScore(Math.round(current));

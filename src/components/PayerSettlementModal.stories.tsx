@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 import PayerSettlementModal from './PayerSettlementModal';
 
 const meta: Meta<typeof PayerSettlementModal> = {

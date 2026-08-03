@@ -43,11 +43,13 @@ beforeEach(() => {
 describe('BatchInvoiceForm', () => {
   it('renders the form component', () => {
     render(<BatchInvoiceForm onSuccess={vi.fn()} />);
-    expect(screen.getByText(/batch/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Batch Invoice Submission' })).toBeInTheDocument();
   });
 
   it('adds a new row when add row button is clicked', async () => {
     render(<BatchInvoiceForm onSuccess={vi.fn()} />);
+    // The form defaults to the CSV upload mode; "Add Row" lives in Dynamic Form.
+    fireEvent.click(screen.getByRole('button', { name: 'Dynamic Form' }));
     const addButton = screen.getByRole('button', { name: /add.*row/i });
     fireEvent.click(addButton);
     await waitFor(() => {
@@ -111,6 +113,6 @@ describe('BatchInvoiceForm', () => {
   it('handles submission errors gracefully', async () => {
     submitInvoicesBatch.mockRejectedValue(new Error('submission failed'));
     render(<BatchInvoiceForm onSuccess={vi.fn()} />);
-    expect(screen.queryByText(/batch/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Batch Invoice Submission' })).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { Keypair, TransactionBuilder, Account, BASE_FEE, Operation } from '@stellar/stellar-sdk';
 import { NETWORK_PASSPHRASE } from '@/constants';
@@ -49,7 +50,9 @@ export async function GET(request: NextRequest) {
       .addOperation(
         Operation.manageData({
           name: 'SEP10 Challenge',
-          value: Buffer.alloc(64).toString('hex'),
+          // SEP-10 requires a 48-byte random nonce, base64-encoded (64 chars).
+          // manageData values are capped at 64 bytes.
+          value: randomBytes(48).toString('base64'),
           source: accountPublicKey,
         })
       )

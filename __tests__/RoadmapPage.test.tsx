@@ -52,10 +52,10 @@ describe('RoadmapPage', () => {
   it('shows status counts', () => {
     render(<RoadmapPage />);
 
-    // Check for status summary badges
-    expect(screen.getByText(/Completed/)).toBeInTheDocument();
-    expect(screen.getByText(/In Progress/)).toBeInTheDocument();
-    expect(screen.getByText(/Planned/)).toBeInTheDocument();
+    // Check for status summary badges (each status also labels its own items)
+    expect(screen.getAllByText(/Completed/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/In Progress/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Planned/).length).toBeGreaterThan(0);
   });
 
   it('displays GitHub CTA section', () => {

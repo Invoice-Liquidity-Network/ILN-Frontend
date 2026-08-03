@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 import ChangeInvoiceTokenModal from './ChangeInvoiceTokenModal';
 
 const meta: Meta<typeof ChangeInvoiceTokenModal> = {

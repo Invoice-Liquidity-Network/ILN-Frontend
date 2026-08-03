@@ -30,12 +30,14 @@ export const DelegationPanel: React.FC = () => {
   const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isConnected && address) {
-      // Simulate fetching current delegation status
-      setTimeout(() => {
-        setLoading(false);
-      }, 800);
-    }
+    if (!isConnected || !address) return;
+
+    // Simulate fetching current delegation status
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [isConnected, address]);
 
   const totalVotingWeight = ownBalance + incomingDelegations;
