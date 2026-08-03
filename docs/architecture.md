@@ -65,7 +65,6 @@ app/
 ├── admin/                       # Admin health and protocol configuration
 ├── analytics/                   # Freelancer-specific cash-flow analytics (FreelancerAnalyticsDashboard)
 ├── api/
-│   ├── auth/                    # SEP-10 challenge and verify helpers
 │   ├── feedback/                # GitHub-backed feedback submission
 │   ├── notifications/[address]/ # Notification API bridge
 │   └── reminders/               # Supabase/Resend payer reminder cron
@@ -108,7 +107,6 @@ src/
 │   └── KeyboardShortcutsContext.tsx  # Keyboard shortcut and command palette state
 ├── hooks/                       # Custom hooks (no createContext); may consume context
 │   ├── queries/                 # React Query keys and query hooks
-│   ├── useAuthenticatedWallet.ts  # SEP-10 auth layer on top of WalletContext
 │   └── useBrowserNotifications.ts # Browser Notification API wrapper
 ├── lib/                         # Env, Supabase, Horizon, events, notifications
 ├── screens/                     # Larger dashboard/screen compositions
@@ -144,9 +142,6 @@ API routes are used for server-only integration points:
 - `app/api/reminders/route.ts` reads Supabase reminder preferences and sends Resend emails when authorized by `CRON_SECRET`.
 - `app/api/reminders/unsubscribe/route.ts` updates reminder preferences.
 - `app/api/feedback/route.ts` can create GitHub issues from app feedback when GitHub credentials are configured.
-- `app/api/auth/challenge.ts` and `app/api/auth/verify.ts` support SEP-10-style auth helpers:
-  - `GET /api/auth/challenge?account=<public_key>` generates a timebounded, signed Stellar transaction challenge.
-  - `POST /api/auth/verify` validates the signed transaction payload and issues a 24-hour JWT authentication token.
 - `app/api/notifications/[address]/route.ts` bridges notification reads by address.
 - Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
 
@@ -176,7 +171,6 @@ API routes are used for server-only integration points:
 
 - `useToast` — always imported from `@/context/ToastContext` (the former re-export `@/hooks/useToast` has been removed).
 - `useWallet` — always imported from `@/context/WalletContext` for basic wallet state.
-- `useAuthenticatedWallet` — imported from `@/hooks/useAuthenticatedWallet` for the SEP-10 auth layer on top of `WalletContext`.
 - `useNotification` (singular) — always imported from `@/context/NotificationContext` for in-app notification items.
 - `useBrowserNotifications` (plural) — imported from `@/hooks/useBrowserNotifications` for the browser Notification API (permissions, desktop notifications).
 
@@ -201,7 +195,7 @@ pnpm run env:check
 
 The CI workflow runs the same command, and `.env.local.example.allowlist` documents runtime-provided values such as `NODE_ENV`.
 
-Client-visible configuration uses `NEXT_PUBLIC_*`, including Stellar network settings, feature flags, indexer URLs, WalletConnect project ID, app URL/version, and contract version labels. Server-only secrets such as `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, `SEP10_SERVER_SECRET_KEY`, `JWT_SECRET_KEY`, and GitHub feedback credentials must never be exposed with a public prefix.
+Client-visible configuration uses `NEXT_PUBLIC_*`, including Stellar network settings, feature flags, indexer URLs, WalletConnect project ID, app URL/version, and contract version labels. Server-only secrets such as `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, and GitHub feedback credentials must never be exposed with a public prefix.
 
 ## Library Rationale
 

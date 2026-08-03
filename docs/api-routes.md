@@ -75,58 +75,6 @@ Example curl:
 curl "http://localhost:3000/api/reminders/unsubscribe?address=G..."
 ```
 
-## `/api/auth/challenge`
-
-### `GET`
-
-Generates a SEP-10-style challenge transaction for wallet-based authentication.
-
-- Query string: `?account=<stellar-public-key>`
-- Response:
-  ```json
-  { "challenge": "<base64-or-xdr-string>" }
-  ```
-- Auth requirement: none; the route is used as a wallet-signing helper.
-- Error responses:
-  - `400` when `account` is missing or not a valid Stellar public key.
-  - `500` when challenge generation fails.
-
-Example curl:
-
-```bash
-curl "http://localhost:3000/api/auth/challenge?account=G..."
-```
-
-## `/api/auth/verify`
-
-### `POST`
-
-Verifies a signed challenge transaction and returns a JWT.
-
-- Request body:
-  ```json
-  {
-    "account": "G...",
-    "transaction": "AAAA..."
-  }
-  ```
-- Response:
-  ```json
-  { "token": "<jwt>" }
-  ```
-- Auth requirement: none.
-- Error responses:
-  - `400` when the body is missing fields, the transaction is unsigned, or the signature is invalid.
-  - `500` when verification fails unexpectedly.
-
-Example curl:
-
-```bash
-curl -X POST "http://localhost:3000/api/auth/verify" \
-  -H "Content-Type: application/json" \
-  -d '{"account":"G...","transaction":"AAAA..."}'
-```
-
 ## `/api/feedback`
 
 ### `POST`

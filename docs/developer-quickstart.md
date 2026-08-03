@@ -106,15 +106,14 @@ cp .env.local.example .env.local
 
 The checked-in example contains safe defaults for Stellar Testnet and placeholders for env-gated integrations. Local UI development works with the testnet defaults, but these integrations require real credentials:
 
-| Integration                   | Variables                                                   | Required when                                                 |
-| ----------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
-| Supabase browser/client reads | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Testing notification/reminder persistence against Supabase    |
-| Supabase server writes        | `SUPABASE_SERVICE_ROLE_KEY`                                 | Running reminder cron behavior that bypasses RLS              |
-| Resend email delivery         | `RESEND_API_KEY`                                            | Sending payer reminder emails                                 |
-| Protected reminder cron       | `CRON_SECRET`                                               | Calling `GET /api/reminders` outside local experiments        |
-| GitHub feedback API           | `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`               | Creating GitHub issues from feedback submissions              |
-| WalletConnect                 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`                      | Testing WalletConnect flows                                   |
-| SEP-10 auth                   | `SEP10_SERVER_SECRET_KEY`, `JWT_SECRET_KEY`                 | Testing challenge/verify auth routes with non-default secrets |
+| Integration                   | Variables                                                   | Required when                                              |
+| ----------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| Supabase browser/client reads | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Testing notification/reminder persistence against Supabase |
+| Supabase server writes        | `SUPABASE_SERVICE_ROLE_KEY`                                 | Running reminder cron behavior that bypasses RLS           |
+| Resend email delivery         | `RESEND_API_KEY`                                            | Sending payer reminder emails                              |
+| Protected reminder cron       | `CRON_SECRET`                                               | Calling `GET /api/reminders` outside local experiments     |
+| GitHub feedback API           | `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`               | Creating GitHub issues from feedback submissions           |
+| WalletConnect                 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`                      | Testing WalletConnect flows                                |
 
 Use placeholder values only for routes you are not exercising. Never commit `.env.local`.
 

@@ -76,10 +76,6 @@ export const env = {
   // App
   NEXT_PUBLIC_APP_URL: optionalEnv('NEXT_PUBLIC_APP_URL', 'https://app.iln.finance'),
 
-  // Auth
-  SEP10_SERVER_SECRET_KEY: process.env.SEP10_SERVER_SECRET_KEY || '',
-  JWT_SECRET_KEY: process.env.JWT_SECRET_KEY || '',
-
   // GitHub (feedback API)
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
   GITHUB_OWNER: process.env.GITHUB_OWNER || '',

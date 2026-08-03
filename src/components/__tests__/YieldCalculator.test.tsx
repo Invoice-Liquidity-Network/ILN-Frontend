@@ -18,7 +18,7 @@ describe('YieldCalculator', () => {
     expect(screen.getByText('Your yield')).toBeInTheDocument();
     expect(screen.getByText('10 USDC')).toBeInTheDocument(); // 1000 * 100 / 10000 = 10
     expect(screen.getByText('Annualised yield (APY)')).toBeInTheDocument();
-    expect(screen.getByText('1216.67%')).toBeInTheDocument(); // (100/100) * (365/30) * 100
+    expect(screen.getByText('12.17%')).toBeInTheDocument(); // (100/100) * (365/30)
   });
 
   test('updates values when amount changes', () => {
@@ -36,7 +36,7 @@ describe('YieldCalculator', () => {
     expect(screen.getByText('Your yield')).toBeInTheDocument();
     expect(screen.getByText('20 USDC')).toBeInTheDocument(); // 2000 * 100 / 10000 = 20
     expect(screen.getByText('Annualised yield (APY)')).toBeInTheDocument();
-    expect(screen.getByText('1216.67%')).toBeInTheDocument(); // APY unchanged because discount rate and settlement days same
+    expect(screen.getByText('12.17%')).toBeInTheDocument(); // APY unchanged because discount rate and settlement days same
   });
 
   test('updates values when discount rate changes', () => {
@@ -54,7 +54,7 @@ describe('YieldCalculator', () => {
     expect(screen.getByText('Your yield')).toBeInTheDocument();
     expect(screen.getByText('20 USDC')).toBeInTheDocument(); // 1000 * 200 / 10000 = 20
     expect(screen.getByText('Annualised yield (APY)')).toBeInTheDocument();
-    expect(screen.getByText('2433.33%')).toBeInTheDocument(); // (200/100) * (365/30) * 100
+    expect(screen.getByText('24.33%')).toBeInTheDocument(); // (200/100) * (365/30)
   });
 
   test('updates values when settlement days changes', () => {
@@ -66,7 +66,7 @@ describe('YieldCalculator', () => {
     fireEvent.change(daysInput, { target: { value: '60' } });
 
     expect(screen.getByText('Annualised yield (APY)')).toBeInTheDocument();
-    expect(screen.getByText('608.33%')).toBeInTheDocument(); // (100/100) * (365/60) * 100
+    expect(screen.getByText('6.08%')).toBeInTheDocument(); // (100/100) * (365/60)
   });
 
   test('calls onFindMatching when button clicked', () => {
