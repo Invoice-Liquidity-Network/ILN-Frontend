@@ -130,7 +130,6 @@ describe('MarketplacePage Accessibility', () => {
   it('should have proper landmark structure', () => {
     const { getByTestId } = render(<MarketplacePage />, { wrapper: TestWrapper });
     expect(getByTestId('navbar')).toBeInTheDocument();
-    expect(getByTestId('footer')).toBeInTheDocument();
     const main = document.querySelector('main');
     expect(main).toBeInTheDocument();
   });

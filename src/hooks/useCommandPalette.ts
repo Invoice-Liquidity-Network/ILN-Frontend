@@ -65,7 +65,7 @@ export function useCommandPalette(onOpenShortcuts?: () => void) {
       {
         id: 'payer',
         label: 'Go to Payer',
-        action: () => router.push('/dashboard/payer'),
+        action: () => router.push('/payer'),
         category: 'navigation',
       },
       {

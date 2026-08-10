@@ -71,7 +71,7 @@ export const PAYER_STEPS: OnboardingStep[] = [
     content:
       "All funded invoices assigned to your wallet will appear here. Click 'Settle' to pay the Liquidity Provider and clear your obligation.",
     targetId: 'payer-settlement-page',
-    route: '/dashboard/payer',
+    route: '/payer',
   },
 ];
 

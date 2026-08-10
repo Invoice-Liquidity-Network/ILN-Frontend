@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import VoteSection from '@/components/VoteSection';
 import { GOVERNANCE_ADMIN_ADDRESS } from '@/constants';
@@ -670,7 +669,6 @@ export default function ProposalDetailPage() {
         </div>
       </div>
 
-      <Footer />
       {vetoModalOpen && (
         <VetoProposalModal
           reason={vetoReason}

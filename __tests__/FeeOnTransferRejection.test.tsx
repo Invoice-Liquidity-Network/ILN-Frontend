@@ -48,7 +48,11 @@ describe('Fee-on-transfer token rejection (#68)', () => {
     fireEvent.blur(input);
 
     await waitFor(() =>
-      expect(screen.getByText('Contract error: FeeOnTransferToken')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          'This token implements fee-on-transfer and cannot be added to the ILN allowlist. Tokens must transfer the exact amount specified.'
+        )
+      ).toBeInTheDocument()
     );
   });
 

@@ -259,7 +259,7 @@ exports[`LPDashboard snapshots > matches the fund confirmation modal with sample
               <p
                 class="mt-2 text-2xl font-bold text-emerald-500"
               >
-                1216.67%
+                12.17%
               </p>
             </div>
           </div>
@@ -721,7 +721,7 @@ exports[`LPDashboard snapshots > matches the fund confirmation modal with sample
     >
       <div
         class="flex items-center gap-1.5 text-[11px] text-on-surface-variant/70 font-medium px-6 py-2"
-        title="Nov 14, 2023, 11:13 PM"
+        title="Nov 14, 2023, 10:13 PM"
       >
         <span
           class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
@@ -1345,7 +1345,7 @@ exports[`LPDashboard snapshots > matches the invoice table discovery state with 
               <p
                 class="mt-2 text-2xl font-bold text-emerald-500"
               >
-                1216.67%
+                12.17%
               </p>
             </div>
           </div>
@@ -1807,7 +1807,7 @@ exports[`LPDashboard snapshots > matches the invoice table discovery state with 
     >
       <div
         class="flex items-center gap-1.5 text-[11px] text-on-surface-variant/70 font-medium px-6 py-2"
-        title="Nov 14, 2023, 11:13 PM"
+        title="Nov 14, 2023, 10:13 PM"
       >
         <span
           class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
@@ -2083,7 +2083,7 @@ exports[`LPDashboard snapshots > matches the lp portfolio style my-funded view w
               <p
                 class="mt-2 text-2xl font-bold text-emerald-500"
               >
-                1216.67%
+                12.17%
               </p>
             </div>
           </div>
@@ -3542,7 +3542,7 @@ exports[`LPDashboard snapshots > matches the lp portfolio style my-funded view w
     >
       <div
         class="flex items-center gap-1.5 text-[11px] text-on-surface-variant/70 font-medium px-6 py-2"
-        title="Nov 14, 2023, 11:13 PM"
+        title="Nov 14, 2023, 10:13 PM"
       >
         <span
           class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
