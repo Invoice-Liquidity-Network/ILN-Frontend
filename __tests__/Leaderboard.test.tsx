@@ -101,6 +101,12 @@ describe('Leaderboard page', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://example.com/leaderboard');
     });
 
-    expect(screen.getByText(/link copied/i)).toBeInTheDocument();
+    // setCopied(true) fires in the microtask after the clipboard write
+    // resolves, not synchronously with the call - wait for the label
+    // itself rather than assuming it's already rendered once writeText
+    // has been called (otherwise this races the state update).
+    await waitFor(() => {
+      expect(screen.getByText(/link copied/i)).toBeInTheDocument();
+    });
   });
 });
