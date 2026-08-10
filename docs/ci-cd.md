@@ -4,7 +4,9 @@ This document describes the CI/CD pipeline configuration, branch protection rule
 
 ## Custom Runner: namespace-profile-nursca
 
-All GitHub Actions workflows in this repository use a custom/self-hosted runner labeled `namespace-profile-nursca`.
+> **Temporarily disabled (2026-08-10):** `namespace-profile-nursca` stopped picking up jobs — `gh api repos/.../actions/runners` returns zero registered runners, and every workflow that targeted it had been stuck in `queued` for 8+ hours across multiple pushes. All workflows below were switched to `runs-on: ubuntu-latest` as a temporary mitigation so CI keeps running. This is a runner/infrastructure issue (likely on the Namespace.so side — expired registration, billing, or a broken webhook), not a code issue. Once the runner is confirmed healthy again, revert these `runs-on` lines back to `namespace-profile-nursca` (see the "Fork Contributors" example below for the exact line to change, in reverse).
+
+All GitHub Actions workflows in this repository normally use a custom/self-hosted runner labeled `namespace-profile-nursca`.
 
 ### What is namespace-profile-nursca?
 
@@ -48,16 +50,18 @@ runs-on: ubuntu-latest
 
 ### Workflows Using Custom Runner
 
-The following workflows use `namespace-profile-nursca`:
+The following workflows are configured to use `namespace-profile-nursca` under normal operation. **As of 2026-08-10 they are temporarily pinned to `ubuntu-latest`** — see the notice above.
 
-- `ci.yml` - Lint, unit tests, build
+- `ci.yml` - Lint, unit tests, coverage, build (4 jobs)
 - `e2e-tests.yml` - End-to-end Playwright tests
-- `visual-regression.yml` - Chromatic visual regression tests
+- `visual-regression.yml` - Chromatic visual regression tests (the `chromatic` job only; `check-secret` and `chromatic-skip-notice` already run on `ubuntu-latest`)
 - `lighthouse.yml` - Lighthouse performance budget tests
 - `accessibility.yml` - Consolidated accessibility test suite
 - `contract-tests.yml` - Stellar SDK contract integration tests
+- `bundle-size.yml` - Bundle size regression tracking
+- `feature-flag-audit.yml` - Informational feature flag report (PR-triggered only)
 
-Note: `workflow-lint.yml` uses `ubuntu-latest` (GitHub-hosted runner) as it only requires workflow validation tools.
+Note: `workflow-lint.yml`, `mutation-testing.yml`, `flaky-test-detection.yml`, `nightly-testnet-e2e.yml`, `pr-issue-link-check.yml`, `pr-size-label.yml`, and `wave-points-summary.yml` already use `ubuntu-latest` and are unaffected.
 
 ## Branch Protection Rules
 

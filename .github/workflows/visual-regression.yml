@@ -32,7 +32,7 @@ jobs:
     needs: check-secret
     if: needs.check-secret.outputs.has_token == 'true'
     name: Chromatic Visual Regression
-    runs-on: namespace-profile-nursca
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
