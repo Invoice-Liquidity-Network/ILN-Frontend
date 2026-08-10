@@ -42,50 +42,7 @@ export function useContractEvents(enabled = true) {
   const wsHandleRef = useRef<ReturnType<typeof connectIndexerWebSocket> | null>(null);
   const horizonHandleRef = useRef<ReturnType<typeof connectHorizonTransactionStream> | null>(null);
 
-  const connectWebSocket = useCallback(() => {
-    setConnectionType('websocket');
-
-    const handle = connectIndexerWebSocket({
-      onEvent: (event) => {
-        patchInvoiceQueries(queryClient, event);
-        setError(null);
-        setRetryCount(0);
-      },
-      onStatusChange: (status) => {
-        setContractEventStreamingActive(status === 'connected');
-        if (status === 'error' || status === 'disconnected') {
-          if (process.env.NODE_ENV === 'development') {
-            console.error(`[ContractEventSync] WebSocket failed, falling back to polling`);
-          }
-          setError('WebSocket connection failed. Falling back to polling.');
-          setConnectionType('polling');
-          wsHandleRef.current?.close();
-          wsHandleRef.current = null;
-          horizonHandleRef.current = connectHorizonTransactionStream({
-            onEvent: (event) => {
-              patchInvoiceQueries(queryClient, event);
-              setError(null);
-              setRetryCount(0);
-            },
-            onStatusChange: (status) => {
-              setContractEventStreamingActive(status === 'connected');
-              if (status === 'disconnected') {
-                if (process.env.NODE_ENV === 'development') {
-                  console.error('[ContractEventSync] Polling connection failed.');
-                }
-                setError('Connection failed. Please refresh manually.');
-              }
-            },
-          });
-        }
-      },
-      maxReconnectAttempts: 3,
-    });
-
-    return handle;
-  }, [queryClient]);
-
-  const _connectPolling = useCallback(
+  const connectPolling = useCallback(
     function connectPollingAttempt(attempt: number) {
       setConnectionType('polling');
       const handle = connectHorizonTransactionStream({
@@ -96,7 +53,10 @@ export function useContractEvents(enabled = true) {
         },
         onStatusChange: (status) => {
           setContractEventStreamingActive(status === 'connected');
-          if (status === 'error' || status === 'disconnected') {
+          if (status === 'connected') {
+            setError(null);
+            setRetryCount(0);
+          } else if (status === 'error' || status === 'disconnected') {
             if (attempt < MAX_RETRIES) {
               const delay = BASE_DELAY_MS * Math.pow(2, attempt);
               if (process.env.NODE_ENV === 'development') {
@@ -120,6 +80,33 @@ export function useContractEvents(enabled = true) {
     },
     [queryClient]
   );
+
+  const connectWebSocket = useCallback(() => {
+    setConnectionType('websocket');
+
+    const handle = connectIndexerWebSocket({
+      onEvent: (event) => {
+        patchInvoiceQueries(queryClient, event);
+        setError(null);
+        setRetryCount(0);
+      },
+      onStatusChange: (status) => {
+        setContractEventStreamingActive(status === 'connected');
+        if (status === 'error' || status === 'disconnected') {
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`[ContractEventSync] WebSocket failed, falling back to polling`);
+          }
+          setError('WebSocket connection failed. Falling back to polling.');
+          wsHandleRef.current?.close();
+          wsHandleRef.current = null;
+          horizonHandleRef.current = connectPolling(0);
+        }
+      },
+      maxReconnectAttempts: 3,
+    });
+
+    return handle;
+  }, [queryClient, connectPolling]);
 
   useEffect(() => {
     if (!enabled) {

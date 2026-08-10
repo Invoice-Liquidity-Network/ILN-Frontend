@@ -85,6 +85,12 @@ describe('LPDashboard snapshots', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-08-02T00:00:00.000Z'));
     vi.spyOn(Date.prototype, 'toLocaleTimeString').mockReturnValue('12:00:00 AM');
+    // LastUpdated's "title" tooltip formats dataUpdatedAt via toLocaleString()
+    // with no timeZone option, so it renders in the host machine's local
+    // timezone - non-deterministic across CI runners and contributors'
+    // machines. Pin it, matching UTC (1_700_000_000_000 = Nov 14, 2023,
+    // 22:13:20 UTC), same pattern as the toLocaleTimeString mock above.
+    vi.spyOn(Date.prototype, 'toLocaleString').mockReturnValue('Nov 14, 2023, 10:13 PM');
     walletState.address = FIXTURE_ADDRESSES.lp;
     walletState.isConnected = true;
     walletState.networkMismatch = false;

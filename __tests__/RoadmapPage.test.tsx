@@ -68,11 +68,11 @@ describe('RoadmapPage', () => {
     expect(githubLink).toHaveAttribute('target', '_blank');
   });
 
-  it('renders Navbar and Footer', () => {
+  it('renders Navbar but not Footer (footer is home-page-only)', () => {
     render(<RoadmapPage />);
 
     expect(screen.getByTestId('navbar')).toBeInTheDocument();
-    expect(screen.getByTestId('footer')).toBeInTheDocument();
+    expect(screen.queryByTestId('footer')).not.toBeInTheDocument();
   });
 
   it('snapshot test matches expected output', () => {

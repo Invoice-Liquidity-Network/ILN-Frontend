@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import VoteProgressBar from '@/components/VoteProgressBar';
 import QuorumProgressBar from '@/components/QuorumProgressBar';
@@ -362,8 +361,6 @@ export default function GovernancePage() {
           </ErrorBoundary>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }

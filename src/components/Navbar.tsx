@@ -78,7 +78,7 @@ export default function Navbar() {
           </Link>
           <Link
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
-            href="/dashboard/payer"
+            href="/payer"
           >
             {t('nav.payInvoices')}
           </Link>
@@ -168,7 +168,8 @@ export default function Navbar() {
             </span>
           </button>
 
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex sm:items-center sm:gap-4">
+            <span className="h-6 w-px bg-outline-variant/20" aria-hidden="true" />
             <WalletButton />
           </div>
         </div>

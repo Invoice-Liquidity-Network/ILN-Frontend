@@ -18,7 +18,6 @@ import {
   YAxis,
 } from 'recharts';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import MetricCard from '@/components/analytics/MetricCard';
 import { EmptyState } from '@/components/EmptyState';
 import { ExportButton } from '@/components/ExportButton';
@@ -467,7 +466,6 @@ export default function FreelancerAnalyticsDashboard() {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import InvoiceFilterBar from '@/components/InvoiceFilterBar';
 import { useWallet } from '@/context/WalletContext';
 import { useToast } from '@/context/ToastContext';
@@ -720,7 +719,6 @@ function FreelancerPageContent() {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }
