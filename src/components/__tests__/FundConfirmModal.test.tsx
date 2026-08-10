@@ -264,7 +264,14 @@ describe('FundConfirmModal (via LPDashboard)', () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
+      // The button is disabled (and its click a no-op) until the mocked
+      // allowance check resolves - wait for it to become enabled, not just
+      // present, before clicking. Otherwise this races the allowance promise
+      // and intermittently no-ops under load (flaky in CI, rare locally).
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Approve USDC' })).toBeEnabled()
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() => expect(buildApproveTokenTransaction).toHaveBeenCalledTimes(1));
       expect(submitSignedTransaction).toHaveBeenCalledTimes(1);
@@ -276,7 +283,14 @@ describe('FundConfirmModal (via LPDashboard)', () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
+      // The button is disabled (and its click a no-op) until the mocked
+      // allowance check resolves - wait for it to become enabled, not just
+      // present, before clicking. Otherwise this races the allowance promise
+      // and intermittently no-ops under load (flaky in CI, rare locally).
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Approve USDC' })).toBeEnabled()
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() =>
         expect(updateToast).toHaveBeenCalledWith(
@@ -291,7 +305,14 @@ describe('FundConfirmModal (via LPDashboard)', () => {
 
       render(<LPDashboard />);
       fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Approve USDC' }));
+      // The button is disabled (and its click a no-op) until the mocked
+      // allowance check resolves - wait for it to become enabled, not just
+      // present, before clicking. Otherwise this races the allowance promise
+      // and intermittently no-ops under load (flaky in CI, rare locally).
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Approve USDC' })).toBeEnabled()
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Approve USDC' }));
 
       await waitFor(() => {
         expect(screen.getByText('Approval failed.')).toBeInTheDocument();
