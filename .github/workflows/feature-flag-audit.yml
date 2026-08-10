@@ -16,7 +16,7 @@ concurrency:
 jobs:
   audit:
     name: Feature Flag Report
-    runs-on: namespace-profile-nursca
+    runs-on: ubuntu-latest
     # Informational only — never blocks a PR
     continue-on-error: true
     steps:
