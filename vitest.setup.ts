@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
 import { toHaveNoViolations } from 'jest-axe';
 import { server } from './src/mocks/server';
 
@@ -8,6 +9,13 @@ declare const expect: any;
 
 // Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
+
+// Testing Library's default waitFor/findBy timeout is 1000ms, which is too
+// tight once the process is under heavy CPU load - e.g. the CI/coverage job's
+// `--coverage.include=src/**` glob instruments most of the codebase and can
+// starve pending promises well past 1s. Matches the testTimeout/hookTimeout
+// headroom in vitest.config.ts.
+configure({ asyncUtilTimeout: 5_000 });
 
 // Mock ResizeObserver for recharts / other components that use it
 class ResizeObserverMock {
@@ -60,6 +68,25 @@ vi.mock('@tanstack/react-query', () => ({
   QueryClient: vi.fn(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   QueryClientProvider: ({ children }: { children: any }) => children,
+}));
+
+// Mock @stellar/freighter-api. The real implementation races a postMessage
+// against a 2s setTimeout fallback (see its `isConnected`/`getAddress`
+// internals) waiting for a browser extension that doesn't exist in jsdom.
+// Any test that renders the real WalletContext without mocking it (e.g.
+// i18n.test.tsx) leaves that timer pending past the test's own duration;
+// when it eventually fires, `window` may already be torn down by a later
+// test file's environment, throwing "ReferenceError: window is not defined"
+// as an unhandled error attributed to whatever happens to be running then.
+// Test files that need specific wallet behavior already override this with
+// their own vi.mock('@stellar/freighter-api', ...), which takes precedence.
+vi.mock('@stellar/freighter-api', () => ({
+  isConnected: vi.fn().mockResolvedValue({ isConnected: false }),
+  getAddress: vi.fn().mockResolvedValue({ address: '' }),
+  setAllowed: vi.fn().mockResolvedValue({ isAllowed: false }),
+  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: '' }),
+  getNetwork: vi.fn().mockResolvedValue({ network: 'TESTNET', networkPassphrase: '' }),
+  requestAccess: vi.fn().mockResolvedValue({ address: '' }),
 }));
 
 // Mock next/navigation

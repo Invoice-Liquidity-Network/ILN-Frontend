@@ -24,9 +24,13 @@ export default defineConfig({
     // A handful of suites render large trees (LP dashboard, activity heatmap,
     // full page routes). The 5s default is tight enough that they flake on a
     // loaded runner - especially under `--coverage`, which instruments every
-    // module - while still catching genuinely hung tests.
-    testTimeout: 15_000,
-    hookTimeout: 15_000,
+    // module - while still catching genuinely hung tests. 15s still wasn't
+    // enough for the CI/coverage job's broad `--coverage.include=src/**`
+    // glob (full-src instrumentation, not just the narrow list below) once
+    // it moved off the self-hosted runner onto ubuntu-latest - bumped
+    // further to give that job real headroom.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: [
