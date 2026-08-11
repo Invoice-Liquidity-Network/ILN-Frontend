@@ -105,9 +105,16 @@ describe('LPDashboard approval flow', () => {
     });
 
     expect(screen.getByText('1 of 2')).toBeInTheDocument();
-    expect(
-      screen.getByText(/You're authorising ILN to spend 100 USDC USDC from your wallet/)
-    ).toBeInTheDocument();
+
+    // The heading renders immediately via a fallback token symbol, before the
+    // mocked allowance check resolves - the paragraph below it still reads
+    // "Checking current allowance..." until isCheckingAllowance flips false.
+    // Wait for the real copy rather than asserting right after the heading.
+    await waitFor(() => {
+      expect(
+        screen.getByText(/You're authorising ILN to spend 100 USDC from your wallet/)
+      ).toBeInTheDocument();
+    });
     expect(screen.getByRole('button', { name: 'Approve USDC' })).toBeInTheDocument();
   });
 });

@@ -179,13 +179,14 @@ describe('Accessibility checks', () => {
   it('Home page should have no accessibility violations', async () => {
     // Home renders the full page (Navbar, Hero, Stats, PersonalizedDashboard,
     // Footer, etc.) under the real Providers tree, then axe-scans the whole
-    // thing - the heaviest single case in this suite. The default 5s test
-    // timeout is tight for that under worker contention (running this file
-    // alongside the other a11y suites); give it more headroom.
+    // thing - the heaviest single case in this suite. The 15s timeout below
+    // matched the older global default but still flaked under the CI/coverage
+    // job's broad `--coverage.include=src/**` instrumentation on
+    // ubuntu-latest. Match the current 30s global testTimeout headroom.
     const { container } = render(<HomePage />, { wrapper: TestWrapper });
     const results = await axe(container, axeConfig);
     expect(results).toHaveNoViolations();
-  }, 15000);
+  }, 30000);
 
   it('Invoice detail page should have no accessibility violations', async () => {
     const params = Promise.resolve({ id: '1' }) as any;

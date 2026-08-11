@@ -1043,7 +1043,7 @@ exports[`LPDashboard snapshots > matches the fund confirmation modal with sample
               <p
                 class="text-lg text-on-surface-variant"
               >
-                You're authorising ILN to spend 150 USDC USDC from your wallet. This is a one-time approval.
+                You're authorising ILN to spend 150 USDC from your wallet. This is a one-time approval.
               </p>
             </div>
             <div
