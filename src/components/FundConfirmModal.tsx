@@ -99,9 +99,11 @@ export default function FundConfirmModal({
 
   useEffect(() => {
     if (!invoice || !address) return;
+    const inv = invoice;
+    const walletAddress = address;
 
     async function fetchAllowance() {
-      await refreshAllowance(invoice, address);
+      await refreshAllowance(inv, walletAddress);
     }
 
     void fetchAllowance();
