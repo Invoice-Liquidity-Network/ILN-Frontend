@@ -27,6 +27,11 @@ const eslintConfig = defineConfig([
   // Prettier integration - must be last to override other configs
   prettierConfig,
   {
+    // eslint-config-next only registers the react-hooks/jsx-a11y/@typescript-eslint
+    // plugins for code files; without a matching `files` glob these rules would
+    // also apply to generated artifacts (e.g. __tests__/__snapshots__/*.snap),
+    // where ESLint cannot resolve the plugins.
+    files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
     plugins: {
       prettier,
     },

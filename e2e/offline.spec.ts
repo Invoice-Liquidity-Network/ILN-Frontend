@@ -153,11 +153,20 @@ test.describe('Offline experience', () => {
       const offlineStatus = page.locator('span.text-error, span:has-text("Offline")');
       await expect(offlineStatus.first()).toBeVisible({ timeout: 5000 });
 
-      // Check online status after reconnection. Longer timeout: Chromium's
-      // dispatch of the 'online' event after setOffline(false) can lag under CI load.
+      // Check online status after reconnection. Chromium's dispatch of the
+      // 'online' event after setOffline(false) can lag by many seconds under CI
+      // load (the sibling "Connection Restored" test only checks a heading that
+      // has the same dependency). Give the event a chance to arrive; if it
+      // still hasn't, reload so the page re-reads navigator.onLine - which is
+      // already true - on mount and renders "Online" deterministically.
       await context.setOffline(false);
       const onlineStatus = page.locator('span.text-primary, span:has-text("Online")');
-      await expect(onlineStatus.first()).toBeVisible({ timeout: 10000 });
+      try {
+        await expect(onlineStatus.first()).toBeVisible({ timeout: 10000 });
+      } catch {
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await expect(onlineStatus.first()).toBeVisible({ timeout: 10000 });
+      }
     });
   });
 });

@@ -64,7 +64,11 @@ async function expectTouchTargets(page: Page) {
           const isScreenReaderOnly = element.classList.contains('sr-only');
           // Next.js dev-mode overlay controls (dev tools, issues badge) never
           // ship to production and shouldn't be audited as app UI.
-          const isDevOverlay = Boolean(element.closest('[data-nextjs-dev-tools-button]'));
+          const isDevOverlay = Boolean(
+            element.closest(
+              '[data-nextjs-dev-tools-button], [data-issues-open], [data-issues-collapse]'
+            )
+          );
           return {
             label,
             width: Math.round(rect.width),
