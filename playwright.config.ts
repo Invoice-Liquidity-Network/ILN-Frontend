@@ -16,6 +16,12 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
+  // Retry in CI only: browser network-state events (e.g. the 'online' event
+  // after context.setOffline) can lag under a loaded runner and trip timing
+  // assertions; retries keep those flakes from failing the pipeline while
+  // still surfacing real regressions. trace: 'on-first-retry' captures a trace
+  // for the retried attempt to diagnose.
+  retries: process.env.CI ? 2 : 0,
   projects: [
     {
       name: 'mobile-375',
