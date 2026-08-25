@@ -25,7 +25,9 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
               base-uri 'self';
               form-action 'self';
               upgrade-insecure-requests;
-            `.replace(/\s+/g, ' ').trim(),
+            `
+              .replace(/\s+/g, ' ')
+              .trim(),
           },
           {
             key: 'X-Content-Type-Options',
@@ -42,6 +44,16 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
           {
             key: 'Permissions-Policy',
             value: 'geolocation=(), microphone=(), camera=()',
+          },
+        ],
+      },
+      {
+        // RFC 9116 recommends serving security.txt as text/plain.
+        source: '/.well-known/security.txt',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/plain; charset=utf-8',
           },
         ],
       },
@@ -80,6 +92,11 @@ export default withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
+  // Paired with skipWaiting so a newly-installed SW takes control of already
+  // open tabs immediately, rather than leaving them on a stale worker until
+  // the next full reload. See "Service Worker Security Model" in
+  // docs/architecture.md for the full threat-model writeup.
+  clientsClaim: true,
   fallbacks: {
     document: '/offline',
   },
@@ -89,6 +106,7 @@ export default withPWA({
       handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts',
+        cacheableResponse: { statuses: [0, 200] },
         expiration: {
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
@@ -100,6 +118,7 @@ export default withPWA({
       handler: 'CacheFirst',
       options: {
         cacheName: 'google-fonts-static',
+        cacheableResponse: { statuses: [0, 200] },
         expiration: {
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
@@ -111,6 +130,7 @@ export default withPWA({
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'static-assets',
+        cacheableResponse: { statuses: [0, 200] },
         expiration: {
           maxEntries: 64,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
@@ -122,6 +142,10 @@ export default withPWA({
       handler: 'NetworkFirst',
       options: {
         cacheName: 'api-cache',
+        // Only cache clean same-origin (0 = opaque no-cors, kept for parity
+        // with other entries) and 200 responses - error bodies and redirects
+        // must never be persisted as if they were valid API responses.
+        cacheableResponse: { statuses: [0, 200] },
         expiration: {
           maxEntries: 16,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
@@ -134,10 +158,12 @@ export default withPWA({
       handler: 'NetworkFirst',
       options: {
         cacheName: 'pages',
+        cacheableResponse: { statuses: [0, 200] },
         expiration: {
           maxEntries: 32,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
         },
+        networkTimeoutSeconds: 10,
       },
     },
   ],
