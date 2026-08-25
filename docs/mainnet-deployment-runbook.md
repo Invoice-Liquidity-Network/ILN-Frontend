@@ -16,6 +16,7 @@ Complete every item below before the first mainnet cutover deploy.
 - [ ] A dry run has been performed against a Vercel preview deployment configured with mainnet-shaped (but not
       live) parameters - see [Section 4](#4-dry-run-procedure).
 - [ ] Feature flag defaults for launch have been reviewed and signed off - see [Section 5](#5-feature-flag-cutover-defaults).
+- [ ] DNS security hardening has been verified and documented - see [Section 8](#8-dns-security-hardening-verification).
 
 ## 2. Environment variable cutover checklist
 
@@ -130,3 +131,166 @@ After the initial cutover, every subsequent merge to `main` continues to deploy 
    verified.
 4. If an incident occurs, follow [docs/incident-response.md](incident-response.md) rather than this runbook -
    this document governs planned cutovers and routine releases, not containment.
+
+---
+
+## 8. DNS Security Hardening Verification
+
+[docs/incident-response.md](incident-response.md) identifies "DNS hijacking" as an explicit SEV-1 threat category. This section documents the DNS-level protections in place and the verification procedure.
+
+### Current DNS Configuration
+
+#### Production Domain
+- **Domain**: `app.iln.finance` (or the configured production domain)
+- **DNS Provider**: [To be documented - verify with infrastructure team]
+- **Current Status**: Audit required
+
+### DNSSEC (Domain Name System Security Extensions)
+
+DNSSEC adds cryptographic signatures to DNS records, preventing DNS cache poisoning and hijacking attacks.
+
+#### Current Status
+- **DNSSEC Enabled**: [To be verified - check with DNS provider]
+- **Implementation Status**: Audit required
+
+#### Verification Procedure
+
+To verify DNSSEC is enabled for the production domain:
+
+```bash
+# Check DNSSEC status using dig
+dig +dnssec app.iln.finance
+
+# Look for the AD (Authenticated Data) flag in the response
+# If AD flag is present, DNSSEC validation succeeded
+
+# Alternatively, use online tools:
+# - https://dnssec-analyzer.verisignlabs.com/
+# - https://dnsviz.net/
+```
+
+#### Implementation Steps (if not enabled)
+
+1. **Generate DNSSEC keys** (via DNS provider dashboard or CLI)
+2. **Publish DS records** at the registrar level
+3. **Enable DNSSEC signing** in the DNS provider
+4. **Verify propagation** using the verification procedure above
+5. **Monitor for DNSSEC validation failures** in DNS logs
+
+### CAA Records (Certification Authority Authorization)
+
+CAA records restrict which Certificate Authorities (CAs) are authorized to issue SSL/TLS certificates for the domain, preventing unauthorized certificate issuance.
+
+#### Current Status
+- **CAA Records Configured**: [To be verified]
+- **Authorized CAs**: [To be documented]
+
+#### Verification Procedure
+
+To check CAA records for the production domain:
+
+```bash
+# Query CAA records
+dig app.iln.finance CAA
+
+# Expected output format:
+# app.iln.finance.  IN  CAA  0 issue "letsencrypt.org"
+# app.iln.finance.  IN  CAA  0 issuewild "letsencrypt.org"
+```
+
+#### Recommended CAA Configuration
+
+For ILN Frontend, the following CAA records are recommended:
+
+```
+app.iln.finance.  IN  CAA  0 issue "letsencrypt.org"
+app.iln.finance.  IN  CAA  0 issuewild "letsencrypt.org"
+app.iln.finance.  IN  CAA  0 iodef "mailto:security@example.com"
+```
+
+**Explanation**:
+- `issue "letsencrypt.org"` - Only Let's Encrypt can issue certificates for this domain
+- `issuewild "letsencrypt.org"` - Only Let's Encrypt can issue wildcard certificates
+- `iodef` - Email address to receive reports if an unauthorized CA attempts to issue a certificate
+
+#### Implementation Steps (if not configured)
+
+1. **Add CAA records** via DNS provider dashboard
+2. **Verify propagation** using the verification procedure above
+3. **Test certificate issuance** to ensure authorized CA can still issue certificates
+4. **Monitor CAA failure reports** (if iodef is configured)
+
+### Additional DNS Security Best Practices
+
+#### DNS Provider Access Control
+- [ ] Audit who has access to modify DNS records
+- [ ] Enable 2FA for all DNS provider accounts
+- [ ] Use IP whitelisting for DNS management API access (if supported)
+- [ ] Enable audit logging for DNS changes
+
+#### DNS Record Monitoring
+- [ ] Set up monitoring for unexpected DNS record changes
+- [ ] Monitor TTL values to ensure they're appropriate (not excessively long)
+- [ ] Monitor for new subdomain creation (potential subdomain takeover risk)
+
+#### DNS Redundancy
+- [ ] Ensure DNS is hosted on multiple providers (if possible)
+- [ ] Verify DNS failover is configured and tested
+- [ ] Monitor DNS resolution latency and uptime
+
+### Pre-Launch DNS Security Checklist
+
+Complete before the mainnet cutover:
+
+- [ ] Verify DNSSEC is enabled for the production domain
+- [ ] Verify CAA records are configured and restrict to authorized CAs
+- [ ] Document the DNS provider and access controls
+- [ ] Test DNS resolution from multiple geographic locations
+- [ ] Verify DNS TTL values are appropriate (recommended: 300-3600 seconds for critical records)
+- [ ] Confirm DNS change monitoring is in place
+- [ ] Document the DNS security configuration in this section
+
+### Post-Launch DNS Monitoring
+
+After launch, monitor the following:
+
+- **DNSSEC validation failures** - Indicates potential DNS spoofing attempts
+- **CAA failure reports** - Indicates unauthorized certificate issuance attempts
+- **Unexpected DNS record changes** - Indicates potential DNS account compromise
+- **DNS resolution latency** - Indicates potential DNS infrastructure issues
+- **Certificate expiration** - Ensure SSL/TLS certificates are renewed before expiration
+
+### Incident Response for DNS Issues
+
+If DNS hijacking is suspected:
+
+1. **Immediate containment**
+   - Revoke DNS provider access for compromised accounts
+   - Rotate DNS provider API keys
+   - Restore DNS records from last known good configuration
+
+2. **Verification**
+   - Verify DNSSEC signatures are still valid
+   - Verify CAA records haven't been modified
+   - Check for unauthorized subdomains
+
+3. **Communication**
+   - Follow the incident response procedure in [docs/incident-response.md](incident-response.md)
+   - Notify users if DNS hijacking could have affected certificate issuance
+
+4. **Post-incident**
+   - Review DNS provider access controls
+   - Consider implementing DNS monitoring with alerts
+   - Update this documentation with lessons learned
+
+### Maintainer Action Required
+
+Please verify and complete the following:
+
+- [ ] Audit current DNS provider and document who has access
+- [ ] Verify DNSSEC status for the production domain
+- [ ] Verify CAA records are configured
+- [ ] Implement DNSSEC and CAA if not already in place
+- [ ] Set up DNS change monitoring
+- [ ] Document the actual DNS provider and configuration in this section
+- [ ] Test DNS resolution from multiple geographic locations before launch
