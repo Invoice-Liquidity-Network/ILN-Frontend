@@ -12,6 +12,7 @@ import FeedbackWidget from '@/components/FeedbackWidget';
 import CommandPalette from '@/components/CommandPalette';
 import OfflineBanner from '@/components/OfflineBanner';
 import NetworkMismatchBanner from '@/components/NetworkMismatchBanner';
+import MainnetLaunchBanner from '@/components/MainnetLaunchBanner';
 import ContractEventSync from '@/components/ContractEventSync';
 import WhatsNewModal from '@/components/modals/WhatsNewModal';
 import Providers from './Providers';
@@ -76,6 +77,7 @@ export default function RootLayout({
                   <KeyboardShortcutsProvider>
                     <OfflineBanner />
                     <NetworkMismatchBanner />
+                    <MainnetLaunchBanner />
                     <FABProvider />
                     <div className="min-h-screen flex flex-col">
                       <div className="flex-1">

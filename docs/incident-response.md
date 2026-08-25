@@ -76,6 +76,123 @@ If the origin domain or CDN is compromised:
 
 ---
 
+## 3.5 Frontend Incident Mitigation Decision Tree
+
+Not every frontend bug warrants a full Vercel rollback (which reverts *all* recent changes, including unrelated fixes). Use this decision tree to choose the appropriate mitigation strategy based on bug scope, urgency, and blast radius.
+
+### Decision Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    INCIDENT DETECTED                             │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+                 ┌────────────────────────┐
+                 │ Is this SEV-1 (direct  │
+                 │ fund/key risk)?        │
+                 └────────────┬───────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │ YES                           │ NO
+              ▼                               ▼
+    ┌──────────────────┐          ┌────────────────────────┐
+    │ IMMEDIATE ROLLBACK│          │ Assess bug scope        │
+    │ (Step 2 below)    │          └──────────┬─────────────┘
+    └──────────────────┘                     │
+                                           ▼
+                              ┌────────────────────────┐
+                              │ Is bug isolated to a    │
+                              │ single feature?         │
+                              └──────────┬─────────────┘
+                                         │
+                         ┌───────────────┴───────────────┐
+                         │ YES                           │ NO
+                         ▼                               ▼
+              ┌──────────────────┐          ┌────────────────────────┐
+              │ Feature flag     │          │ Is hotfix possible      │
+              │ disable (Step 1) │          │ within 15-30 min?      │
+              └──────────────────┘          └──────────┬─────────────┘
+                                                  │
+                                  ┌───────────────┴───────────────┐
+                                  │ YES                           │ NO
+                                  ▼                               ▼
+                        ┌──────────────────┐          ┌────────────────────────┐
+                        │ Targeted hotfix  │          │ Full rollback          │
+                        │ (code fix +      │          │ (Step 2 below)         │
+                        │ redeploy)        │          └────────────────────────┘
+                        └──────────────────┘
+```
+
+### Mitigation Strategy Comparison
+
+| Strategy | When to Use | Time to Mitigate | Blast Radius | Recovery Time | Notes |
+|----------|-------------|------------------|--------------|---------------|-------|
+| **Feature Flag Disable** | Bug is isolated to a gated feature (insurance pool, oracle, NFT display) | 2-5 minutes (env var update + redeploy) | Single feature only | Instant (no code revert) | Fastest option; requires feature to be flag-gated. No impact on unrelated fixes. |
+| **Targeted Hotfix** | Bug is app-wide but fix is simple and low-risk (e.g., UI regression, API endpoint typo) | 15-30 minutes (fix + CI + deploy) | Entire app | 5-10 minutes (deploy time) | Preserves other recent changes. Requires CI checks to pass. |
+| **Full Vercel Rollback** | SEV-1 incidents, compromised build, or hotfix is too risky/complex | 1-2 minutes (instant rollback) | Reverts ALL recent changes | Depends on re-deploy speed | Safest option for critical incidents but loses all progress since last safe deployment. |
+
+### Timing Data from Rehearsals
+
+The following timings are based on rehearsal exercises (Issues #22 and #23):
+
+- **Feature flag disable**: 2-5 minutes from decision to production deployment
+  - Vercel CLI env var update: ~30 seconds
+  - Automatic redeploy trigger: ~1-2 minutes
+  - DNS propagation: not required (same deployment)
+
+- **Targeted hotfix**: 15-30 minutes from decision to production deployment
+  - Code fix implementation: 5-10 minutes
+  - CI checks (lint, tests, build): 5-10 minutes
+  - Vercel deploy: 2-5 minutes
+  - Smoke test verification: 3-5 minutes
+
+- **Full Vercel rollback**: 1-2 minutes from decision to production
+  - Identify safe deployment ID: ~30 seconds
+  - Execute rollback: ~30 seconds
+  - Verification: ~30 seconds
+
+### Decision Checklist
+
+Before choosing a mitigation strategy, confirm:
+
+1. **Bug scope assessment**
+   - [ ] Can the bug be isolated to a single feature?
+   - [ ] Is that feature behind a feature flag?
+   - [ ] Does the bug affect core wallet/signing flows?
+
+2. **Hotfix feasibility**
+   - [ ] Is the fix simple (single file, <10 lines)?
+   - [ ] Does the fix require new dependencies or complex logic?
+   - [ ] Can CI checks pass within 10 minutes?
+
+3. **Rollback impact assessment**
+   - [ ] What other fixes will be lost if we rollback?
+   - [ ] Is the last known safe deployment verified?
+   - [ ] Will rollback introduce regressions (e.g., contract ID changes)?
+
+### Example Scenarios
+
+**Scenario A: Insurance pool UI shows incorrect calculation**
+- **Scope**: Isolated to insurance pool feature
+- **Mitigation**: Feature flag disable (`NEXT_PUBLIC_INSURANCE_POOL_ENABLED=false`)
+- **Time**: 3 minutes
+- **Blast radius**: Insurance pool only
+
+**Scenario B: Wallet connection fails for all users**
+- **Scope**: App-wide, core functionality
+- **Mitigation**: Full rollback (hotfix too risky for core wallet flow)
+- **Time**: 2 minutes
+- **Blast radius**: All recent changes reverted
+
+**Scenario C: Invoice detail page shows broken layout due to CSS typo**
+- **Scope**: App-wide but low-risk fix
+- **Mitigation**: Targeted hotfix (single CSS line fix)
+- **Time**: 18 minutes
+- **Blast radius**: None (preserves other changes)
+
+---
+
 ## 4. Intersection with Smart Contract Incident Response
 
 A compromised frontend interface may attempt to trick users into signing malicious Soroban transactions targeting un-compromised smart contracts.
