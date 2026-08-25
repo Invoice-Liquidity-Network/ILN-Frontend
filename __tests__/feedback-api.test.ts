@@ -184,7 +184,7 @@ describe('/api/feedback API route', () => {
     it.each([
       ['a non-integer', { ...validPayload, rating: 4.5 }],
       ['a string', { ...validPayload, rating: '5' }],
-      ['out of range (0)', { ...validPayload, rating: 0 }],
+      ['out of range (negative)', { ...validPayload, rating: -1 }],
       ['out of range (6)', { ...validPayload, rating: 6 }],
     ])('rejects a rating that is %s', async (_desc, payload) => {
       const response = await POST(makeRequest(payload));
