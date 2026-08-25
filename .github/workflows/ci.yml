@@ -41,6 +41,15 @@ jobs:
       - name: Run TypeScript type check
         run: pnpm exec tsc --noEmit
 
+      - name: Run npm audit for security vulnerabilities
+        run: npm audit --audit-level=moderate
+
+      - name: Check for postinstall script changes in dependencies
+        run: |
+          echo "Scanning for packages with install/postinstall scripts..."
+          pnpm ls --depth=0 --json | jq -r '.dependencies[] | select(has("scripts")) | select(.scripts | has("postinstall") or has("install")) | .name + " (" + .version + ")"' || true
+          echo "For dependency-level postinstall detection, review pnpm-lock.yaml for 'prebuiltBinaries' and 'peerDependenciesMeta' entries on suspicious packages."
+
   tests:
     runs-on: ubuntu-latest
     steps:
