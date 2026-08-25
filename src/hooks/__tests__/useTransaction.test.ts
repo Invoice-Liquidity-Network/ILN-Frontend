@@ -7,12 +7,6 @@ vi.mock('@/utils/soroban', () => ({ submitSignedTransaction: vi.fn() }));
 vi.mock('@/context/ToastContext', () => ({
   useToast: () => ({ addToast: vi.fn(() => 'toast-id'), updateToast: vi.fn() }),
 }));
-vi.mock('@/hooks/useTransactionPreview', () => ({
-  useTransactionPreview: () => ({
-    previewModal: null,
-    requestPreview: vi.fn().mockResolvedValue(true),
-  }),
-}));
 
 import { useWallet } from '@/context/WalletContext';
 import { submitSignedTransaction } from '@/utils/soroban';
