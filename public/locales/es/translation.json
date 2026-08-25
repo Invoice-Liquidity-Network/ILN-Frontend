@@ -22,7 +22,8 @@
     "payInvoices": "Pagar Facturas",
     "dashboard": "Panel",
     "analytics": "Mis Analíticas",
-    "stats": "Estadísticas",
+    "stats": "Estadísticas del Protocolo",
+    "leaderboard": "Clasificación",
     "docs": "Documentos"
   },
   "landing": {

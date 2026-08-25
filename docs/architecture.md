@@ -56,7 +56,7 @@ graph TD
 
 ## Route Surface
 
-The primary route tree lives in `app/`. For a complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
+The primary route tree lives in `app/`. `/analytics` is the authenticated freelancer analytics workspace, while `/stats` is the public protocol-wide reporting page; `/leaderboard` is the canonical public cross-role ranking page. For the complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
 
 A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
@@ -143,6 +143,8 @@ API routes are used for server-only integration points:
 - `app/api/reminders/unsubscribe/route.ts` updates reminder preferences.
 - `app/api/feedback/route.ts` can create GitHub issues from app feedback when GitHub credentials are configured.
 - `app/api/notifications/[address]/route.ts` bridges notification reads by address.
+- `app/api/leaderboard/route.ts` bridges leaderboard reads for `TopFundersWidget`.
+- All of the above validate their inputs (Stellar address shape, allow-listed enum values, string/length limits) and apply a shared in-memory rate limiter from `src/lib/rate-limit.ts`, since each is a directly reachable server endpoint independent of any client-side validation.
 - Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
 
 ## State, Providers, and UI Boundaries
@@ -184,6 +186,38 @@ Invoice status changes are the primary source of duplication risk. To keep RPC u
    invoice-change detection loop. Do not add a third polling hook that independently calls `getInvoice()`.
 3. **LocalStorage-derived state** (bookmarks, watchlist, address book, LP settings, widget layout)
    is acceptable per-hook, but state computations should not duplicate logic already present in context providers.
+
+## Service Worker Security Model
+
+`next-pwa` generates `public/sw.js` and the `public/workbox-*.js` runtime from the `runtimeCaching` list in
+`next.config.ts`. Because the service worker can serve cached responses on repeat visits without hitting the
+network, it is a longer-lived attack surface than a single page load and is documented here explicitly.
+
+- **Precache integrity**: every build-time asset in the Workbox precache manifest (the `self.__WB_MANIFEST`
+  array injected into `sw.js`) is keyed by a content-hash `revision`. If a build artifact changes, its
+  revision/URL changes too, so a stale or tampered precached file cannot silently masquerade as the current
+  one - the manifest itself is only trustworthy to the extent that `sw.js` was delivered over HTTPS from the
+  real origin in the first place. There is no additional signing layer on top of this; Vercel's per-deploy
+  immutable static hosting is the trust root for that initial delivery.
+- **`skipWaiting: true` + `clientsClaim: true`**: a newly installed service worker activates immediately and
+  takes control of already-open tabs, instead of waiting for every tab to close. This intentionally shortens
+  the window during which a stale worker (e.g. one associated with a previously shipped, now-patched bug)
+  keeps serving old cached responses. The trade-off is that a new worker version rolls out fast to every open
+  tab - which is also why the runtime-cached entries below use short, bounded `maxAgeSeconds`/`maxEntries`
+  windows rather than long-lived caching, so the blast radius of any single bad response is capped even in
+  the worst case.
+- **`cacheableResponse` filtering**: the `api-cache`, `pages`, and static-asset runtime caching entries only
+  persist responses with status `0` (opaque, same-origin no-cors) or `200`. Error responses, redirects, and
+  other non-success statuses are never written into the cache, so a transient 4xx/5xx from a misbehaving or
+  MITM'd endpoint cannot be replayed to the user as if it were a valid cached page or API response.
+- **Scope of trust**: the service worker cannot protect against a compromised build pipeline or a
+  same-origin MITM that serves an attacker-controlled `sw.js` directly (this is a browser platform limitation
+  shared by all Workbox-based PWAs, not specific to this app). The mitigations above bound how long any single
+  bad response can persist and ensure a new deploy supersedes the previous worker quickly; they do not replace
+  transport security (HTTPS, HSTS) or build/deploy integrity, which remain the primary controls.
+- **No mutating requests are cached**: `runtimeCaching` strategies only intercept `GET` requests by default,
+  so `POST`/`PUT`/`DELETE` calls (e.g. reminder opt-in writes) always go to the network and are never served
+  from, or written to, the service worker cache.
 
 ## Environment Model
 

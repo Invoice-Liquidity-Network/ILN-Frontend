@@ -14,6 +14,8 @@ import {
   ProtocolParameters,
   isValidStellarAddress,
   lookupToken,
+  simulateProposalEffect,
+  ProposalSimulationResult,
 } from '@/utils/governance';
 import { CONTRACT_ERROR_MAP, parseContractError } from '@/lib/contract/errors';
 import { Input } from '@/components/Input';
@@ -52,6 +54,8 @@ export default function NewGovernanceProposalPage() {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [resolvedToken, setResolvedToken] = useState<AcceptedToken | null>(null);
   const [tokenLookupError, setTokenLookupError] = useState<string | null>(null);
+  const [simulationResult, setSimulationResult] = useState<ProposalSimulationResult | null>(null);
+  const [loadingSimulation, setLoadingSimulation] = useState(false);
 
   const userILNBalance = useMemo(() => {
     // Assuming ILN token balance is available in balances array
@@ -102,6 +106,52 @@ export default function NewGovernanceProposalPage() {
       clearTimeout(debounceLookup);
     };
   }, [formData.tokenAddress, formData.formType]);
+
+  // Simulate proposal effect when form changes
+  useEffect(() => {
+    let cancelled = false;
+    const debounceSimulation = setTimeout(async () => {
+      // Only simulate if form has required fields
+      if (!formData.formType || !formData.title) {
+        setSimulationResult(null);
+        return;
+      }
+
+      // Build payload for simulation
+      const payload = {
+        formType: formData.formType as CreateProposalFormType,
+        title: formData.title,
+        description: formData.description,
+        newValueBps: formData.newValueBps ? parseInt(formData.newValueBps) : undefined,
+        tokenAddress: formData.formType === 'AddToken' ? formData.tokenAddress : undefined,
+        tokenName: resolvedToken?.name,
+        removeTokenAddress:
+          formData.formType === 'RemoveToken' ? formData.removeTokenAddress : undefined,
+      };
+
+      try {
+        setLoadingSimulation(true);
+        const result = await simulateProposalEffect(payload);
+        if (!cancelled) {
+          setSimulationResult(result);
+        }
+      } catch (err) {
+        console.warn('Failed to simulate proposal effect:', err);
+        if (!cancelled) {
+          setSimulationResult(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSimulation(false);
+        }
+      }
+    }, 800);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceSimulation);
+    };
+  }, [formData, resolvedToken]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -440,15 +490,58 @@ IPFS Hash: ${ipfsHash}`,
           </div>
         )}
 
-        {formData.formType && formData.title && proposedParameterValue && (
-          <div className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-            <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Live Preview</h3>
-            <p className="text-blue-700 dark:text-blue-300">
-              This proposal will change <span className="font-medium">[{formData.formType}]</span>{' '}
-              from
-              <span className="font-medium"> {currentParameterValue}</span> to
-              <span className="font-medium"> {proposedParameterValue}</span>.
-            </p>
+        {formData.formType && formData.title && (
+          <div className={`border p-4 rounded-lg ${simulationResult?.isContractVerified ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950' : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950'}`}>
+            <div className="flex items-start justify-between mb-2">
+              <h3
+                className={`font-semibold ${simulationResult?.isContractVerified ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'}`}
+              >
+                Governance Simulation Preview
+              </h3>
+              {loadingSimulation && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+
+            {simulationResult && (
+              <>
+                <p
+                  className={`text-sm mb-2 ${simulationResult.isContractVerified ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}
+                >
+                  {simulationResult.estimatedEffect}
+                </p>
+                {!simulationResult.isContractVerified && (
+                  <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      ⚠️ <span className="font-semibold">Estimated preview</span> — Not contract-verified. Actual on-chain effect may differ due to protocol updates between proposal creation and execution.
+                    </p>
+                  </div>
+                )}
+                {simulationResult.isContractVerified && (
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                    ✓ <span className="font-semibold">Contract-verified</span> simulation
+                  </p>
+                )}
+                {simulationResult.warnings && simulationResult.warnings.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {simulationResult.warnings.map((warning, idx) => (
+                      <p key={idx} className="text-xs text-amber-700 dark:text-amber-300">
+                        ⚠️ {warning}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {proposedParameterValue && (
+              <p
+                className={`text-sm mt-3 ${simulationResult?.isContractVerified ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}
+              >
+                This proposal will change <span className="font-medium">[{formData.formType}]</span>{' '}
+                from
+                <span className="font-medium"> {currentParameterValue}</span> to
+                <span className="font-medium"> {proposedParameterValue}</span>.
+              </p>
+            )}
           </div>
         )}
 
