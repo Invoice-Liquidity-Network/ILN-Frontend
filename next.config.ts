@@ -5,6 +5,48 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
   turbopack: {},
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: `
+              default-src 'self';
+              script-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.app;
+              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+              font-src 'self' https://fonts.gstatic.com;
+              img-src 'self' data: https:;
+              media-src 'self';
+              connect-src 'self' https://stellar.expert https://horizon.stellar.org https://horizon-testnet.stellar.org https://rpc-futurenet.stellar.org https://soroban-rpc.stellar.org https://soroban-rpc.stellar.org https://*.supabase.co https://api.github.com;
+              frame-ancestors 'none';
+              object-src 'none';
+              base-uri 'self';
+              form-action 'self';
+              upgrade-insecure-requests;
+            `.replace(/\s+/g, ' ').trim(),
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(), microphone=(), camera=()',
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
