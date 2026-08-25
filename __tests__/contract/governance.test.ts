@@ -23,6 +23,7 @@ import {
   parameterLabel,
   parseProposalStatus,
   parseProposalFromNative,
+  simulateProposalEffect,
   MOCK_PROPOSALS,
   type CreateProposalPayload,
 } from '@/utils/governance';
@@ -371,5 +372,105 @@ describe('governance – fetchProtocolParameters', () => {
     expect(params).toHaveProperty('maxDiscountRateBps');
     expect(params).toHaveProperty('acceptedTokens');
     expect(Array.isArray(params.acceptedTokens)).toBe(true);
+  });
+});
+
+describe('governance – simulateProposalEffect', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns a result with isContractVerified and estimatedEffect fields', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'FeeRate',
+      title: 'Update Fee Rate',
+      description: 'Proposal to update fee rate',
+      newValueBps: 300,
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    expect(result).toHaveProperty('isContractVerified');
+    expect(result).toHaveProperty('estimatedEffect');
+    expect(typeof result.isContractVerified).toBe('boolean');
+    expect(typeof result.estimatedEffect).toBe('string');
+  });
+
+  it('generates estimate for FeeRate proposals', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'FeeRate',
+      title: 'Update Fee Rate',
+      description: 'Test proposal',
+      newValueBps: 400,
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    expect(result.estimatedEffect).toContain('fee rate');
+    expect(result.estimatedEffect).toContain('4');
+  });
+
+  it('generates estimate for MaxDiscountRate proposals', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'MaxDiscountRate',
+      title: 'Update Discount Rate',
+      description: 'Test proposal',
+      newValueBps: 600,
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    expect(result.estimatedEffect).toContain('discount rate');
+    expect(result.estimatedEffect).toContain('6');
+  });
+
+  it('generates estimate for AddToken proposals', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'AddToken',
+      title: 'Add Token',
+      description: 'Test proposal',
+      tokenAddress: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
+      tokenName: 'Wrapped Bitcoin',
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    expect(result.estimatedEffect).toContain('Add');
+    expect(result.estimatedEffect).toContain('Wrapped Bitcoin');
+  });
+
+  it('generates estimate for RemoveToken proposals', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'RemoveToken',
+      title: 'Remove Token',
+      description: 'Test proposal',
+      removeTokenAddress: 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75',
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    expect(result.estimatedEffect).toContain('Remove');
+  });
+
+  it('includes disclaimer for client-side estimates', async () => {
+    const payload: CreateProposalPayload = {
+      formType: 'FeeRate',
+      title: 'Update Fee Rate',
+      description: 'Test proposal',
+      newValueBps: 250,
+    };
+    vi.runAllTimersAsync();
+    const result = await simulateProposalEffect(payload);
+    vi.useRealTimers();
+    if (!result.isContractVerified) {
+      expect(result.warnings).toBeDefined();
+      if (result.warnings) {
+        expect(result.warnings.length).toBeGreaterThan(0);
+      }
+    }
   });
 });
