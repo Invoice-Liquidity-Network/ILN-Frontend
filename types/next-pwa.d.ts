@@ -11,10 +11,6 @@ declare module 'next-pwa' {
         maxAgeSeconds?: number;
       };
       networkTimeoutSeconds?: number;
-      cacheableResponse?: {
-        statuses?: number[];
-        headers?: Record<string, string>;
-      };
     };
   }
 
@@ -24,7 +20,6 @@ declare module 'next-pwa' {
     register?: boolean;
     scope?: string;
     skipWaiting?: boolean;
-    clientsClaim?: boolean;
     sw?: string;
     runtimeCaching?: RuntimeCachingRule[];
     subdomains?: boolean;

@@ -39,7 +39,6 @@ export default function Navbar() {
     { href: '/dashboard', label: t('nav.dashboard') },
     { href: '/analytics', label: t('nav.analytics') },
     { href: '/stats', label: t('nav.stats') },
-    { href: '/leaderboard', label: t('nav.leaderboard') },
     { href: '/referrals', label: 'Referrals' },
   ];
 
@@ -100,12 +99,6 @@ export default function Navbar() {
             href="/stats"
           >
             {t('nav.stats')}
-          </Link>
-          <Link
-            className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
-            href="/leaderboard"
-          >
-            {t('nav.leaderboard')}
           </Link>
           {/* <a
             className="text-on-surface-variant hover:text-primary transition-colors duration-200 text-sm font-medium"
