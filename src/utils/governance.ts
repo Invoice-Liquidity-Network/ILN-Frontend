@@ -867,3 +867,79 @@ export async function fetchVotesForAddress(address: string): Promise<VoteCastEve
   }
   return [];
 }
+
+// ─── Proposal Simulation / Dry-Run ────────────────────────────────────────────
+
+export interface ProposalSimulationResult {
+  isContractVerified: boolean;
+  estimatedEffect: string;
+  warnings?: string[];
+}
+
+/**
+ * Simulate the effect of a proposed parameter change without executing it.
+ * If the contract's `simulate_proposal_effect` function is available, returns
+ * a contract-verified simulation. Otherwise, returns a client-side estimate with
+ * a clear disclaimer.
+ *
+ * @param payload - The proposal payload to simulate
+ * @returns Simulation result with effect description and verification status
+ */
+export async function simulateProposalEffect(
+  payload: CreateProposalPayload
+): Promise<ProposalSimulationResult> {
+  try {
+    // Attempt to call the contract's `simulate_proposal_effect` function
+    // TODO: Wire this to actual Soroban call once contract function is available
+    // Ref: #111
+    const tx = buildGovernanceReadTransaction('simulate_proposal_effect', [
+      // Would pass serialized payload to contract
+    ]);
+
+    const callResult = await server.simulateTransaction(tx);
+
+    // If contract call succeeds, return verified result
+    if (rpc.Api.isSimulationSuccess(callResult) && callResult.result?.retval) {
+      const native = scValToNative(callResult.result.retval);
+      return {
+        isContractVerified: true,
+        estimatedEffect: typeof native === 'string' ? native : JSON.stringify(native),
+      };
+    }
+
+    // Fall through to client-side estimate
+    console.warn('Contract simulate_proposal_effect not available, using client-side estimate');
+  } catch (err) {
+    console.warn('simulateProposalEffect contract call failed:', err);
+    // Fall through to client-side estimate
+  }
+
+  // Client-side estimation (not contract-verified)
+  const clientEstimate = generateClientSideEstimate(payload);
+  return {
+    isContractVerified: false,
+    estimatedEffect: clientEstimate,
+    warnings: [
+      'This is an estimated preview, not contract-verified. Actual on-chain effect may differ due to updates between proposal creation and execution.',
+    ],
+  };
+}
+
+/**
+ * Generate a client-side estimate of the proposal effect.
+ * Used as fallback when contract simulation is unavailable.
+ */
+function generateClientSideEstimate(payload: CreateProposalPayload): string {
+  switch (payload.formType) {
+    case 'FeeRate':
+      return `Update protocol fee rate to ${payload.newValueBps ? payload.newValueBps / 100 : 0}%`;
+    case 'MaxDiscountRate':
+      return `Update maximum discount rate to ${payload.newValueBps ? payload.newValueBps / 100 : 0}%`;
+    case 'AddToken':
+      return `Add ${payload.tokenName || 'new token'} (${payload.tokenAddress}) to accepted tokens`;
+    case 'RemoveToken':
+      return `Remove token (${payload.removeTokenAddress}) from accepted tokens`;
+    default:
+      return 'Proposal effect: unknown';
+  }
+}
