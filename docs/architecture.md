@@ -56,7 +56,7 @@ graph TD
 
 ## Route Surface
 
-The primary route tree lives in `app/`. For a complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
+The primary route tree lives in `app/`. `/analytics` is the authenticated freelancer analytics workspace, while `/stats` is the public protocol-wide reporting page; `/leaderboard` is the canonical public cross-role ranking page. For the complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
 
 A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
