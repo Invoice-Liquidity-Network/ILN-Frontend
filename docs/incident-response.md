@@ -154,3 +154,44 @@ Following any security incident:
 1. Conduct a post-mortem review within 72 hours.
 2. Perform a complete dependency audit: `pnpm audit` and `git diff pnpm-lock.yaml`.
 3. Verify all external script hashes and lockfile integrity.
+
+### 6.1 Supply-Chain Compromise Detection Mechanisms
+
+The following automated checks run in CI (see `.github/workflows/ci.yml`) to detect compromised or malicious dependencies before they reach production:
+
+#### **npm audit**
+
+- **Trigger:** Every pull request and pre-merge to `main`/`dev`
+- **Command:** `npm audit --audit-level=moderate`
+- **Purpose:** Detects known CVEs in published package versions
+- **Limitation:** Only catches **published** vulnerabilities; does not catch 0-days or a new malicious version of a trusted package
+- **Response:** Audit failures block merges; maintainers must investigate and either bump to a patched version, apply a lockfile override, or accept documented risk
+
+#### **Postinstall Script Monitoring**
+
+- **Trigger:** Every `pnpm install --frozen-lockfile` in CI
+- **Detection:** The CI workflow runs a script to flag any direct dependencies with `postinstall` or `install` scripts
+- **Purpose:** Identifies packages that execute arbitrary code during installation—a common supply-chain attack signature
+- **Investigation:** For suspicious packages, review:
+  - The package's recent version history and release notes
+  - GitHub repo commit history (if available) for unusual commits
+  - The exact script contents in `node_modules/<package>/package.json`
+  - Whether the script was present in previously-pinned versions (check `pnpm-lock.yaml`)
+
+#### **Dependency Lockfile Review**
+
+- **Manual audit:** Before each release, maintainers review `git diff pnpm-lock.yaml` for:
+  - New transitive dependencies
+  - Version bumps with unusual or undocumented changes
+  - Changes to `prebuiltBinaries` entries (binaries with install scripts)
+  - Addition of new Git-based dependencies (higher compromise risk than npm registry)
+
+#### **Incident Detection & Response**
+
+If a compromised dependency is detected post-merge:
+
+1. **Immediate action:** Revert the offending commit(s) or revoke the compromised version via `npm deprecate`
+2. **User communication:** Publish SEV-1 advisory (see Template A above) recommending users clear caches and refresh
+3. **Vercel rollback:** Roll back to the last verified safe deployment
+4. **Forensic audit:** Inspect all transactions signed via the compromised version and monitor for malicious on-chain activity
+5. **Contract pause:** If compromised Soroban transactions are detected, coordinate with Smart Contract Leads to pause the affected contract function
