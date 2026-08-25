@@ -4,25 +4,25 @@ This document tracks the integration status of Soroban smart contracts within th
 
 ## Integration Status Summary
 
-| Module         | Sub-feature / Function | Status      | Implementation File       | Notes / Tracking Issue Link                                              |
-| :------------- | :--------------------- | :---------- | :------------------------ | :----------------------------------------------------------------------- |
-| **Invoices**   | `submitInvoice`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated with deployed Soroban invoice contract.                 |
-| **Invoices**   | `fundInvoice`          | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `markPaid`             | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `appealDefault`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `disputeInvoice`       | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `claimDefault`         | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `cancelInvoice`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Invoices**   | `updateLPWhitelist`    | **Stubbed** | `src/utils/soroban.ts`    | Throws error. Placeholder for upcoming whitelist manager contract.       |
-| **Reputation** | `getReputation`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Reputation** | `getPayerScore`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                        |
-| **Governance** | `getProposals`         | **Stubbed** | `src/utils/governance.ts` | Mocks return value; needs integration with deployed governance contract. |
-| **Governance** | `castVote`             | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                  |
-| **Governance** | `delegateVotingPower`  | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                  |
-| **Governance** | `createProposal`       | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                  |
-| **Governance** | `getGovTokenBalance`   | **Stubbed** | `src/utils/governance.ts` | Mocks return balance; needs token contract integration.                  |
-| **Governance** | `getQuorumThreshold`   | **Stubbed** | `src/utils/governance.ts` | Mocks read-only call; needs governance contract deployment.              |
-| **Governance** | `getProposalHistory`   | **Stubbed** | `src/utils/governance.ts` | Mocks timeline; needs Stellar SDK/Horizon lookup.                        |
+| Module         | Sub-feature / Function | Status      | Implementation File       | Notes / Tracking Issue Link                                                  |
+| :------------- | :--------------------- | :---------- | :------------------------ | :--------------------------------------------------------------------------- |
+| **Invoices**   | `submitInvoice`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated with deployed Soroban invoice contract.                     |
+| **Invoices**   | `fundInvoice`          | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `markPaid`             | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `appealDefault`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `disputeInvoice`       | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `claimDefault`         | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `cancelInvoice`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Invoices**   | `updateLPWhitelist`    | **Stubbed** | `src/utils/soroban.ts`    | Throws error. Placeholder for upcoming whitelist manager contract.           |
+| **Reputation** | `getReputation`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Reputation** | `getPayerScore`        | **Real**    | `src/utils/soroban.ts`    | Fully integrated.                                                            |
+| **Governance** | `getProposals`         | **Real**    | `src/utils/governance.ts` | Fully integrated with deployed `iln_governance` contract `list_proposals()`. |
+| **Governance** | `castVote`             | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
+| **Governance** | `delegateVotingPower`  | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
+| **Governance** | `createProposal`       | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
+| **Governance** | `getGovTokenBalance`   | **Stubbed** | `src/utils/governance.ts` | Mocks return balance; needs token contract integration.                      |
+| **Governance** | `getQuorumThreshold`   | **Stubbed** | `src/utils/governance.ts` | Mocks read-only call; needs governance contract deployment.                  |
+| **Governance** | `getProposalHistory`   | **Stubbed** | `src/utils/governance.ts` | Mocks timeline; needs Stellar SDK/Horizon lookup.                            |
 
 ## Details of Stubbed Code & TODO Markers
 
@@ -45,9 +45,9 @@ export async function updateLPWhitelist(args: { invoiceId: bigint; whitelist: st
 
 ### 2. Governance Protocol Stubs
 
-All stubs in `src/utils/governance.ts` are marked with `TODO` comments indicating dependencies on the upcoming governance contract deployment:
+Stubs in `src/utils/governance.ts` marked with `TODO` comments:
 
-- `getProposals` (line 242)
+- `getProposals` / `fetchProposals` - **Integrated**: Live contract call to `iln_governance` `list_proposals()`.
 - `castVote` (line 264)
 - `delegateVotingPower` (line 286)
 - `getGovTokenBalance` (line 326)

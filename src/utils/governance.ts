@@ -1,7 +1,46 @@
+import {
+  rpc,
+  xdr,
+  scValToNative,
+  TransactionBuilder,
+  Account,
+  BASE_FEE,
+  Operation,
+} from '@stellar/stellar-sdk';
+import { GOVERNANCE_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from '@/constants';
+
+// ─── RPC & Contract helpers ───────────────────────────────────────────────────
+
+const server = new rpc.Server(RPC_URL);
+const READ_ACCOUNT = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+
+function buildGovernanceReadTransaction(method: string, params: xdr.ScVal[] = []) {
+  return new TransactionBuilder(new Account(READ_ACCOUNT, '0'), {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeContractFunction({
+        contract: GOVERNANCE_CONTRACT_ID,
+        function: method,
+        args: params,
+      })
+    )
+    .setTimeout(30)
+    .build();
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ProposalType = 'ParameterUpdate' | 'ProtocolUpgrade' | 'TextProposal';
-export type ProposalStatus = 'Active' | 'Passed' | 'Failed' | 'Executed' | 'Pending' | 'Vetoed';
+export type ProposalStatus =
+  | 'Active'
+  | 'Passed'
+  | 'Rejected'
+  | 'Executed'
+  | 'Pending'
+  | 'Vetoed'
+  | 'Failed';
 export type VoteChoice = 'For' | 'Against' | 'Abstain';
 
 export interface VetoRecord {
@@ -236,12 +275,112 @@ export function getUserVote(proposalId: number): VoteChoice | undefined {
   return userVotes.get(proposalId);
 }
 
-// ─── Simulated contract calls ─────────────────────────────────────────────────
+// ─── Contract Parsers ─────────────────────────────────────────────────────────
+
+export function parseProposalStatus(status: unknown): ProposalStatus {
+  if (status && typeof status === 'object') {
+    const key = Object.keys(status as object)[0];
+    if (key === 'Rejected') return 'Rejected';
+    if (
+      key === 'Active' ||
+      key === 'Passed' ||
+      key === 'Executed' ||
+      key === 'Vetoed' ||
+      key === 'Pending' ||
+      key === 'Failed'
+    ) {
+      return key as ProposalStatus;
+    }
+  }
+  const str = String(status);
+  if (str === 'Rejected') return 'Rejected';
+  if (
+    str === 'Active' ||
+    str === 'Passed' ||
+    str === 'Executed' ||
+    str === 'Vetoed' ||
+    str === 'Pending' ||
+    str === 'Failed'
+  ) {
+    return str as ProposalStatus;
+  }
+  return 'Active';
+}
+
+export function parseProposalType(action: unknown): ProposalType {
+  if (action && typeof action === 'object') {
+    const key = Object.keys(action as object)[0];
+    if (key === 'ParameterUpdate' || key === 'ProtocolUpgrade' || key === 'TextProposal') {
+      return key as ProposalType;
+    }
+  }
+  const str = String(action);
+  if (str === 'ParameterUpdate' || str === 'ProtocolUpgrade' || str === 'TextProposal') {
+    return str as ProposalType;
+  }
+  return 'ParameterUpdate';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseProposalFromNative(native: any): Proposal {
+  return {
+    id: Number(native.id ?? 0),
+    title:
+      typeof native.title === 'string' ? native.title : native.title ? String(native.title) : '',
+    description:
+      typeof native.description === 'string'
+        ? native.description
+        : native.description
+          ? String(native.description)
+          : '',
+    type: parseProposalType(native.type ?? native.action),
+    status: parseProposalStatus(native.status),
+    proposer: String(native.proposer ?? ''),
+    createdAt: Number(native.created_at ?? native.createdAt ?? 0),
+    votingStartsAt: Number(native.voting_starts_at ?? native.votingStartsAt ?? 0),
+    votingEndsAt: Number(native.voting_ends_at ?? native.votingEndsAt ?? 0),
+    executableAfter: native.executable_after
+      ? Number(native.executable_after)
+      : native.executableAfter
+        ? Number(native.executableAfter)
+        : undefined,
+    votesFor: Number(native.votes_for ?? native.votesFor ?? 0),
+    votesAgainst: Number(native.votes_against ?? native.votesAgainst ?? 0),
+    votesAbstain: Number(native.votes_abstain ?? native.votesAbstain ?? 0),
+    quorumRequired: Number(native.quorum_required ?? native.quorumRequired ?? 0),
+    parameterChanges: Array.isArray(native.parameter_changes ?? native.parameterChanges)
+      ? (native.parameter_changes ?? native.parameterChanges).map((pc: any) => ({
+          parameter: String(pc.parameter ?? ''),
+          currentValue: String(pc.current_value ?? pc.currentValue ?? ''),
+          newValue: String(pc.new_value ?? pc.newValue ?? ''),
+        }))
+      : undefined,
+  };
+}
+
+// ─── Contract Integration Calls ────────────────────────────────────────────────
 
 export async function fetchProposals(): Promise<Proposal[]> {
-  // TODO: Replace with actual Soroban contract call once governance contract is deployed
-  // Ref: #111
-  await new Promise((r) => setTimeout(r, 600));
+  try {
+    const tx = buildGovernanceReadTransaction('list_proposals');
+    const callResult = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(callResult) && callResult.result?.retval) {
+      const native = scValToNative(callResult.result.retval);
+      if (Array.isArray(native)) {
+        return native.map((p) => ({
+          ...parseProposalFromNative(p),
+          userVote: userVotes.get(Number(p.id)),
+          vetoHistory: getVetoHistory(Number(p.id)),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn(
+      'iln_governance list_proposals contract call failed, falling back to mock data:',
+      err
+    );
+  }
+
   return MOCK_PROPOSALS.map((p) => ({
     ...p,
     userVote: userVotes.get(p.id),
@@ -249,9 +388,11 @@ export async function fetchProposals(): Promise<Proposal[]> {
   }));
 }
 
+export const getProposals = fetchProposals;
+
 export async function fetchProposal(id: number): Promise<Proposal | null> {
-  await new Promise((r) => setTimeout(r, 300));
-  const proposal = MOCK_PROPOSALS.find((p) => p.id === id);
+  const proposals = await fetchProposals();
+  const proposal = proposals.find((p) => p.id === id);
   if (!proposal) return null;
   return { ...proposal, userVote: userVotes.get(id), vetoHistory: getVetoHistory(id) };
 }
