@@ -42,6 +42,22 @@ vi.mock('@/utils/soroban', () => ({
 
 describe('/api/reminders API route', () => {
   let mockSupabase: any;
+  const VALID_ADDRESS = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+  let ipCounter = 0;
+
+  function makePostRequest(body: unknown, ip?: string) {
+    return new NextRequest('http://localhost/api/reminders', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'x-forwarded-for': ip ?? `10.2.0.${++ipCounter}` },
+    });
+  }
+
+  function makeGetRequest(headers: Record<string, string> = {}, ip?: string) {
+    return new NextRequest('http://localhost/api/reminders', {
+      headers: { 'x-forwarded-for': ip ?? `10.3.0.${++ipCounter}`, ...headers },
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,17 +78,12 @@ describe('/api/reminders API route', () => {
       mockSupabase.upsert.mockResolvedValue({ error: null });
 
       const payload = {
-        address: 'GABC123',
+        address: VALID_ADDRESS,
         email: 'test@example.com',
         enabled: true,
       };
 
-      const req = new NextRequest('http://localhost/api/reminders', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-
-      const response = await POST(req);
+      const response = await POST(makePostRequest(payload));
       const body = await response.json();
 
       expect(response.status).toBe(200);
@@ -89,12 +100,7 @@ describe('/api/reminders API route', () => {
     });
 
     it('should return 400 if address or email is missing', async () => {
-      const req = new NextRequest('http://localhost/api/reminders', {
-        method: 'POST',
-        body: JSON.stringify({ address: 'GABC123' }),
-      });
-
-      const response = await POST(req);
+      const response = await POST(makePostRequest({ address: VALID_ADDRESS }));
       const body = await response.json();
 
       expect(response.status).toBe(400);
@@ -104,30 +110,87 @@ describe('/api/reminders API route', () => {
     it('should return 500 when Supabase upsert encounters an error', async () => {
       mockSupabase.upsert.mockResolvedValue({ error: new Error('Database error') });
 
-      const req = new NextRequest('http://localhost/api/reminders', {
-        method: 'POST',
-        body: JSON.stringify({ address: 'GABC123', email: 'test@example.com' }),
-      });
-
-      const response = await POST(req);
+      const response = await POST(
+        makePostRequest({ address: VALID_ADDRESS, email: 'test@example.com' })
+      );
       const body = await response.json();
 
       expect(response.status).toBe(500);
       expect(body.error).toBe('Failed to save preference');
     });
+
+    it.each([
+      ['too short', 'GABC123'],
+      ['wrong checksum', `${VALID_ADDRESS.slice(0, -1)}A`],
+      ['sql-injection-like', "'; DROP TABLE reminder_preferences;--"],
+    ])('rejects a malformed address (%s)', async (_desc, address) => {
+      const response = await POST(makePostRequest({ address, email: 'test@example.com' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid Stellar address');
+      expect(mockSupabase.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed email', async () => {
+      const response = await POST(
+        makePostRequest({ address: VALID_ADDRESS, email: 'not-an-email' })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid email');
+      expect(mockSupabase.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-boolean enabled flag', async () => {
+      const response = await POST(
+        makePostRequest({ address: VALID_ADDRESS, email: 'test@example.com', enabled: 'yes' })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid enabled flag');
+    });
+
+    it('returns 429 after exceeding the per-IP request limit', async () => {
+      mockSupabase.upsert.mockResolvedValue({ error: null });
+      const ip = '203.0.113.30';
+
+      for (let i = 0; i < 5; i += 1) {
+        const response = await POST(
+          makePostRequest({ address: VALID_ADDRESS, email: 'test@example.com' }, ip)
+        );
+        expect(response.status).toBe(200);
+      }
+
+      const limited = await POST(
+        makePostRequest({ address: VALID_ADDRESS, email: 'test@example.com' }, ip)
+      );
+      expect(limited.status).toBe(429);
+    });
   });
 
   describe('GET handler (Cron Trigger)', () => {
     it('should return 401 Unauthorized if Bearer token is missing or invalid', async () => {
-      const req = new NextRequest('http://localhost/api/reminders', {
-        headers: { authorization: 'Bearer invalid-secret' },
-      });
-
-      const response = await GET(req);
+      const response = await GET(makeGetRequest({ authorization: 'Bearer invalid-secret' }));
       const body = await response.json();
 
       expect(response.status).toBe(401);
       expect(body.error).toBe('Unauthorized');
+    });
+
+    it('returns 429 after exceeding the per-IP request limit for authorized requests', async () => {
+      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      const ip = '203.0.113.31';
+
+      for (let i = 0; i < 10; i += 1) {
+        const response = await GET(makeGetRequest({ authorization: 'Bearer test-secret' }, ip));
+        expect(response.status).toBe(200);
+      }
+
+      const limited = await GET(makeGetRequest({ authorization: 'Bearer test-secret' }, ip));
+      expect(limited.status).toBe(429);
     });
 
     it('should send a reminder email with List-Unsubscribe header for an invoice due in 72 hours', async () => {
