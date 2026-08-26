@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import withPWA from 'next-pwa';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
@@ -88,7 +89,7 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   },
 };
 
-export default withPWA({
+const pwaWrapped = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
@@ -168,3 +169,14 @@ export default withPWA({
     },
   ],
 })(nextConfig);
+
+// Wrap with Sentry to enable source map upload at build time.
+// Source maps are deleted from the Vercel CDN after upload (hideSourceMaps: true)
+// so they are not publicly accessible. See docs/sentry-integration.md.
+export default withSentryConfig(pwaWrapped, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  hideSourceMaps: true,
+  disableLogger: true,
+});
