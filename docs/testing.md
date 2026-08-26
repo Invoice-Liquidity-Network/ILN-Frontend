@@ -75,6 +75,29 @@ The contract integration workflow in [.github/workflows/contract-tests.yml](../.
 3. Add a Storybook story when the change introduces new component states or visual variants.
 4. Run the relevant test command before opening a PR.
 
+## Snapshot test review discipline
+
+Snapshot files (`__tests__/__snapshots__/`) must be reviewed carefully in every PR — silently accepting snapshot updates is a known anti-pattern that can mask regressions.
+
+### PR author responsibilities
+
+- When a PR modifies `*.snap` files, the PR description **must** explain what changed and why. Example:
+  ```
+  ## Snapshot updates
+  - `Hero.snapshot.test.tsx.snap`: Updated to reflect new CTA button color (#3b82f6 → #6366f1) per design system v2 migration.
+  ```
+- If snapshot changes are purely mechanical (e.g. running `--update` after an upgrade), state that explicitly.
+
+### Reviewer responsibilities
+
+- Treat snapshot diffs the same as code diffs — verify the change is intentional.
+- Reject PRs that update snapshots without a corresponding code or design change.
+- If a snapshot diff is large and hard to read, ask the author to explain the key changes inline.
+
+### CI annotation
+
+The CI pipeline flags PRs that touch snapshot files in the job summary, prompting explicit reviewer attention before merge.
+
 ## Common commands
 
 ```bash

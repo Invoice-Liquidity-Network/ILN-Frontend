@@ -37,6 +37,22 @@ jobs:
       - name: Run ESLint
         run: pnpm run lint
 
+      - name: Flag snapshot changes for review
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.snap' '__tests__/__snapshots__/*')
+          if [ -n "$changed" ]; then
+            echo "## ⚠️ Snapshot files changed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The following snapshot files were modified in this PR:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$changed" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Per testing guidelines, snapshot diffs must be explained in the PR description." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Check env example sync
         run: pnpm run env:check
 

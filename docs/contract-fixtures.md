@@ -102,6 +102,16 @@ const mockEvent: ContractEvent = {
 };
 ```
 
+### Current Automated Validation
+
+The CI pipeline (`ci.yml` → `tsc --noEmit`) already validates that `__tests__/fixtures/invoices.ts` conforms to the `Invoice` type from `src/utils/soroban.ts`. If the contract adds or removes fields, the TypeScript compiler will fail the build, preventing stale fixtures from merging.
+
+To add or update a fixture:
+
+1. Update the `Invoice` type in `src/utils/soroban.ts` first (if the contract changed).
+2. Update `__tests__/fixtures/invoices.ts` to match.
+3. Run `pnpm exec tsc --noEmit` locally to verify the fixture compiles.
+
 ## Integration Workflow
 
 1. **Pre-Release**: Contract team publishes error/event documentation
