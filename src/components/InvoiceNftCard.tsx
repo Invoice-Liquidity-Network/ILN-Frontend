@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { NETWORK_NAME, NFT_CONTRACT_ID, NEXT_PUBLIC_NFT_ENABLED } from '@/constants';
+import { trackEvent } from '@/lib/analytics';
 import { formatAddress } from '@/utils/format';
 import { useInvoiceNft } from '@/hooks/useInvoiceNft';
 import type { InvoiceNftState, InvoiceNftTransfer } from '@/lib/invoice-nft';
@@ -240,6 +242,12 @@ export default function InvoiceNftCard({
 }) {
   const isEnabled = NEXT_PUBLIC_NFT_ENABLED || process.env.NEXT_PUBLIC_NFT_ENABLED === 'true';
   const { state, loading, reload } = useInvoiceNft(invoiceId, isEnabled);
+
+  useEffect(() => {
+    if (isEnabled) {
+      trackEvent('nft_card_seen', { invoice_id: invoiceId.toString(), status: invoiceStatus });
+    }
+  }, [isEnabled, invoiceId, invoiceStatus]);
 
   if (!isEnabled) return null;
 
