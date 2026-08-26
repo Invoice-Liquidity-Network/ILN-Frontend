@@ -16,12 +16,14 @@ import {
 import { formatContractError } from '@/utils/contractErrorFormatter';
 import { TransactionErrorToast } from '@/components/transaction/TransactionErrorToast';
 import { useTransactionPreview } from './useTransactionPreview';
+import type { ExpectedTransactionAction } from '@/utils/transactionPattern';
 
-type SignTxFn = (txXdr: string) => Promise<string>;
+type SignTxFn = (txXdr: string, expectedAction?: ExpectedTransactionAction) => Promise<string>;
 
 type TransactionOperation<T> = (signTx: SignTxFn) => Promise<T>;
 
 interface ExecuteOptions {
+  expectedAction?: ExpectedTransactionAction;
   title?: string;
   pendingMessage?: string;
   successTitle?: string;
@@ -61,9 +63,9 @@ export function useTransaction(): UseTransactionResult {
   const [success, setSuccess] = useState(false);
 
   const signTxWithUi: SignTxFn = useCallback(
-    async (txXdr: string) => {
+    async (txXdr: string, expectedAction?: ExpectedTransactionAction) => {
       try {
-        await requestPreview(txXdr);
+        await requestPreview(txXdr, expectedAction);
       } catch (err: any) {
         const message = err?.message || String(err || 'Transaction cancelled');
         if (isWalletRejection(message)) {
@@ -128,7 +130,9 @@ export function useTransaction(): UseTransactionResult {
       };
 
       try {
-        const result = await operation(signTxWithUi);
+        const signTxForOperation: SignTxFn = (txXdr) =>
+          signTxWithUi(txXdr, resolvedOptions.expectedAction);
+        const result = await operation(signTxForOperation);
         setSuccess(true);
         updateToast(toastId, {
           type: 'success',
