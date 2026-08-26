@@ -48,6 +48,7 @@ For incidents isolated to specific frontend features (e.g. stub features, oracle
 - **Disable Insurance Pool**: Set `NEXT_PUBLIC_INSURANCE_POOL_ENABLED=false`
 - **Disable Oracle Verification**: Set `NEXT_PUBLIC_ORACLE_ENABLED=false`
 - **Disable Invoice NFT Display**: Set `NEXT_PUBLIC_NFT_ENABLED=false`
+- **Enable Global Maintenance Banner**: Set `NEXT_PUBLIC_MAINTENANCE_MODE=true`
 
 To apply in Vercel:
 
