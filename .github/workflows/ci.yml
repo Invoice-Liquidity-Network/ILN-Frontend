@@ -11,6 +11,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  file-size:
+    name: Check tracked file sizes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check file-size policy
+        run: node scripts/check-file-sizes.mjs
+
   lint:
     runs-on: namespace-profile-nursca
     steps:

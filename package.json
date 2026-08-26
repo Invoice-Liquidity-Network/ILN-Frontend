@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "env:check": "node scripts/check-env-example.mjs",
+    "check:file-sizes": "node scripts/check-file-sizes.mjs",
     "lint:fix": "eslint --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",

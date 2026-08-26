@@ -252,6 +252,8 @@ The leaderboard exposes the most active users and participants across the ILN ec
 The analytics view brings together yield, volume, and market trends for deeper protocol analysis.
 ![Analytics Dashboard](docs/screenshots/analytics.svg)
 
+The legacy dashboard captures in `public/screenshots/` are optimized WebP assets retained for documentation workflows. They are not loaded by the running application.
+
 ---
 
 ## 🔗 Useful Links & Documentation
