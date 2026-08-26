@@ -26,10 +26,25 @@ import {
   WALLET_ADDRESS_STORAGE_KEY,
   type WalletProviderType,
 } from '@/utils/walletStorage';
+import {
+  connectWalletConnect,
+  disconnectWalletConnect,
+  getWalletConnectAddress,
+  signTransactionWithWalletConnect,
+} from '@/lib/walletConnect';
 import WalletSelectionModal from '@/components/WalletSelectionModal';
 import { useToast } from './ToastContext';
 
 type WalletProviderName = WalletProviderType;
+
+export const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+export const DEFAULT_WARNING_BEFORE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+
+export interface WalletProviderProps {
+  children: React.ReactNode;
+  idleTimeoutMs?: number;
+  idleWarningMs?: number;
+}
 
 interface WalletContextType {
   address: string | null;
@@ -46,9 +61,11 @@ interface WalletContextType {
   roles: WalletRole[];
   rolesLoading: boolean;
   connect: () => Promise<void>;
+  connectWalletConnect: (customAddress?: string) => Promise<void>;
   disconnect: () => void;
   signTx: (txXdr: string) => Promise<string>;
   switchNetwork: () => Promise<void>;
+  resetIdleTimer: () => void;
 }
 
 export const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -92,8 +109,12 @@ function extractAllowedState(result: unknown): boolean {
   return false;
 }
 
-export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { addToast, updateToast } = useToast();
+export const WalletProvider: React.FC<WalletProviderProps> = ({
+  children,
+  idleTimeoutMs,
+  idleWarningMs,
+}) => {
+  const { addToast, updateToast, removeToast } = useToast();
   const router = useRouter();
   const [address, setAddress] = useState<string | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -160,6 +181,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const attemptSilentReconnect = useCallback(async () => {
     const savedProvider = getStoredWalletProvider();
     setSelectedProvider(savedProvider);
+    if (savedProvider === 'walletconnect') {
+      const wcAddress = getWalletConnectAddress();
+      if (wcAddress) {
+        setAddress(wcAddress);
+        localStorage.setItem(STORAGE_KEY, wcAddress);
+      }
+      return;
+    }
+
     if (savedProvider !== 'freighter') {
       return;
     }
@@ -239,6 +269,124 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(interval);
   }, [address, checkNetwork]);
 
+  const warningToastIdRef = React.useRef<string | null>(null);
+  const disconnectRef = React.useRef<() => void>(() => {});
+
+  const disconnect = useCallback(() => {
+    // Clear all in-memory wallet state...
+    setAddress(null);
+    setNetworkMismatch(false);
+    setRpcMismatch(false);
+    setMismatchDetails(null);
+    setSwitchingNetwork(false);
+    setWalletNetwork(null);
+    setError(null);
+    setRoles([]);
+    setRolesLoading(false);
+    setIsSelectingProvider(false);
+    setSelectedProvider(null);
+    setIsReconnecting(false);
+    if (warningToastIdRef.current) {
+      removeToast(warningToastIdRef.current);
+      warningToastIdRef.current = null;
+    }
+    // ...and every persisted/cached trace of the session (#4).
+    clearWalletStorage();
+    void disconnectWalletConnect();
+    trackEvent('wallet_disconnected');
+    addToast({ type: 'success', title: 'Disconnected' });
+    // Leave any wallet-gated view for the public home page.
+    router.push('/');
+  }, [addToast, removeToast, router]);
+
+  useEffect(() => {
+    disconnectRef.current = disconnect;
+  }, [disconnect]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (warningToastIdRef.current) {
+      removeToast(warningToastIdRef.current);
+      warningToastIdRef.current = null;
+    }
+  }, [removeToast]);
+
+  // Session/idle timeout effect (#668)
+  useEffect(() => {
+    if (!address) return;
+
+    const timeout = idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+    const warningMs = idleWarningMs ?? DEFAULT_WARNING_BEFORE_TIMEOUT_MS;
+    const warningDelay = Math.max(100, timeout - warningMs);
+
+    let warnTimer: ReturnType<typeof setTimeout> | null = null;
+    let disconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const startTimers = () => {
+      if (warnTimer) clearTimeout(warnTimer);
+      if (disconnectTimer) clearTimeout(disconnectTimer);
+
+      warnTimer = setTimeout(() => {
+        const id = addToast({
+          type: 'warning',
+          title: 'Session Inactivity Warning',
+          message: 'Your wallet session will disconnect soon due to inactivity.',
+          action: {
+            label: 'Stay Connected',
+            onClick: () => {
+              if (warningToastIdRef.current) {
+                removeToast(warningToastIdRef.current);
+                warningToastIdRef.current = null;
+              }
+              startTimers();
+            },
+          },
+        });
+        warningToastIdRef.current = id;
+      }, warningDelay);
+
+      disconnectTimer = setTimeout(() => {
+        if (warningToastIdRef.current) {
+          removeToast(warningToastIdRef.current);
+          warningToastIdRef.current = null;
+        }
+        disconnectRef.current();
+        addToast({
+          type: 'info',
+          title: 'Wallet Disconnected',
+          message: 'Your wallet connection timed out due to inactivity.',
+        });
+      }, timeout);
+    };
+
+    startTimers();
+
+    let lastActivity = Date.now();
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastActivity > 1000) {
+        lastActivity = now;
+        if (warningToastIdRef.current) {
+          removeToast(warningToastIdRef.current);
+          warningToastIdRef.current = null;
+        }
+        startTimers();
+      }
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, handleActivity, { passive: true }));
+
+    return () => {
+      if (warnTimer) clearTimeout(warnTimer);
+      if (disconnectTimer) clearTimeout(disconnectTimer);
+      if (warningToastIdRef.current) {
+        removeToast(warningToastIdRef.current);
+        warningToastIdRef.current = null;
+      }
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+    };
+  }, [address, idleTimeoutMs, idleWarningMs, addToast, removeToast]);
+
   // Opening the wallet picker is what "Connect Wallet" now triggers (#2); the
   // actual per-provider connect runs once the user chooses.
   const connect = async () => {
@@ -309,6 +457,33 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const connectWalletConnectProvider = async (customAddress?: string) => {
+    setIsSelectingProvider(false);
+    setError(null);
+    const toastId = addToast({ type: 'pending', title: 'Connecting via WalletConnect...' });
+
+    try {
+      const session = await connectWalletConnect({ address: customAddress });
+      if (session?.address) {
+        setAddress(session.address);
+        localStorage.setItem(STORAGE_KEY, session.address);
+        setSelectedProvider('walletconnect');
+        setStoredWalletProvider('walletconnect');
+        updateToast(toastId, {
+          type: 'success',
+          title: 'Connected',
+          message: `Connected as ${session.address.substring(0, 6)}... via WalletConnect`,
+        });
+        trackEvent('wallet_connected', { provider: 'walletconnect', network: NETWORK_NAME });
+      }
+    } catch (e: any) {
+      console.error('WalletConnect error:', e);
+      const msg = e.message || 'WalletConnect connection failed';
+      setError(msg);
+      updateToast(toastId, { type: 'error', title: 'Connection Failed', message: msg });
+    }
+  };
+
   const switchNetwork = useCallback(async () => {
     if (!address) return;
     setSwitchingNetwork(true);
@@ -347,28 +522,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [address, networkMismatch, checkNetwork, addToast]);
 
-  const disconnect = () => {
-    // Clear all in-memory wallet state...
-    setAddress(null);
-    setNetworkMismatch(false);
-    setRpcMismatch(false);
-    setMismatchDetails(null);
-    setSwitchingNetwork(false);
-    setWalletNetwork(null);
-    setError(null);
-    setRoles([]);
-    setRolesLoading(false);
-    setIsSelectingProvider(false);
-    setSelectedProvider(null);
-    setIsReconnecting(false);
-    // ...and every persisted/cached trace of the session (#4).
-    clearWalletStorage();
-    trackEvent('wallet_disconnected');
-    addToast({ type: 'success', title: 'Disconnected' });
-    // Leave any wallet-gated view for the public home page.
-    router.push('/');
-  };
-
   const signTx = async (txXdr: string) => {
     const isCorrectNetwork = await checkNetwork();
     if (!isCorrectNetwork) {
@@ -376,6 +529,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addToast({ type: 'error', title: 'Transaction Failed', message: msg });
       throw new Error(msg);
     }
+
+    if (selectedProvider === 'walletconnect') {
+      return await signTransactionWithWalletConnect(txXdr, {
+        networkPassphrase: NETWORK_PASSPHRASE,
+      });
+    }
+
     const signed = await signTransaction(txXdr, {
       networkPassphrase: NETWORK_PASSPHRASE,
     });
@@ -398,6 +558,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const handleSelectWalletConnect = () => {
     setSelectedProvider('walletconnect');
     setStoredWalletProvider('walletconnect');
+    void connectWalletConnectProvider();
   };
 
   return (
@@ -417,9 +578,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         roles,
         rolesLoading,
         connect,
+        connectWalletConnect: connectWalletConnectProvider,
         disconnect,
         signTx,
         switchNetwork,
+        resetIdleTimer,
       }}
     >
       {children}
