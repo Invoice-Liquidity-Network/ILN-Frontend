@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { NEXT_PUBLIC_ORACLE_ENABLED } from '@/constants';
+import { trackEvent } from '@/lib/analytics';
 
 interface OracleBadgeProps {
   verified: boolean;
@@ -6,6 +8,13 @@ interface OracleBadgeProps {
 
 export default function OracleBadge({ verified }: OracleBadgeProps) {
   const isEnabled = NEXT_PUBLIC_ORACLE_ENABLED || process.env.NEXT_PUBLIC_ORACLE_ENABLED === 'true';
+
+  useEffect(() => {
+    if (isEnabled) {
+      trackEvent('oracle_badge_seen', { verified });
+    }
+  }, [isEnabled, verified]);
+
   if (!isEnabled) return null;
 
   if (verified) {
