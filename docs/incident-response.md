@@ -27,7 +27,7 @@ When a frontend security incident is detected, immediately notify the Incident R
 | **Incident Commander (IC)** | Lead Maintainer / `#sec-incidents` | Leads response effort, coordinates containment decisions.              |
 | **Frontend Lead**           | `@frontend-leads`                  | Executes Vercel rollbacks, feature flag kill-switches, and code fixes. |
 | **Smart Contract Lead**     | `@contract-leads`                  | Evaluates on-chain impact and triggers contract pause if necessary.    |
-| **Communications Lead**     | `@comms-lead`                      | Publishes user advisories and updates status page.                     |
+| **Communications Lead**     | `@comms-lead`                      | Publishes user advisories and updates status page. See [Status Page Runbook](./status-page-runbook.md) for the verified update procedure and rehearsal checklist (#705). |
 
 ---
 
@@ -303,6 +303,14 @@ The following automated checks run in CI (see `.github/workflows/ci.yml`) to det
   - Changes to `prebuiltBinaries` entries (binaries with install scripts)
   - Addition of new Git-based dependencies (higher compromise risk than npm registry)
 
+#### **Sentry Error Tracking (Issue #706)**
+
+- **Integration:** `@sentry/nextjs` is wired into all runtime contexts (client, server, edge) via `sentry.*.config.ts`
+- **Signing-path alert:** Any error on `/i/[id]`, `/api/sign-transaction`, or `/api/submit-transaction` triggers an immediate P1 page — a single error on these paths is treated as a potential SEV-1
+- **Source maps:** Uploaded at build time and deleted from the public CDN; stack traces resolve to TypeScript source lines in Sentry
+- **CSP integration:** CSP violation reports (Issue #24) are forwarded to Sentry as `security_report` events — both error classes feed a unified detection pipeline
+- **Full setup guide:** See [Sentry Integration](./sentry-integration.md)
+
 #### **Incident Detection & Response**
 
 If a compromised dependency is detected post-merge:
@@ -312,3 +320,16 @@ If a compromised dependency is detected post-merge:
 3. **Vercel rollback:** Roll back to the last verified safe deployment
 4. **Forensic audit:** Inspect all transactions signed via the compromised version and monitor for malicious on-chain activity
 5. **Contract pause:** If compromised Soroban transactions are detected, coordinate with Smart Contract Leads to pause the affected contract function
+
+For the full technical playbook — exact `pnpm` commands, forensic XDR audit steps, and rehearsal instructions — see [Compromised Dependency Playbook](./compromised-dependency-playbook.md) (#707).
+
+---
+
+## 7. Related Runbooks
+
+| Runbook | Covers |
+|---|---|
+| [Status Page Runbook](./status-page-runbook.md) | Communications Lead procedures for the Instatus status page (#705) |
+| [Game-Day Exercise Report](./game-day-exercise-report.md) | Frontend-focused SEV-1 game-day findings and identified gaps (#704) |
+| [Sentry Integration](./sentry-integration.md) | Error tracking setup, alert thresholds, CSP pipeline integration (#706) |
+| [Compromised Dependency Playbook](./compromised-dependency-playbook.md) | Technical response steps for supply-chain compromise (#707) |
