@@ -909,6 +909,40 @@ When you open a PR, GitHub will automatically suggest reviewers based on the fil
 
 If you become a regular contributor to a specific area of the codebase, you can request to be added as a code owner. Contact a maintainer to discuss this.
 
+## License Compliance Policy
+
+ILN Frontend is distributed under the **MIT License**. All dependencies must carry a license that is compatible with downstream MIT distribution. Copyleft licenses (GPL, LGPL, AGPL, EUPL, …) are not permitted in production dependencies.
+
+### Allowed licenses
+
+The CI license check (`license-compliance.yml`) enforces this allow-list for **production** dependencies:
+
+| License family     | Examples                                      |
+| ------------------ | --------------------------------------------- |
+| MIT / MIT\*        | Most npm packages                             |
+| ISC                | Common in Node.js ecosystem                   |
+| BSD (2/3/4-Clause) | Many foundational JS libraries                |
+| Apache-2.0         | Large SDK packages (e.g. `@stellar/*`)        |
+| CC0 / CC-BY 3.0/4.0 | Fonts, icons, documentation assets          |
+| Unlicense / 0BSD   | Public-domain-equivalent                      |
+
+### Dev-only dependencies
+
+Dev dependencies (test runners, linters, build tools) are excluded from the production check. They may carry additional permissive licenses but must never appear in the final production bundle.
+
+### Adding a new dependency
+
+1. Verify the license of the package and all of its transitive production dependencies before installing.
+2. Run `pnpm audit` locally and resolve any moderate-or-higher advisories before opening a PR.
+3. If a needed package uses a non-listed permissive license (e.g. `BlueOak-1.0.0`), open an issue to extend the allow-list before adding the dependency.
+4. Never add packages with GPL, LGPL, AGPL, EUPL, or similar copyleft licenses as production dependencies.
+
+### Automated enforcement
+
+`pnpm audit` and `license-checker` run in CI on every PR that touches `package.json` or `pnpm-lock.yaml` (see `.github/workflows/license-compliance.yml`). The CI job fails if any production dependency carries a disallowed license or has a known vulnerability at `moderate` severity or higher.
+
+---
+
 ## Code of Conduct
 
 Please be respectful and constructive in all interactions. We aim to create a welcoming environment for all contributors.
