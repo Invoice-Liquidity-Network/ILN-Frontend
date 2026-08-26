@@ -277,16 +277,17 @@ pnpm run verify        # everything CI checks, in one command
 
 ### CI, quality gates & operations
 
-| Doc                                                                | What it covers                                                   |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [CI/CD Overview](docs/ci-cd.md)                                    | Workflow triggers, required status checks, runner configuration. |
-| [Visual Regression Workflow](docs/VISUAL_REGRESSION_WORKFLOW.md)   | Chromatic baseline configuration.                                |
-| [Lighthouse CI](docs/LIGHTHOUSE_CI.md)                             | Performance budget thresholds and how they're enforced.          |
-| [Bundle Size Tracking](docs/bundle-size.md)                        | Bundle budget policy and how the size-check workflow works.      |
-| [Contract Fixtures](docs/contract-fixtures.md)                     | Test fixtures used for Soroban contract interaction tests.       |
-| [Contract Integration Status](docs/contract-integration-status.md) | Current status of live contract integration coverage.            |
-| [Screen Reader Testing Guide](docs/screen-reader-testing-guide.md) | Manual a11y verification steps beyond automated checks.          |
-| [Incident Response Process](docs/incident-response.md)             | Frontend-specific security incident response process.            |
+| Doc                                                                | What it covers                                                             |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [CI/CD Overview](docs/ci-cd.md)                                    | Workflow triggers, required status checks, runner configuration.           |
+| [Visual Regression Workflow](docs/VISUAL_REGRESSION_WORKFLOW.md)   | Chromatic baseline configuration.                                          |
+| [Lighthouse CI](docs/LIGHTHOUSE_CI.md)                             | Performance budget thresholds and how they're enforced.                    |
+| [Bundle Size Tracking](docs/bundle-size.md)                        | Bundle budget policy and how the size-check workflow works.                |
+| [Contract Fixtures](docs/contract-fixtures.md)                     | Test fixtures used for Soroban contract interaction tests.                 |
+| [Contract Integration Status](docs/contract-integration-status.md) | Current status of live contract integration coverage.                      |
+| [Screen Reader Testing Guide](docs/screen-reader-testing-guide.md) | Manual a11y verification steps beyond automated checks.                    |
+| [Incident Response Process](docs/incident-response.md)             | Frontend-specific security incident response process.                      |
+| [PWA Manifest Audit](docs/pwa-manifest-audit.md)                   | Manifest/icon production-readiness findings and manual sign-off checklist. |
 
 <details>
 <summary><b>Additional internal references</b></summary>
