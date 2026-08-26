@@ -34,6 +34,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
         <meta name="theme-color" content="#3d627f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
