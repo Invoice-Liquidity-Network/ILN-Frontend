@@ -28,6 +28,16 @@ To help contributors find tasks aligned with their experience and available time
 
 For a curated list of candidate issues matching these criteria, see [good-first-issue-candidates.md](docs/good-first-issue-candidates.md).
 
+## Dead-Code Detection
+
+This project uses [knip](https://knip.dev/) to detect unused exports and files. Run it before submitting a PR:
+
+```bash
+pnpm knip
+```
+
+Knip is configured in `knip.json` and runs as a warning in CI (not a hard gate). If it reports unused exports, clean them up unless they are intentional re-exports or barrel files.
+
 ## Getting Started
 
 ### 1. Fork and Clone the Repository
