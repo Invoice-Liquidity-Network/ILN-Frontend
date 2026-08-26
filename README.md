@@ -312,6 +312,31 @@ Read the full breakdown — layout grids, elevation layers, and color tokens —
 
 Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — it covers setup, testing standards, code style, and Stellar-specific conventions in detail. The short version:
 
+### 🔍 Marketplace Explorer
+
+A central marketplace listing all active open invoices waiting for funding, detailed interest rates, and risk rankings.
+![Marketplace Explorer](public/screenshots/marketplace.png)
+
+---
+
+## 🔗 Useful Links & Documentation
+
+- **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
+- **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
+- **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
+- **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
+- **useWallet Hook Documentation**: Detailed guide for wallet integration and SEP-10 authentication in [docs/hooks/use-wallet.md](docs/hooks/use-wallet.md).
+- **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive setup instructions, testing standards, code style guidelines, Stellar-specific setup, and development workflow.
+- **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
+- **Design System Blueprint**: Deep dive into "The Fiscal Atelier" aesthetic rules in [DESIGN.md](DESIGN.md).
+- **Live Deployed App**: Access the application on [app.iln.finance](https://app.iln.finance).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
 1. Create a branch: `git checkout -b feature/your-feature-name`
 2. Make your changes, and add/update stories and tests for any component behavior you touch.
 3. Commit using conventional commit format: `feat(scope): describe the change`.

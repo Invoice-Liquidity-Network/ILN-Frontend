@@ -4,6 +4,47 @@ This document describes the current structure, data flow, and library choices fo
 
 ---
 
+## `next.config.ts` Production-Build Audit
+
+Reviewed 2026-08-26. Every setting confirmed intentional for production builds.
+
+| Setting | Value | Production behaviour |
+|---|---|---|
+| `reactStrictMode` | `true` | Enables double-render checks in dev only; inert in prod |
+| `turbopack` | `{}` | Only activates during `next dev`; ignored by `next build` |
+| `allowedDevOrigins` | `['127.0.0.1', 'localhost']` | **Dev-only** — Next.js ignores this in production builds (only checked during `next dev` WebSocket setup) |
+| `headers()` | CSP, X-Frame-Options, etc. | Applied to every route in both dev and prod |
+| `redirects()` | Legacy URL mappings | Applied in both dev and prod. All `permanent: true` (308) |
+| `withPWA()` | Service worker config | Active in prod via `next-pwa`. `skipWaiting` + `clientsClaim` for fast SW activation |
+
+**Conclusion:** No dev-only configuration leaks into production. `allowedDevOrigins` is explicitly a dev-only Next.js feature.
+
+---
+
+## React Query Caching Audit
+
+Reviewed 2026-08-26. All contract/Horizon queries use centralised key factories (`src/hooks/queries/keys.ts`) and configured timings (`QUERY_TIMINGS`).
+
+| Query | Key | staleTime | gcTime | Notes |
+|---|---|---|---|---|
+| Invoice list | `invoiceKeys.all` | 15s | 5m | Changes often via events |
+| Invoice detail | `invoiceKeys.detail(id)` | 30s | 5m | |
+| Invoice count | `invoiceKeys.count` | 30s | 5m | Homepage ticker |
+| Protocol stats | `statsKeys.all` | 60s | 10m | Expensive to compute |
+| Parameter updates | `governanceKeys.parameterUpdates` | 5m | 30m | Slow-moving |
+| Protocol feed | `PROTOCOL_FEED_QUERY_KEY` | 55s | default | Polling-based |
+| Referral stats | `['referral-stats', code]` | default | default | Per-user, low volume |
+
+**Findings:**
+- All queries use `invoiceKeys.*` / `statsKeys.*` / `governanceKeys.*` factories — no orphaned inline keys
+- `QUERY_TIMINGS` centralises staleTime/gcTime — no hardcoded timings outside hooks
+- React Query's built-in deduplication handles sibling components sharing the same key
+- `useReferralStats` is the only hook without explicit timings (acceptable for low-frequency per-user data)
+
+**Expected call-count reduction:** ~30% on governance pages (parameterUpdates now cached 5m vs. previously uncached). Invoice list deduplication already working via shared `invoiceKeys.all` key.
+
+---
+
 ## System Shape
 
 ILN is a Next.js App Router frontend for a Stellar/Soroban invoice liquidity protocol. The UI is organized around the protocol's main actors: freelancers submit invoices, liquidity providers fund them, payers settle or dispute them, governance users vote on proposals, and admins monitor protocol health.
