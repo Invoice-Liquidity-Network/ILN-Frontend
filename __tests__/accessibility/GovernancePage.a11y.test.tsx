@@ -44,7 +44,7 @@ vi.mock('@/components/Navbar', () => ({
 }));
 
 vi.mock('@/components/VoteProgressBar', () => ({
-  default: ({ proposal }: any) => <div data-testid="vote-progress">Vote Progress</div>,
+  default: ({ proposal: _proposal }: any) => <div data-testid="vote-progress">Vote Progress</div>,
 }));
 
 vi.mock('@/components/governance/TokenAllowlistPanel', () => ({

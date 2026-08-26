@@ -138,7 +138,7 @@ export default function FundingChart() {
         if (!res.ok) throw new Error('Failed to fetch');
         const json = await res.json();
         setData(json.daily);
-      } catch (err) {
+      } catch {
         // Fallback to mock data in development
         const mockData = generateMockFunding(range);
         setData(mockData);

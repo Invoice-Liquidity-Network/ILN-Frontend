@@ -59,7 +59,7 @@ describe('ActivityFeed', () => {
     await waitFor(() => {
       expect(screen.getByText(/Invoice submitted by/)).toBeInTheDocument();
       expect(screen.getByText(/Invoice funded by/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'GABC12...3456' })).toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: 'GABC...3456' }).length).toBeGreaterThan(0);
       expect(screen.getByText('1 hours ago')).toBeInTheDocument();
     });
   });

@@ -12,6 +12,8 @@ import FeedbackWidget from '@/components/FeedbackWidget';
 import CommandPalette from '@/components/CommandPalette';
 import OfflineBanner from '@/components/OfflineBanner';
 import NetworkMismatchBanner from '@/components/NetworkMismatchBanner';
+import MaintenanceModeBanner from '@/components/MaintenanceModeBanner';
+import MainnetLaunchBanner from '@/components/MainnetLaunchBanner';
 import ContractEventSync from '@/components/ContractEventSync';
 import WhatsNewModal from '@/components/modals/WhatsNewModal';
 import Providers from './Providers';
@@ -32,6 +34,7 @@ export default function RootLayout({
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          crossOrigin="anonymous"
         />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#3d627f" />
@@ -76,6 +79,8 @@ export default function RootLayout({
                   <KeyboardShortcutsProvider>
                     <OfflineBanner />
                     <NetworkMismatchBanner />
+                    <MaintenanceModeBanner />
+                    <MainnetLaunchBanner />
                     <FABProvider />
                     <div className="min-h-screen flex flex-col">
                       <div className="flex-1">
