@@ -4,8 +4,8 @@ Thank you for your interest in contributing to the Invoice Liquidity Network (IL
 
 ## Prerequisites
 
-- **Node.js**: Version 20 LTS (`.nvmrc` specified: `20.20.2`)
-- **pnpm**: Version 9 or higher
+- **Node.js**: Version 18 or higher (recommended: Node.js 20 LTS)
+- **npm**: Version 9 or higher
 - **Git**: For version control
 
 ## Issue Leveling and Label Curation
@@ -48,7 +48,7 @@ For a curated list of candidate issues matching these criteria, see [good-first-
 ### 2. Install Dependencies
 
 ```bash
-pnpm install
+npm install
 ```
 
 The `prepare` script runs `husky` automatically, registering the hooks in `.husky/`.
@@ -161,7 +161,7 @@ If working on Testnet, fund your account using the Friendbot:
 All shared UI components are documented in Storybook. Browse them locally:
 
 ```bash
-pnpm run storybook
+npm run storybook
 ```
 
 A Storybook is also deployed to GitHub Pages on every merge to `main` — check the repo's Pages link for the latest published version.
@@ -169,21 +169,12 @@ A Storybook is also deployed to GitHub Pages on every merge to `main` — check 
 ### 6. Start Development Server
 
 ```bash
-pnpm run dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Development Workflow
-
-### Lockfile Integrity & Package Manager Conventions
-
-To prevent silent dependency version drift and ensure deterministic reproducible builds across all developer environments and CI/CD pipelines, this repository enforces strict lockfile integrity:
-
-- **Authoritative Lockfile**: `pnpm-lock.yaml` is the sole source of truth for installed dependency versions. Never use `npm install`, `yarn`, or manual edits on `pnpm-lock.yaml`.
-- **Enforced `--frozen-lockfile` in CI**: All GitHub Actions CI jobs install dependencies with `pnpm install --frozen-lockfile`. If a pull request modifies `package.json` without committing a corresponding update to `pnpm-lock.yaml`, the CI install step will fail.
-- **Drift Detection**: CI runs an explicit check (`git diff --exit-code pnpm-lock.yaml`) verifying that a fresh install produces zero diffs against the committed lockfile.
-- **Adding or Updating Dependencies**: Always use `pnpm add <pkg>` or `pnpm update <pkg>` locally, verify the changes with `pnpm run verify`, and commit both `package.json` and `pnpm-lock.yaml` together.
 
 ### Pre-Push Checklist: `pnpm run verify`
 
@@ -215,10 +206,10 @@ This clears the following paths:
 - `.lighthouseci/` (Lighthouse audit report caches)
 - `tsconfig.tsbuildinfo` (TypeScript incremental compilation info)
 
-After cleaning, run a fresh install with frozen lockfile and verify:
+After cleaning, run a fresh install and verify:
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install
 pnpm run verify
 ```
 
@@ -260,20 +251,20 @@ We use **ESLint** and **Prettier** to maintain consistent code quality.
 
 ```bash
 # Check for linting errors
-pnpm run lint
+npm run lint
 
 # Auto-fix linting errors
-pnpm run lint:fix
+npm run lint:fix
 ```
 
 #### Formatting
 
 ```bash
 # Format all files
-pnpm run format
+npm run format
 
 # Check formatting without modifying files
-pnpm run format:check
+npm run format:check
 ```
 
 #### Pre-commit Hooks
@@ -281,7 +272,7 @@ pnpm run format:check
 We recommend using Husky for pre-commit hooks (optional but recommended):
 
 ```bash
-pnpm add --save-dev husky lint-staged
+npm install --save-dev husky lint-staged
 npx husky install
 npx husky add .husky/pre-commit "npx lint-staged"
 ```
@@ -306,16 +297,16 @@ Add to `package.json`:
 
 ```bash
 # Run all unit tests
-pnpm test
+npm test
 
 # Run tests in watch mode
-pnpm run test:watch
+npm test -- --watch
 
 # Run tests with coverage
-pnpm test -- --coverage
+npm test -- --coverage
 
 # Update snapshots after intentional UI changes
-pnpm test -- --update-snapshots
+npm test -- --update-snapshots
 ```
 
 #### Test File Organization
@@ -368,26 +359,26 @@ candidate for a future dedicated issue.
 
 ```bash
 # Run all E2E tests
-pnpm run test:e2e
+npm run test:e2e
 
 # Run E2E tests in headed mode (for debugging)
-pnpm run test:e2e -- --headed
+npm run test:e2e -- --headed
 
 # Run specific test file
-pnpm run test:e2e -- invoice-submission.spec.ts
+npm run test:e2e -- invoice-submission.spec.ts
 ```
 
 #### Visual Regression Tests (Storybook + Chromatic)
 
 ```bash
 # Start Storybook locally
-pnpm run storybook
+npm run storybook
 
 # Build Storybook
-pnpm run build-storybook
+npm run build-storybook
 
 # Run Chromatic visual tests
-pnpm run chromatic
+npm run chromatic
 ```
 
 ### Commit message format
@@ -399,7 +390,7 @@ This repository uses Conventional Commits to power changelog generation via `git
 - Example: `chore: add CHANGELOG and git-cliff automation for frontend repo`
 - After adding release-worthy commits, update the changelog with:
   ```bash
-  pnpm run generate:changelog
+  npm run generate:changelog
   ```
 
 ## Branch Naming Convention
@@ -431,20 +422,20 @@ This convention aligns with our commit message format and helps with changelog g
 1. **Code Quality**:
 
    - Run `pnpm run verify` (lint, env:check, format:check, tsc --noEmit, test) and ensure it passes — this mirrors CI exactly
-   - Run `pnpm run lint:fix` to fix all linting errors
-   - Run `pnpm run format` to ensure consistent formatting
+   - Run `npm run lint:fix` to fix all linting errors
+   - Run `npm run format` to ensure consistent formatting
    - Ensure zero ESLint warnings
 
 2. **Testing**:
 
-   - Run `pnpm test` and ensure all tests pass
-   - Run `pnpm run test:e2e` for critical user flows
+   - Run `npm test` and ensure all tests pass
+   - Run `npm run test:e2e` for critical user flows
    - Add tests for new features or bug fixes
    - Maintain test coverage above thresholds (90% lines, 90% functions, 80% branches)
 
 3. **Visual Changes**:
 
-   - If your PR includes UI changes, run `pnpm run storybook`
+   - If your PR includes UI changes, run `npm run storybook`
    - Ensure Storybook stories are updated or added for new components
    - Chromatic will automatically run visual regression tests on your PR
 
