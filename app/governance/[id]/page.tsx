@@ -230,6 +230,7 @@ export default function ProposalDetailPage() {
     if (!proposal || !address) return;
 
     const result = await execute(async (signTx) => castVote(proposal.id, choice, address, signTx), {
+      expectedAction: 'cast_vote',
       title: `Casting vote: ${choice}…`,
       pendingMessage: 'Waiting for wallet signature...',
       successTitle: 'Vote submitted',
