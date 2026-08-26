@@ -55,6 +55,10 @@ The `prepare` script runs `husky` automatically, registering the hooks in `.husk
 
 ### What the hooks do
 
+| Hook         | Trigger      | Action                                                                                                                 |
+| ------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | `git commit` | Rejects non-allowlisted staged files over 500 KB, then runs `eslint --fix` and `prettier --write` on staged files only |
+| `pre-push`   | `git push`   | Runs `tsc --incremental` to cache and catch type errors before pushing                                                 |
 | Hook         | Trigger      | Action                                                                 |
 | ------------ | ------------ | ---------------------------------------------------------------------- |
 | `pre-commit` | `git commit` | Runs `eslint --fix` and `prettier --write` on staged files only        |
@@ -84,6 +88,12 @@ git push --no-verify
 ```
 
 Do not make a habit of skipping — the same checks run in CI and will block your PR.
+
+### Large file policy
+
+New or modified tracked files must be 500 KB or smaller. The pre-commit hook checks staged Git blobs, and CI checks all tracked files so the policy also applies when hooks are bypassed. Optimize images and generated assets before committing them.
+
+Rare, necessary exceptions may be added as repository-relative glob patterns in [.large-file-allowlist](.large-file-allowlist), with a narrow scope and a justification in the pull request. Do not use the allowlist to avoid optimizing a file that can reasonably be reduced.
 
 ### Editor configuration
 
