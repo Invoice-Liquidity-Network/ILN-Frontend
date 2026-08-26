@@ -130,6 +130,7 @@ export default function FundConfirmModal({
         return submitSignedTransaction({ tx, signTx });
       },
       {
+        expectedAction: 'approve',
         title: `Approving ${selectedToken?.symbol || 'token'}...`,
         pendingMessage: 'Waiting for wallet signature...',
         successTitle: `${selectedToken?.symbol || 'Token'} approved`,
@@ -155,6 +156,7 @@ export default function FundConfirmModal({
         return submitSignedTransaction({ tx, signTx });
       },
       {
+        expectedAction: 'fund_invoice',
         title: 'Funding invoice...',
         pendingMessage: 'Waiting for wallet signature...',
         successTitle: 'Invoice funded successfully!',

@@ -300,6 +300,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
           referralCode: referralCode.trim(),
         }),
       {
+        expectedAction: 'submit_invoice',
         title: 'Submitting invoice to Stellar testnet...',
         pendingMessage: 'Waiting for wallet signature...',
         successTitle: 'Invoice submitted',

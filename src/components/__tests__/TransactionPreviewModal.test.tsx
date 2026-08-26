@@ -60,6 +60,21 @@ describe('TransactionPreviewModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a prominent warning when the decoded payload mismatches the expected UI action', () => {
+    render(
+      <TransactionPreviewModal
+        decoded={mockDecoded}
+        expectedAction="cast_vote"
+        rawXdr="AAAA..."
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Suspicious transaction pattern detected');
+    expect(screen.getByText(/Expected cast_vote, but the payload calls fund_invoice/)).toBeInTheDocument();
+  });
+
   it('calls onConfirm when Sign Transaction button is clicked', () => {
     const onConfirm = vi.fn();
     render(
