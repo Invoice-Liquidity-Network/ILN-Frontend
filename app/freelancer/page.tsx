@@ -8,6 +8,7 @@ import { useWallet } from '@/context/WalletContext';
 import { useToast } from '@/context/ToastContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import { useTransactionPreview } from '@/hooks/useTransactionPreview';
 import { applyInvoiceFilters, useInvoiceFilters } from '@/hooks/useInvoiceFilters';
 import { getAllInvoices, submitInvoice, Invoice } from '@/utils/soroban';
 import { formatUSDC, formatAddress, formatDate } from '@/utils/format';
@@ -77,6 +78,7 @@ function FreelancerPageContent() {
   const { addToast, updateToast } = useToast();
   const { signTx } = useWallet();
   const { tokenMap, defaultToken } = useApprovedTokens();
+  const { previewModal, requestPreview } = useTransactionPreview();
 
   const [screen, setScreen] = useState<Screen>('submit');
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -194,7 +196,9 @@ function FreelancerPageContent() {
         discountRate: discountBps,
       });
 
-      const signedXdr = await signTx(tx.toXDR());
+      const txXdr = tx.toXDR();
+      await requestPreview(txXdr);
+      const signedXdr = await signTx(txXdr);
       const sendResult = await server.sendTransaction(
         TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
       );
@@ -242,6 +246,7 @@ function FreelancerPageContent() {
 
   return (
     <>
+      {previewModal}
       <Navbar />
       <main className="min-h-screen pt-28 pb-20 px-4">
         <div className="max-w-4xl mx-auto">

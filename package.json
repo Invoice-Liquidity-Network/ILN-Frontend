@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@react-email/components": "1.0.12",
+    "@sentry/nextjs": "^9.0.0",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^15.0.1",
     "@supabase/supabase-js": "2.106.2",

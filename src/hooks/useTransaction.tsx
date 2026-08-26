@@ -15,6 +15,7 @@ import {
 } from '@/lib/contract/errors';
 import { formatContractError } from '@/utils/contractErrorFormatter';
 import { TransactionErrorToast } from '@/components/transaction/TransactionErrorToast';
+import { useTransactionPreview } from './useTransactionPreview';
 
 type SignTxFn = (txXdr: string) => Promise<string>;
 
@@ -52,6 +53,7 @@ export function useTransaction(): UseTransactionResult {
   const { signTx, isConnected, address } = useWallet();
   const { addToast, updateToast } = useToast();
   const queryClient = useQueryClient();
+  const { previewModal, requestPreview } = useTransactionPreview();
 
   const [loading, setLoading] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
@@ -60,6 +62,16 @@ export function useTransaction(): UseTransactionResult {
 
   const signTxWithUi: SignTxFn = useCallback(
     async (txXdr: string) => {
+      try {
+        await requestPreview(txXdr);
+      } catch (err: any) {
+        const message = err?.message || String(err || 'Transaction cancelled');
+        if (isWalletRejection(message)) {
+          throw new Error('Transaction cancelled');
+        }
+        throw err;
+      }
+
       setIsSigning(true);
       try {
         return await signTx(txXdr);
@@ -73,7 +85,7 @@ export function useTransaction(): UseTransactionResult {
         setIsSigning(false);
       }
     },
-    [signTx]
+    [signTx, requestPreview]
   );
 
   const execute = useCallback(
@@ -207,6 +219,11 @@ export function useTransaction(): UseTransactionResult {
     error,
     success,
     isSigning,
-    signingModal,
+    signingModal: (
+      <>
+        {previewModal}
+        {signingModal}
+      </>
+    ),
   };
 }
