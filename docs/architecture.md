@@ -56,7 +56,7 @@ graph TD
 
 ## Route Surface
 
-The primary route tree lives in `app/`. For a complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
+The primary route tree lives in `app/`. `/analytics` is the authenticated freelancer analytics workspace, while `/stats` is the public protocol-wide reporting page; `/leaderboard` is the canonical public cross-role ranking page. For the complete overview of canonical routes, purposes, primary consumers, and active redirects, refer to the [Route Map](route-map.md).
 
 A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
@@ -65,7 +65,6 @@ app/
 ├── admin/                       # Admin health and protocol configuration
 ├── analytics/                   # Freelancer-specific cash-flow analytics (FreelancerAnalyticsDashboard)
 ├── api/
-│   ├── auth/                    # SEP-10 challenge and verify helpers
 │   ├── feedback/                # GitHub-backed feedback submission
 │   ├── notifications/[address]/ # Notification API bridge
 │   └── reminders/               # Supabase/Resend payer reminder cron
@@ -108,7 +107,6 @@ src/
 │   └── KeyboardShortcutsContext.tsx  # Keyboard shortcut and command palette state
 ├── hooks/                       # Custom hooks (no createContext); may consume context
 │   ├── queries/                 # React Query keys and query hooks
-│   ├── useAuthenticatedWallet.ts  # SEP-10 auth layer on top of WalletContext
 │   └── useBrowserNotifications.ts # Browser Notification API wrapper
 ├── lib/                         # Env, Supabase, Horizon, events, notifications
 ├── screens/                     # Larger dashboard/screen compositions
@@ -144,10 +142,9 @@ API routes are used for server-only integration points:
 - `app/api/reminders/route.ts` reads Supabase reminder preferences and sends Resend emails when authorized by `CRON_SECRET`.
 - `app/api/reminders/unsubscribe/route.ts` updates reminder preferences.
 - `app/api/feedback/route.ts` can create GitHub issues from app feedback when GitHub credentials are configured.
-- `app/api/auth/challenge.ts` and `app/api/auth/verify.ts` support SEP-10-style auth helpers:
-  - `GET /api/auth/challenge?account=<public_key>` generates a timebounded, signed Stellar transaction challenge.
-  - `POST /api/auth/verify` validates the signed transaction payload and issues a 24-hour JWT authentication token.
 - `app/api/notifications/[address]/route.ts` bridges notification reads by address.
+- `app/api/leaderboard/route.ts` bridges leaderboard reads for `TopFundersWidget`.
+- All of the above validate their inputs (Stellar address shape, allow-listed enum values, string/length limits) and apply a shared in-memory rate limiter from `src/lib/rate-limit.ts`, since each is a directly reachable server endpoint independent of any client-side validation.
 - Contributor references for these server integrations live in [docs/supabase-setup.md](supabase-setup.md), [docs/feature-flags.md](feature-flags.md), [docs/api-routes.md](api-routes.md), and [docs/testing.md](testing.md).
 
 ## State, Providers, and UI Boundaries
@@ -176,7 +173,6 @@ API routes are used for server-only integration points:
 
 - `useToast` — always imported from `@/context/ToastContext` (the former re-export `@/hooks/useToast` has been removed).
 - `useWallet` — always imported from `@/context/WalletContext` for basic wallet state.
-- `useAuthenticatedWallet` — imported from `@/hooks/useAuthenticatedWallet` for the SEP-10 auth layer on top of `WalletContext`.
 - `useNotification` (singular) — always imported from `@/context/NotificationContext` for in-app notification items.
 - `useBrowserNotifications` (plural) — imported from `@/hooks/useBrowserNotifications` for the browser Notification API (permissions, desktop notifications).
 
@@ -191,6 +187,38 @@ Invoice status changes are the primary source of duplication risk. To keep RPC u
 3. **LocalStorage-derived state** (bookmarks, watchlist, address book, LP settings, widget layout)
    is acceptable per-hook, but state computations should not duplicate logic already present in context providers.
 
+## Service Worker Security Model
+
+`next-pwa` generates `public/sw.js` and the `public/workbox-*.js` runtime from the `runtimeCaching` list in
+`next.config.ts`. Because the service worker can serve cached responses on repeat visits without hitting the
+network, it is a longer-lived attack surface than a single page load and is documented here explicitly.
+
+- **Precache integrity**: every build-time asset in the Workbox precache manifest (the `self.__WB_MANIFEST`
+  array injected into `sw.js`) is keyed by a content-hash `revision`. If a build artifact changes, its
+  revision/URL changes too, so a stale or tampered precached file cannot silently masquerade as the current
+  one - the manifest itself is only trustworthy to the extent that `sw.js` was delivered over HTTPS from the
+  real origin in the first place. There is no additional signing layer on top of this; Vercel's per-deploy
+  immutable static hosting is the trust root for that initial delivery.
+- **`skipWaiting: true` + `clientsClaim: true`**: a newly installed service worker activates immediately and
+  takes control of already-open tabs, instead of waiting for every tab to close. This intentionally shortens
+  the window during which a stale worker (e.g. one associated with a previously shipped, now-patched bug)
+  keeps serving old cached responses. The trade-off is that a new worker version rolls out fast to every open
+  tab - which is also why the runtime-cached entries below use short, bounded `maxAgeSeconds`/`maxEntries`
+  windows rather than long-lived caching, so the blast radius of any single bad response is capped even in
+  the worst case.
+- **`cacheableResponse` filtering**: the `api-cache`, `pages`, and static-asset runtime caching entries only
+  persist responses with status `0` (opaque, same-origin no-cors) or `200`. Error responses, redirects, and
+  other non-success statuses are never written into the cache, so a transient 4xx/5xx from a misbehaving or
+  MITM'd endpoint cannot be replayed to the user as if it were a valid cached page or API response.
+- **Scope of trust**: the service worker cannot protect against a compromised build pipeline or a
+  same-origin MITM that serves an attacker-controlled `sw.js` directly (this is a browser platform limitation
+  shared by all Workbox-based PWAs, not specific to this app). The mitigations above bound how long any single
+  bad response can persist and ensure a new deploy supersedes the previous worker quickly; they do not replace
+  transport security (HTTPS, HSTS) or build/deploy integrity, which remain the primary controls.
+- **No mutating requests are cached**: `runtimeCaching` strategies only intercept `GET` requests by default,
+  so `POST`/`PUT`/`DELETE` calls (e.g. reminder opt-in writes) always go to the network and are never served
+  from, or written to, the service worker cache.
+
 ## Environment Model
 
 The canonical local template is `.env.local.example`. Direct env references in `app/` and `src/` are checked by:
@@ -201,7 +229,7 @@ pnpm run env:check
 
 The CI workflow runs the same command, and `.env.local.example.allowlist` documents runtime-provided values such as `NODE_ENV`.
 
-Client-visible configuration uses `NEXT_PUBLIC_*`, including Stellar network settings, feature flags, indexer URLs, WalletConnect project ID, app URL/version, and contract version labels. Server-only secrets such as `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, `SEP10_SERVER_SECRET_KEY`, `JWT_SECRET_KEY`, and GitHub feedback credentials must never be exposed with a public prefix.
+Client-visible configuration uses `NEXT_PUBLIC_*`, including Stellar network settings, feature flags, indexer URLs, WalletConnect project ID, app URL/version, and contract version labels. Server-only secrets such as `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, and GitHub feedback credentials must never be exposed with a public prefix.
 
 ## Library Rationale
 

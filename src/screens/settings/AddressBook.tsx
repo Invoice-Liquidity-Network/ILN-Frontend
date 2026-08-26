@@ -5,17 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/context/ToastContext';
 import useAddressBook from '@/hooks/useAddressBook';
 
-interface AddressBookEntry {
-  id: string;
-  address: string;
-  nickname: string;
-}
-
 export default function AddressBookPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { addToast, updateToast } = useToast();
-  const { addressBook, addAddress, updateAddress, deleteAddress, searchAddresses } =
-    useAddressBook();
+  const { addressBook, addAddress, deleteAddress, searchAddresses } = useAddressBook();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -35,7 +28,7 @@ export default function AddressBookPage() {
     addToast({ type: 'success', title: t('addressBook.success.added') });
   };
 
-  const handleUpdateAddress = (id: string) => {
+  const handleUpdateAddress = (_id: string) => {
     // Find the current values from the form (in a real implementation, we'd have form state)
     // For simplicity, we'll just show a toast indicating it would be updated
     updateToast(addToast({ type: 'pending', title: t('addressBook.updating') }), {

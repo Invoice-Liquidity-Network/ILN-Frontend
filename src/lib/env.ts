@@ -58,6 +58,7 @@ export const env = {
   NEXT_PUBLIC_NFT_EVENT_HINTS: process.env.NEXT_PUBLIC_NFT_EVENT_HINTS || '',
 
   // Governance
+  NEXT_PUBLIC_GOVERNANCE_CONTRACT_ID: process.env.NEXT_PUBLIC_GOVERNANCE_CONTRACT_ID || '',
   NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS: optionalEnv(
     'NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS',
     'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
@@ -75,10 +76,6 @@ export const env = {
 
   // App
   NEXT_PUBLIC_APP_URL: optionalEnv('NEXT_PUBLIC_APP_URL', 'https://app.iln.finance'),
-
-  // Auth
-  SEP10_SERVER_SECRET_KEY: process.env.SEP10_SERVER_SECRET_KEY || '',
-  JWT_SECRET_KEY: process.env.JWT_SECRET_KEY || '',
 
   // GitHub (feedback API)
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',

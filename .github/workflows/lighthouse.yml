@@ -13,7 +13,7 @@ concurrency:
 jobs:
   lighthouse:
     name: Lighthouse CI
-    runs-on: namespace-profile-nursca
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
