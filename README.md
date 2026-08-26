@@ -275,7 +275,21 @@ pnpm run verify        # everything CI checks, in one command
 | [i18n Setup Guide](docs/i18n.md)                 | Locale architecture and how to add a new locale.          |
 | [Supabase Setup](docs/supabase-setup.md)         | Schema and setup for the payer reminder flow.             |
 
-### CI, quality gates & operations
+## 🔗 Useful Links & Documentation
+
+- **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
+- **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
+- **Developer Quickstart**: Follow the full setup guide in [docs/developer-quickstart.md](docs/developer-quickstart.md).
+- **Troubleshooting Guide**: Consolidated list of local setup symptoms, Freighter connection, and database gotchas in [docs/troubleshooting.md](docs/troubleshooting.md).
+- **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
+- **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
+- **i18n Setup Guide**: Review the current i18n architecture and locale-addition workflow in [docs/i18n.md](docs/i18n.md).
+- **Frontend Error Code Reference**: See the mapped contract error codes and remediation guidance in [docs/error-codes.md](docs/error-codes.md).
+- **useWallet Hook Documentation**: Detailed guide for wallet integration and SEP-10 authentication in [docs/hooks/use-wallet.md](docs/hooks/use-wallet.md).
+- **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive setup instructions, testing standards, code style guidelines, Stellar-specific setup, and development workflow.
+- **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
+- **Design System Blueprint**: Deep dive into "The Fiscal Atelier" aesthetic rules in [DESIGN.md](DESIGN.md).
+- **Live Deployed App**: Access the application on [app.iln.finance](https://app.iln.finance).
 
 | Doc                                                                | What it covers                                                   |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
