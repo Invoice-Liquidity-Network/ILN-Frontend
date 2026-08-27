@@ -16,6 +16,7 @@ This directory contains the main contributor and operations documentation for th
 - **[accessibility-audit-toast-notifications.md](accessibility-audit-toast-notifications.md)** - Accessibility audit notes for toast and notification flows.
 - **[accessibility-implementation-summary.md](accessibility-implementation-summary.md)** - Summary of accessibility implementation work and supporting details.
 - **[screen-reader-testing-guide.md](screen-reader-testing-guide.md)** - Manual testing checklist for screen-reader and keyboard accessibility.
+- **[accessibility-conformance-statement.md](accessibility-conformance-statement.md)** - Public-facing WCAG 2.1 AA target, verification summary, and known limitations.
 
 ## Product and Domain Documentation
 

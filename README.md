@@ -273,6 +273,7 @@ pnpm run verify        # everything CI checks, in one command
 | [API Routes](docs/api-routes.md)                 | Request/response shapes for the app's own API routes.     |
 | [Error Codes Reference](docs/error-codes.md)     | Mapped contract error codes and remediation guidance.     |
 | [i18n Setup Guide](docs/i18n.md)                 | Locale architecture and how to add a new locale.          |
+| [Accessibility Conformance Statement](docs/accessibility-conformance-statement.md) | WCAG 2.1 AA target, verification summary, and known limitations. |
 | [Supabase Setup](docs/supabase-setup.md)         | Schema and setup for the payer reminder flow.             |
 
 ### CI, quality gates & operations
