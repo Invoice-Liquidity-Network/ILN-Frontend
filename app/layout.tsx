@@ -14,6 +14,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import NetworkMismatchBanner from '@/components/NetworkMismatchBanner';
 import ContractEventSync from '@/components/ContractEventSync';
 import WhatsNewModal from '@/components/modals/WhatsNewModal';
+import RealUserMonitoring from '@/components/RealUserMonitoring';
 import Providers from './Providers';
 
 export const metadata: Metadata = {
@@ -69,6 +70,7 @@ export default function RootLayout({
       <body className="antialiased bg-background text-foreground transition-colors duration-300 selection:bg-primary-container selection:text-on-primary-container">
         <I18nProvider>
           <Providers>
+            <RealUserMonitoring />
             <ToastProvider>
               <ContractEventSync />
               <WalletProvider>
