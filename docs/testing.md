@@ -68,6 +68,39 @@ The app already uses Mock Service Worker to stub network traffic in local tests 
 
 The contract integration workflow in [.github/workflows/contract-tests.yml](../.github/workflows/contract-tests.yml) runs Vitest with coverage against the contract-facing code paths and enforces a 90% coverage threshold. The gate is intentionally scoped to the contract layer (`src/utils/soroban`, `src/utils/contract-stats`, `src/utils/governance`, and `src/lib/contract`) because those modules carry the highest risk of regressions and are the most expensive to validate through UI-only tests.
 
+## Mutation testing
+
+Line coverage tells you which code executed, **not** whether your tests would catch a bug. Mutation testing closes that gap: it intentionally introduces small faults (mutants) into the code and checks that at least one test fails. Survivors are tests that pass against broken code — the exact false-confidence trap that line coverage hides.
+
+Run it with Stryker via the existing `test:mutation` script:
+
+```bash
+pnpm run test:mutation
+```
+
+### Score targets (baseline)
+
+The mutation score is the percentage of mutants that were *killed* (caused a failing test). We hold two bars:
+
+| Scope                                  | Target mutation score | Rationale                                                                 |
+| -------------------------------------- | --------------------- | ------------------------------------------------------------------------- |
+| App-wide                               | **≥ 80%**             | Baseline confidence across the general suite.                             |
+| Contract / financial-critical layer    | **≥ 90%**             | `fundInvoice`, `markPaid`, and `castVote` move real money and must be defended harder (see below). |
+| Governance module (`src/utils/governance.ts`) | **≥ 90%**  | Elevated bar per issue #741 for vote-casting and proposal-creation code.  |
+
+> **Baseline capture:** the authoritative app-wide and per-module baseline numbers must be filled in here after a full `pnpm run test:mutation` run completes on `dev`. Copy the summary line from the Stryker report, e.g. `Mutation score: 84.2% (342/407 killed)`. Until that run happens, treat the targets above as the acceptance gates rather than the current measured score.
+
+### Prioritised critical paths
+
+When triaging survivors, work top-down by financial consequence:
+
+1. **`fundInvoice`** (`src/utils/soroban.ts`) — LP provides liquidity to an invoice.
+2. **`markPaid`** (`src/utils/soroban.ts`) — payer settles an invoice (full/partial).
+3. **`castVote`** (`src/utils/governance.ts`) — governance vote casting; already covered by `src/utils/__tests__/governance.mutation.test.ts` which exercises every `VoteChoice` branch and the user-vote recording.
+4. **`createProposal`** (`src/utils/governance.ts`) — proposal creation across all four form types (FeeRate / MaxDiscountRate / AddToken / RemoveToken).
+
+Focus remediation on *genuinely dangerous* survivors (e.g. a mutated comparison or removed balance check in a money-moving path), not trivially-equivalent mutants. Each remediation should add a targeted test that kills the specific mutant rather than widening an existing assertion.
+
 ## Recommended workflow for contributors
 
 1. Start with a Vitest test for any bug fix or local logic change.
