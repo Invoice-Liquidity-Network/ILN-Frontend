@@ -49,6 +49,7 @@ build-storybook.log
 .env*
 !.env.local.example
 !.env.local.example.allowlist
+!.env.production.example
 
 # vercel
 .vercel
