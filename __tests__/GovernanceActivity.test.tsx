@@ -53,7 +53,6 @@ describe('GovernanceActivity Component', () => {
         votingEndsAt: 1_702_000_000,
         votesFor: 0,
         votesAgainst: 0,
-        votesAbstain: 0,
         quorumRequired: 0,
       },
     ]);
@@ -100,7 +99,6 @@ describe('GovernanceActivity Component', () => {
         votingEndsAt: 1_702_000_000,
         votesFor: 0,
         votesAgainst: 0,
-        votesAbstain: 0,
         quorumRequired: 0,
       },
     ]);
