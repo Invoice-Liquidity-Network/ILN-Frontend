@@ -52,7 +52,7 @@ runs-on: ubuntu-latest
 
 The following workflows are configured to use `namespace-profile-nursca` under normal operation. **As of 2026-08-10 they are temporarily pinned to `ubuntu-latest`** — see the notice above.
 
-- `ci.yml` - Lint, unit tests, coverage, build (4 jobs)
+- `ci.yml` - Lint, unit tests, coverage, build, and mainnet/testnet configuration drift check (5 jobs)
 - `e2e-tests.yml` - End-to-end Playwright tests
 - `visual-regression.yml` - Chromatic visual regression tests (the `chromatic` job only; `check-secret` and `chromatic-skip-notice` already run on `ubuntu-latest`)
 - `lighthouse.yml` - Lighthouse performance budget tests
@@ -61,7 +61,7 @@ The following workflows are configured to use `namespace-profile-nursca` under n
 - `bundle-size.yml` - Bundle size regression tracking
 - `feature-flag-audit.yml` - Informational feature flag report (PR-triggered only)
 
-Note: `workflow-lint.yml`, `mutation-testing.yml`, `flaky-test-detection.yml`, `nightly-testnet-e2e.yml`, `pr-issue-link-check.yml`, `pr-size-label.yml`, and `wave-points-summary.yml` already use `ubuntu-latest` and are unaffected.
+Note: `workflow-lint.yml`, `mutation-testing.yml`, `flaky-test-detection.yml`, `nightly-testnet-e2e.yml`, `mainnet-post-deploy-smoke.yml`, `deploy-staging.yml`, `production-promotion-gate.yml`, `pr-issue-link-check.yml`, `pr-size-label.yml`, and `wave-points-summary.yml` already use `ubuntu-latest` and are unaffected.
 
 ## Branch Protection Rules
 
@@ -76,11 +76,12 @@ Before merging to `main`, all of the following CI checks must pass:
 1. **CI / lint** - ESLint validation
 2. **CI / tests** - Unit test suite (Vitest)
 3. **CI / build** - Production build verification
-4. **End-to-End Tests / e2e** - Playwright E2E test suite
-5. **Lighthouse Performance Budget / lighthouse** - Performance budget validation
-6. **Visual Regression Tests / chromatic** - Chromatic visual regression checks
-7. **Accessibility Tests / accessibility** - jest-axe accessibility validation
-8. **Contract Integration Tests / contract-tests** - Stellar SDK contract tests with 90% coverage enforcement
+4. **CI / config-drift** - Mainnet vs. testnet configuration drift detection
+5. **End-to-End Tests / e2e** - Playwright E2E test suite
+6. **Lighthouse Performance Budget / lighthouse** - Performance budget validation
+7. **Visual Regression Tests / chromatic** - Chromatic visual regression checks
+8. **Accessibility Tests / accessibility** - jest-axe accessibility validation
+9. **Contract Integration Tests / contract-tests** - Stellar SDK contract tests with 90% coverage enforcement
 
 #### Additional Rules
 
@@ -100,10 +101,11 @@ Before merging to `develop`, all of the following CI checks must pass:
 1. **CI / lint** - ESLint validation
 2. **CI / tests** - Unit test suite (Vitest)
 3. **CI / build** - Production build verification
-4. **Lighthouse Performance Budget / lighthouse** - Performance budget validation
-5. **Visual Regression Tests / chromatic** - Chromatic visual regression checks
-6. **Accessibility Tests / accessibility** - jest-axe accessibility validation
-7. **Contract Integration Tests / contract-tests** - Stellar SDK contract tests with 90% coverage enforcement
+4. **CI / config-drift** - Mainnet vs. testnet configuration drift detection
+5. **Lighthouse Performance Budget / lighthouse** - Performance budget validation
+6. **Visual Regression Tests / chromatic** - Chromatic visual regression checks
+7. **Accessibility Tests / accessibility** - jest-axe accessibility validation
+8. **Contract Integration Tests / contract-tests** - Stellar SDK contract tests with 90% coverage enforcement
 
 Note: E2E tests (`End-to-End Tests / e2e`) are **not required** for `develop` branch merges.
 
@@ -113,6 +115,23 @@ Note: E2E tests (`End-to-End Tests / e2e`) are **not required** for `develop` br
 - **Require status checks to pass before merging**: Yes
 - **Require branches to be up to date before merging**: Yes
 - **Do not allow bypassing the above settings**: No (admins can bypass)
+
+## Staged Canary Deployment & Manual Promotion Gate (Issue 688)
+
+To mitigate financial risks associated with instant 100% production deployments, ILN Frontend uses a staged release architecture:
+
+### 1. Staging Deployment Workflow (`deploy-staging.yml`)
+- **Trigger**: Automatic on merge to `develop` or manual `workflow_dispatch`.
+- **Target**: Staging preview environment (`staging.iln.finance`).
+- **Configuration**: Mainnet read-only Soroban RPC and smart contracts.
+- **Verification**: Automatically runs `pnpm run test:mainnet-smoke` and configuration drift checks against the preview deployment.
+
+### 2. Production Promotion Gate (`production-promotion-gate.yml`)
+- **Trigger**: Manual `workflow_dispatch` with required confirmation (`PROCEED`).
+- **Target**: Live Production (`app.iln.finance`).
+- **Environment Protection**: Bound to GitHub Environment `production` (requiring designated reviewer approvals).
+- **Pre-Promotion Verification**: Validates CI status, executes configuration drift check, and runs smoke checks against staging before triggering production deployment.
+- **Post-Promotion Verification**: Automatically runs read-only smoke checks against `https://app.iln.finance` immediately post-deploy, providing instant `vercel rollback` instructions upon failure.
 
 ## Workflow Triggers
 
@@ -128,6 +147,7 @@ Jobs:
 - `lint` - ESLint validation
 - `tests` - Unit tests + accessibility tests
 - `build` - Production build verification
+- `config-drift` - Mainnet vs. testnet configuration drift detection
 
 ### End-to-End Tests (e2e-tests.yml)
 

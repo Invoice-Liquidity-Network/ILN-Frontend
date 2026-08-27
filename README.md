@@ -223,9 +223,13 @@ Open [http://localhost:3000](http://localhost:3000). To use a funded testnet wal
 | `pnpm run lint:fix`                | Run ESLint with automatic fixes                                       |
 | `pnpm run format` / `format:check` | Write / check Prettier formatting                                     |
 | `pnpm run env:check`               | Verify `.env.local.example` covers every env var the code references  |
+| `pnpm run env:drift-check`         | Check mainnet vs. testnet configuration drift and validate invariants |
+| `pnpm run db:status`               | Inspect Supabase schema migrations and rollback readiness             |
+| `pnpm run db:dry-run`              | Generate transactional up/down SQL for Supabase schema migrations     |
 | `pnpm test`                        | Run the Vitest unit/integration suite once                            |
 | `pnpm run test:watch`              | Run Vitest in watch mode                                              |
 | `pnpm run test:e2e`                | Run the Playwright end-to-end suite                                   |
+| `pnpm run test:mainnet-smoke`      | Run read-only Playwright smoke test against live mainnet deployment    |
 | `pnpm run test:mutation`           | Run Stryker mutation testing                                          |
 | `pnpm run verify`                  | Lint + env:check + format:check + typecheck + unit tests, in one shot |
 | `pnpm run storybook`               | Start Storybook locally on port 6006                                  |

@@ -65,6 +65,9 @@ jobs:
       - name: Check env example sync
         run: pnpm run env:check
 
+      - name: Check configuration drift
+        run: pnpm run env:drift-check
+
       - name: Check formatting with Prettier
         run: pnpm run format:check
 
@@ -174,3 +177,26 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  config-drift:
+    name: Check configuration drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.0.0'
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check mainnet vs testnet configuration drift
+        run: pnpm run env:drift-check
+
