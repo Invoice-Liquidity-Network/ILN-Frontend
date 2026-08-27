@@ -169,6 +169,25 @@ h1, h2, h3, .serif {
   }
 }
 
+/* ─── Global reduced-motion neutraliser ────────────────────────────────────
+ * Beyond the JS-driven animations handled by the useReducedMotion hook, the
+ * app uses many CSS transitions (Tailwind `transition-*`) and keyframe
+ * animations (e.g. pulse-fast, donut-grow, check-pop). Under the
+ * prefers-reduced-motion preference we collapse all animation/transition
+ * durations to (near) zero so motion-sensitive users get a static UI without
+ * having to opt each utility class out individually.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Pulse animation for urgent countdown timers */
 @keyframes pulse-fast {
   0%, 100% {
