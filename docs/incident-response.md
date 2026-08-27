@@ -31,6 +31,14 @@ When a frontend security incident is detected, immediately notify the Incident R
 
 ---
 
+### Cross-Repository Coordination
+
+For incidents that reach the contract, indexer, or notifications services, follow the [cross-repository incident coordination protocol](./cross-repo-incident-coordination.md). It defines acknowledgement targets, required handoff evidence, and the contract-pause to frontend-maintenance-banner sequence.
+
+The smart-contract repository owns the [indexer incident runbook](https://github.com/Invoice-Liquidity-Network/ILN-Smart-Contract/blob/dev/docs/indexer-incident-runbook.md) and [monitoring runbook](https://github.com/Invoice-Liquidity-Network/ILN-Smart-Contract/blob/dev/docs/monitoring-runbook.md). Frontend maintainers must link the shared incident record when escalating rather than duplicate those procedures.
+
+---
+
 ## 3. Containment & Mitigation Procedures
 
 ### Step 1: Execute Feature Flag Kill-Switches
@@ -40,6 +48,7 @@ For incidents isolated to specific frontend features (e.g. stub features, oracle
 - **Disable Insurance Pool**: Set `NEXT_PUBLIC_INSURANCE_POOL_ENABLED=false`
 - **Disable Oracle Verification**: Set `NEXT_PUBLIC_ORACLE_ENABLED=false`
 - **Disable Invoice NFT Display**: Set `NEXT_PUBLIC_NFT_ENABLED=false`
+- **Enable Global Maintenance Banner**: Set `NEXT_PUBLIC_MAINTENANCE_MODE=true`
 
 To apply in Vercel:
 

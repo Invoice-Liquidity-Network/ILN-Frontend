@@ -273,20 +273,22 @@ pnpm run verify        # everything CI checks, in one command
 | [API Routes](docs/api-routes.md)                 | Request/response shapes for the app's own API routes.     |
 | [Error Codes Reference](docs/error-codes.md)     | Mapped contract error codes and remediation guidance.     |
 | [i18n Setup Guide](docs/i18n.md)                 | Locale architecture and how to add a new locale.          |
+| [Accessibility Conformance Statement](docs/accessibility-conformance-statement.md) | WCAG 2.1 AA target, verification summary, and known limitations. |
 | [Supabase Setup](docs/supabase-setup.md)         | Schema and setup for the payer reminder flow.             |
 
 ### CI, quality gates & operations
 
-| Doc                                                                | What it covers                                                   |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [CI/CD Overview](docs/ci-cd.md)                                    | Workflow triggers, required status checks, runner configuration. |
-| [Visual Regression Workflow](docs/VISUAL_REGRESSION_WORKFLOW.md)   | Chromatic baseline configuration.                                |
-| [Lighthouse CI](docs/LIGHTHOUSE_CI.md)                             | Performance budget thresholds and how they're enforced.          |
-| [Bundle Size Tracking](docs/bundle-size.md)                        | Bundle budget policy and how the size-check workflow works.      |
-| [Contract Fixtures](docs/contract-fixtures.md)                     | Test fixtures used for Soroban contract interaction tests.       |
-| [Contract Integration Status](docs/contract-integration-status.md) | Current status of live contract integration coverage.            |
-| [Screen Reader Testing Guide](docs/screen-reader-testing-guide.md) | Manual a11y verification steps beyond automated checks.          |
-| [Incident Response Process](docs/incident-response.md)             | Frontend-specific security incident response process.            |
+| Doc                                                                | What it covers                                                             |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [CI/CD Overview](docs/ci-cd.md)                                    | Workflow triggers, required status checks, runner configuration.           |
+| [Visual Regression Workflow](docs/VISUAL_REGRESSION_WORKFLOW.md)   | Chromatic baseline configuration.                                          |
+| [Lighthouse CI](docs/LIGHTHOUSE_CI.md)                             | Performance budget thresholds and how they're enforced.                    |
+| [Bundle Size Tracking](docs/bundle-size.md)                        | Bundle budget policy and how the size-check workflow works.                |
+| [Contract Fixtures](docs/contract-fixtures.md)                     | Test fixtures used for Soroban contract interaction tests.                 |
+| [Contract Integration Status](docs/contract-integration-status.md) | Current status of live contract integration coverage.                      |
+| [Screen Reader Testing Guide](docs/screen-reader-testing-guide.md) | Manual a11y verification steps beyond automated checks.                    |
+| [Incident Response Process](docs/incident-response.md)             | Frontend-specific security incident response process.                      |
+| [PWA Manifest Audit](docs/pwa-manifest-audit.md)                   | Manifest/icon production-readiness findings and manual sign-off checklist. |
 
 <details>
 <summary><b>Additional internal references</b></summary>
@@ -310,6 +312,31 @@ Read the full breakdown — layout grids, elevation layers, and color tokens —
 ## Contributing
 
 Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — it covers setup, testing standards, code style, and Stellar-specific conventions in detail. The short version:
+
+### 🔍 Marketplace Explorer
+
+A central marketplace listing all active open invoices waiting for funding, detailed interest rates, and risk rankings.
+![Marketplace Explorer](public/screenshots/marketplace.png)
+
+---
+
+## 🔗 Useful Links & Documentation
+
+- **Documentation Index**: Browse all project documentation in [docs/README.md](docs/README.md).
+- **Getting Started Guide**: Refer to the [Quick Start](#-quick-start) section.
+- **Component Library (Storybook)**: Browse the full component library with interactive controls, variants, and a11y checks at the [published Storybook](https://invoice-liquidity-network.github.io/ILN-Frontend) (deployed from `main`).
+- **Frontend Architecture Overview**: Learn about our architecture design and libraries in [docs/architecture.md](docs/architecture.md).
+- **useWallet Hook Documentation**: Detailed guide for wallet integration and SEP-10 authentication in [docs/hooks/use-wallet.md](docs/hooks/use-wallet.md).
+- **Contribution Guidelines**: Read [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive setup instructions, testing standards, code style guidelines, Stellar-specific setup, and development workflow.
+- **Visual Regression Testing**: Learn about baseline configurations in [docs/VISUAL_REGRESSION_WORKFLOW.md](docs/VISUAL_REGRESSION_WORKFLOW.md).
+- **Design System Blueprint**: Deep dive into "The Fiscal Atelier" aesthetic rules in [DESIGN.md](DESIGN.md).
+- **Live Deployed App**: Access the application on [app.iln.finance](https://app.iln.finance).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 1. Create a branch: `git checkout -b feature/your-feature-name`
 2. Make your changes, and add/update stories and tests for any component behavior you touch.

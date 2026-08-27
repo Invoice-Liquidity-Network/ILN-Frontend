@@ -12,6 +12,7 @@ import FeedbackWidget from '@/components/FeedbackWidget';
 import CommandPalette from '@/components/CommandPalette';
 import OfflineBanner from '@/components/OfflineBanner';
 import NetworkMismatchBanner from '@/components/NetworkMismatchBanner';
+import MaintenanceModeBanner from '@/components/MaintenanceModeBanner';
 import MainnetLaunchBanner from '@/components/MainnetLaunchBanner';
 import ContractEventSync from '@/components/ContractEventSync';
 import WhatsNewModal from '@/components/modals/WhatsNewModal';
@@ -33,8 +34,10 @@ export default function RootLayout({
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          crossOrigin="anonymous"
         />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
         <meta name="theme-color" content="#3d627f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -77,6 +80,7 @@ export default function RootLayout({
                   <KeyboardShortcutsProvider>
                     <OfflineBanner />
                     <NetworkMismatchBanner />
+                    <MaintenanceModeBanner />
                     <MainnetLaunchBanner />
                     <FABProvider />
                     <div className="min-h-screen flex flex-col">
