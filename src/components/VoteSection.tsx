@@ -28,11 +28,6 @@ const VOTE_STYLES: Record<VoteChoice, { base: string; active: string; icon: stri
     active: 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20',
     icon: 'thumb_down',
   },
-  Abstain: {
-    base: 'border-outline text-on-surface-variant hover:bg-surface-container-high',
-    active: 'bg-outline text-white border-outline shadow-lg',
-    icon: 'do_not_disturb',
-  },
 };
 
 function VoteButton({
@@ -81,7 +76,7 @@ export default function VoteSection({
   connect,
   votingPower,
 }: VoteSectionProps) {
-  const total = proposal.votesFor + proposal.votesAgainst + proposal.votesAbstain;
+  const total = proposal.votesFor + proposal.votesAgainst;
   const quorumReached = total >= proposal.quorumRequired;
   const voteDisabled = !canVote || voteLoading;
 
@@ -136,7 +131,6 @@ export default function VoteSection({
         <VoteProgressBar
           votesFor={proposal.votesFor}
           votesAgainst={proposal.votesAgainst}
-          votesAbstain={proposal.votesAbstain}
           quorumRequired={proposal.quorumRequired}
         />
       </div>
@@ -162,8 +156,8 @@ export default function VoteSection({
             <p className="text-sm text-on-surface-variant">
               {alreadyVoted ? 'Your vote has been recorded.' : 'Select a stance below to vote.'}
             </p>
-            <div className="grid grid-cols-3 gap-2">
-              {(['For', 'Against', 'Abstain'] as VoteChoice[]).map((choice) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(['For', 'Against'] as VoteChoice[]).map((choice) => (
                 <VoteButton
                   key={choice}
                   choice={choice}

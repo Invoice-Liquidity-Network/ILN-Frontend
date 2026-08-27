@@ -27,9 +27,7 @@ export async function fetchProtocolHealth(): Promise<ProtocolHealth> {
   ]);
   const now = Math.floor(Date.now() / 1000);
   const disputedInvoices = invoices.filter((invoice) => invoice.status === 'Disputed');
-  const pendingProposals = proposals.filter(
-    (proposal) => proposal.status === 'Active' || proposal.status === 'Pending'
-  );
+  const pendingProposals = proposals.filter((proposal) => proposal.status === 'Active');
   const readyProposals = proposals.filter(
     (proposal) =>
       proposal.status === 'Passed' &&

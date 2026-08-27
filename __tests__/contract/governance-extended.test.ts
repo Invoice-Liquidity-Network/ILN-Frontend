@@ -11,6 +11,8 @@
  * - MOCK_PROPOSALS / MOCK_VOTES data
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/mocks/server';
 
 import {
   executeProposal,
@@ -265,16 +267,48 @@ describe('governance – fetchParameterUpdates', () => {
 });
 
 describe('governance – fetchVotesForAddress', () => {
-  it('returns votes for known mock voter', async () => {
-    vi.useFakeTimers();
-    const promise = fetchVotesForAddress(
-      'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ'
+  const MOCK_VOTER = 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ';
+
+  it('returns votes for known mock voter from horizon VoteCast events', async () => {
+    server.use(
+      http.get('https://horizon-testnet.stellar.org/transactions', () => {
+        return HttpResponse.json({
+          _embedded: {
+            records: [
+              {
+                successful: true,
+                created_at: '2026-08-20T10:00:00Z',
+                _embedded: {
+                  records: [
+                    {
+                      type: 'contract',
+                      topics: [
+                        'VoteCast',
+                        '5',
+                        'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ',
+                        'true',
+                      ],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          _links: { next: undefined },
+        });
+      })
     );
+
+    vi.useFakeTimers();
+    const promise = fetchVotesForAddress(MOCK_VOTER);
     vi.runAllTimers();
     const votes = await promise;
 
     expect(Array.isArray(votes)).toBe(true);
     expect(votes.length).toBeGreaterThan(0);
+    expect(votes[0].voter).toBe(MOCK_VOTER);
+    expect(votes[0].proposalId).toBe(5);
+    expect(votes[0].vote).toBe('For');
     // Should be sorted by timestamp descending
     for (let i = 1; i < votes.length; i++) {
       expect(votes[i - 1].timestamp).toBeGreaterThanOrEqual(votes[i].timestamp);
@@ -305,7 +339,6 @@ describe('governance – timeRemaining active paths', () => {
       votingEndsAt: now - 1, // ended 1 second ago
       votesFor: 0,
       votesAgainst: 0,
-      votesAbstain: 0,
       quorumRequired: 100_000,
     };
     expect(timeRemaining(proposal)).toBe('Ended');
@@ -325,7 +358,6 @@ describe('governance – timeRemaining active paths', () => {
       votingEndsAt: now + 86400 * 3 + 3600 * 5, // 3 days 5 hours from now
       votesFor: 0,
       votesAgainst: 0,
-      votesAbstain: 0,
       quorumRequired: 100_000,
     };
     const result = timeRemaining(proposal);
@@ -346,28 +378,26 @@ describe('governance – timeRemaining active paths', () => {
       votingEndsAt: now + 3600 * 5 + 60 * 30, // 5 hours 30 minutes from now
       votesFor: 0,
       votesAgainst: 0,
-      votesAbstain: 0,
       quorumRequired: 100_000,
     };
     const result = timeRemaining(proposal);
     expect(result).toMatch(/\d+h \d+m remaining/);
   });
 
-  it('returns empty string for Failed proposals', () => {
+  it('returns empty string for non-active proposals', () => {
     const now = Math.floor(Date.now() / 1000);
     const proposal: Proposal = {
       id: 103,
       title: 'Test',
       description: 'Test',
       type: 'ParameterUpdate',
-      status: 'Failed',
+      status: 'Rejected',
       proposer: 'G...',
       createdAt: now - 86400,
       votingStartsAt: now - 86400,
       votingEndsAt: now + 86400,
       votesFor: 0,
       votesAgainst: 0,
-      votesAbstain: 0,
       quorumRequired: 100_000,
     };
     expect(timeRemaining(proposal)).toBe('');
@@ -381,10 +411,10 @@ describe('governance – getUserVote', () => {
 
   it('returns the vote choice after casting', async () => {
     vi.useFakeTimers();
-    const promise = castVote(5, 'Abstain', SIGNER, mockSignTx);
+    const promise = castVote(5, 'For', SIGNER, mockSignTx);
     vi.runAllTimers();
     await promise;
-    expect(getUserVote(5)).toBe('Abstain');
+    expect(getUserVote(5)).toBe('For');
   });
 });
 
