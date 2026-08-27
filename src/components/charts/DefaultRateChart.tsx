@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -17,6 +17,9 @@ import {
   MonthlyDefaultBucket,
   MonthlyDefaultWithMA,
 } from '@/utils/defaultRate';
+import IndexerUnavailableNotice, {
+  shouldUseDevMockFallback,
+} from '@/components/IndexerUnavailableNotice';
 
 const CHART_TICK_STYLE = {
   fill: 'var(--color-on-surface-variant, #94a3b8)',
@@ -94,28 +97,37 @@ function generateMockDefaults(): MonthlyDefaultBucket[] {
 export default function DefaultRateChart() {
   const [chartData, setChartData] = useState<MonthlyDefaultWithMA[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
+  const [requestId, setRequestId] = useState(0);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setUnavailable(false);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? 'https://api.iln.example.com';
+      const res = await fetch(`${baseUrl}/analytics/defaults?period=12m`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const json = await res.json();
+      const withMA = calculateMovingAverage(json.monthly || json, 1);
+      setChartData(withMA);
+    } catch {
+      // Only substitute demo data in development; otherwise show an honest
+      // "temporarily unavailable" state instead of fabricating metrics.
+      if (shouldUseDevMockFallback()) {
+        const withMA = calculateMovingAverage(generateMockDefaults(), 1);
+        setChartData(withMA);
+      } else {
+        setChartData([]);
+        setUnavailable(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_INDEXER_API_URL ?? 'https://api.iln.example.com';
-        const res = await fetch(`${baseUrl}/analytics/defaults?period=12m`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const json = await res.json();
-        const withMA = calculateMovingAverage(json.monthly || json, 1);
-        setChartData(withMA);
-      } catch {
-        const mockData = generateMockDefaults();
-        const withMA = calculateMovingAverage(mockData, 1);
-        setChartData(withMA);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    void fetchData();
+  }, [requestId, fetchData]);
 
   const currentRate = useMemo(() => {
     if (chartData.length === 0) return 0;
@@ -184,7 +196,14 @@ export default function DefaultRateChart() {
           </div>
         )}
 
-        {chartData.length === 0 && !loading ? (
+        {unavailable ? (
+          <div className="flex h-full items-center">
+            <IndexerUnavailableNotice
+              dataSource="Default-rate history"
+              onRetry={() => setRequestId((id) => id + 1)}
+            />
+          </div>
+        ) : chartData.length === 0 && !loading ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant/20">
             <span className="material-symbols-outlined text-outline-variant/40 text-4xl">
               bar_chart

@@ -3,6 +3,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { formatAddress, formatRelativeTime, formatUSDC } from '@/utils/format';
+import IndexerUnavailableNotice, {
+  shouldUseDevMockFallback,
+} from '@/components/IndexerUnavailableNotice';
 
 type InvoiceEventType =
   | 'submitted'
@@ -274,7 +277,7 @@ function formatEventTypeLabel(type: InvoiceEventType) {
 export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
   const [events, setEvents] = useState<InvoiceEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
 
   const fetchEvents = useCallback(async () => {
@@ -288,10 +291,13 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
       setEvents(rawEvents.map(parseInvoiceEvent));
     } catch (err) {
       console.error(err);
+      setEvents([]);
       setError('Unable to load activity feed.');
 
-      // MOCK DATA for demonstration if the API is not reachable
-      if (process.env.NODE_ENV === 'development' || true) {
+      // Only substitute demonstration data in development. In every other
+      // environment (including production) show the honest "temporarily
+      // unavailable" state rather than fabricating an audit trail.
+      if (shouldUseDevMockFallback()) {
         setEvents([
           {
             type: 'submitted',
@@ -347,6 +353,24 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
           <div className="h-28 rounded-3xl bg-surface-container-lowest" />
           <div className="h-28 rounded-3xl bg-surface-container-lowest" />
         </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="mt-8">
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">
+          Event History
+        </p>
+        <IndexerUnavailableNotice
+          dataSource="The invoice activity feed"
+          onRetry={() => {
+            setError(null);
+            setEvents([]);
+            void fetchEvents();
+          }}
+        />
       </section>
     );
   }
