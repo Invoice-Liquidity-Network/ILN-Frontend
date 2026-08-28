@@ -100,8 +100,18 @@ Lighthouse CI is configured in `.lighthouserc.json`:
 
 The CI workflow is defined in `.github/workflows/lighthouse.yml`.
 
+## Real-User Monitoring (RUM)
+
+Lighthouse CI covers **synthetic**, CI-time performance. It runs in a controlled
+environment and cannot capture the effects of real device diversity, network
+conditions, or RPC latency variance. Real-user performance is monitored
+separately via Core Web Vitals RUM; see
+[docs/performance-monitoring.md](./performance-monitoring.md) for the RUM setup,
+its (more lenient) alerting thresholds, and how to review the field data.
+
 ## Resources
 
 - [Lighthouse CI Documentation](https://github.com/GoogleChrome/lighthouse-ci)
 - [Core Web Vitals](https://web.dev/vitals/)
 - [Web Performance Optimization](https://web.dev/fast/)
+- [Real-User Performance Monitoring](./performance-monitoring.md)

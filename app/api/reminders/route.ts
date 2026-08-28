@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { StrKey } from '@stellar/stellar-sdk';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { getNotificationsServiceStatus } from '@/lib/notifications';
 import PaymentReminderEmail from '@/emails/PaymentReminder';
 import { getAllInvoices, getTokenMetadata } from '@/utils/soroban';
 import { formatTokenAmount } from '@/utils/format';
@@ -69,7 +70,27 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    // The preference is persisted regardless of delivery health (a "saved but
+    // delivery temporarily degraded" state). Distinguish that from a failed
+    // save so the client can show the right guidance. See
+    // docs/notifications-service.md.
+    const delivery = await getNotificationsServiceStatus();
+
+    const response: {
+      success: true;
+      saved: true;
+      delivery: 'ok' | 'degraded';
+      retryAfterSeconds?: number;
+    } = {
+      success: true,
+      saved: true,
+      delivery: delivery.status === 'ok' ? 'ok' : 'degraded',
+    };
+    if (delivery.status !== 'ok' && delivery.retryAfterSeconds !== undefined) {
+      response.retryAfterSeconds = delivery.retryAfterSeconds;
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error saving reminder preference:', error);
     return NextResponse.json({ error: 'Failed to save preference' }, { status: 500 });

@@ -54,6 +54,7 @@ export default function NotificationBell() {
   const [isPulsing, setIsPulsing] = useState(false);
 
   const [announcement, setAnnouncement] = useState('');
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current) {
@@ -84,8 +85,34 @@ export default function NotificationBell() {
     let active = true;
 
     const fetchNotifications = async () => {
-      const res = await fetch(`/api/notifications/${address}`);
-      if (!active || !res.ok) return;
+      let res: Response | undefined;
+      try {
+        res = await fetch(`/api/notifications/${address}`);
+      } catch {
+        // The notifications service is unreachable; keep cached state and
+        // signal the degradation honestly rather than surfacing an error.
+        if (active) setServiceUnavailable(true);
+        return;
+      }
+      if (!active) return;
+      if (!res || typeof res.status !== 'number') {
+        // No usable response (e.g. an interrupted poll). Never crash the poll
+        // loop; keep cached notifications and show the degraded marker.
+        setServiceUnavailable(true);
+        return;
+      }
+
+      if (res.status === 429 || res.status === 503) {
+        // Notifications service is degraded (rate limited or circuit open).
+        // Keep showing previously cached notifications; never clear them or
+        // present a broken/blank state. Signal the degradation honestly.
+        setServiceUnavailable(true);
+        return;
+      }
+
+      setServiceUnavailable(false);
+
+      if (!res.ok) return;
 
       const data = (await res.json()) as ExternalNotification[];
       setNotifications((current) => mergeNotifications(current, data, isRead));
@@ -113,11 +140,26 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}${
+          serviceUnavailable ? '. Notifications service temporarily unavailable.' : ''
+        }`}
         aria-expanded={open}
+        title={
+          serviceUnavailable
+            ? 'Notifications service temporarily unavailable. Showing cached notifications.'
+            : undefined
+        }
         className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
         <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
+
+        {serviceUnavailable && (
+          <span
+            data-testid="notification-service-unavailable"
+            aria-hidden
+            className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-surface"
+          />
+        )}
 
         {unreadCount > 0 && (
           <span

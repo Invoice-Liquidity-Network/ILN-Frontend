@@ -78,6 +78,9 @@ export const env = {
   // App
   NEXT_PUBLIC_APP_URL: optionalEnv('NEXT_PUBLIC_APP_URL', 'https://app.iln.finance'),
 
+  // Real-User Monitoring (RUM) – optional beacon endpoint for Core Web Vitals
+  NEXT_PUBLIC_RUM_ENDPOINT: process.env.NEXT_PUBLIC_RUM_ENDPOINT || '',
+
   // GitHub (feedback API)
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
   GITHUB_OWNER: process.env.GITHUB_OWNER || '',

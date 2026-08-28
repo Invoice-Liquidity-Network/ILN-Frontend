@@ -163,6 +163,12 @@ Issues that are assigned to a contributor are expected to move forward promptly.
 
 The thresholds and message text are configurable through the workflow inputs and repository variables used by [.github/workflows/stale-assignments.yml](.github/workflows/stale-assignments.yml). Contributors should keep assignments current, open or update a linked PR early, and unassign themselves if they can no longer work on the issue.
 
+### Issue and PR Assignment Policy
+
+Issues that are assigned to a contributor are expected to move forward promptly. If an issue remains assigned without a linked PR update for 7 days, the repository automation will post a reminder comment. If the issue still shows no linked PR activity after 14 days, the assignee is automatically removed so the issue can be claimed by someone else.
+
+The thresholds and message text are configurable through the workflow inputs and repository variables used by [.github/workflows/stale-assignments.yml](.github/workflows/stale-assignments.yml). Contributors should keep assignments current, open or update a linked PR early, and unassign themselves if they can no longer work on the issue.
+
 ### Code Style and Formatting
 
 We use **ESLint** and **Prettier** to maintain consistent code quality.
