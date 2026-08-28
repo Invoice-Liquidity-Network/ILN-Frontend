@@ -12,6 +12,7 @@ import InvoiceFilterBar from './InvoiceFilterBar';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
 import { applyInvoiceFilters, useInvoiceFilters } from '@/hooks/useInvoiceFilters';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useVisibleWindow } from '@/hooks/useVisibleWindow';
 import SkeletonRow, { LP_DISCOVERY_COLUMNS } from './SkeletonRow';
 import LPRiskSummaryPanel from './LPRiskSummaryPanel';
 
@@ -44,6 +45,8 @@ import LPWidgetLayoutManager from './LPWidgetLayoutManager';
 import { useLPWidgetLayout } from '@/hooks/useLPWidgetLayout';
 
 type Tab = 'discovery' | 'my-funded' | 'watchlist' | 'earnings-history';
+
+const DISCOVERY_PAGE_SIZE = 50;
 
 export default function LPDashboard() {
   const router = useRouter();
@@ -317,6 +320,16 @@ export default function LPDashboard() {
       const watchItem = watchlist.find((w) => w.id === i.id.toString());
       return { ...i, watchAddedAt: watchItem?.addedAt || 0 };
     });
+
+  // Only a bounded window of rows is mounted at a time.
+  const rowsToRender = activeTab === 'discovery' ? discoveryInvoices : watchlistInvoices;
+  const { visibleSlice, hasMoreRows, remaining, loadMore } = useVisibleWindow(
+    rowsToRender,
+    DISCOVERY_PAGE_SIZE,
+    [activeTab, filters, sortKey, sortOrder],
+    'lp-discovery'
+  );
+  const visibleRows = visibleSlice(rowsToRender);
 
   const toggleSort = (key: keyof Invoice | 'risk' | 'yield') => {
     if (sortKey === key) {
@@ -821,8 +834,7 @@ export default function LPDashboard() {
                   Array.from({ length: 5 }).map((_, i) => (
                     <SkeletonRow key={i} columns={LP_DISCOVERY_COLUMNS} />
                   ))
-                ) : (activeTab === 'discovery' ? discoveryInvoices : watchlistInvoices).length ===
-                  0 ? (
+                ) : rowsToRender.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-12">
                       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -841,168 +853,177 @@ export default function LPDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  (activeTab === 'discovery' ? discoveryInvoices : watchlistInvoices).map(
-                    (invoice: any, index: number) => {
-                      const pScore = payerScores.get(invoice.payer)?.score ?? 100;
-                      const isBelowThreshold =
-                        pScore < settings.minReputation &&
-                        !overriddenInvoiceIds.includes(invoice.id.toString());
+                  visibleRows.map((invoice: any, index: number) => {
+                    const pScore = payerScores.get(invoice.payer)?.score ?? 100;
+                    const isBelowThreshold =
+                      pScore < settings.minReputation &&
+                      !overriddenInvoiceIds.includes(invoice.id.toString());
 
-                      return (
-                        <tr
-                          key={invoice.id.toString()}
-                          role="row"
-                          tabIndex={0}
-                          className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
-                          onClick={() => !isBelowThreshold && handleFund(invoice)}
-                          onKeyDown={(event) => handleRowKeyDown(event, invoice, index)}
-                        >
-                          <td className="px-6 py-5">
-                            <input
-                              type="checkbox"
-                              checked={selectedInvoiceIds.includes(invoice.id.toString())}
-                              onChange={() => toggleInvoiceSelection(invoice.id.toString())}
-                              className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
-                            />
-                          </td>
-                          <td className="px-6 py-5 font-bold text-primary">
-                            #{invoice.id.toString()}
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex flex-col">
+                    return (
+                      <tr
+                        key={invoice.id.toString()}
+                        role="row"
+                        tabIndex={0}
+                        className={`hover:bg-surface-variant/10 transition-colors ${selectedInvoiceIds.includes(invoice.id.toString()) ? 'bg-primary/5' : ''} ${isBelowThreshold ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                        onClick={() => !isBelowThreshold && handleFund(invoice)}
+                        onKeyDown={(event) => handleRowKeyDown(event, invoice, index)}
+                      >
+                        <td className="px-6 py-5">
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoiceIds.includes(invoice.id.toString())}
+                            onChange={() => toggleInvoiceSelection(invoice.id.toString())}
+                            className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
+                          />
+                        </td>
+                        <td className="px-6 py-5 font-bold text-primary">
+                          #{invoice.id.toString()}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col">
+                            <Link
+                              href={`/profile/${invoice.freelancer}`}
+                              className="text-sm font-medium text-primary hover:underline"
+                            >
+                              {formatAddress(invoice.freelancer)}
+                            </Link>
+                            <span className="text-[10px] text-on-surface-variant">
+                              {t('lpDashboard.tableHeaders.payer')}:{' '}
                               <Link
-                                href={`/profile/${invoice.freelancer}`}
-                                className="text-sm font-medium text-primary hover:underline"
+                                href={`/profile/${invoice.payer}`}
+                                className="font-mono text-on-surface hover:underline"
                               >
-                                {formatAddress(invoice.freelancer)}
+                                {formatAddress(invoice.payer)}
                               </Link>
-                              <span className="text-[10px] text-on-surface-variant">
-                                {t('lpDashboard.tableHeaders.payer')}:{' '}
-                                <Link
-                                  href={`/profile/${invoice.payer}`}
-                                  className="font-mono text-on-surface hover:underline"
-                                >
-                                  {formatAddress(invoice.payer)}
-                                </Link>
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 font-bold">
-                            <TokenAwareAmount
-                              amount={invoice.amount}
-                              invoice={invoice}
-                              tokenMap={tokenMap}
-                              defaultToken={defaultToken}
-                            />
-                          </td>
-                          <td className="px-6 py-5">
-                            <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
-                              {(invoice.discount_rate / 100).toFixed(2)}%
                             </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 font-bold">
+                          <TokenAwareAmount
+                            amount={invoice.amount}
+                            invoice={invoice}
+                            tokenMap={tokenMap}
+                            defaultToken={defaultToken}
+                          />
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs font-bold">
+                            {(invoice.discount_rate / 100).toFixed(2)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
+                        <td className="px-6 py-5 font-bold text-green-600 dark:text-green-400">
+                          <TokenAwareAmount
+                            amount={calculateYield(invoice.amount, invoice.discount_rate)}
+                            invoice={invoice}
+                            tokenMap={tokenMap}
+                            defaultToken={defaultToken}
+                          />
+                        </td>
+                        {activeTab === 'watchlist' && (
+                          <td className="px-6 py-5 text-xs text-on-surface-variant">
+                            {new Date(invoice.watchAddedAt).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-5 text-sm">{formatDate(invoice.due_date)}</td>
-                          <td className="px-6 py-5 font-bold text-green-600 dark:text-green-400">
-                            <TokenAwareAmount
-                              amount={calculateYield(invoice.amount, invoice.discount_rate)}
-                              invoice={invoice}
-                              tokenMap={tokenMap}
-                              defaultToken={defaultToken}
+                        )}
+                        {activeTab === 'discovery' && (
+                          <td className="px-6 py-5">
+                            <RiskBadge
+                              risk={payerRisks.get(invoice.payer) ?? 'Unknown'}
+                              score={payerScores.get(invoice.payer) ?? null}
                             />
                           </td>
-                          {activeTab === 'watchlist' && (
-                            <td className="px-6 py-5 text-xs text-on-surface-variant">
-                              {new Date(invoice.watchAddedAt).toLocaleDateString()}
-                            </td>
-                          )}
-                          {activeTab === 'discovery' && (
-                            <td className="px-6 py-5">
-                              <RiskBadge
-                                risk={payerRisks.get(invoice.payer) ?? 'Unknown'}
-                                score={payerScores.get(invoice.payer) ?? null}
-                              />
-                            </td>
-                          )}
-                          <td className="px-6 py-5 text-right">
-                            <div className="inline-flex items-center gap-2">
-                              <button
-                                onClick={(e) => handleWatchlistToggle(invoice.id, e)}
-                                className={`p-2 rounded-full transition-colors ${
-                                  isInWatchlist(invoice.id)
-                                    ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40'
-                                    : 'text-on-surface-variant hover:bg-surface-variant/50'
-                                }`}
-                                title={
-                                  isInWatchlist(invoice.id)
-                                    ? 'Remove from watchlist'
-                                    : 'Add to watchlist'
-                                }
+                        )}
+                        <td className="px-6 py-5 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={(e) => handleWatchlistToggle(invoice.id, e)}
+                              className={`p-2 rounded-full transition-colors ${
+                                isInWatchlist(invoice.id)
+                                  ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40'
+                                  : 'text-on-surface-variant hover:bg-surface-variant/50'
+                              }`}
+                              title={
+                                isInWatchlist(invoice.id)
+                                  ? 'Remove from watchlist'
+                                  : 'Add to watchlist'
+                              }
+                            >
+                              <span
+                                className="material-symbols-outlined text-[20px]"
+                                style={{
+                                  fontVariationSettings: isInWatchlist(invoice.id)
+                                    ? "'FILL' 1"
+                                    : "'FILL' 0",
+                                }}
                               >
-                                <span
-                                  className="material-symbols-outlined text-[20px]"
-                                  style={{
-                                    fontVariationSettings: isInWatchlist(invoice.id)
-                                      ? "'FILL' 1"
-                                      : "'FILL' 0",
-                                  }}
-                                >
-                                  bookmark
-                                </span>
+                                bookmark
+                              </span>
+                            </button>
+                            {isBelowThreshold ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOverriddenInvoiceIds((prev) => [
+                                    ...prev,
+                                    invoice.id.toString(),
+                                  ]);
+                                }}
+                                className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
+                              >
+                                Fund Anyway
                               </button>
-                              {isBelowThreshold ? (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOverriddenInvoiceIds((prev) => [
-                                      ...prev,
-                                      invoice.id.toString(),
-                                    ]);
-                                  }}
-                                  className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] px-3 py-1.5 rounded-lg font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-all uppercase tracking-tight"
-                                >
-                                  Fund Anyway
-                                </button>
-                              ) : activeTab === 'discovery' ? (
-                                <button
-                                  id={index === 0 ? 'fund-button' : undefined}
-                                  onClick={() => handleFund(invoice)}
-                                  className="bg-primary text-surface-container-lowest text-xs px-4 py-2 rounded-lg font-bold hover:bg-primary/90 shadow-sm active:scale-95 transition-all"
-                                >
-                                  Fund
-                                </button>
-                              ) : (
-                                <>
-                                  {invoice.status === 'Funded' &&
-                                    address &&
-                                    invoice.payer === address && (
-                                      <button
-                                        onClick={() => setDisputeInvoice(invoice)}
-                                        className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
-                                      >
-                                        Raise Dispute
-                                      </button>
-                                    )}
-                                  <div className="flex flex-col items-end gap-1">
-                                    <InvoiceStatusBadge status={invoice.status} />
-                                    {invoice.status !== 'Pending' && (
-                                      <span className="text-[10px] bg-error-container text-on-error-container px-2 py-0.5 rounded flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[10px]">
-                                          warning
-                                        </span>
-                                        {t('lpDashboard.alreadyFunded')}
+                            ) : activeTab === 'discovery' ? (
+                              <button
+                                id={index === 0 ? 'fund-button' : undefined}
+                                onClick={() => handleFund(invoice)}
+                                className="bg-primary text-surface-container-lowest text-xs px-4 py-2 rounded-lg font-bold hover:bg-primary/90 shadow-sm active:scale-95 transition-all"
+                              >
+                                Fund
+                              </button>
+                            ) : (
+                              <>
+                                {invoice.status === 'Funded' &&
+                                  address &&
+                                  invoice.payer === address && (
+                                    <button
+                                      onClick={() => setDisputeInvoice(invoice)}
+                                      className="text-xs px-3 py-1.5 rounded-lg font-bold border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
+                                    >
+                                      Raise Dispute
+                                    </button>
+                                  )}
+                                <div className="flex flex-col items-end gap-1">
+                                  <InvoiceStatusBadge status={invoice.status} />
+                                  {invoice.status !== 'Pending' && (
+                                    <span className="text-[10px] bg-error-container text-on-error-container px-2 py-0.5 rounded flex items-center gap-1">
+                                      <span className="material-symbols-outlined text-[10px]">
+                                        warning
                                       </span>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )
+                                      {t('lpDashboard.alreadyFunded')}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
+            {hasMoreRows && (
+              <div className="flex justify-center border-t border-surface-dim bg-surface-container-low/30 py-3">
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  className="rounded-lg border border-outline-variant/30 px-4 py-2 text-xs font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                >
+                  Load more ({remaining} remaining)
+                </button>
+              </div>
+            )}
           </div>
         </ErrorBoundary>
       )}
