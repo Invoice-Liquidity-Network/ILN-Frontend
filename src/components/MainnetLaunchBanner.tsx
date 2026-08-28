@@ -60,11 +60,12 @@ export default function MainnetLaunchBanner() {
         <Rocket className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">
-            ILN is now live on mainnet! Switch your wallet to the Stellar public network to get started.
+            ILN is now live on mainnet! Switch your wallet to the Stellar public network to get
+            started.
           </p>
           <Link
             href="/docs/mainnet-launch-notes"
-            className="-my-1 mt-1 inline-flex items-center py-1 text-xs font-medium underline underline-offset-2 opacity-90 hover:opacity-100"
+            className="mt-1 inline-flex min-h-[44px] items-center text-xs font-medium underline underline-offset-2 opacity-90 hover:opacity-100"
           >
             View launch notes
           </Link>
@@ -73,7 +74,7 @@ export default function MainnetLaunchBanner() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss announcement"
-          className="shrink-0 rounded-lg p-1 transition-colors hover:bg-blue-500/15"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-blue-500/15"
         >
           <svg
             className="h-4 w-4"
