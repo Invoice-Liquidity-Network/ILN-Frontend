@@ -120,6 +120,36 @@ To add or update a fixture:
 4. **Test Run**: Verify frontend tests still pass with current mocks
 5. **Post-Release**: Re-check after contract deployment to catch any drift
 
+## Contract Build Pinning
+
+The repository tracks which contract build the test fixtures are aligned to through a version-controlled pin file at `contracts/contract-pin.json`. The CI workflow `contract-tests.yml` verifies this pin before running the contract integration suite.
+
+### How the pin works
+
+- `contracts/contract-pin.json` contains the `pinnedBuild` object with the targeted contract's version, build hash, and verification status.
+- Until the smart-contract side reaches its storage-freeze milestone, the pin carries `status: "PENDING_STORAGE_FREEZE"` and a zero placeholder hash. The CI workflow warns but does not fail.
+- Once storage-freeze is complete, update the pin with the real mainnet-candidate build SHA and set `status: "VERIFIED"`. From that point the workflow **fails** if the hash is still a placeholder.
+
+### How to update the pin
+
+When the smart-contract team publishes a new mainnet-candidate build:
+
+1. Determine the build SHA (e.g. from the `ILN-Smart-Contract` repo's `git rev-parse HEAD` at the freeze commit).
+2. Update `contracts/contract-pin.json`:
+   - Set `pinnedBuild.hash` to the SHA.
+   - Set `pinnedBuild.version` to the version tag (e.g. `1.0.0-rc1`).
+   - Set `pinnedBuild.status` to `"VERIFIED"`.
+   - Update `pinnedBuild.verifiedAt` to today's date.
+3. Update any contract IDs in `contracts` and `tokens` sections if the deployment changed.
+4. Run `pnpm run contract:pin:verify` locally to confirm the pin is valid.
+5. If the contract interface changed, update the mock fixtures in `__tests__/contract/` and `src/mocks/fixtures/contract.ts` to match.
+
+### Local verification
+
+```bash
+pnpm run contract:pin:verify
+```
+
 ## Maintaining Alignment
 
 - **On contract changes**: Update `ILN-Smart-Contract/docs/` first
