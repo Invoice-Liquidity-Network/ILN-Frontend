@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import withPWA from 'next-pwa';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
   reactStrictMode: true,
@@ -86,9 +87,54 @@ const nextConfig: NextConfig & { allowedDevOrigins?: string[] } = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "img-src 'self' data: https: blob:",
+              "connect-src 'self' https: wss:",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+              'upgrade-insecure-requests',
+            ].join('; '),
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+          },
+        ],
+      },
+    ];
+  },
 };
 
-export default withPWA({
+const pwaWrapped = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
@@ -168,3 +214,14 @@ export default withPWA({
     },
   ],
 })(nextConfig);
+
+// Wrap with Sentry to enable source map upload at build time.
+// Source maps are deleted from the Vercel CDN after upload (hideSourceMaps: true)
+// so they are not publicly accessible. See docs/sentry-integration.md.
+export default withSentryConfig(pwaWrapped, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  hideSourceMaps: true,
+  disableLogger: true,
+});

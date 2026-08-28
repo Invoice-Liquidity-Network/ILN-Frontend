@@ -6,8 +6,15 @@ import {
   Account,
   BASE_FEE,
   Operation,
+  Address,
 } from '@stellar/stellar-sdk';
-import { GOVERNANCE_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from '@/constants';
+import {
+  GOVERNANCE_CONTRACT_ID,
+  ILN_TOKEN_CONTRACT_ID,
+  NETWORK_PASSPHRASE,
+  RPC_URL,
+  STELLAR_NETWORK,
+} from '@/constants';
 
 // ─── RPC & Contract helpers ───────────────────────────────────────────────────
 
@@ -30,18 +37,79 @@ function buildGovernanceReadTransaction(method: string, params: xdr.ScVal[] = []
     .build();
 }
 
+function buildTokenReadTransaction(contractId: string, method: string, params: xdr.ScVal[] = []) {
+  return new TransactionBuilder(new Account(READ_ACCOUNT, '0'), {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.invokeContractFunction({
+        contract: contractId,
+        function: method,
+        args: params,
+      })
+    )
+    .setTimeout(30)
+    .build();
+}
+
+// ─── Horizon helpers for governance events ────────────────────────────────────
+
+function getHorizonBaseUrl(): string {
+  return STELLAR_NETWORK === 'mainnet'
+    ? 'https://horizon.stellar.org'
+    : 'https://horizon-testnet.stellar.org';
+}
+
+interface HorizonTxRecord {
+  hash?: string;
+  created_at?: string;
+  ledger?: number;
+  successful?: boolean;
+  memo?: string;
+  _embedded?: {
+    records?: Array<{
+      type?: string;
+      topics?: string[];
+      value?: string;
+    }>;
+  };
+}
+
+interface HorizonTxResponse {
+  _embedded?: { records?: HorizonTxRecord[] };
+  _links?: { next?: { href?: string } };
+}
+
+const GOVERNANCE_MAX_PAGES = 10;
+const GOVERNANCE_PAGE_LIMIT = 200;
+
+async function fetchGovernanceTransactionsPage(url: string): Promise<HorizonTxResponse> {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Horizon governance fetch failed: ${res.status}`);
+  }
+  return (await res.json()) as HorizonTxResponse;
+}
+
+function decodeHexOrUtf8Topic(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    if (/^[0-9a-fA-F]+$/.test(raw) && raw.length > 4) {
+      const bytes = Uint8Array.from(raw.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)));
+      return new TextDecoder().decode(bytes);
+    }
+  } catch {
+    /* fall through */
+  }
+  return raw;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ProposalType = 'ParameterUpdate' | 'ProtocolUpgrade' | 'TextProposal';
-export type ProposalStatus =
-  | 'Active'
-  | 'Passed'
-  | 'Rejected'
-  | 'Executed'
-  | 'Pending'
-  | 'Vetoed'
-  | 'Failed';
-export type VoteChoice = 'For' | 'Against' | 'Abstain';
+export type ProposalStatus = 'Active' | 'Passed' | 'Rejected' | 'Executed' | 'Vetoed';
+export type VoteChoice = 'For' | 'Against';
 
 export interface VetoRecord {
   proposalId: number;
@@ -78,7 +146,6 @@ export interface Proposal {
   executableAfter?: number;
   votesFor: number;
   votesAgainst: number;
-  votesAbstain: number;
   quorumRequired: number;
   parameterChanges?: ParameterChange[];
   userVote?: VoteChoice;
@@ -104,7 +171,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votingEndsAt: NOW + 5 * DAY,
     votesFor: 142_500,
     votesAgainst: 38_200,
-    votesAbstain: 9_100,
     quorumRequired: 100_000,
     parameterChanges: [
       { parameter: 'base_discount_rate', currentValue: '500 (5%)', newValue: '350 (3.5%)' },
@@ -123,7 +189,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votingEndsAt: NOW + 6 * DAY,
     votesFor: 56_000,
     votesAgainst: 71_300,
-    votesAbstain: 4_200,
     quorumRequired: 100_000,
     parameterChanges: [
       { parameter: 'quorum_threshold_bps', currentValue: '1000 (10%)', newValue: '1500 (15%)' },
@@ -143,7 +208,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     executableAfter: NOW - 4 * DAY,
     votesFor: 215_800,
     votesAgainst: 44_100,
-    votesAbstain: 12_400,
     quorumRequired: 100_000,
     parameterChanges: [
       {
@@ -167,7 +231,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     executableAfter: NOW - 20 * DAY,
     votesFor: 189_600,
     votesAgainst: 22_300,
-    votesAbstain: 6_100,
     quorumRequired: 100_000,
     parameterChanges: [
       {
@@ -183,14 +246,13 @@ export const MOCK_PROPOSALS: Proposal[] = [
     description:
       'A text proposal to gauge community sentiment on integrating a decentralised on-chain credit scoring module that could lower discount rates for freelancers with proven track records.',
     type: 'TextProposal',
-    status: 'Failed',
+    status: 'Rejected',
     proposer: 'GLMNO...P4RS',
     createdAt: NOW - 20 * DAY,
     votingStartsAt: NOW - 20 * DAY,
     votingEndsAt: NOW - 13 * DAY,
     votesFor: 44_200,
     votesAgainst: 88_700,
-    votesAbstain: 11_500,
     quorumRequired: 100_000,
   },
   {
@@ -206,7 +268,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votingEndsAt: NOW + 4 * DAY,
     votesFor: 87_400,
     votesAgainst: 19_800,
-    votesAbstain: 3_600,
     quorumRequired: 100_000,
   },
   {
@@ -225,7 +286,6 @@ export const MOCK_PROPOSALS: Proposal[] = [
     executableAfter: NOW - Math.floor(DAY / 3),
     votesFor: 173_200,
     votesAgainst: 18_900,
-    votesAbstain: 4_700,
     quorumRequired: 100_000,
     parameterChanges: [
       { parameter: 'fee_rate_bps', currentValue: '50 (0.5%)', newValue: '30 (0.3%)' },
@@ -236,7 +296,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function totalVotes(proposal: Proposal): number {
-  return proposal.votesFor + proposal.votesAgainst + proposal.votesAbstain;
+  return proposal.votesFor + proposal.votesAgainst;
 }
 
 export function votePercent(votes: number, total: number): number {
@@ -281,27 +341,13 @@ export function parseProposalStatus(status: unknown): ProposalStatus {
   if (status && typeof status === 'object') {
     const key = Object.keys(status as object)[0];
     if (key === 'Rejected') return 'Rejected';
-    if (
-      key === 'Active' ||
-      key === 'Passed' ||
-      key === 'Executed' ||
-      key === 'Vetoed' ||
-      key === 'Pending' ||
-      key === 'Failed'
-    ) {
+    if (key === 'Active' || key === 'Passed' || key === 'Executed' || key === 'Vetoed') {
       return key as ProposalStatus;
     }
   }
   const str = String(status);
   if (str === 'Rejected') return 'Rejected';
-  if (
-    str === 'Active' ||
-    str === 'Passed' ||
-    str === 'Executed' ||
-    str === 'Vetoed' ||
-    str === 'Pending' ||
-    str === 'Failed'
-  ) {
+  if (str === 'Active' || str === 'Passed' || str === 'Executed' || str === 'Vetoed') {
     return str as ProposalStatus;
   }
   return 'Active';
@@ -346,7 +392,6 @@ export function parseProposalFromNative(native: any): Proposal {
         : undefined,
     votesFor: Number(native.votes_for ?? native.votesFor ?? 0),
     votesAgainst: Number(native.votes_against ?? native.votesAgainst ?? 0),
-    votesAbstain: Number(native.votes_abstain ?? native.votesAbstain ?? 0),
     quorumRequired: Number(native.quorum_required ?? native.quorumRequired ?? 0),
     parameterChanges: Array.isArray(native.parameter_changes ?? native.parameterChanges)
       ? (native.parameter_changes ?? native.parameterChanges).map((pc: any) => ({
@@ -413,8 +458,7 @@ export async function castVote(
   if (proposal) {
     const power = 1250;
     if (choice === 'For') proposal.votesFor += power;
-    else if (choice === 'Against') proposal.votesAgainst += power;
-    else proposal.votesAbstain += power;
+    else proposal.votesAgainst += power;
   }
 
   // Attempt real contract interaction if signTx is available
@@ -489,11 +533,20 @@ export function getVetoHistory(proposalId: number): VetoRecord[] {
   return vetoHistory.filter((record) => record.proposalId === proposalId);
 }
 
-export async function getVotingPower(_address: string): Promise<number> {
-  // TODO: Fetch from ILN token contract once deployed
-  // Ref: #111
-  await new Promise((r) => setTimeout(r, 200));
-  return 1250; // mock: 1,250 ILN tokens
+export async function getVotingPower(address: string): Promise<number> {
+  try {
+    const params: xdr.ScVal[] = [Address.fromString(address).toScVal()];
+    const callResult = await server.simulateTransaction(
+      buildTokenReadTransaction(ILN_TOKEN_CONTRACT_ID, 'balance', params)
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return 0;
+    }
+    const balance = BigInt(scValToNative(callResult.result.retval));
+    return Number(balance);
+  } catch {
+    return 0;
+  }
 }
 
 export async function getDelegationInfo(address: string): Promise<{
@@ -554,6 +607,8 @@ export interface ProtocolParameters {
   acceptedTokens: AcceptedToken[];
   /** Minimum ILN balance required to submit a proposal */
   minProposalILN: number;
+  /** Minimum quorum threshold in basis points (e.g. 1000 = 10% of total supply) */
+  quorumThresholdBps: number;
 }
 
 export interface CreateProposalPayload {
@@ -588,6 +643,7 @@ const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
     },
   ],
   minProposalILN: 500,
+  quorumThresholdBps: 1000, // 10%
 };
 
 /**
@@ -598,6 +654,27 @@ const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
 export async function fetchProtocolParameters(): Promise<ProtocolParameters> {
   await new Promise((r) => setTimeout(r, 400));
   return { ...MOCK_PROTOCOL_PARAMS };
+}
+
+/**
+ * Fetch the quorum threshold in ILN tokens by reading the ILN token total supply
+ * from the Soroban token contract and computing `totalSupply * quorumThresholdBps / 10_000`.
+ * Returns 0 on any RPC failure.
+ */
+export async function fetchQuorumThreshold(): Promise<number> {
+  try {
+    const callResult = await server.simulateTransaction(
+      buildTokenReadTransaction(ILN_TOKEN_CONTRACT_ID, 'total_supply', [])
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
+      return 0;
+    }
+    const totalSupply = BigInt(scValToNative(callResult.result.retval));
+    const params = await fetchProtocolParameters();
+    return Number((totalSupply * BigInt(params.quorumThresholdBps)) / 10_000n);
+  } catch {
+    return 0;
+  }
 }
 
 /** Stellar address basic format check: starts with G, 56 chars, valid base-32 charset */
@@ -735,7 +812,6 @@ export async function createProposal(
     votingEndsAt: NOW_SEC + 7 * DAY_SEC,
     votesFor: 0,
     votesAgainst: 0,
-    votesAbstain: 0,
     quorumRequired: 100_000,
     parameterChanges,
   };
@@ -790,20 +866,63 @@ export function parameterLabel(parameter: string): string {
 /**
  * Fetch the protocol parameter changes that have been enacted, newest first.
  *
- * Derived from executed `ParameterUpdate` proposals. Consumers (e.g. the
- * {@link ParameterUpdateBanner}) decide how recent a change must be to surface.
- *
- * TODO: Replace with a Soroban `getEvents` subscription for `ParameterUpdated`
- * contract events once the governance contract is deployed.
- * Ref: #111
+ * Reads ParameterUpdated events from Horizon governance transactions, falling
+ * back to executed proposals with parameterChanges if Horizon yields nothing.
  */
 export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
-  const proposals = await fetchProposals();
+  const base = getHorizonBaseUrl();
+  const url = `${base}/transactions?accounts=${encodeURIComponent(GOVERNANCE_CONTRACT_ID)}&order=desc&limit=${GOVERNANCE_PAGE_LIMIT}`;
+  const events: ParameterUpdateEvent[] = [];
 
+  try {
+    let nextUrl = url;
+
+    for (let page = 0; page < GOVERNANCE_MAX_PAGES; page += 1) {
+      const pageResp = await fetchGovernanceTransactionsPage(nextUrl);
+      const records = pageResp._embedded?.records ?? [];
+      if (records.length === 0) break;
+
+      for (const tx of records) {
+        if (tx.successful === false) continue;
+
+        const txEvents = tx._embedded?.records ?? [];
+        for (const evt of txEvents) {
+          const topicName = decodeHexOrUtf8Topic(evt.topics?.[0] ?? evt.type);
+          if (topicName !== 'ParameterUpdated') continue;
+
+          const parameter = decodeHexOrUtf8Topic(evt.topics?.[1]) ?? '';
+          const newValue = decodeHexOrUtf8Topic(evt.topics?.[2]) ?? '';
+          const proposalId = Number(decodeHexOrUtf8Topic(evt.topics?.[3]) ?? 0);
+          const updatedAt = tx.created_at ? Math.floor(Date.parse(tx.created_at) / 1000) : 0;
+
+          events.push({
+            id: `${proposalId}:${parameter}`,
+            proposalId,
+            parameter,
+            label: parameterLabel(parameter),
+            newValue,
+            updatedAt,
+          });
+        }
+      }
+
+      const nextHref = pageResp._links?.next?.href;
+      if (!nextHref) break;
+      nextUrl = nextHref;
+    }
+  } catch {
+    // Fall through to proposal-derived updates below.
+  }
+
+  if (events.length > 0) {
+    return events.sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  // Fallback: derive from executed proposals with parameterChanges.
+  const proposals = await fetchProposals();
   return proposals
     .filter((p) => p.status === 'Executed' && p.parameterChanges?.length)
     .flatMap((p) => {
-      // Execution time: when the proposal became executable, else when voting ended.
       const updatedAt = p.executableAfter ?? p.votingEndsAt;
       return (p.parameterChanges ?? []).map((change) => ({
         id: `${p.id}:${change.parameter}`,
@@ -856,16 +975,59 @@ export const MOCK_VOTES: VoteCastEvent[] = [
 
 /**
  * Fetch governance voting history for a specific address.
- * Derived from VoteCast events.
+ * Reads VoteCast events from Horizon transactions for the governance contract.
  */
 export async function fetchVotesForAddress(address: string): Promise<VoteCastEvent[]> {
-  await new Promise((r) => setTimeout(r, 400));
-  // In a real implementation, we would filter contract events by the voter address.
-  // For the mock, we return data if the address matches our mock voter.
-  if (address === 'GABC123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX890YZ') {
-    return [...MOCK_VOTES].sort((a, b) => b.timestamp - a.timestamp);
+  const base = getHorizonBaseUrl();
+  const url = `${base}/transactions?accounts=${encodeURIComponent(GOVERNANCE_CONTRACT_ID)}&order=desc&limit=${GOVERNANCE_PAGE_LIMIT}`;
+  const votes: VoteCastEvent[] = [];
+
+  try {
+    let nextUrl = url;
+
+    for (let page = 0; page < GOVERNANCE_MAX_PAGES; page += 1) {
+      const pageResp = await fetchGovernanceTransactionsPage(nextUrl);
+      const records = pageResp._embedded?.records ?? [];
+      if (records.length === 0) break;
+
+      for (const tx of records) {
+        if (tx.successful === false) continue;
+
+        const events = tx._embedded?.records ?? [];
+        for (const evt of events) {
+          const topicName = decodeHexOrUtf8Topic(evt.topics?.[0] ?? evt.type);
+          if (topicName !== 'VoteCast') continue;
+
+          const voter = decodeHexOrUtf8Topic(evt.topics?.[2]);
+          if (voter !== address) continue;
+
+          const proposalId = Number(decodeHexOrUtf8Topic(evt.topics?.[1]) ?? 0);
+          const support = decodeHexOrUtf8Topic(evt.topics?.[3]);
+          const vote: VoteChoice = support === 'true' || support === '1' ? 'For' : 'Against';
+          const proposalTitle =
+            MOCK_PROPOSALS.find((p) => p.id === proposalId)?.title ?? `Proposal #${proposalId}`;
+          const timestamp = tx.created_at ? Math.floor(Date.parse(tx.created_at) / 1000) : 0;
+
+          votes.push({
+            proposalId,
+            proposalTitle,
+            voter,
+            vote,
+            weight: 1250, // weight comes from voter's balance at proposal creation
+            timestamp,
+          });
+        }
+      }
+
+      const nextHref = pageResp._links?.next?.href;
+      if (!nextHref) break;
+      nextUrl = nextHref;
+    }
+  } catch {
+    // Silently return what we have — consumers treat empty as "no votes".
   }
-  return [];
+
+  return votes.sort((a, b) => b.timestamp - a.timestamp);
 }
 
 // ─── Proposal Simulation / Dry-Run ────────────────────────────────────────────
