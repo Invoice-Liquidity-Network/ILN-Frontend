@@ -30,6 +30,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify contract build pin
+        # Ensures the mocked-SDK contract tests target an explicitly pinned
+        # contract build (see contracts/contract-pin.json and the pinning
+        # documentation in docs/contract-fixtures.md). Fails when the pin is
+        # missing/malformed, or is a placeholder while claiming to be verified.
+        run: node scripts/verify-contract-pin.mjs
+
+      - name: Note pinned contract build in job summary
+        run: |
+          {
+            echo "## Pinned contract build"
+            echo '```json'
+            cat contracts/contract-pin.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Run contract integration tests with coverage
         run: pnpm exec vitest run __tests__/contract --reporter=verbose --coverage
         env:

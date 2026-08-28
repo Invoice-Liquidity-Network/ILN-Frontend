@@ -13,6 +13,7 @@
     "knip": "knip",
     "env:check": "node scripts/check-env-example.mjs",
     "env:drift-check": "node scripts/check-env-example.mjs --drift-check",
+    "contract:pin:verify": "node scripts/verify-contract-pin.mjs",
     "db:migrate": "node scripts/migrate-supabase.mjs up",
     "db:rollback": "node scripts/migrate-supabase.mjs down",
     "db:status": "node scripts/migrate-supabase.mjs status",
