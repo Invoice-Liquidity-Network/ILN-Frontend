@@ -29,6 +29,7 @@
     "clean": "rm -rf .next .turbo storybook-static coverage test-results playwright-report .lighthouseci tsconfig.tsbuildinfo",
     "test:e2e": "playwright test",
     "test:mainnet-smoke": "playwright test e2e/mainnet-smoke.spec.ts",
+    "test:e2e:nightly": "playwright test e2e/testnet-smoke.spec.ts e2e/frontend-indexer-stats-reconciliation.spec.ts",
     "test:mutation": "stryker run",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
