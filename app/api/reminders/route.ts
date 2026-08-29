@@ -172,7 +172,30 @@ export async function GET(req: NextRequest) {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.iln.finance';
             const payerLink = `${baseUrl}/payer`;
             const payNowLink = `${baseUrl}/pay/${inv.id.toString()}`;
-            const unsubscribeUrl = `${baseUrl}/api/reminders/unsubscribe?address=${pref.address}`;
+
+            const supabase = getSupabaseAdmin();
+            const { data: prefData } = await supabase
+              .from('reminder_preferences')
+              .select('unsubscribe_token')
+              .eq('address', pref.address)
+              .maybeSingle();
+
+            let unsubscribeToken = prefData?.unsubscribe_token;
+            if (!unsubscribeToken) {
+              const crypto = await import('crypto');
+              unsubscribeToken = crypto.randomBytes(32).toString('hex');
+              await supabase
+                .from('reminder_preferences')
+                .update({ unsubscribe_token: unsubscribeToken })
+                .eq('address', pref.address);
+            }
+
+            const tokenHash = require('crypto')
+              .createHash('sha256')
+              .update(unsubscribeToken + (process.env.UNSUBSCRIBE_TOKEN_SECRET || 'default-secret'))
+              .digest('hex');
+
+            const unsubscribeUrl = `${baseUrl}/api/reminders/unsubscribe?address=${pref.address}&token=${tokenHash}`;
 
             const { error: sendError } = await getResend().emails.send({
               from: 'ILN Reminders <reminders@iln.finance>',
