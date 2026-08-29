@@ -43,3 +43,22 @@ export const NFT_EVENT_HINTS = process.env.NEXT_PUBLIC_NFT_EVENT_HINTS || '';
 // ─── Indexer WebSocket Configuration ────────────────────────────────────────────
 
 export const INDEXER_WS_URL = process.env.NEXT_PUBLIC_INDEXER_WS_URL || 'ws://localhost:8080/ws';
+
+// ─── Indexer API Configuration ──────────────────────────────────────────────
+
+/**
+ * Public indexer API URL (exposed to browser, no auth required)
+ */
+export const INDEXER_API_URL = process.env.NEXT_PUBLIC_INDEXER_API_URL || 'https://api.iln.example.com';
+
+/**
+ * Server-side indexer URL with optional authentication.
+ * Used for leaderboard, analytics, and higher-volume server calls.
+ */
+export const INDEXER_SERVER_URL = process.env.INDEXER_URL || process.env.NEXT_PUBLIC_INDEXER_API_URL || 'https://api.iln.example.com';
+
+/**
+ * Server-side API key for authenticated indexer calls (never expose to client).
+ * When set, enables higher rate limits vs. anonymous requests.
+ */
+export const INDEXER_API_KEY = process.env.INDEXER_API_KEY || '';
