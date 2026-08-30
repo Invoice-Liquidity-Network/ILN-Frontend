@@ -35,6 +35,16 @@ export const governanceKeys = {
   parameterUpdates: ['parameter-updates'] as const,
 };
 
+export const protocolKeys = {
+  /** Public protocol status (paused/unpaused). */
+  status: ['protocol-status'] as const,
+};
+
+export const adminKeys = {
+  /** Admin action audit log history. */
+  actionHistory: ['admin-action-history'] as const,
+};
+
 /**
  * Recommended cache timings per query type. Centralised so the trade-off
  * between freshness and request volume is documented in one place.
@@ -53,4 +63,8 @@ export const QUERY_TIMINGS = {
   stats: { staleTime: 60_000, gcTime: 10 * 60_000 },
   /** Governance parameter updates — slow-moving. */
   parameterUpdates: { staleTime: 5 * 60_000, gcTime: 30 * 60_000 },
+  /** Protocol status — critical for maintenance banner, poll frequently. */
+  protocolStatus: { staleTime: 15_000, gcTime: 5 * 60_000 },
+  /** Admin action history — moderate frequency. */
+  adminActions: { staleTime: 30_000, gcTime: 5 * 60_000 },
 } as const;

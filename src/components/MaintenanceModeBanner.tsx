@@ -2,17 +2,30 @@
 
 import { AlertTriangle, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useProtocolStatus } from '@/hooks/useProtocolStatus';
 
 const DISMISSAL_KEY = 'iln-maintenance-banner-dismissed';
 const maintenanceModeEnabled = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
 
 /**
- * A deployment-controlled banner for protocol-wide incidents. Dismissal lasts
- * only for the current browser session, so the notice remains visible across
- * navigation without hiding a continuing incident after a later visit.
+ * Protocol-wide maintenance banner with two detection sources:
+ *
+ * 1. **Manual override** (env var `NEXT_PUBLIC_MAINTENANCE_MODE=true`): Always
+ *    takes precedence — if the deploy-time flag is set the banner shows
+ *    regardless of the on-chain status, covering edge cases the automatic
+ *    detection might miss.
+ *
+ * 2. **Automatic detection** (contract `get_protocol_status()` view): Polled
+ *    every 30 s; surfaces the banner when `paused: true` is returned, without
+ *    requiring a manual frontend deploy.
+ *
+ * Dismissal is per browser session (sessionStorage) so the notice remains
+ * visible across navigation while not haunting a user for the rest of the
+ * session after they acknowledge it.
  */
 export default function MaintenanceModeBanner() {
   const [dismissed, setDismissed] = useState(false);
+  const { data: protocolStatus } = useProtocolStatus();
 
   useEffect(() => {
     if (window.sessionStorage.getItem(DISMISSAL_KEY) === 'true') {
@@ -20,7 +33,9 @@ export default function MaintenanceModeBanner() {
     }
   }, []);
 
-  if (!maintenanceModeEnabled || dismissed) return null;
+  const isPaused = maintenanceModeEnabled || protocolStatus?.paused === true;
+
+  if (!isPaused || dismissed) return null;
 
   return (
     <div
@@ -36,6 +51,11 @@ export default function MaintenanceModeBanner() {
             Some ILN services may be unavailable or delayed while we investigate and restore the
             protocol. Please do not submit or sign new transactions until this notice is removed.
           </p>
+          {protocolStatus?.reason ? (
+            <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+              Reason: {protocolStatus.reason}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

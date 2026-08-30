@@ -655,6 +655,35 @@ export async function getTopLPs(limit = 50): Promise<TopLP[]> {
   }
 }
 
+// ─── Read: protocol status ───────────────────────────────────────────────────
+
+export interface ProtocolStatus {
+  paused: boolean;
+  paused_at?: number;
+  paused_by?: string;
+  reason?: string;
+}
+
+export async function getProtocolStatus(): Promise<ProtocolStatus> {
+  try {
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, 'get_protocol_status', [])
+    );
+    if (rpc.Api.isSimulationSuccess(callResult) && callResult.result?.retval) {
+      const native = scValToNative(callResult.result.retval);
+      return {
+        paused: Boolean(native?.paused ?? native?.is_paused ?? false),
+        paused_at: native?.paused_at ? Number(native.paused_at) : undefined,
+        paused_by: native?.paused_by ? String(native.paused_by) : undefined,
+        reason: native?.reason ? String(native.reason) : undefined,
+      };
+    }
+  } catch {
+    // Contract may not have get_protocol_status yet — fall back to unpaused.
+  }
+  return { paused: false };
+}
+
 // ─── Write: fund invoice ──────────────────────────────────────────────────────
 
 export async function fundInvoice(funder: string, invoice_id: bigint) {
