@@ -6,6 +6,7 @@ import { ToastProvider } from '@/context/ToastContext';
 import { WalletProvider } from '@/context/WalletContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { KeyboardShortcutsProvider } from '@/context/KeyboardShortcutsContext';
+import { SubscriptionProvider } from '@/context/SubscriptionContext';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import FABProvider from '@/components/FABProvider';
 import FeedbackWidget from '@/components/FeedbackWidget';
@@ -79,6 +80,7 @@ export default function RootLayout({
               <ContractEventSync />
               <WalletProvider>
                 <NotificationProvider>
+                  <SubscriptionProvider>
                   <KeyboardShortcutsProvider>
                     <OfflineBanner />
                     <NetworkMismatchBanner />
@@ -101,6 +103,7 @@ export default function RootLayout({
                     </Suspense>
                     <FeedbackWidget />
                   </KeyboardShortcutsProvider>
+                  </SubscriptionProvider>
                 </NotificationProvider>
               </WalletProvider>
             </ToastProvider>
