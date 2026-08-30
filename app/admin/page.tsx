@@ -13,6 +13,7 @@ import {
   setProtocolPaused,
   type ProtocolHealth,
 } from '@/utils/admin-health';
+import AdminActionHistoryPanel from '@/components/AdminActionHistoryPanel';
 
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -474,6 +475,9 @@ export default function AdminHealthDashboard() {
               <p className="mt-4 text-sm font-medium text-on-surface">{tokenActionMessage}</p>
             ) : null}
           </section>
+
+          {/* ── Admin Action History ──────────────────────────────────────────── */}
+          <AdminActionHistoryPanel />
         </div>
       </section>
     </main>

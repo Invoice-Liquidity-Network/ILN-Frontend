@@ -684,6 +684,41 @@ export async function getProtocolStatus(): Promise<ProtocolStatus> {
   return { paused: false };
 }
 
+// ─── Read: admin action history ──────────────────────────────────────────────
+
+export interface AdminAction {
+  id: string;
+  action_type: string;
+  actor: string;
+  timestamp: number;
+  details: string;
+  tx_hash?: string;
+}
+
+export async function getAdminActions(limit: number = 50): Promise<AdminAction[]> {
+  try {
+    const params: xdr.ScVal[] = [nativeToScVal(limit, { type: 'u32' })];
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, 'get_admin_actions', params)
+    );
+    if (rpc.Api.isSimulationSuccess(callResult) && callResult.result?.retval) {
+      const native = scValToNative(callResult.result.retval);
+      if (!Array.isArray(native)) return [];
+      return native.map((entry) => ({
+        id: String(entry.id ?? entry.action_id ?? ''),
+        action_type: String(entry.action_type ?? entry.type ?? 'unknown'),
+        actor: String(entry.actor ?? entry.admin ?? entry.address ?? ''),
+        timestamp: Number(entry.timestamp ?? entry.ts ?? 0),
+        details: String(entry.details ?? entry.description ?? ''),
+        tx_hash: entry.tx_hash ? String(entry.tx_hash) : undefined,
+      }));
+    }
+  } catch {
+    // Contract may not have get_admin_actions yet — fall back to empty list.
+  }
+  return [];
+}
+
 // ─── Write: fund invoice ──────────────────────────────────────────────────────
 
 export async function fundInvoice(funder: string, invoice_id: bigint) {
