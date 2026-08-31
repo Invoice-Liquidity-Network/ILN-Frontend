@@ -936,6 +936,109 @@ export async function fetchParameterUpdates(): Promise<ParameterUpdateEvent[]> {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+// ─── Multisig Signer Rotation events (#3, #103) ─────────────────────────────
+
+export interface SignerRotatedEvent {
+  /** Stable id for the signer rotation event */
+  id: string;
+  /** Transaction hash on Stellar */
+  txHash: string;
+  /** Address of the previous / replaced signer */
+  oldSigner: string;
+  /** Address of the new signer */
+  newSigner: string;
+  /** Unix timestamp in seconds when the rotation occurred */
+  rotatedAt: number;
+  /** Action type */
+  action?: 'rotated' | 'added' | 'removed';
+  /** Optional reason or description provided for transparency */
+  reason?: string;
+  /** Security significance classification */
+  securityLevel?: 'critical' | 'high';
+}
+
+export const MOCK_SIGNER_ROTATIONS: SignerRotatedEvent[] = [
+  {
+    id: 'sr-1',
+    txHash: 'a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8',
+    oldSigner: 'GCOEF7LMN456OPQ789RST012UVW345XYZ678ABC901DEF234GHI567JKL',
+    newSigner: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    rotatedAt: NOW - 3 * DAY,
+    action: 'rotated',
+    reason: 'Quarterly multisig signer key rotation per security policy',
+    securityLevel: 'critical',
+  },
+  {
+    id: 'sr-2',
+    txHash: 'f1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2',
+    oldSigner: 'GPREV123EXAMPLE456789ABC012GHI345JKL678MNO901PQR234STU567VWX',
+    newSigner: 'GCOEF7LMN456OPQ789RST012UVW345XYZ678ABC901DEF234GHI567JKL',
+    rotatedAt: NOW - 45 * DAY,
+    action: 'rotated',
+    reason: 'Hardware security module upgrade and key rotation',
+    securityLevel: 'critical',
+  },
+];
+
+/**
+ * Fetch multisig signer rotation events from Horizon / Soroban transactions.
+ * Falls back to mock signer rotations if Horizon yields no events.
+ */
+export async function fetchSignerRotations(): Promise<SignerRotatedEvent[]> {
+  const base = getHorizonBaseUrl();
+  const url = `${base}/transactions?accounts=${encodeURIComponent(GOVERNANCE_CONTRACT_ID)}&order=desc&limit=${GOVERNANCE_PAGE_LIMIT}`;
+  const events: SignerRotatedEvent[] = [];
+
+  try {
+    let nextUrl = url;
+
+    for (let page = 0; page < GOVERNANCE_MAX_PAGES; page += 1) {
+      const pageResp = await fetchGovernanceTransactionsPage(nextUrl);
+      const records = pageResp._embedded?.records ?? [];
+      if (records.length === 0) break;
+
+      for (const tx of records) {
+        if (tx.successful === false) continue;
+
+        const txEvents = tx._embedded?.records ?? [];
+        for (const evt of txEvents) {
+          const topicName = decodeHexOrUtf8Topic(evt.topics?.[0] ?? evt.type);
+          if (topicName !== 'SignerRotated') continue;
+
+          const oldSigner = decodeHexOrUtf8Topic(evt.topics?.[1]) ?? '';
+          const newSigner = decodeHexOrUtf8Topic(evt.topics?.[2]) ?? '';
+          const reason = decodeHexOrUtf8Topic(evt.topics?.[3]);
+          const rotatedAt = tx.created_at ? Math.floor(Date.parse(tx.created_at) / 1000) : 0;
+          const txHash = tx.hash ?? '';
+
+          events.push({
+            id: `sr-${txHash || rotatedAt}-${oldSigner.slice(0, 6)}`,
+            txHash,
+            oldSigner,
+            newSigner,
+            rotatedAt,
+            action: 'rotated',
+            reason,
+            securityLevel: 'critical',
+          });
+        }
+      }
+
+      const nextHref = pageResp._links?.next?.href;
+      if (!nextHref) break;
+      nextUrl = nextHref;
+    }
+  } catch {
+    // Fall through to mock data
+  }
+
+  if (events.length > 0) {
+    return events.sort((a, b) => b.rotatedAt - a.rotatedAt);
+  }
+
+  return [...MOCK_SIGNER_ROTATIONS].sort((a, b) => b.rotatedAt - a.rotatedAt);
+}
+
 // ─── Governance Activity ──────────────────────────────────────────────────────
 
 export const MOCK_VOTES: VoteCastEvent[] = [
