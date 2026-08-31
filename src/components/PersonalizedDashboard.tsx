@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import type { WalletRole } from '@/utils/soroban';
 import ReferralWidget from './ReferralWidget';
+import UpgradeCTA from './UpgradeCTA';
 
 const roleCards: Array<{
   role: WalletRole;
@@ -183,6 +184,10 @@ export default function PersonalizedDashboard() {
             </div>
           </div>
         )}
+
+        <div className="mb-8">
+          <UpgradeCTA />
+        </div>
 
         <ReferralWidget />
       </div>

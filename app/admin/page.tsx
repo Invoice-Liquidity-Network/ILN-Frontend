@@ -16,6 +16,7 @@ import {
   type AdminActionItem,
   type ProtocolHealth,
 } from '@/utils/admin-health';
+import AdminActionHistoryPanel from '@/components/AdminActionHistoryPanel';
 
 const REFRESH_INTERVAL_MS = 30_000;
 
