@@ -22,6 +22,7 @@ import {
   lookupToken,
   createProposal,
   fetchParameterUpdates,
+  fetchSignerRotations,
   fetchVotesForAddress,
   fetchProposals,
   fetchProtocolParameters,
@@ -704,5 +705,76 @@ describe('governance – fetchProposals session state', () => {
 
     const proposal = proposals.find((p) => p.id === 2);
     expect(proposal?.userVote).toBeUndefined();
+  });
+});
+
+describe('governance – fetchSignerRotations', () => {
+  it('returns default mock signer rotations when Horizon is unavailable', async () => {
+    vi.useFakeTimers();
+    const promise = fetchSignerRotations();
+    vi.runAllTimers();
+    const rotations = await promise;
+    vi.useRealTimers();
+
+    expect(Array.isArray(rotations)).toBe(true);
+    expect(rotations.length).toBeGreaterThan(0);
+    expect(rotations[0]).toHaveProperty('id');
+    expect(rotations[0]).toHaveProperty('oldSigner');
+    expect(rotations[0]).toHaveProperty('newSigner');
+    expect(rotations[0]).toHaveProperty('rotatedAt');
+    expect(rotations[0]).toHaveProperty('action');
+    expect(rotations[0].securityLevel).toBe('critical');
+
+    // Should be sorted descending by timestamp
+    for (let i = 1; i < rotations.length; i++) {
+      expect(rotations[i - 1].rotatedAt).toBeGreaterThanOrEqual(rotations[i].rotatedAt);
+    }
+  });
+
+  it('parses SignerRotated events from Horizon transaction stream', async () => {
+    server.use(
+      http.get('https://horizon-testnet.stellar.org/transactions', () => {
+        return HttpResponse.json({
+          _embedded: {
+            records: [
+              {
+                successful: true,
+                hash: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+                created_at: '2026-08-25T12:00:00Z',
+                _embedded: {
+                  records: [
+                    {
+                      type: 'contract',
+                      topics: [
+                        'SignerRotated',
+                        'GCOEF7LMN456OPQ789RST012UVW345XYZ678ABC901DEF234GHI567JKL',
+                        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+                        'Quarterly rotation',
+                      ],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          _links: { next: undefined },
+        });
+      })
+    );
+
+    vi.useFakeTimers();
+    const promise = fetchSignerRotations();
+    vi.runAllTimers();
+    const rotations = await promise;
+    vi.useRealTimers();
+
+    expect(Array.isArray(rotations)).toBe(true);
+    expect(rotations.length).toBeGreaterThan(0);
+    expect(rotations[0].oldSigner).toBe(
+      'GCOEF7LMN456OPQ789RST012UVW345XYZ678ABC901DEF234GHI567JKL'
+    );
+    expect(rotations[0].newSigner).toBe('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    expect(rotations[0].reason).toBe('Quarterly rotation');
+    expect(rotations[0].securityLevel).toBe('critical');
   });
 });

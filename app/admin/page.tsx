@@ -6,11 +6,14 @@ import Navbar from '@/components/Navbar';
 import { useWallet } from '@/context/WalletContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import FunnelAnalyticsPanel from '@/components/admin/FunnelAnalyticsPanel';
 import {
   executeReadyProposals,
+  fetchAdminActionHistory,
   fetchProtocolHealth,
   isAdminAddress,
   setProtocolPaused,
+  type AdminActionItem,
   type ProtocolHealth,
 } from '@/utils/admin-health';
 
@@ -67,6 +70,10 @@ export default function AdminHealthDashboard() {
   const { address, signTx } = useWallet();
   const isAdmin = isAdminAddress(address);
   const [health, setHealth] = useState<ProtocolHealth | null>(null);
+  const [adminActions, setAdminActions] = useState<AdminActionItem[]>([]);
+  const [actionFilter, setActionFilter] = useState<'all' | 'signer_rotation' | 'parameter_update'>(
+    'all'
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -94,8 +101,12 @@ export default function AdminHealthDashboard() {
 
     try {
       setError(null);
-      const nextHealth = await fetchProtocolHealth();
+      const [nextHealth, nextActions] = await Promise.all([
+        fetchProtocolHealth(),
+        fetchAdminActionHistory(),
+      ]);
       setHealth(nextHealth);
+      setAdminActions(nextActions);
       setLastRefreshAt(Date.now());
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load protocol health.');
@@ -109,6 +120,11 @@ export default function AdminHealthDashboard() {
     const interval = setInterval(() => void loadHealth(), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [loadHealth]);
+
+  const filteredAdminActions = useMemo(() => {
+    if (actionFilter === 'all') return adminActions;
+    return adminActions.filter((a) => a.category === actionFilter);
+  }, [actionFilter, adminActions]);
 
   const openDisputeCount = health?.disputedInvoices.length ?? 0;
   const pendingProposalCount = health?.pendingProposals.length ?? 0;
@@ -474,6 +490,169 @@ export default function AdminHealthDashboard() {
               <p className="mt-4 text-sm font-medium text-on-surface">{tokenActionMessage}</p>
             ) : null}
           </section>
+
+          {/* ── Admin Action Audit Log (#103, #3) ────────────────────────── */}
+          <section
+            className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5"
+            data-testid="admin-action-audit-log"
+          >
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="material-symbols-outlined text-primary text-xl"
+                    aria-hidden="true"
+                  >
+                    history_edu
+                  </span>
+                  <h2 className="text-lg font-bold text-on-surface">Admin Action Audit Log</h2>
+                </div>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Immutable on-chain audit trail of administrative operations. Multisig signer
+                  rotations are explicitly distinguished given their higher security significance.
+                </p>
+              </div>
+
+              <div
+                className="flex flex-wrap gap-2"
+                role="tablist"
+                aria-label="Admin action filters"
+              >
+                {[
+                  { value: 'all', label: 'All Actions' },
+                  { value: 'signer_rotation', label: 'Signer Rotations (Security)' },
+                  { value: 'parameter_update', label: 'Parameter Updates' },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() =>
+                      setActionFilter(tab.value as 'all' | 'signer_rotation' | 'parameter_update')
+                    }
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-colors ${
+                      actionFilter === tab.value
+                        ? 'bg-primary text-white'
+                        : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                    aria-pressed={actionFilter === tab.value}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {filteredAdminActions.map((action) => {
+                const isSigner = action.category === 'signer_rotation';
+                return (
+                  <article
+                    key={action.id}
+                    className={`rounded-xl border p-4 transition-all ${
+                      isSigner
+                        ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 shadow-sm'
+                        : 'border-outline-variant/20 bg-surface-container'
+                    }`}
+                    data-testid={`admin-action-${action.category}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            isSigner
+                              ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                              : 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                          }`}
+                          aria-hidden="true"
+                        >
+                          <span className="material-symbols-outlined text-lg">
+                            {isSigner ? 'admin_panel_settings' : 'tune'}
+                          </span>
+                        </span>
+
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-bold text-on-surface">{action.title}</h3>
+                            {isSigner ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-amber-800 dark:text-amber-300">
+                                <span className="material-symbols-outlined text-[12px]">
+                                  security
+                                </span>
+                                Security Critical
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+                                Routine Parameter
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-xs text-on-surface-variant">{action.description}</p>
+
+                          {isSigner && action.metadata ? (
+                            <div className="mt-3 rounded-lg border border-amber-500/20 bg-surface/80 p-3 text-xs text-on-surface space-y-1.5">
+                              <div className="flex flex-col sm:flex-row sm:gap-2">
+                                <span className="font-semibold text-on-surface-variant">
+                                  Previous Signer:
+                                </span>
+                                <span className="font-mono text-on-surface break-all">
+                                  {action.metadata.oldSigner || 'None (Initial)'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:gap-2">
+                                <span className="font-semibold text-on-surface-variant">
+                                  New Signer:
+                                </span>
+                                <span className="font-mono text-on-surface break-all">
+                                  {action.metadata.newSigner}
+                                </span>
+                              </div>
+                              {action.metadata.reason ? (
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                  <span className="font-semibold text-on-surface-variant">
+                                    Reason:
+                                  </span>
+                                  <span className="text-on-surface">{action.metadata.reason}</span>
+                                </div>
+                              ) : null}
+                              <p className="pt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                                Note: Signer rotation grants multisig transaction authorization on
+                                the ILN contract.
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-start gap-1 sm:items-end shrink-0 text-xs text-on-surface-variant">
+                        <span>{formatDateTime(action.timestamp)}</span>
+                        <span className="text-[11px] text-on-surface-variant/70">
+                          {formatRelative(action.timestamp)}
+                        </span>
+                        {action.txHash ? (
+                          <span
+                            className="font-mono text-[10px] text-primary"
+                            title={action.txHash}
+                          >
+                            tx: {action.txHash.slice(0, 8)}…{action.txHash.slice(-6)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {filteredAdminActions.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-outline-variant/30 p-6 text-center text-sm text-on-surface-variant">
+                  No admin actions found for the selected filter.
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          {/* ── Financial Flow Funnel & Signing Analytics ────────────────── */}
+          <FunnelAnalyticsPanel />
         </div>
       </section>
     </main>

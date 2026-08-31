@@ -8,6 +8,7 @@ import { submitSignedTransaction } from '@/utils/soroban';
 import { useToast } from '@/context/ToastContext';
 import { useWallet } from '@/context/WalletContext';
 import { notifyTxSuccess } from '@/utils/txEvents';
+import { recordSigningAttempt } from '@/lib/signing-alert';
 import {
   parseContractError,
   CONTRACT_ERROR_MAP,
@@ -134,6 +135,10 @@ export function useTransaction(): UseTransactionResult {
           signTxWithUi(txXdr, resolvedOptions.expectedAction);
         const result = await operation(signTxForOperation);
         setSuccess(true);
+        recordSigningAttempt({
+          flow: resolvedOptions.expectedAction ?? 'transaction',
+          success: true,
+        });
         updateToast(toastId, {
           type: 'success',
           title: successTitle,
@@ -148,6 +153,13 @@ export function useTransaction(): UseTransactionResult {
         const message = formattedErr.message;
         const isRejected = formattedErr.code === 'USER_REJECTED' || isWalletRejection(message);
         setError(formattedErr.userFriendlyMessage);
+
+        recordSigningAttempt({
+          flow: resolvedOptions.expectedAction ?? 'transaction',
+          success: false,
+          errorCode: isRejected ? 'USER_REJECTED' : formattedErr.code,
+          errorMessage: message,
+        });
 
         let title = 'Transaction failed';
         let toastMessage: React.ReactNode = `${message}. Please try again or contact support if the issue persists.`;
