@@ -26,10 +26,7 @@ import {
 import { getTokenInputDecimals } from '@/utils/token-amount-input';
 import { submitInvoiceTransaction } from '@/utils/soroban';
 import { useToast } from '@/context/ToastContext';
-import { PreviewRow } from './invoice/FormHelpers';
-import SubmitStepDetails from './invoice/SubmitStepDetails';
-import SubmitStepTokenRate from './invoice/SubmitStepTokenRate';
-import SubmitStepReview from './invoice/SubmitStepReview';
+import { trackFunnelStep } from '@/lib/funnel-tracking';
 
 const INITIAL_FORM: InvoiceFormValues = {
   payer: '',
@@ -110,6 +107,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     []
   );
 
+  useEffect(() => {
+    trackFunnelStep('invoice_submission', 'started');
+  }, []);
+
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || '';
   const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
   const amountInputDecimals = getTokenInputDecimals(selectedToken?.symbol ?? 'USDC');
@@ -167,6 +168,11 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       setTouched((prev) => ({ ...prev, tokenId: true, discountRate: true }));
       return;
     }
+    if (step === 1) {
+      trackFunnelStep('invoice_submission', 'details_entered');
+    } else if (step === 2) {
+      trackFunnelStep('invoice_submission', 'preview_viewed', { token: selectedToken?.symbol });
+    }
     setStep((current) => Math.min(3, current + 1));
   };
 
@@ -221,6 +227,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
 
     setErrors({});
     setSubmittedInvoiceId(null);
+    trackFunnelStep('invoice_submission', 'sign_requested', { token: selectedToken.symbol });
 
     const result = await execute(
       async (signTx) =>
@@ -244,6 +251,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     );
 
     if (!result) {
+      trackFunnelStep('invoice_submission', 'failed', {
+        token: selectedToken.symbol,
+        reason: txError ?? 'The transaction did not complete successfully.',
+      });
       setErrors({ submit: txError ?? 'The transaction did not complete successfully.' });
       return;
     }
@@ -251,6 +262,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     const invoiceId = result.invoiceId.toString();
     setSubmittedInvoiceId(invoiceId);
     setLastTxHash(result.txHash);
+    trackFunnelStep('invoice_submission', 'completed', {
+      token: selectedToken.symbol,
+      invoiceId,
+    });
 
     const trimmedReferral = referralCode.trim();
     if (trimmedReferral) {

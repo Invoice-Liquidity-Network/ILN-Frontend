@@ -11,6 +11,7 @@ This directory contains the main contributor and operations documentation for th
 
 ## Quality and Performance
 
+- **[slos.md](slos.md)** - Frontend Service Level Objectives (SLOs), SLIs, and concrete monitoring signals for performance, availability, and financial journeys.
 - **[LIGHTHOUSE_CI.md](LIGHTHOUSE_CI.md)** - Lighthouse CI performance budgets, thresholds, and report review guidance.
 - **[VISUAL_REGRESSION_WORKFLOW.md](VISUAL_REGRESSION_WORKFLOW.md)** - Chromatic visual regression workflow and approval process.
 - **[accessibility-audit-toast-notifications.md](accessibility-audit-toast-notifications.md)** - Accessibility audit notes for toast and notification flows.
