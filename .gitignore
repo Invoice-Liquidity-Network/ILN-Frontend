@@ -25,6 +25,7 @@
 
 # lighthouse CI
 /.lighthouseci
+/.lighthouseci-history
 
 # misc
 .DS_Store
