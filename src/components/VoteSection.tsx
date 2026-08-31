@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Proposal, VoteChoice } from '@/utils/governance';
+import { trackFunnelStep } from '@/lib/funnel-tracking';
 import QuorumProgressBar from './QuorumProgressBar';
 import VoteProgressBar from './VoteProgressBar';
 
@@ -164,7 +165,17 @@ export default function VoteSection({
                   selected={alreadyVoted && userVote === choice}
                   disabled={alreadyVoted || voteDisabled}
                   loading={voteLoading}
-                  onClick={() => setPendingVote(choice)}
+                  onClick={() => {
+                    trackFunnelStep('governance_voting', 'started', {
+                      proposalId: proposal.id,
+                      choice,
+                    });
+                    trackFunnelStep('governance_voting', 'choice_selected', {
+                      proposalId: proposal.id,
+                      choice,
+                    });
+                    setPendingVote(choice);
+                  }}
                 />
               ))}
             </div>
@@ -201,7 +212,13 @@ export default function VoteSection({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setPendingVote(null)}
+                onClick={() => {
+                  trackFunnelStep('governance_voting', 'abandoned', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
+                  setPendingVote(null);
+                }}
                 className="flex-1 rounded-xl border border-outline-variant py-3 text-sm font-bold hover:bg-surface-variant/50"
               >
                 Cancel
@@ -209,7 +226,15 @@ export default function VoteSection({
               <button
                 type="button"
                 onClick={() => {
+                  trackFunnelStep('governance_voting', 'sign_requested', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
                   onVote(pendingVote);
+                  trackFunnelStep('governance_voting', 'completed', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
                   setPendingVote(null);
                 }}
                 className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90"

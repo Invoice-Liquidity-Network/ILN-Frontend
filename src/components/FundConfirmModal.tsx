@@ -15,6 +15,7 @@ import { formatTokenAmount, calculateYield } from '@/utils/format';
 import { PayerScoreResult } from '@/utils/soroban';
 import { fetchProtocolParameters } from '@/utils/governance';
 import FieldTooltip from './FieldTooltip';
+import { trackFunnelStep } from '@/lib/funnel-tracking';
 
 type FundingStep = 'approve' | 'fund';
 
@@ -99,6 +100,10 @@ export default function FundConfirmModal({
 
   useEffect(() => {
     if (!invoice || !address) return;
+    trackFunnelStep('lp_funding', 'started', {
+      token: selectedToken?.symbol ?? 'USDC',
+      invoiceId: invoice.id.toString(),
+    });
     const inv = invoice;
     const walletAddress = address;
 
@@ -107,7 +112,7 @@ export default function FundConfirmModal({
     }
 
     void fetchAllowance();
-  }, [address, refreshAllowance, invoice]);
+  }, [address, refreshAllowance, invoice, selectedToken?.symbol]);
 
   if (!invoice) return null;
 
@@ -119,6 +124,9 @@ export default function FundConfirmModal({
   const approveToken = async () => {
     if (!address || !selectedInvoiceToken) return;
     setFundingError(null);
+    trackFunnelStep('lp_funding', 'allowance_requested', {
+      token: selectedToken?.symbol || 'token',
+    });
 
     const result = await execute(
       async (signTx) => {
@@ -139,16 +147,27 @@ export default function FundConfirmModal({
     );
 
     if (!result) {
+      trackFunnelStep('lp_funding', 'failed', {
+        step: 'approve',
+        reason: txError ?? 'Approval failed.',
+      });
       setFundingError(txError ?? 'Approval failed.');
       return;
     }
 
+    trackFunnelStep('lp_funding', 'allowance_approved', {
+      token: selectedToken?.symbol || 'token',
+    });
     setAllowance(invoice.amount);
   };
 
   const confirmFunding = async () => {
     if (!address) return;
     setFundingError(null);
+    trackFunnelStep('lp_funding', 'deposit_sign_requested', {
+      token: selectedToken?.symbol || 'token',
+      invoiceId: invoice.id.toString(),
+    });
 
     const result = await execute(
       async (signTx) => {
@@ -165,8 +184,16 @@ export default function FundConfirmModal({
     );
 
     if (result) {
+      trackFunnelStep('lp_funding', 'completed', {
+        token: selectedToken?.symbol || 'token',
+        invoiceId: invoice.id.toString(),
+      });
       onSuccess();
     } else {
+      trackFunnelStep('lp_funding', 'failed', {
+        step: 'fund',
+        reason: txError ?? 'Funding failed.',
+      });
       setFundingError(txError ?? 'An unknown error occurred');
     }
   };

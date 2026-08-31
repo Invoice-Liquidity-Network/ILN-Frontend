@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import { useWallet } from '@/context/WalletContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
+import FunnelAnalyticsPanel from '@/components/admin/FunnelAnalyticsPanel';
 import {
   executeReadyProposals,
   fetchAdminActionHistory,
@@ -649,6 +650,9 @@ export default function AdminHealthDashboard() {
               ) : null}
             </div>
           </section>
+
+          {/* ── Financial Flow Funnel & Signing Analytics ────────────────── */}
+          <FunnelAnalyticsPanel />
         </div>
       </section>
     </main>
