@@ -292,7 +292,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="p-6">
+    <main role="main" className="p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-on-surface-variant mb-2">
@@ -403,6 +403,6 @@ export default function LeaderboardPage() {
           </button>
         </div>
       )}
-    </div>
+    </main>
   );
 }
