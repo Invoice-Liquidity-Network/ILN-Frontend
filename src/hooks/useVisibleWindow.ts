@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
 
-export interface VisibleWindow {
+export interface VisibleWindow<T> {
   /**
    * Number of items currently rendered. The rest are revealed on demand via
    * `loadMore`, keeping the mounted DOM bounded regardless of list size.
@@ -14,7 +14,7 @@ export interface VisibleWindow {
   /** Reveal the next page/batch of items (a no-op when nothing remains). */
   loadMore: () => void;
   /** Hide rows past the visible count so the list stays bounded. */
-  visibleSlice: <T>(items: T[]) => T[];
+  visibleSlice: (items: T[]) => T[];
 }
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -33,7 +33,7 @@ export function useVisibleWindow<T>(
   pageSize = DEFAULT_PAGE_SIZE,
   resetDeps: unknown[] = [],
   listName?: string
-): VisibleWindow {
+): VisibleWindow<T> {
   const [visibleCount, setVisibleCount] = useState(pageSize);
 
   useEffect(() => {

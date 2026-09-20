@@ -109,7 +109,12 @@ export default function DashboardPage() {
 
   // Only a bounded window of rows is mounted at a time so the table stays
   // responsive against large per-wallet invoice sets.
-  const { hasMoreRows, visibleSlice, loadMore, remaining } = useVisibleWindow<Invoice>(
+  const {
+    hasMore: hasMoreRows,
+    visibleSlice,
+    loadMore,
+    remaining,
+  } = useVisibleWindow<Invoice>(
     displayedInvoices,
     TABLE_PAGE_SIZE,
     [statusFilter, sortKey, sortOrder],
