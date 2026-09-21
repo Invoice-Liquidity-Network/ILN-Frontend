@@ -1,5 +1,7 @@
 name: Pull Request Labeler
 
+name: Pull Request Labeler
+
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
@@ -9,7 +11,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  labeler:
+  apply-labels:
     name: Apply labels based on changed files
     runs-on: ubuntu-latest
     steps:
