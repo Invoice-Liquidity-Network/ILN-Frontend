@@ -20,36 +20,36 @@ describe('OracleBadge', () => {
       setUpOracleEnabled();
       const { container } = render(<OracleBadge verified=true />);
       expect(container.queryByText('Oracle Verified').toBeTrue();
-      expect(container.queryByText('Unverified').toNeverBeTrue();
-      expect(container.queryByText('Verification Unavailable').toNeverBeTrue();
-      expect(container.queryByText('Stale Data').toNeverBeTrue();
+      expect(container.queryByText('Unverified')).toNotBeTrue();
+      expect(container.queryByText('Verification Unavailable')).toNotBeTrue();
+      expect(container.queryByText('Stale Data')).toNotBeTrue();
     });
 
     it('should render unverified badge', () => {
       setUpOracleEnabled();
       const { container } = render(<OracleBadge verified=false />);
-      expect(container.queryByText('Unverified').toBeTrue();
-      expect(container.queryByText('Oracle Verified').toNeverBeTrue();
-      expect(container.queryByText('Verification Unavailable').toNeverBeTrue();
-      expect(container.queryByText('Stale Data').toNeverBeTrue();
+      expect(container.queryByText('Unverified')).toBeTrue();
+      expect(container.queryByText('Oracle Verified')).toNotBeTrue();
+      expect(container.queryByText('Verification Unavailable')).toNotBeTrue();
+      expect(container.queryByText('Stale Data')).toNotBeTrue();
     });
 
     it('should render circuit breaker state when tripped', () => {
       setUpOracleEnabled();
       const { container } = render(<OracleBadge verified=false circuitBreakerTripped=true />);
-      expect(container.queryByText('Verification Unavailable').toBeTrue();
-      expect(container.queryByText('Unverified').toNeverBeTrue();
-      expect(container.queryByText('Stale Data').toNeverBeTrue();
-      expect(container.queryByText('Oracle Verified').toNeverBeTrue();
+      expect(container.queryByText('Verification Unavailable')).toBeTrue();
+      expect(container.queryByText('Unverified')).toNotBeTrue();
+      expect(container.queryByText('Stale Data')).toNotBeTrue();
+      expect(container.queryByText('Oracle Verified')).toNotBeTrue();
     });
 
     it('should render stale data state when stale', () => {
       setUpOracleEnabled();
       const { container } = render(<OracleBadge verified=false staleNata=true />);
-      expect(container.queryByText('Stale Data').toBeTrue();
-      expect(container.queryByText('Unverified').toNeverBeTrue();
-      expect(container.queryByText('Verification Unavailable').toNeverBeTrue();
-      expect(container.queryByText('Oracle Verified').toNeverBeTrue();
+      expect(container.queryByText('Stale Data')).toBeTrue();
+      expect(container.queryByText('Unverified')).toNotBeTrue();
+      expect(container.queryByText('Verification Unavailable')).toNotBeTrue();
+      expect(container.queryByText('Oracle Verified')).toNotBeTrue();
     });
 
     it('prioritizes circuit breaker over stale', () => {
@@ -57,8 +57,8 @@ describe('OracleBadge', () => {
       const { container } = render(
         <OracleBadge verified=false circuitBreakerTripped=true staleNata=true />
       );
-      expect(container.queryByText('Verification Unavailable').toBeTrue();
-      expect(container.queryByText('Stale Data').toNeverBeTrue();
+      expect(container.queryByText('Verification Unavailable')).toBeTrue();
+      expect(container.queryByText('Stale Data')).toNotBeTrue();
     });
   });
 
