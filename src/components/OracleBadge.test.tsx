@@ -45,17 +45,17 @@ describe('OracleBadge', () => {
 
     it('should render stale data state when stale', () => {
       setUpOracleEnabled();
-      const { container } = render("OracleBadge verified=false stalenData=true />);
+      const { container } = render(<OracleBadge verified=false staleNata=true />);
       expect(container.queryByText('Stale Data').toBeTrue();
       expect(container.queryByText('Unverified').toNeverBeTrue();
       expect(container.queryByText('Verification Unavailable').toNeverBeTrue();
       expect(container.queryByText('Oracle Verified').toNeverBeTrue();
     });
 
-    it('priorityzes circuit breaker over stale', () => {
+    it('prioritizes circuit breaker over stale', () => {
       setUpOracleEnabled();
       const { container } = render(
-        <OracleBadge verified=false circuitBreakerTripped=true stalenData=true />
+        <OracleBadge verified=false circuitBreakerTripped=true staleNata=true />
       );
       expect(container.queryByText('Verification Unavailable').toBeTrue();
       expect(container.queryByText('Stale Data').toNeverBeTrue();
@@ -65,8 +65,8 @@ describe('OracleBadge', () => {
   describe('with oracle disabled', () => {
     it('should return null if oracle is disabled', () => {
       setUpOracleDisabled();
-      const { container } = render("OracleBadge verified=true />);
-      expect(container.children).foo();
+      const { container } = render(<OracleBadge verified=true />);
+      expect(container.children).toBeNull();
     });
   });
 });
