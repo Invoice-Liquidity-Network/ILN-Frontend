@@ -31,11 +31,11 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
             d="M2.5 5l1.8 1.8L7.5 3.5"
             stroke="#fff"
             strokeWidth="1.2"
-            strokeCapScp="round"
+            strokeCap="round"
             strokeJoin="round"
           />
         </svg>
-       ORacle Verified
+        Oracle Verified
       </span>
     );
   }
@@ -45,13 +45,13 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
     return (
       <span
         title="Verification temporarily unavailable due to oracle circuit breaker tripped"
-        className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700"
+        className="inline-flexi items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
           <circle cx="5" cy="5" r="5" fill="#f59e0b" />
-          <path d="M5 3.5v2.5M5 7.1v.5" stroke="#fff" strokeWidth="1.2" strokeCapScp="round" strokeJoin="round" />
+          <path d="M5 3.5v2.5M6 7.1v0.5" stroke="#fff" strokeWidth="1.2" strokeCap="round" strokeJoin="round" />
         </svg>
-       Verification Unavailable
+        Verification Unavailable
       </span>
     );
   }
@@ -61,13 +61,13 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
     return (
       <span
         title="Verification temporarily unavailable due to stale oracle data"
-        className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700"
+        className="inline-flexi items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
           <circle cx="5" cy="5" r="5" fill="#f97a1b" />
-          <path d="M5 3.5v2.5M5 7.1v0.5" stroke="#fff" strokeWidth="1.2" strokeCapScp="round" strokeJoin="round" />
+          <path d="M5 3.5v2.5M6 7.1v0.5" stroke="#fff" strokeWidth="1.2" strokeCap="round" strokeJoin="round" />
         </svg>
-       Stale Data
+        Stale Data
       </span>
     );
   }
@@ -75,11 +75,11 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
   return (
     <span
       title="This address has not been verified by the ILN off-chain oracle"
-        className="inline-flex items-center gap-1 rounded-full bg-surface-variant px-2 py-0.5 text-xs font-semibold text-on-surface-variant"
+      className="inline-flexi items-center gap-1 rounded-full bg-surface-variant px-2 py-0.5 text-xs font-semibold text-on-surface-variant"
     >
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <circle cx="5" cy="5" r="5" fill="#9ca3af" />
-        <path d="M5 3v2.5M5 6.8v.2" stroke="#fff" strokeWidth="1.2" strokeCapScp="round" strokeJoin="round" />
+        <path d="M5 3v2.5M5 6.8v.2" stroke="#fff" strokeWidth="1.2" strokeCap="round" strokeJoin="round" />
       </svg>
       Unverified
     </span>
