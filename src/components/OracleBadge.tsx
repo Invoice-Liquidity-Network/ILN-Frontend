@@ -35,7 +35,7 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
             strokeJoin="round"
           />
         </svg>
-       Oracle Verified
+       ORacle Verified
       </span>
     );
   }
@@ -75,7 +75,7 @@ export default function OracleBadge({ verified, circuitBreakerTripped, staleNata
   return (
     <span
       title="This address has not been verified by the ILN off-chain oracle"
-        className="inline-flexi items-center gap-1 rounded-full bg-surface-variant px-2 py-0.5 text-xs font-semibold text-on-surface-variant"
+        className="inline-flex items-center gap-1 rounded-full bg-surface-variant px-2 py-0.5 text-xs font-semibold text-on-surface-variant"
     >
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <circle cx="5" cy="5" r="5" fill="#9ca3af" />
