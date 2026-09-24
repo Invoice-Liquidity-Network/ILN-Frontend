@@ -9,12 +9,12 @@ This protocol coordinates incidents that affect the ILN frontend, smart contract
 3. The Indexer/Notifications on-call acknowledges the handoff, reports `/health`, ingestion lag, and notification-delivery status, and follows its [monitoring runbook](https://github.com/Invoice-Liquidity-Network/ILN-Smart-Contract/blob/dev/docs/monitoring-runbook.md).
 4. The Incident Commander records each acknowledgement and chooses the user-facing state: normal, degraded, or paused. The Communications Lead publishes the matching status-page update.
 
-| Handoff | Owner | Required acknowledgement | Target |
-| --- | --- | --- | --- |
-| Frontend → Smart Contract | Smart Contract Lead (`@contract-leads`) | On-chain scope, pause decision, contract incident link | 10 minutes for SEV-1 |
-| Frontend → Indexer/Notifications | Indexer/Notifications on-call | `/health`, lag, delivery status, incident link | 15 minutes for SEV-1 |
-| Smart Contract → Frontend | Frontend Lead (`@frontend-leads`) | Maintenance banner state and affected-route status | 5 minutes after pause decision |
-| Any technical lead → Communications | Communications Lead (`@comms-lead`) | Status-page copy and next-update time | 5 minutes after severity declaration |
+| Handoff                             | Owner                                   | Required acknowledgement                               | Target                               |
+| ----------------------------------- | --------------------------------------- | ------------------------------------------------------ | ------------------------------------ |
+| Frontend → Smart Contract           | Smart Contract Lead (`@contract-leads`) | On-chain scope, pause decision, contract incident link | 10 minutes for SEV-1                 |
+| Frontend → Indexer/Notifications    | Indexer/Notifications on-call           | `/health`, lag, delivery status, incident link         | 15 minutes for SEV-1                 |
+| Smart Contract → Frontend           | Frontend Lead (`@frontend-leads`)       | Maintenance banner state and affected-route status     | 5 minutes after pause decision       |
+| Any technical lead → Communications | Communications Lead (`@comms-lead`)     | Status-page copy and next-update time                  | 5 minutes after severity declaration |
 
 Use role handles rather than personal names. The quarterly freshness workflow keeps those roles aligned with `.github/CODEOWNERS` and prompts maintainers to confirm the contact matrix.
 
@@ -28,13 +28,25 @@ When the Smart Contract Lead confirms a pause or degraded condition:
 4. The Indexer/Notifications on-call confirms whether dashboard data is current, delayed, or unavailable; include that state in the public advisory.
 5. Remove the flag only after the Smart Contract Lead confirms the protocol is safe to resume and the Incident Commander approves the recovery update.
 
+## Contract ABI drift
+
+Treat an ABI mismatch between this frontend and the deployed Soroban contract as a cross-repository incident, even when the RPC endpoint itself is healthy. A contract-pin verification failure in `.github/workflows/contract-tests.yml` is a release-blocking signal; use this section in its incident handoff.
+
+1. The Frontend Lead records the failing workflow URL, frontend commit, `contracts/contract-pin.json` version/hash, affected entry point, network, contract ID, and simulation error. Do not include wallet secrets or signed transaction XDR.
+2. The Smart Contract Lead compares the deployed WASM/IDL and entry-point signatures with the proposed contract build, identifies whether the frontend or contract deployment is ahead, and confirms whether any state migration is involved.
+3. Freeze only the affected frontend write path with its existing feature flag or disable the affected release. Do not submit speculative transactions and do not pause the whole contract unless the Smart Contract Lead identifies an asset-safety risk.
+4. The contract owner publishes the verified deployment/build pin and compatibility notes. The frontend owner updates generated bindings or argument encoding and runs the scheduled testnet integration suite before re-enabling the path.
+5. Record both repository SHAs, contract ID, network, simulation/test results, mitigation, and owner acknowledgements in the incident record. Close only after both leads confirm the deployed ABI and frontend pin agree.
+
+The contract integration workflow points failures back to this ABI-drift response. If the failure is isolated to a stale pin, correct the pin through review; never silence the check by replacing the verified hash with a placeholder.
+
 ## Tabletop exercise record
 
-| Field | Result |
-| --- | --- |
-| Scenario | Contract pause caused by an oracle circuit trip; the frontend must immediately enter degraded mode while indexer data may lag. |
-| Participants | Incident Commander, Frontend Lead, Smart Contract Lead, Indexer/Notifications on-call, Communications Lead. |
-| Exercise format | Lightweight tabletop: each role walked through the handoff sequence and evidence it must provide. No production contract or deployment was changed. |
+| Field            | Result                                                                                                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scenario         | Contract pause caused by an oracle circuit trip; the frontend must immediately enter degraded mode while indexer data may lag.                                         |
+| Participants     | Incident Commander, Frontend Lead, Smart Contract Lead, Indexer/Notifications on-call, Communications Lead.                                                            |
+| Exercise format  | Lightweight tabletop: each role walked through the handoff sequence and evidence it must provide. No production contract or deployment was changed.                    |
 | Expected outcome | Contract team owns the pause decision; frontend exposes a global maintenance banner; indexer reports data freshness; Communications publishes one consistent advisory. |
 
 ### Findings and follow-ups
