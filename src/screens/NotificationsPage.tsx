@@ -1,36 +1,56 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useNotification } from '@/context/NotificationContext';
 import { useWallet } from '@/context/WalletContext';
 import { useVisibleWindow } from '@/hooks/useVisibleWindow';
 import {
   NOTIFICATIONS_PAGE_SIZE,
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_CATEGORY_LABELS,
+  countNotificationsByCategory,
+  filterNotificationsByCategory,
   formatTimeAgo,
   getNotificationAccentClass,
   getNotificationIcon,
   sortNotificationsNewestFirst,
+  type NotificationCategoryFilter,
 } from '@/utils/notificationHelpers';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
+function filterLabel(filter: NotificationCategoryFilter): string {
+  return filter === 'all' ? 'All' : NOTIFICATION_CATEGORY_LABELS[filter];
+}
+
 export default function NotificationsPage() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotification();
   const { isConnected } = useWallet();
+  const [categoryFilter, setCategoryFilter] = useState<NotificationCategoryFilter>('all');
 
   const orderedNotifications = useMemo(
     () => sortNotificationsNewestFirst(notifications),
     [notifications]
   );
+  const categoryCounts = useMemo(
+    () => countNotificationsByCategory(orderedNotifications),
+    [orderedNotifications]
+  );
+  const filteredNotifications = useMemo(
+    () => filterNotificationsByCategory(orderedNotifications, categoryFilter),
+    [orderedNotifications, categoryFilter]
+  );
   // Only a bounded window of rows is mounted so a high-volume account (e.g. an
   // active LP with many invoice/governance events) never renders unbounded.
+  // Changing the category filter starts the window from the top again.
   const { hasMore, remaining, loadMore, visibleSlice } = useVisibleWindow(
-    orderedNotifications,
+    filteredNotifications,
     NOTIFICATIONS_PAGE_SIZE,
-    [],
+    [categoryFilter],
     'notifications-page'
   );
+  const filterOptions: NotificationCategoryFilter[] = ['all', ...NOTIFICATION_CATEGORIES];
 
   if (!isConnected) {
     return (
@@ -72,6 +92,37 @@ export default function NotificationsPage() {
             </div>
           </div>
 
+          {orderedNotifications.length > 0 && (
+            <div
+              role="group"
+              aria-label="Filter notifications by category"
+              className="mb-6 flex flex-wrap gap-2"
+            >
+              {filterOptions.map((option) => {
+                const { total, unread } = categoryCounts[option];
+                const selected = categoryFilter === option;
+                const label = filterLabel(option);
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={`${label} (${total}${unread > 0 ? `, ${unread} unread` : ''})`}
+                    onClick={() => setCategoryFilter(option)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      selected
+                        ? 'border-primary bg-primary text-on-primary'
+                        : 'border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    {label}
+                    <span className="ml-1.5 opacity-80">{total}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {orderedNotifications.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-outline-variant/30 bg-surface-variant/30 p-12 text-center">
               <span className="material-symbols-outlined text-4xl text-on-surface-variant">
@@ -82,10 +133,23 @@ export default function NotificationsPage() {
                 On-chain activity for your wallet will appear here.
               </p>
             </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-outline-variant/30 bg-surface-variant/30 p-12 text-center">
+              <p className="text-on-surface-variant">
+                No {filterLabel(categoryFilter).toLowerCase()} notifications.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('all')}
+                className="mt-4 text-sm font-bold text-primary hover:underline"
+              >
+                Show all notifications
+              </button>
+            </div>
           ) : (
             <>
               <ul className="space-y-3">
-                {visibleSlice(orderedNotifications).map((notification) => (
+                {visibleSlice(filteredNotifications).map((notification) => (
                   <li key={notification.id}>
                     <Link
                       href={notification.href}

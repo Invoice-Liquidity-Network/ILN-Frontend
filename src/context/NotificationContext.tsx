@@ -17,7 +17,13 @@ import {
   readStateStorageKey,
 } from '@/utils/notificationHelpers';
 
-export type NotificationCategory = 'invoice' | 'lp' | 'governance' | 'reputation';
+/**
+ * Feed categories the /notifications page can filter by. `admin` covers
+ * protocol-level admin actions surfaced to users (pauses, signer rotations,
+ * parameter updates); the admin audit log itself is Sentry-only and never
+ * reaches this inbox. See docs/notifications-service.md.
+ */
+export type NotificationCategory = 'invoice' | 'lp' | 'governance' | 'reputation' | 'admin';
 
 export type NotificationType =
   | 'funded'

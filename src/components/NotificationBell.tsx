@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { useNotification, type NotificationItem } from '@/context/NotificationContext';
-import { MAX_NOTIFICATIONS } from '@/utils/notificationHelpers';
+import { MAX_NOTIFICATIONS, resolveNotificationCategory } from '@/utils/notificationHelpers';
 import NotificationDrawer from './NotificationDrawer';
 
 interface ExternalNotification {
   id: string;
-  category?: NotificationItem['category'];
+  category?: string;
   type: string;
   title: string;
   message: string;
@@ -25,8 +25,7 @@ function mergeNotifications(
   const map = new Map(existing.map((notification) => [notification.id, notification]));
 
   incoming.forEach((notification) => {
-    const category =
-      notification.category ?? (notification.type === 'proposal' ? 'governance' : 'invoice');
+    const category = resolveNotificationCategory(notification.category, notification.type);
     const href = notification.href ?? '/dashboard';
     map.set(notification.id, {
       id: notification.id,
