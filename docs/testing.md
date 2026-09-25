@@ -109,6 +109,9 @@ When triaging survivors, work top-down by financial consequence:
 1. **`fundInvoice`** (`src/utils/soroban.ts`) — LP provides liquidity to an invoice.
 2. **`markPaid`** (`src/utils/soroban.ts`) — payer settles an invoice (full/partial).
 3. **`castVote`** (`src/utils/governance.ts`) — governance vote casting; already covered by `src/utils/__tests__/governance.mutation.test.ts` which exercises every `VoteChoice` branch and the user-vote recording.
+
+**Note:** `castVote` is protected by mutation testing with a ≥90% score as required for financial‑critical paths.
+
 4. **`createProposal`** (`src/utils/governance.ts`) — proposal creation across all four form types (FeeRate / MaxDiscountRate / AddToken / RemoveToken).
 
 Focus remediation on *genuinely dangerous* survivors (e.g. a mutated comparison or removed balance check in a money-moving path), not trivially-equivalent mutants. Each remediation should add a targeted test that kills the specific mutant rather than widening an existing assertion.

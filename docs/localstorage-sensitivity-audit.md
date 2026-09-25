@@ -83,6 +83,8 @@ optional, user-provided PII (e.g. "Alice's Savings").
 - Scoped per wallet address; cleared on disconnect via `clearWalletStorage()`.
 - Nicknames are voluntarily entered — the user accepts that they are stored locally.
 
+[AddressBook implementation](file:///home/theophilus/Desktop/Tech/OSS/Drips/Wave9/Fiyin/ILN-Frontend/src/hooks/useAddressBook.ts) – ensures proper handling of duplicate entries and max‑size enforcement.
+
 **Accepted risk:** Nicknames are convenience labels, not credentials. Exposure via
 XSS is a privacy concern but not a security one. The CSP remains the primary
 defense.
