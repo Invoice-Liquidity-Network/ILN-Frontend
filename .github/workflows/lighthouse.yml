@@ -18,14 +18,14 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: '9.0.0'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Lighthouse history cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .lighthouseci-history
           key: lhci-history-${{ github.ref }}-${{ github.sha }}
@@ -66,14 +66,14 @@ jobs:
 
       - name: Save Lighthouse history cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .lighthouseci-history
           key: lhci-history-${{ github.ref }}-${{ github.sha }}
 
       - name: Upload Lighthouse reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-reports
           path: .lighthouseci/
@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload Lighthouse trend history
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-trend-history
           path: |
@@ -91,7 +91,7 @@ jobs:
 
       - name: Comment trend report on PR
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
