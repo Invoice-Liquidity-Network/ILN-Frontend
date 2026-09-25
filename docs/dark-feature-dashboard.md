@@ -150,8 +150,17 @@ the feature needs is ✅ Complete.
 
 The live read-only flag state (enabled/disabled per environment) is visible at
 [`/admin/flags`](https://app.iln.finance/admin/flags) to the protocol admin wallet.
-The admin flags page also links back to this dashboard and to the rollback runbook
-for quick access during an incident.
+
+The admin flags panel is intentionally **read-only** — it exposes no toggle controls,
+forms, or config editors. Flags are controlled exclusively via Vercel environment
+variables and require a redeployment to take effect. The panel's scope has been audited
+(issue #917) and is constrained to:
+
+- Displaying the enabled/disabled state of the three `NEXT_PUBLIC_*_ENABLED` feature flags.
+- Showing the readiness-artifact checklist for each dark (disabled) feature.
+- Summary counters (total, enabled, dark, flip-ready).
+
+No other env vars, secrets, or configuration values are exposed through this panel.
 
 ---
 

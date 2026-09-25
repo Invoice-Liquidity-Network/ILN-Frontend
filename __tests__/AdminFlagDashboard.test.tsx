@@ -21,6 +21,11 @@ vi.mock('@/utils/admin-health', () => ({
   isAdminAddress: vi.fn((addr: string | null | undefined) => addr === ADMIN_ADDRESS),
 }));
 
+const mockLogAdminAction = vi.fn();
+vi.mock('@/lib/auditLog', () => ({
+  logAdminAction: (...args: unknown[]) => mockLogAdminAction(...args),
+}));
+
 const mockWallet = { address: ADMIN_ADDRESS as string | null };
 
 vi.mock('@/context/WalletContext', () => ({
@@ -129,10 +134,41 @@ describe('AdminFlagDashboard', () => {
       expect(screen.getByText(/Read-only view/i)).toBeInTheDocument();
     });
 
-    it('renders links to the dark-feature dashboard and rollback runbook', () => {
+    it('renders the footer note instead of broken /docs/*.md links', () => {
       render(<AdminFlagDashboard />);
-      expect(screen.getByText(/Dark-feature readiness dashboard/i)).toBeInTheDocument();
-      expect(screen.getByText(/Flag-only rollback runbook/i)).toBeInTheDocument();
+      expect(screen.getByTestId('flags-footer-note')).toBeInTheDocument();
+      // Confirm no anchor tags pointing to internal /docs paths are rendered.
+      const links = document.querySelectorAll('a[href*="/docs/"]');
+      expect(links.length).toBe(0);
+    });
+
+    it('exposes no interactive controls — panel is strictly read-only', () => {
+      render(<AdminFlagDashboard />);
+      // No buttons (other than Navbar, which is mocked away), no inputs, no forms.
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('flag name field only contains known NEXT_PUBLIC_*_ENABLED identifiers', () => {
+      render(<AdminFlagDashboard />);
+      // Each flag row renders the env var name in a <code> element.
+      const codeEls = document.querySelectorAll('[data-testid="flag-row"] code');
+      const allowlist = new Set([
+        'NEXT_PUBLIC_INSURANCE_POOL_ENABLED',
+        'NEXT_PUBLIC_ORACLE_ENABLED',
+        'NEXT_PUBLIC_NFT_ENABLED',
+      ]);
+      codeEls.forEach((el) => {
+        expect(allowlist.has(el.textContent ?? '')).toBe(true);
+      });
+    });
+
+    it('does not render the footer note in the access-restricted view', () => {
+      mockWallet.address = null;
+      render(<AdminFlagDashboard />);
+      expect(screen.queryByTestId('flags-footer-note')).not.toBeInTheDocument();
     });
   });
 
@@ -187,6 +223,48 @@ describe('AdminFlagDashboard', () => {
       // The count cell renders "3" with "/ 3" as a separate span.
       const flipReadySection = screen.getByText(/Flip-ready/i).closest('div');
       expect(flipReadySection).toBeTruthy();
+    });
+  });
+
+  describe('Audit logging', () => {
+    beforeEach(() => {
+      mockLogAdminAction.mockClear();
+      mockWallet.address = ADMIN_ADDRESS;
+    });
+
+    it('calls logAdminAction with flags.viewed when an admin mounts the page', () => {
+      render(<AdminFlagDashboard />);
+      expect(mockLogAdminAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'flags.viewed',
+          actor: ADMIN_ADDRESS,
+          page: '/admin/flags',
+        })
+      );
+    });
+
+    it('includes flag_count in the flags.viewed metadata', () => {
+      render(<AdminFlagDashboard />);
+      const call = mockLogAdminAction.mock.calls.find(
+        ([p]) => p.action === 'flags.viewed'
+      );
+      expect(call).toBeDefined();
+      expect(call![0].metadata?.flag_count).toBe(3);
+    });
+
+    it('does not call logAdminAction when a non-admin visits the page', () => {
+      mockWallet.address = 'GNON_ADMIN_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+      render(<AdminFlagDashboard />);
+      const auditCalls = mockLogAdminAction.mock.calls.filter(
+        ([p]) => p.action === 'flags.viewed'
+      );
+      expect(auditCalls.length).toBe(0);
+    });
+
+    it('does not call logAdminAction when no wallet is connected', () => {
+      mockWallet.address = null;
+      render(<AdminFlagDashboard />);
+      expect(mockLogAdminAction).not.toHaveBeenCalled();
     });
   });
 });

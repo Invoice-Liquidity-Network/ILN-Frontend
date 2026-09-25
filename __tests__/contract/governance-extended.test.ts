@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { rpc, nativeToScVal } from '@stellar/stellar-sdk';
+import { rpc } from '@stellar/stellar-sdk';
 import { server } from '@/mocks/server';
 
 import {
@@ -35,6 +35,11 @@ import {
   type CreateProposalPayload,
   type Proposal,
 } from '@/utils/governance';
+import {
+  combineRecorders,
+  detectMockBacking,
+  expectMockBackingStatus,
+} from '@/test-utils/mock-detection';
 
 const SIGNER = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const mockSignTx = vi.fn(async (_xdr: string) => 'signedXDR');
@@ -806,5 +811,51 @@ describe('governance – fetchSignerRotations', () => {
     expect(rotations[0].newSigner).toBe('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
     expect(rotations[0].reason).toBe('Quarterly rotation');
     expect(rotations[0].securityLevel).toBe('critical');
+  });
+});
+
+// ─── Mock-backing detection (#857) ────────────────────────────────────────────
+//
+// See the matching block in governance.test.ts for how the recorded status
+// works. Flip 'mock' → 'real' once the linked issue's implementation lands.
+
+describe('governance – mock-backing detection (extended)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function settle<T>(promise: Promise<T>): Promise<T> {
+    await vi.runAllTimersAsync();
+    return promise;
+  }
+
+  it('executeProposal (#840): tx hash provenance and signTx usage', async () => {
+    vi.useFakeTimers();
+    const signTx = vi.fn(async (_xdr: string) => 'signedXDR');
+    const report = await detectMockBacking({
+      run: () => settle(executeProposal(6, SIGNER, signTx)),
+      boundaries: { signTx },
+    });
+    expectMockBackingStatus('executeProposal', report, 'mock');
+  });
+
+  it('lookupToken (#845): reaches Soroban RPC or the network', async () => {
+    vi.useFakeTimers();
+    const simulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockRejectedValue(new Error('offline'));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    const report = await detectMockBacking({
+      // Not an accepted or hard-coded "known" token, so a real lookup is required.
+      run: () =>
+        settle(
+          lookupToken('GBQD2MXHXD2SRHRQZRZ5JZ4UNLMTMLZNNDJHCQXIJXE2ANBV5IDWB2XK').catch(
+            () => undefined
+          )
+        ),
+      identify: () => undefined,
+      boundaries: { network: combineRecorders(simulate, fetchSpy) },
+    });
+    expectMockBackingStatus('lookupToken', report, 'mock');
   });
 });

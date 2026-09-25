@@ -116,6 +116,36 @@ When triaging survivors, work top-down by financial consequence:
 
 Focus remediation on *genuinely dangerous* survivors (e.g. a mutated comparison or removed balance check in a money-moving path), not trivially-equivalent mutants. Each remediation should add a targeted test that kills the specific mutant rather than widening an existing assertion.
 
+## Mock-backing detection
+
+Mutation score and line coverage both stay high on a function that returns a `Math.random()` "transaction hash" without ever signing or submitting anything. To catch that in the function's own test file, use the shared helper in [`src/test-utils/mock-detection.ts`](../src/test-utils/mock-detection.ts) (issue #857):
+
+```ts
+import { detectMockBacking, expectMockBackingStatus } from '@/test-utils/mock-detection';
+
+const signTx = vi.fn(async (xdr: string) => 'signedXDR');
+const report = await detectMockBacking({
+  run: () => castVote(1, 'For', SIGNER, signTx),
+  boundaries: { signTx },
+});
+expectMockBackingStatus('castVote', report, 'real');
+```
+
+`detectMockBacking` swaps `Math.random` for a seeded PRNG and runs the function three times (seed A, seed A again, seed B). It reports the function as mock-backed if:
+
+- the returned identifier changes when only the `Math.random` seed changes (so it comes from `Math.random()`);
+- the identifier changes between runs with the same seed (so it comes from `Date.now()`, `crypto`, or a similar source); or
+- a boundary spy passed in `boundaries` (e.g. `signTx`, `rpc.Server.prototype.simulateTransaction`, `fetch`) is never called. Use `combineRecorders(...)` when any one of several transports is acceptable.
+
+Pass `identify` to pick the identifier out of a structured result (e.g. `(r) => r.txHash`). For read paths that return no identifier, return `undefined` from it and rely on the boundaries.
+
+`expectMockBackingStatus(name, report, status)` asserts against a recorded status:
+
+- `'mock'`: the function is still a stub. The test passes while it stays mock-backed and **fails once it isn't**, asking you to flip the status to `'real'`.
+- `'real'`: the function must not look mock-backed. This is the permanent state and catches regressions back to a mock.
+
+The governance write paths (`castVote`, `executeProposal`, `createProposal`) and read paths (`fetchProtocolParameters`, `lookupToken`) are covered in `__tests__/contract/governance.test.ts` and `__tests__/contract/governance-extended.test.ts` under "mock-backing detection". Each is currently recorded as `'mock'` against its implementation issue (#839, #840, #841, #844, #845). The PR that lands a real implementation must flip that function's status to `'real'`, stubbing any RPC calls the new code makes so the boundaries are exercised offline. The detection tests will fail until that's done. Apply the same helper to any new contract-integration function.
+
 ## Recommended workflow for contributors
 
 1. Start with a Vitest test for any bug fix or local logic change.
