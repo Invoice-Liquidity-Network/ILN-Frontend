@@ -13,6 +13,13 @@ interface FlagEntry {
   label: string;
   description: string;
   enabled: boolean;
+  /** Artifacts required before this flag is eligible to flip to `true` in production. */
+  readiness: {
+    smokeTest: boolean;
+    visualBaseline: boolean;
+    rollbackStep: boolean;
+    flagReview: boolean;
+  };
 }
 
 function getFlags(): FlagEntry[] {
@@ -22,18 +29,36 @@ function getFlags(): FlagEntry[] {
       label: 'Insurance Pool',
       description: 'Liquidity insurance pooling panel on the LP dashboard.',
       enabled: env.NEXT_PUBLIC_INSURANCE_POOL_ENABLED,
+      readiness: {
+        smokeTest: true,
+        visualBaseline: true,
+        rollbackStep: true,
+        flagReview: true,
+      },
     },
     {
       name: 'NEXT_PUBLIC_ORACLE_ENABLED',
       label: 'Oracle Badge',
       description: 'Oracle verification badge component in the UI.',
       enabled: env.NEXT_PUBLIC_ORACLE_ENABLED,
+      readiness: {
+        smokeTest: true,
+        visualBaseline: true,
+        rollbackStep: true,
+        flagReview: true,
+      },
     },
     {
       name: 'NEXT_PUBLIC_NFT_ENABLED',
       label: 'Invoice NFT',
       description: 'Soroban Invoice NFT metadata card on invoice detail pages.',
       enabled: env.NEXT_PUBLIC_NFT_ENABLED,
+      readiness: {
+        smokeTest: true,
+        visualBaseline: true,
+        rollbackStep: true,
+        flagReview: true,
+      },
     },
   ];
 }
@@ -60,18 +85,71 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
   );
 }
 
+function ReadinessArtifact({ done, label }: { done: boolean; label: string }) {
+  return (
+    <span
+      data-testid={done ? 'readiness-artifact-complete' : 'readiness-artifact-pending'}
+      className="inline-flex items-center gap-1 text-xs"
+    >
+      <span
+        aria-hidden="true"
+        className={done ? 'text-green-600 dark:text-green-400' : 'text-on-surface-variant/50'}
+      >
+        {done ? '✓' : '○'}
+      </span>
+      <span className={done ? 'text-on-surface-variant' : 'text-on-surface-variant/50'}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
+function ReadinessPanel({ flag }: { flag: FlagEntry }) {
+  const allReady = Object.values(flag.readiness).every(Boolean);
+
+  return (
+    <div
+      data-testid="readiness-panel"
+      className="mt-3 rounded-xl border border-outline-variant/15 bg-surface-container p-3"
+    >
+      <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+        Flip readiness
+      </p>
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+        <ReadinessArtifact done={flag.readiness.smokeTest} label="Smoke test" />
+        <ReadinessArtifact done={flag.readiness.visualBaseline} label="Visual baseline" />
+        <ReadinessArtifact done={flag.readiness.rollbackStep} label="Rollback step" />
+        <ReadinessArtifact done={flag.readiness.flagReview} label="Flag review" />
+      </div>
+      <p
+        className={[
+          'mt-2 text-xs font-semibold',
+          allReady ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400',
+        ].join(' ')}
+        data-testid={allReady ? 'readiness-complete' : 'readiness-pending'}
+      >
+        {allReady ? 'All artifacts complete — eligible for sign-off' : 'Pending artifacts'}
+      </p>
+    </div>
+  );
+}
+
 function FlagRow({ flag }: { flag: FlagEntry }) {
   return (
     <li
       data-testid="flag-row"
-      className="flex flex-col gap-2 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-2 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5"
     >
-      <div className="flex flex-col gap-0.5">
-        <p className="font-semibold text-on-surface">{flag.label}</p>
-        <p className="text-sm text-on-surface-variant">{flag.description}</p>
-        <code className="mt-1 text-xs text-on-surface-variant/60">{flag.name}</code>
+      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-0.5">
+          <p className="font-semibold text-on-surface">{flag.label}</p>
+          <p className="text-sm text-on-surface-variant">{flag.description}</p>
+          <code className="mt-1 text-xs text-on-surface-variant/60">{flag.name}</code>
+        </div>
+        <StatusBadge enabled={flag.enabled} />
       </div>
-      <StatusBadge enabled={flag.enabled} />
+      {/* Only show the readiness panel for dark (currently-disabled) features */}
+      {!flag.enabled && <ReadinessPanel flag={flag} />}
     </li>
   );
 }
@@ -106,6 +184,10 @@ export default function AdminFlagDashboard() {
   }
 
   const enabledCount = flags.filter((f) => f.enabled).length;
+  const darkCount = flags.filter((f) => !f.enabled).length;
+  const darkReadyCount = flags.filter(
+    (f) => !f.enabled && Object.values(f.readiness).every(Boolean)
+  ).length;
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -119,28 +201,53 @@ export default function AdminFlagDashboard() {
           <h1 className="mt-1 text-2xl font-bold text-on-surface">Feature Flag Status</h1>
           <p className="mt-2 max-w-xl text-sm text-on-surface-variant">
             Read-only view of the current feature flag state for this environment. Flags are
-            controlled via Vercel environment variables — changes require a redeployment.
+            controlled via Vercel environment variables — changes require a redeployment. Disabled
+            flags show their readiness artifact status for the upcoming flip.
           </p>
         </header>
 
-        <div className="mb-6 flex gap-4">
-          <div className="flex-1 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-4">
+        {/* Summary counters */}
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant">
               Total flags
             </p>
             <p className="mt-2 text-2xl font-bold text-on-surface">{flags.length}</p>
           </div>
-          <div className="flex-1 rounded-2xl border border-green-500/20 bg-green-500/10 p-4">
+          <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-green-700 dark:text-green-400">
               Enabled
             </p>
             <p className="mt-2 text-2xl font-bold text-on-surface">{enabledCount}</p>
           </div>
-          <div className="flex-1 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-4">
+          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant">
-              Disabled
+              Dark / disabled
             </p>
-            <p className="mt-2 text-2xl font-bold text-on-surface">{flags.length - enabledCount}</p>
+            <p className="mt-2 text-2xl font-bold text-on-surface">{darkCount}</p>
+          </div>
+          <div
+            className={[
+              'rounded-2xl border p-4',
+              darkReadyCount === darkCount && darkCount > 0
+                ? 'border-green-500/20 bg-green-500/10'
+                : 'border-amber-500/20 bg-amber-500/10',
+            ].join(' ')}
+          >
+            <p
+              className={[
+                'text-xs font-bold uppercase tracking-[0.16em]',
+                darkReadyCount === darkCount && darkCount > 0
+                  ? 'text-green-700 dark:text-green-400'
+                  : 'text-amber-700 dark:text-amber-400',
+              ].join(' ')}
+            >
+              Flip-ready
+            </p>
+            <p className="mt-2 text-2xl font-bold text-on-surface">
+              {darkReadyCount}
+              <span className="text-base font-normal text-on-surface-variant"> / {darkCount}</span>
+            </p>
           </div>
         </div>
 
@@ -150,15 +257,28 @@ export default function AdminFlagDashboard() {
           ))}
         </ul>
 
-        <p className="mt-8 text-xs text-on-surface-variant/60">
-          Flag values are read from <code className="font-mono">NEXT_PUBLIC_*_ENABLED</code>{' '}
-          environment variables at build time. To change a flag, update the variable in Vercel and
-          trigger a redeployment. See{' '}
-          <a href="/docs/feature-flags.md" className="underline">
-            docs/feature-flags.md
-          </a>{' '}
-          for the flag lifecycle policy.
-        </p>
+        {/* Footer links */}
+        <div className="mt-8 flex flex-col gap-1 text-xs text-on-surface-variant/60">
+          <p>
+            Flag values are read from <code className="font-mono">NEXT_PUBLIC_*_ENABLED</code>{' '}
+            environment variables at build time. To change a flag, update the variable in Vercel and
+            trigger a redeployment.
+          </p>
+          <p className="mt-2 flex flex-wrap gap-4">
+            <a href="/docs/dark-feature-dashboard.md" className="underline hover:text-on-surface">
+              Dark-feature readiness dashboard
+            </a>
+            <a
+              href="/docs/dark-feature-flag-rollback-runbook.md"
+              className="underline hover:text-on-surface"
+            >
+              Flag-only rollback runbook
+            </a>
+            <a href="/docs/feature-flags.md" className="underline hover:text-on-surface">
+              Flag lifecycle policy
+            </a>
+          </p>
+        </div>
       </section>
     </main>
   );

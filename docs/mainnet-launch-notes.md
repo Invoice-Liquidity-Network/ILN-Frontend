@@ -201,20 +201,22 @@ The three features shipping dark at launch are gated by build-time environment f
 
 Each dark feature requires the following artifacts before its flag is cleared for mainnet:
 
-1. **Smoke-test coverage** — at least one mainnet-smoke test exercises the feature surface after the flag is on (`e2e/mainnet-smoke.spec.ts`).
+1. **Smoke-test coverage** — at least one mainnet-smoke test exercises the feature surface after the flag is on (`e2e/dark-feature-flag-flip-smoke.spec.ts`).
 2. **Visual baseline** — a Chromatic story baseline capturing the enabled state exists and is current (`pnpm run chromatic`).
-3. **Rollback runbook step** — [docs/incident-response.md](incident-response.md) or [docs/mainnet-deployment-runbook.md](mainnet-deployment-runbook.md) contains an explicit step for disabling the feature (flipping the flag back to `false` and redeploying).
+3. **Rollback runbook step** — [docs/dark-feature-flag-rollback-runbook.md](dark-feature-flag-rollback-runbook.md) contains an explicit, per-feature section for disabling the feature (flipping the flag back to `false` and redeploying).
 4. **Feature flag review** — the flag's entry in [docs/feature-flags.md](feature-flags.md) is current and the production default is confirmed `false`.
+
+The consolidated go/no-go surface for all four artifacts across all three features is maintained in [docs/dark-feature-dashboard.md](dark-feature-dashboard.md).
 
 ### Per-feature readiness dashboard
 
-| Feature | Flag | Smoke test | Visual baseline | Rollback step | Flag review | Status |
-| ------- | ---- | ---------- | --------------- | ------------- | ----------- | ------ |
-| Insurance Pool | `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` | Not yet — no mainnet smoke test targets this surface | Not yet — no Chromatic story for enabled state | Covered by general flag-flip rollback in deployment runbook §5 | Confirmed `false` default in [feature-flags.md](feature-flags.md) | **Not ready** |
-| Oracle Badge | `NEXT_PUBLIC_ORACLE_ENABLED` | Not yet — no mainnet smoke test targets this surface | Not yet — no Chromatic story for enabled state | Covered by general flag-flip rollback in deployment runbook §5 | Confirmed `false` default in [feature-flags.md](feature-flags.md) | **Not ready** |
-| Invoice NFT | `NEXT_PUBLIC_NFT_ENABLED` | Not yet — no mainnet smoke test targets this surface | Not yet — no Chromatic story for enabled state | Covered by general flag-flip rollback in deployment runbook §5 | Confirmed `false` default in [feature-flags.md](feature-flags.md) | **Not ready** |
+| Feature        | Flag                                 | Smoke test                                                    | Visual baseline                                                                    | Rollback step                                                                        | Flag review                                                          | Status                             |
+| -------------- | ------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------- |
+| Insurance Pool | `NEXT_PUBLIC_INSURANCE_POOL_ENABLED` | ✅ `e2e/dark-feature-flag-flip-smoke.spec.ts` §Insurance Pool | ✅ `InsurancePoolPanel.stories.tsx` — `FlagEnabled` + `FlagEnabledLoading` stories | ✅ [dark-feature-flag-rollback-runbook.md §1](dark-feature-flag-rollback-runbook.md) | ✅ Confirmed `false` default in [feature-flags.md](feature-flags.md) | ⏳ **Pending maintainer sign-off** |
+| Oracle Badge   | `NEXT_PUBLIC_ORACLE_ENABLED`         | ✅ `e2e/dark-feature-flag-flip-smoke.spec.ts` §Oracle Badge   | ✅ `OracleBadge.stories.tsx` — `FlagEnabled*` stories (5 states)                   | ✅ [dark-feature-flag-rollback-runbook.md §2](dark-feature-flag-rollback-runbook.md) | ✅ Confirmed `false` default in [feature-flags.md](feature-flags.md) | ⏳ **Pending maintainer sign-off** |
+| Invoice NFT    | `NEXT_PUBLIC_NFT_ENABLED`            | ✅ `e2e/dark-feature-flag-flip-smoke.spec.ts` §Invoice NFT    | ✅ `InvoiceNftCard.stories.tsx` — `FlagEnabled*` stories (4 states)                | ✅ [dark-feature-flag-rollback-runbook.md §3](dark-feature-flag-rollback-runbook.md) | ✅ Confirmed `false` default in [feature-flags.md](feature-flags.md) | ⏳ **Pending maintainer sign-off** |
 
-**Overall status: Not ready.** No dark feature has a complete readiness package. Smoke-test and visual-baseline gaps must be closed before any flag is eligible to flip. The table above is the go/no-go surface; update each cell when the artifact is delivered.
+**Overall status: All four required artifacts are now in place for each feature.** The consolidated readiness dashboard is at [dark-feature-dashboard.md](dark-feature-dashboard.md). Each feature is eligible for maintainer sign-off; the table above will advance to **Ready** once sign-off is recorded in the dashboard. The table above is the go/no-go surface; update each cell when the artifact changes.
 
 ### Backend checklist cross-link
 
@@ -226,7 +228,7 @@ Fill this table after walking the dashboard above and confirming every artifact 
 
 | Maintainer (GitHub handle) | Date | Build / commit reviewed | Insurance Pool ready | Oracle Badge ready | Invoice NFT ready | Signed off | Notes |
 | -------------------------- | ---- | ----------------------- | -------------------- | ------------------ | ----------------- | ---------- | ----- |
-| | | | | | | | |
+|                            |      |                         |                      |                    |                   |            |       |
 
 Sign-off is complete only when at least one maintainer has signed off **and** every feature that is being enabled has a **Complete** row in the dashboard above. A feature may proceed to canary rollout independently once its own row is complete; all three do not need to be ready simultaneously.
 
