@@ -61,6 +61,7 @@ These runbooks define the step-by-step sequence for safely re-enabling each feat
 - **[monitoring-runbook.md](monitoring-runbook.md)** - Monitoring strategy and its integration with backend services.
 - **[incident-response.md](incident-response.md)** - Official frontend security incident response process.
 - **[cross-repo-incident-coordination.md](cross-repo-incident-coordination.md)** - Protocol for coordinating incidents across frontend, smart contracts, indexer, and notifications.
+- **[backend-mock-closure-audit.md](backend-mock-closure-audit.md)** - Sample audit of ILN-Smart-Contract issues closed as "replace/implement real/wire live" against the backend's current code, with proposed backend follow-ups.
 - **[status-page-runbook.md](status-page-runbook.md)** - Status page setup and Communications Lead runbook.
 - **[alert-routing-integration.md](alert-routing-integration.md)** - Wires frontend status-page component health into the shared alert-routing path.
 - **[governance-mock-regression-retrospective.md](governance-mock-regression-retrospective.md)** - Post-mortem on governance write paths being closed as live while still mock-backed, and the controls added in response.
