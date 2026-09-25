@@ -7,9 +7,21 @@ import { useWallet } from '@/context/WalletContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isAdminAddress } from '@/utils/admin-health';
 import { env } from '@/lib/env';
+import { logAdminAction } from '@/lib/auditLog';
+
+/**
+ * Allowlist of env var names that may appear in the flag panel.
+ * Constraining this to the three known NEXT_PUBLIC_*_ENABLED vars prevents
+ * accidentally surfacing any other entry from the `env` object (including
+ * server-only secrets) in a future refactor.
+ */
+type FeatureFlagEnvName =
+  | 'NEXT_PUBLIC_INSURANCE_POOL_ENABLED'
+  | 'NEXT_PUBLIC_ORACLE_ENABLED'
+  | 'NEXT_PUBLIC_NFT_ENABLED';
 
 interface FlagEntry {
-  name: string;
+  name: FeatureFlagEnvName;
   label: string;
   description: string;
   enabled: boolean;
@@ -165,6 +177,19 @@ export default function AdminFlagDashboard() {
     if (address !== undefined && !isAdminAddress(address)) {
       router.replace('/admin');
     }
+    // Log a flags.viewed audit event each time a confirmed admin opens the panel.
+    if (isAdminAddress(address)) {
+      logAdminAction({
+        action: 'flags.viewed',
+        actor: address!,
+        page: '/admin/flags',
+        timestamp: Math.floor(Date.now() / 1000),
+        metadata: {
+          flag_count: getFlags().length,
+          enabled_count: getFlags().filter((f) => f.enabled).length,
+        },
+      });
+    }
   }, [address, router]);
 
   const isAdmin = isAdminAddress(address);
@@ -257,26 +282,16 @@ export default function AdminFlagDashboard() {
           ))}
         </ul>
 
-        {/* Footer links */}
-        <div className="mt-8 flex flex-col gap-1 text-xs text-on-surface-variant/60">
+        {/* Footer note */}
+        <div
+          className="mt-8 flex flex-col gap-1 text-xs text-on-surface-variant/60"
+          data-testid="flags-footer-note"
+        >
           <p>
             Flag values are read from <code className="font-mono">NEXT_PUBLIC_*_ENABLED</code>{' '}
             environment variables at build time. To change a flag, update the variable in Vercel and
-            trigger a redeployment.
-          </p>
-          <p className="mt-2 flex flex-wrap gap-4">
-            <a href="/docs/dark-feature-dashboard.md" className="underline hover:text-on-surface">
-              Dark-feature readiness dashboard
-            </a>
-            <a
-              href="/docs/dark-feature-flag-rollback-runbook.md"
-              className="underline hover:text-on-surface"
-            >
-              Flag-only rollback runbook
-            </a>
-            <a href="/docs/feature-flags.md" className="underline hover:text-on-surface">
-              Flag lifecycle policy
-            </a>
+            trigger a redeployment. Refer to the internal repository docs for the flag lifecycle
+            policy and rollback runbook.
           </p>
         </div>
       </section>
