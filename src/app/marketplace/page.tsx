@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useWallet } from '@/context/WalletContext';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useInvoices } from '@/hooks/queries';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
 import { usePayerScores } from '@/hooks/usePayerScores';
 import { Invoice } from '@/utils/soroban';

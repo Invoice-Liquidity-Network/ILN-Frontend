@@ -39,6 +39,8 @@ The old `/analytics/freelancer` and `/analytics/leaderboard` paths are preserved
 | `/tokens`                  | Approved token list and decimal metadata                              | Public           | Unauthenticated          |
 | `/invoices/batch`          | Batch invoice submission workflow                                     | Freelancer       | Authenticated Wallet     |
 | `/admin`                   | Protocol health and administrative controls                           | Admin            | Authenticated Wallet     |
+| `/admin/actions`          | Admin actions management (live)                                       | Admin            | Authenticated Wallet     |
+| `/admin/flags`            | Admin feature flag controls (live)                                    | Admin            | Authenticated Wallet     |
 | `/governance/[id]`         | Governance proposal detail and voting                                 | Voter            | Authenticated Wallet     |
 | `/governance/new`          | New governance proposal form                                          | Voter            | Authenticated Wallet     |
 | `/governance/how-it-works` | Governance explainer                                                  | Public           | Unauthenticated          |

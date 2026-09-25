@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "knip": "knip",
+    "docs:check-placeholders": "node scripts/check-placeholders.mjs",
     "env:check": "node scripts/check-env-example.mjs",
     "env:drift-check": "node scripts/check-env-example.mjs --drift-check",
     "i18n:check": "node scripts/check-locale-parity.mjs",

@@ -7,6 +7,7 @@
 export * from './keys';
 export * from './defaultConfig';
 export { useInvoiceCount } from './useInvoiceCount';
+export { useInvoice, useInvoices, useFundInvoice } from './useInvoices';
 export { useParameterUpdates } from './useParameterUpdates';
 export { useReputation } from './useReputation';
 export { usePayerScore } from './usePayerScore';

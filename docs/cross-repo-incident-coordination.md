@@ -16,7 +16,7 @@ This protocol coordinates incidents that affect the ILN frontend, smart contract
 | Smart Contract → Frontend | Frontend Lead (`@frontend-leads`) | Maintenance banner state and affected-route status | 5 minutes after pause decision |
 | Any technical lead → Communications | Communications Lead (`@comms-lead`) | Status-page copy and next-update time | 5 minutes after severity declaration |
 
-Use role handles rather than personal names. The quarterly freshness workflow keeps those roles aligned with `.github/CODEOWNERS` and prompts maintainers to confirm the contact matrix.
+Use role handles rather than personal names. The monthly freshness workflow keeps those roles aligned, assigning an automated review issue to the **Incident Commander** to confirm the contact matrix handles are still current.
 
 ## Contract pause and frontend degraded mode
 
@@ -42,7 +42,19 @@ When the Smart Contract Lead confirms a pause or degraded condition:
 - A global frontend maintenance flag is required so a contract-level event can be communicated independently of feature-specific flags.
 - The frontend must report the deployed SHA and banner state back to the incident channel; this makes the handoff auditable.
 - Indexer freshness must be stated separately from contract availability, because a paused contract and a stale dashboard are distinct user impacts.
-- The contact matrix needs a recurring owner check to prevent role handles from drifting.
+
+## Non-incident cross-repo findings
+
+Some cross-repo problems are process or correctness gaps found by audit, not live incidents. For example, an issue closed in one repository whose claim is not true of that repository's code. These use the same ownership model without paging anyone:
+
+1. The auditing repository records the findings, method and evidence (file, line, commit) in a doc in its own `docs/` directory, with a table of proposed follow-ups for the owning repository.
+2. The Frontend Lead hands the table to the owning lead: the Smart Contract Lead (`@contract-leads`) for ILN-Smart-Contract, or the Indexer/Notifications on-call for those services. The owning lead acknowledges it and files the follow-ups in their repository.
+3. Follow-ups are filed as **new** issues that link the original closure, not as reopens, so the record of the gap is kept.
+4. The auditing doc's table is updated with each filed issue link. A finding is removed only when the owning repository's code shows it fixed.
+
+Open audits (kept as a list, not a table, because the monthly contact-matrix workflow reads every table row in this file as a contact entry):
+
+- **Closure-vs-code gap in backend "replace/implement real/wire live" issues** (ILN-Frontend #859). Owner: ILN-Smart-Contract, handed to the Smart Contract Lead (`@contract-leads`). Record: [backend-mock-closure-audit.md](./backend-mock-closure-audit.md).
 
 ## Evidence to retain
 

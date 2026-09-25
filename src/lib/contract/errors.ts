@@ -299,7 +299,9 @@ export const UNKNOWN_CONTRACT_ERROR: ContractErrorInfo = {
   remediation: 'Please try again or contact support if the issue persists.',
 };
 
-const ERROR_CODE_KEYS = Object.keys(CONTRACT_ERROR_MAP) as ContractErrorCode[];
+const ERROR_CODE_KEYS = (Object.keys(CONTRACT_ERROR_MAP) as ContractErrorCode[]).sort(
+  (a, b) => b.length - a.length
+);
 
 /**
  * Attempts to extract a known ContractErrorCode from a variety of error shapes.

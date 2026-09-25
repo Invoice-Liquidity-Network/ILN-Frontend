@@ -46,6 +46,15 @@ This directory contains the main contributor and operations documentation for th
 - **[pwa-manifest-audit.md](pwa-manifest-audit.md)** - Production-readiness audit of the PWA manifest, icons, and install-prompt `<head>` tags.
 - **[trust-critical-surface-walkthrough.md](trust-critical-surface-walkthrough.md)** - Live maintainer walkthrough script and sign-off record for vote casting, dark-feature flags, and admin actions.
 - **[good-first-issue-candidates.md](good-first-issue-candidates.md)** - Curated list of self-contained issues suited to newcomers.
+- **[doc-drift-prevention-report.md](doc-drift-prevention-report.md)** - Consolidated record of documentation drift found across this batch (route-map, testing.md, launch-notes, slos.md, contact-matrix), the fix applied to each, and the CI gate or process change that now prevents recurrence.
+
+## Mainnet Launch Readiness: Dark-Feature Re-enablement
+
+These runbooks define the step-by-step sequence for safely re-enabling each feature that ships dark at mainnet launch. Each runbook covers the readiness gate, flag flip, smoke test, visual regression check, and rollback plan, and cross-links the corresponding backend readiness work. All three features require both frontend and backend gates to be complete before the flag is flipped.
+
+- **[insurance-pool-widget-reenablement-runbook.md](insurance-pool-widget-reenablement-runbook.md)** - Re-enablement checklist for the Insurance Pool widget (`NEXT_PUBLIC_INSURANCE_POOL_ENABLED`); cross-links the backend insurance pool contract audit gate.
+- **[oracle-verification-badge-reenablement-runbook.md](oracle-verification-badge-reenablement-runbook.md)** - Re-enablement checklist for the Oracle Verification badge (`NEXT_PUBLIC_ORACLE_ENABLED`); cross-links the backend oracle_registry mainnet-readiness work.
+- **[nft-display-reenablement-runbook.md](nft-display-reenablement-runbook.md)** - Re-enablement checklist for the Invoice NFT display (`NEXT_PUBLIC_NFT_ENABLED`); cross-links the backend ADR-007 NFT invoice representation work.
 
 ## Operations, Security, and Incident Readiness
 
@@ -54,8 +63,10 @@ This directory contains the main contributor and operations documentation for th
 - **[monitoring-runbook.md](monitoring-runbook.md)** - Monitoring strategy and its integration with backend services.
 - **[incident-response.md](incident-response.md)** - Official frontend security incident response process.
 - **[cross-repo-incident-coordination.md](cross-repo-incident-coordination.md)** - Protocol for coordinating incidents across frontend, smart contracts, indexer, and notifications.
+- **[backend-mock-closure-audit.md](backend-mock-closure-audit.md)** - Sample audit of ILN-Smart-Contract issues closed as "replace/implement real/wire live" against the backend's current code, with proposed backend follow-ups.
 - **[status-page-runbook.md](status-page-runbook.md)** - Status page setup and Communications Lead runbook.
 - **[alert-routing-integration.md](alert-routing-integration.md)** - Wires frontend status-page component health into the shared alert-routing path.
+- **[governance-mock-regression-retrospective.md](governance-mock-regression-retrospective.md)** - Post-mortem on governance write paths being closed as live while still mock-backed, and the controls added in response.
 - **[game-day-exercise-report.md](game-day-exercise-report.md)** - Report from the frontend-focused incident game-day exercise (SEV-1/SEV-2 scenarios).
 - **[compromised-dependency-playbook.md](compromised-dependency-playbook.md)** - Incident response steps for a compromised npm dependency scenario.
 - **[indexer-downtime.md](indexer-downtime.md)** - How the frontend behaves, and which features fall back, when the indexer is down or degraded.
