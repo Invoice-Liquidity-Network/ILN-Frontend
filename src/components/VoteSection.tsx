@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Proposal, VoteChoice } from '@/utils/governance';
+import { trackFunnelStep } from '@/lib/funnel-tracking';
 import QuorumProgressBar from './QuorumProgressBar';
 import VoteProgressBar from './VoteProgressBar';
 
@@ -27,11 +28,6 @@ const VOTE_STYLES: Record<VoteChoice, { base: string; active: string; icon: stri
     base: 'border-red-500/40 text-red-500 hover:bg-red-500/10',
     active: 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20',
     icon: 'thumb_down',
-  },
-  Abstain: {
-    base: 'border-outline text-on-surface-variant hover:bg-surface-container-high',
-    active: 'bg-outline text-white border-outline shadow-lg',
-    icon: 'do_not_disturb',
   },
 };
 
@@ -81,7 +77,7 @@ export default function VoteSection({
   connect,
   votingPower,
 }: VoteSectionProps) {
-  const total = proposal.votesFor + proposal.votesAgainst + proposal.votesAbstain;
+  const total = proposal.votesFor + proposal.votesAgainst;
   const quorumReached = total >= proposal.quorumRequired;
   const voteDisabled = !canVote || voteLoading;
 
@@ -114,7 +110,9 @@ export default function VoteSection({
             </p>
           </div>
           <span
-            className={`text-xs font-semibold uppercase tracking-[0.22em] ${proposal.status === 'Active' ? 'text-emerald-500' : 'text-on-surface-variant'}`}
+            className={`text-xs font-semibold uppercase tracking-[0.22em] ${
+              proposal.status === 'Active' ? 'text-emerald-500' : 'text-on-surface-variant'
+            }`}
           >
             {proposal.status}
           </span>
@@ -136,7 +134,6 @@ export default function VoteSection({
         <VoteProgressBar
           votesFor={proposal.votesFor}
           votesAgainst={proposal.votesAgainst}
-          votesAbstain={proposal.votesAbstain}
           quorumRequired={proposal.quorumRequired}
         />
       </div>
@@ -162,15 +159,25 @@ export default function VoteSection({
             <p className="text-sm text-on-surface-variant">
               {alreadyVoted ? 'Your vote has been recorded.' : 'Select a stance below to vote.'}
             </p>
-            <div className="grid grid-cols-3 gap-2">
-              {(['For', 'Against', 'Abstain'] as VoteChoice[]).map((choice) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(['For', 'Against'] as VoteChoice[]).map((choice) => (
                 <VoteButton
                   key={choice}
                   choice={choice}
                   selected={alreadyVoted && userVote === choice}
                   disabled={alreadyVoted || voteDisabled}
                   loading={voteLoading}
-                  onClick={() => setPendingVote(choice)}
+                  onClick={() => {
+                    trackFunnelStep('governance_voting', 'started', {
+                      proposalId: proposal.id,
+                      choice,
+                    });
+                    trackFunnelStep('governance_voting', 'choice_selected', {
+                      proposalId: proposal.id,
+                      choice,
+                    });
+                    setPendingVote(choice);
+                  }}
                 />
               ))}
             </div>
@@ -196,7 +203,13 @@ export default function VoteSection({
                     {VOTE_STYLES[pendingVote].icon}
                   </span>
                   <span
-                    className={`font-bold ${pendingVote === 'For' ? 'text-emerald-500' : pendingVote === 'Against' ? 'text-red-500' : 'text-on-surface-variant'}`}
+                    className={`font-bold ${
+                      pendingVote === 'For'
+                        ? 'text-emerald-500'
+                        : pendingVote === 'Against'
+                          ? 'text-red-500'
+                          : 'text-on-surface-variant'
+                    }`}
                   >
                     {pendingVote}
                   </span>
@@ -207,7 +220,13 @@ export default function VoteSection({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setPendingVote(null)}
+                onClick={() => {
+                  trackFunnelStep('governance_voting', 'abandoned', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
+                  setPendingVote(null);
+                }}
                 className="flex-1 rounded-xl border border-outline-variant py-3 text-sm font-bold hover:bg-surface-variant/50"
               >
                 Cancel
@@ -215,7 +234,15 @@ export default function VoteSection({
               <button
                 type="button"
                 onClick={() => {
+                  trackFunnelStep('governance_voting', 'sign_requested', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
                   onVote(pendingVote);
+                  trackFunnelStep('governance_voting', 'completed', {
+                    proposalId: proposal.id,
+                    choice: pendingVote,
+                  });
                   setPendingVote(null);
                 }}
                 className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90"

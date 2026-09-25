@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import TransactionPreviewModal from '@/components/TransactionPreviewModal';
 import { decodeTransactionXdr, type DecodedTransaction } from '@/utils/decodeTransaction';
+import type { ExpectedTransactionAction } from '@/utils/transactionPattern';
 
 type ResolveFn = () => void;
 type RejectFn = (error: Error) => void;
@@ -11,11 +12,12 @@ interface PreviewState {
   isOpen: boolean;
   decoded: DecodedTransaction | null;
   rawXdr: string;
+  expectedAction?: ExpectedTransactionAction;
 }
 
 interface UseTransactionPreviewReturn {
   previewModal: React.ReactNode;
-  requestPreview: (txXdr: string) => Promise<boolean>;
+  requestPreview: (txXdr: string, expectedAction?: ExpectedTransactionAction) => Promise<boolean>;
 }
 
 export function useTransactionPreview(): UseTransactionPreviewReturn {
@@ -42,26 +44,31 @@ export function useTransactionPreview(): UseTransactionPreviewReturn {
     resolverRef.current = null;
   }, []);
 
-  const requestPreview = useCallback((txXdr: string): Promise<boolean> => {
-    const decoded = decodeTransactionXdr(txXdr);
+  const requestPreview = useCallback(
+    (txXdr: string, expectedAction?: ExpectedTransactionAction): Promise<boolean> => {
+      const decoded = decodeTransactionXdr(txXdr);
 
-    return new Promise<boolean>((resolve, reject) => {
-      resolverRef.current = {
-        resolve: () => resolve(true),
-        reject: (err) => reject(err),
-      };
+      return new Promise<boolean>((resolve, reject) => {
+        resolverRef.current = {
+          resolve: () => resolve(true),
+          reject: (err) => reject(err),
+        };
 
-      setPreview({
-        isOpen: true,
-        decoded,
-        rawXdr: txXdr,
+        setPreview({
+          isOpen: true,
+          decoded,
+          expectedAction,
+          rawXdr: txXdr,
+        });
       });
-    });
-  }, []);
+    },
+    []
+  );
 
   const previewModal = preview.isOpen ? (
     <TransactionPreviewModal
       decoded={preview.decoded}
+      expectedAction={preview.expectedAction}
       rawXdr={preview.rawXdr}
       onConfirm={handleConfirm}
       onCancel={handleCancel}

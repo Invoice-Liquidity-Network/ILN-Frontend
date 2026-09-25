@@ -17,7 +17,6 @@ export interface DecodedTransaction {
 
 function formatScVal(val: xdr.ScVal): { value: string; type: string } {
   try {
-    // Use switch() instead of the removed .arm() accessor
     const switchCase = val.switch().name;
 
     switch (switchCase) {
@@ -30,13 +29,11 @@ function formatScVal(val: xdr.ScVal): { value: string; type: string } {
       case 'scvI32':
         return { value: String(val.i32()), type: 'i32' };
       case 'scvU64':
-        return { value: String(val.u64()), type: 'u64' };
+        return { value: val.u64().toString(), type: 'u64' };
       case 'scvI64':
-        return { value: String(val.i64()), type: 'i64' };
+        return { value: val.i64().toString(), type: 'i64' };
       case 'scvU128': {
         const u128 = val.u128();
-        // hi/lo return XDR Uint64 objects; convert through string to avoid
-        // the BigInt(Uint64) overload that was removed in stellar-base v15.
         return {
           value: String(
             BigInt(u128.hi().toString()) * (BigInt(1) << BigInt(64)) + BigInt(u128.lo().toString())
@@ -55,18 +52,10 @@ function formatScVal(val: xdr.ScVal): { value: string; type: string } {
       }
       case 'scvBytes':
         return { value: `bytes(${val.bytes().length} bytes)`, type: 'bytes' };
-      case 'scvBytesN' as string: {
-        // bytesN was removed in stellar-base v15; handled as opaque bytes
-        const raw: Buffer = (val as unknown as { bytes: () => Buffer }).bytes();
-        return { value: `bytesN(${raw.length} bytes)`, type: 'bytesN' };
-      }
-      case 'scvString': {
-        // str() can return Buffer in newer versions; coerce to string
-        const s = val.str();
-        return { value: typeof s === 'string' ? s : s.toString(), type: 'string' };
-      }
+      case 'scvString':
+        return { value: String(val.str()), type: 'string' };
       case 'scvSymbol':
-        return { value: val.sym().toString(), type: 'symbol' };
+        return { value: String(val.sym()), type: 'symbol' };
       case 'scvAddress': {
         try {
           return { value: Address.fromScAddress(val.address()).toString(), type: 'address' };
@@ -113,7 +102,6 @@ function decodeInvokeContractArgs(func: xdr.HostFunction): {
 
 function decodeOperation(op: xdr.Operation): DecodedOperation {
   const body = op.body();
-  // Use switch().name instead of the removed .arm() accessor
   const switchCase = body.switch().name;
 
   if (switchCase === 'invokeHostFunction') {
@@ -144,28 +132,6 @@ function decodeOperation(op: xdr.Operation): DecodedOperation {
     };
   }
 
-  // 'invokeContract' is not a valid OperationBody arm in stellar-base v15+;
-  // the correct path is via invokeHostFunction handled above.
-  // This branch is kept for forward-compatibility with hypothetical future SDK
-  // changes but can never be reached with the current stellar-base types.
-  /* istanbul ignore next */
-  if ((switchCase as string) === 'invokeContract') {
-    const invokeArgs = body.invokeHostFunctionOp().hostFunction().invokeContract();
-    const contractAddress = invokeArgs.contractAddress();
-    const contract = Address.fromScAddress(contractAddress).toString();
-    const functionName = invokeArgs.functionName().toString();
-    const fnArgs = invokeArgs.args();
-    return {
-      contract,
-      functionName,
-      args: fnArgs.map((arg: xdr.ScVal, i: number) => ({
-        name: `arg${i}`,
-        ...formatScVal(arg),
-      })),
-      rawArgs: fnArgs,
-    };
-  }
-
   return {
     contract: null,
     functionName: switchCase,
@@ -184,15 +150,13 @@ export function decodeTransactionXdr(xdrBase64: string): DecodedTransaction | nu
       return null;
     }
 
-    // sourceAccount() on TransactionV1Envelope returns a MuxedAccount XDR
-    // object; wrap it in an ScAddress-compatible call via the SDK helper.
-    const sourceAccount = txV1.tx().sourceAccount().value().toString();
-    const fee = tx.fee.toString();
-    const operations = tx.operations.map((op) => decodeOperation(op as unknown as xdr.Operation));
+    const transaction = txV1.tx();
+    const sourceAccount = transaction.sourceAccount().toString();
+    const fee = transaction.fee().toString();
+    const operations = transaction.operations().map(decodeOperation);
 
     let networkPassphrase: string | null = null;
     try {
-      // Signatures live on the envelope's decorated signatures array
       const signers = txV1.signatures();
       if (signers.length > 0) {
         const signatureHint = signers[0].hint();

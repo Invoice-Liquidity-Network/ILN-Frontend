@@ -94,7 +94,9 @@ export function TokenIcon({
 }) {
   return (
     <span
-      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border text-[11px] font-black tracking-[0.14em] ${tokenAccentClasses(token.symbol)} ${className}`}
+      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border text-[11px] font-black tracking-[0.14em] ${tokenAccentClasses(
+        token.symbol
+      )} ${className}`}
       aria-hidden="true"
     >
       {/* SVG token marks are tiny static assets; Next image optimization is unnecessary here. */}

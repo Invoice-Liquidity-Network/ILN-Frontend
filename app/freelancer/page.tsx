@@ -197,7 +197,7 @@ function FreelancerPageContent() {
       });
 
       const txXdr = tx.toXDR();
-      await requestPreview(txXdr);
+      await requestPreview(txXdr, 'submit_invoice');
       const signedXdr = await signTx(txXdr);
       const sendResult = await server.sendTransaction(
         TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)

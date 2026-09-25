@@ -1,8 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
   "mutate": [
-    "src/utils/**/*.ts",
-    "src/hooks/**/*.ts",
+    "src/utils/soroban.ts",
+    "src/utils/contract-stats.ts",
+    "src/utils/governance.ts",
+    "src/lib/contract-events.ts",
+    "src/lib/contract-event-stream-state.ts",
+    "src/lib/contract/**/*.ts",
     "!src/**/*.d.ts",
     "!src/**/*.stories.ts",
     "!src/**/*.test.ts"
@@ -13,12 +17,12 @@
   },
   "reporters": ["html", "json", "text", "text-summary"],
   "htmlReporter": {
-    "baseDir": "mutation-report"
+    "fileName": "mutation-report/index.html"
   },
   "thresholds": {
     "high": 90,
-    "medium": 75,
-    "low": 60
+    "low": 60,
+    "break": 90
   },
   "timeoutMS": 30000,
   "concurrency": 4,

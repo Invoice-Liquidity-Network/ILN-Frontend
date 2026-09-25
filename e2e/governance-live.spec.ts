@@ -181,10 +181,7 @@ test.describe('Live testnet governance vote journey', () => {
 
     // Should not crash or show browser errors
     const errors = await page.evaluate(() => {
-      return (
-        (window as Window & { __NEXT_DATA__?: { props?: { pageProps?: { error?: unknown } } } })
-          .__NEXT_DATA__?.props?.pageProps?.error || null
-      );
+      return window.__NEXT_DATA__?.props?.pageProps?.error || null;
     });
 
     // Graceful error handling is acceptable

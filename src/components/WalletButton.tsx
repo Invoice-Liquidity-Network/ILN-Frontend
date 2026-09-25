@@ -57,23 +57,33 @@ export default function WalletButton() {
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-outline-variant/15 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50
-            ${dropdownOpen ? 'bg-surface-container' : 'bg-surface-container-low hover:bg-surface-container'}
+            ${
+              dropdownOpen
+                ? 'bg-surface-container'
+                : 'bg-surface-container-low hover:bg-surface-container'
+            }
           `}
           title={address!}
           aria-expanded={dropdownOpen}
         >
           <span
-            className={`w-2 h-2 rounded-full ${networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'}`}
+            className={`w-2 h-2 rounded-full ${
+              networkMismatch ? 'bg-error animate-pulse' : 'bg-green-500'
+            }`}
             aria-label={networkMismatch ? 'Wrong network' : 'Connected'}
           />
           <span
-            className={`text-[10px] font-bold uppercase ${networkMismatch ? 'text-error' : 'text-primary'}`}
+            className={`text-[10px] font-bold uppercase ${
+              networkMismatch ? 'text-error' : 'text-primary'
+            }`}
           >
             {networkMismatch ? 'Wrong Network' : NETWORK_NAME}
           </span>
           <span className="text-on-surface-variant/30">|</span>
           <span
-            className={`text-sm font-mono font-medium ${networkMismatch ? 'text-error' : 'text-on-surface'}`}
+            className={`text-sm font-mono font-medium ${
+              networkMismatch ? 'text-error' : 'text-on-surface'
+            }`}
           >
             {formatAddress(address!)}
           </span>
