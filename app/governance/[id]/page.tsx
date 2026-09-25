@@ -523,6 +523,7 @@ export default function ProposalDetailPage() {
               )}
 
               {/* Voting power */}
+              {isConnected && <GovernanceMockStatusBanner action="getVotingPower" />}
               <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-5">
                 <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">
                   Your Voting Power

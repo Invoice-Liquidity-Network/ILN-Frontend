@@ -93,6 +93,7 @@ type GovernanceActionName =
   | 'createProposal'
   | 'executeProposal'
   | 'vetoProposal'
+  | 'getVotingPower'
   | 'getGovTokenBalance'
   | 'getQuorumThreshold'
   | 'getProposalHistory';
@@ -120,6 +121,10 @@ export const GOVERNANCE_INTEGRATION_STATUS: Record<
   vetoProposal: {
     status: 'Stubbed',
     label: 'Proposal veto',
+  },
+  getVotingPower: {
+    status: 'Stubbed',
+    label: 'Voting power lookup',
   },
   getGovTokenBalance: {
     status: 'Stubbed',

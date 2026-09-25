@@ -24,6 +24,7 @@ Governance action indicators read `GOVERNANCE_INTEGRATION_STATUS` in `src/utils/
 | **Governance** | `createProposal`       | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
 | **Governance** | `executeProposal`      | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
 | **Governance** | `vetoProposal`         | **Stubbed** | `src/utils/governance.ts` | Mock transaction; needs governance contract deployment.                      |
+| **Governance** | `getVotingPower`       | **Stubbed** | `src/utils/governance.ts` | Returns a constant mock balance; needs ILN token contract integration.       |
 | **Governance** | `getGovTokenBalance`   | **Stubbed** | `src/utils/governance.ts` | Mocks return balance; needs token contract integration.                      |
 | **Governance** | `getQuorumThreshold`   | **Stubbed** | `src/utils/governance.ts` | Mocks read-only call; needs governance contract deployment.                  |
 | **Governance** | `getProposalHistory`   | **Stubbed** | `src/utils/governance.ts` | Mocks timeline; needs Stellar SDK/Horizon lookup.                            |
@@ -53,6 +54,7 @@ Stubs in `src/utils/governance.ts` marked with `TODO` comments:
 
 - `getProposals` / `fetchProposals` - Calls `iln_governance` `list_proposals()` and falls back to mock data if the call fails.
 - `castVote` (line 264)
+- `getVotingPower` - returns a fixed mock balance until ILN token contract integration.
 - `delegateVotingPower` (line 286)
 - `getGovTokenBalance` (line 326)
 - `getQuorumThreshold` (line 427)
