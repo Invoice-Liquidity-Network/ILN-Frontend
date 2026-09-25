@@ -43,6 +43,19 @@ When the Smart Contract Lead confirms a pause or degraded condition:
 - The frontend must report the deployed SHA and banner state back to the incident channel; this makes the handoff auditable.
 - Indexer freshness must be stated separately from contract availability, because a paused contract and a stale dashboard are distinct user impacts.
 
+## Non-incident cross-repo findings
+
+Some cross-repo problems are process or correctness gaps found by audit, not live incidents. For example, an issue closed in one repository whose claim is not true of that repository's code. These use the same ownership model without paging anyone:
+
+1. The auditing repository records the findings, method and evidence (file, line, commit) in a doc in its own `docs/` directory, with a table of proposed follow-ups for the owning repository.
+2. The Frontend Lead hands the table to the owning lead: the Smart Contract Lead (`@contract-leads`) for ILN-Smart-Contract, or the Indexer/Notifications on-call for those services. The owning lead acknowledges it and files the follow-ups in their repository.
+3. Follow-ups are filed as **new** issues that link the original closure, not as reopens, so the record of the gap is kept.
+4. The auditing doc's table is updated with each filed issue link. A finding is removed only when the owning repository's code shows it fixed.
+
+Open audits (kept as a list, not a table, because the monthly contact-matrix workflow reads every table row in this file as a contact entry):
+
+- **Closure-vs-code gap in backend "replace/implement real/wire live" issues** (ILN-Frontend #859). Owner: ILN-Smart-Contract, handed to the Smart Contract Lead (`@contract-leads`). Record: [backend-mock-closure-audit.md](./backend-mock-closure-audit.md).
+
 ## Evidence to retain
 
 Attach the incident timeline, acknowledgement timestamps, Vercel deployment URL and SHA, banner screenshots from representative routes, contract pause/unpause transaction hashes, indexer `/health` output, and the status-page update links to the incident record.
