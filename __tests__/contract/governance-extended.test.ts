@@ -154,36 +154,65 @@ describe('governance – lookupToken', () => {
     await expect(lookupToken('')).rejects.toThrow('Invalid Stellar address');
   });
 
-  it('rejects address that does not start with G', async () => {
-    await expect(
-      lookupToken('CABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCD')
-    ).rejects.toThrow('Invalid Stellar address');
+  it('rejects address that does not start with G or C', async () => {
+    await expect(lookupToken('X' + 'A'.repeat(55))).rejects.toThrow('Invalid Stellar address');
   });
 
-  it('returns Unknown Token for valid G-address not in known set', async () => {
-    vi.useFakeTimers();
-    // Valid G-address (G + 55 base32 chars) not in accepted or known tokens
-    const promise = lookupToken('GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBVN');
-    vi.runAllTimers();
-    const token = await promise;
-    expect(token.name).toBe('Unknown Token');
-  });
-
-  it('returns Unknown Token with truncated symbol for unknown valid G-address', async () => {
-    vi.useFakeTimers();
-    const promise = lookupToken('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
-    vi.runAllTimers();
-    const token = await promise;
-    expect(token.symbol).toBe('GAAA');
-    expect(token.name).toBe('Unknown Token');
-  });
-
-  it('rejects C-prefixed token contract addresses as invalid', async () => {
-    // Token contract IDs on Stellar start with C, not G
-    // lookupToken validates for G-prefix, so C-prefixed addresses are rejected
+  it('rejects already accepted tokens', async () => {
     await expect(
       lookupToken('CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75')
-    ).rejects.toThrow('Invalid Stellar address');
+    ).rejects.toThrow('already an accepted token');
+  });
+
+  it('simulates Soroban read calls and returns token name and symbol on success', async () => {
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockResolvedValueOnce({
+        error: undefined,
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+        result: {
+          retval: nativeToScVal('Wrapped Bitcoin'),
+        },
+      } as any)
+      .mockResolvedValueOnce({
+        error: undefined,
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+        result: {
+          retval: nativeToScVal('wBTC'),
+        },
+      } as any);
+
+    const token = await lookupToken('CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC');
+    expect(token.name).toBe('Wrapped Bitcoin');
+    expect(token.symbol).toBe('wBTC');
+    expect(token.address).toBe('CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC');
+    mockSimulate.mockRestore();
+  });
+
+  it('throws an error without mock fallback if token simulation fails', async () => {
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockResolvedValueOnce({
+        error: 'Contract error: FeeOnTransferToken',
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+      } as any)
+      .mockResolvedValueOnce({
+        error: undefined,
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+      } as any);
+
+    await expect(
+      lookupToken('CD3TE3IAHM737P236XZL2OYU275ZKD6MN7YH7PYYAXYIGEH55OPEWYJC')
+    ).rejects.toThrow('FeeOnTransferToken');
+    mockSimulate.mockRestore();
   });
 });
 
