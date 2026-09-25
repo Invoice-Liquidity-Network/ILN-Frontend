@@ -17,7 +17,8 @@ export interface DecodedTransaction {
 
 function formatScVal(val: xdr.ScVal): { value: string; type: string } {
   try {
-    const switchCase = val.arm();
+    // Use switch() instead of the removed .arm() accessor
+    const switchCase = val.switch().name;
 
     switch (switchCase) {
       case 'scvBool':
@@ -34,20 +35,36 @@ function formatScVal(val: xdr.ScVal): { value: string; type: string } {
         return { value: String(val.i64()), type: 'i64' };
       case 'scvU128': {
         const u128 = val.u128();
-        return { value: String(BigInt(u128.hi()) * (BigInt(1) << BigInt(64)) + BigInt(u128.lo())), type: 'u128' };
+        // hi/lo return XDR Uint64 objects; convert through string to avoid
+        // the BigInt(Uint64) overload that was removed in stellar-base v15.
+        return {
+          value: String(
+            BigInt(u128.hi().toString()) * (BigInt(1) << BigInt(64)) + BigInt(u128.lo().toString())
+          ),
+          type: 'u128',
+        };
       }
       case 'scvI128': {
         const i128 = val.i128();
-        return { value: String(BigInt(i128.hi()) * (BigInt(1) << BigInt(64)) + BigInt(i128.lo())), type: 'i128' };
+        return {
+          value: String(
+            BigInt(i128.hi().toString()) * (BigInt(1) << BigInt(64)) + BigInt(i128.lo().toString())
+          ),
+          type: 'i128',
+        };
       }
       case 'scvBytes':
         return { value: `bytes(${val.bytes().length} bytes)`, type: 'bytes' };
       case 'scvBytesN': {
-        const bytesN = val.bytesN();
-        return { value: `bytesN(${bytesN.length} bytes)`, type: 'bytesN' };
+        // bytesN() was renamed to bytes() in newer stellar-base; fall back gracefully
+        const raw: Buffer = (val as unknown as { bytes: () => Buffer }).bytes();
+        return { value: `bytesN(${raw.length} bytes)`, type: 'bytesN' };
       }
-      case 'scvString':
-        return { value: val.str(), type: 'string' };
+      case 'scvString': {
+        // str() can return Buffer in newer versions; coerce to string
+        const s = val.str();
+        return { value: typeof s === 'string' ? s : s.toString(), type: 'string' };
+      }
       case 'scvSymbol':
         return { value: val.sym().toString(), type: 'symbol' };
       case 'scvAddress': {
@@ -59,11 +76,11 @@ function formatScVal(val: xdr.ScVal): { value: string; type: string } {
       }
       case 'scvVec': {
         const vec = val.vec();
-        return { value: `[${vec.length} items]`, type: 'vec' };
+        return { value: `[${vec?.length ?? 0} items]`, type: 'vec' };
       }
       case 'scvMap': {
         const map = val.map();
-        return { value: `{${map.length} entries}`, type: 'map' };
+        return { value: `{${map?.length ?? 0} entries}`, type: 'map' };
       }
       case 'scvContractInstance':
         return { value: '(contract instance)', type: 'contractInstance' };
@@ -96,12 +113,13 @@ function decodeInvokeContractArgs(func: xdr.HostFunction): {
 
 function decodeOperation(op: xdr.Operation): DecodedOperation {
   const body = op.body();
-  const switchCase = body.arm();
+  // Use switch().name instead of the removed .arm() accessor
+  const switchCase = body.switch().name;
 
   if (switchCase === 'invokeHostFunction') {
     const invokeArgs = body.invokeHostFunctionOp();
     const hostFunction = invokeArgs.hostFunction();
-    const hostFuncType = hostFunction.arm();
+    const hostFuncType = hostFunction.switch().name;
 
     if (hostFuncType === 'hostFunctionTypeInvokeContract') {
       const decoded = decodeInvokeContractArgs(hostFunction);
@@ -109,7 +127,7 @@ function decodeOperation(op: xdr.Operation): DecodedOperation {
         return {
           contract: decoded.contract,
           functionName: decoded.functionName,
-          args: decoded.args.map((arg, i) => ({
+          args: decoded.args.map((arg: xdr.ScVal, i: number) => ({
             name: `arg${i}`,
             ...formatScVal(arg),
           })),
@@ -127,7 +145,7 @@ function decodeOperation(op: xdr.Operation): DecodedOperation {
   }
 
   if (switchCase === 'invokeContract') {
-    const invokeArgs = body.invokeContract();
+    const invokeArgs = body.invokeHostFunctionOp().hostFunction().invokeContract();
     const contractAddress = invokeArgs.contractAddress();
     const contract = Address.fromScAddress(contractAddress).toString();
     const functionName = invokeArgs.functionName().toString();
@@ -135,7 +153,7 @@ function decodeOperation(op: xdr.Operation): DecodedOperation {
     return {
       contract,
       functionName,
-      args: fnArgs.map((arg, i) => ({
+      args: fnArgs.map((arg: xdr.ScVal, i: number) => ({
         name: `arg${i}`,
         ...formatScVal(arg),
       })),
@@ -161,13 +179,16 @@ export function decodeTransactionXdr(xdrBase64: string): DecodedTransaction | nu
       return null;
     }
 
-    const sourceAccount = Address.fromScAddress(txV1.sourceAccount()).toString();
+    // sourceAccount() on TransactionV1Envelope returns a MuxedAccount XDR
+    // object; wrap it in an ScAddress-compatible call via the SDK helper.
+    const sourceAccount = txV1.tx().sourceAccount().value().toString();
     const fee = tx.fee.toString();
     const operations = tx.operations.map(decodeOperation);
 
     let networkPassphrase: string | null = null;
     try {
-      const signers = envelope.signatures();
+      // Signatures live on the envelope's decorated signatures array
+      const signers = txV1.signatures();
       if (signers.length > 0) {
         const signatureHint = signers[0].hint();
         networkPassphrase = `hint(${Buffer.from(signatureHint).toString('hex')})`;
