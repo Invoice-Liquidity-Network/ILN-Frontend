@@ -124,4 +124,105 @@ describe('NotificationsPage', () => {
       expect(markAsRead).toHaveBeenCalledWith(`n-${TOTAL - 1}`);
     });
   });
+
+  describe('category filtering', () => {
+    function item(id: string, category: NotificationItem['category'], read = false) {
+      return {
+        id,
+        category,
+        type: 'info' as const,
+        title: `${category} event ${id}`,
+        message: 'Activity',
+        href: '/dashboard',
+        createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, Number(id))).toISOString(),
+        read,
+      };
+    }
+
+    beforeEach(() => {
+      mockNotifications = [
+        item('1', 'invoice'),
+        item('2', 'invoice', true),
+        item('3', 'governance'),
+        item('4', 'admin'),
+        item('5', 'lp', true),
+      ];
+    });
+
+    function filterButton(name: RegExp) {
+      return within(
+        screen.getByRole('group', { name: 'Filter notifications by category' })
+      ).getByRole('button', { name });
+    }
+
+    it('shows every category with total and unread counts, defaulting to All', () => {
+      render(<NotificationsPage />);
+      expect(filterButton(/^All \(5, 3 unread\)$/)).toHaveAttribute('aria-pressed', 'true');
+      expect(filterButton(/^Invoices \(2, 1 unread\)$/)).toHaveAttribute('aria-pressed', 'false');
+      expect(filterButton(/^Governance \(1, 1 unread\)$/)).toBeInTheDocument();
+      expect(filterButton(/^Admin \(1, 1 unread\)$/)).toBeInTheDocument();
+      expect(filterButton(/^Liquidity \(1\)$/)).toBeInTheDocument();
+      expect(filterButton(/^Reputation \(0\)$/)).toBeInTheDocument();
+      expect(renderedRows()).toHaveLength(5);
+    });
+
+    it('narrows the feed to the selected category', () => {
+      render(<NotificationsPage />);
+      fireEvent.click(filterButton(/^Governance/));
+      expect(filterButton(/^Governance/)).toHaveAttribute('aria-pressed', 'true');
+      expect(renderedRows()).toHaveLength(1);
+      expect(renderedRows()[0]).toHaveTextContent('governance event 3');
+
+      fireEvent.click(filterButton(/^Admin/));
+      expect(renderedRows()).toHaveLength(1);
+      expect(renderedRows()[0]).toHaveTextContent('admin event 4');
+
+      fireEvent.click(filterButton(/^Invoices/));
+      expect(renderedRows().map((row) => row.textContent)).toEqual([
+        expect.stringContaining('invoice event 2'),
+        expect.stringContaining('invoice event 1'),
+      ]);
+    });
+
+    it('shows a category empty state with a way back to all notifications', () => {
+      render(<NotificationsPage />);
+      fireEvent.click(filterButton(/^Reputation/));
+      expect(screen.getByText('No reputation notifications.')).toBeInTheDocument();
+      expect(screen.queryByRole('list')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show all notifications' }));
+      expect(renderedRows()).toHaveLength(5);
+    });
+
+    it('hides the filter bar when there are no notifications', () => {
+      mockNotifications = [];
+      render(<NotificationsPage />);
+      expect(
+        screen.queryByRole('group', { name: 'Filter notifications by category' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('paginates within the filtered category and resets the window on change', () => {
+      mockNotifications = Array.from({ length: NOTIFICATIONS_PAGE_SIZE * 3 }, (_, index) =>
+        item(String(index), index % 2 === 0 ? 'invoice' : 'governance')
+      );
+      render(<NotificationsPage />);
+
+      fireEvent.click(filterButton(/^Invoices/));
+      const invoiceTotal = (NOTIFICATIONS_PAGE_SIZE * 3) / 2;
+      expect(renderedRows()).toHaveLength(NOTIFICATIONS_PAGE_SIZE);
+      expect(
+        screen.getByRole('button', {
+          name: `Load more (${invoiceTotal - NOTIFICATIONS_PAGE_SIZE} remaining)`,
+        })
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Load more/i }));
+      expect(renderedRows()).toHaveLength(invoiceTotal);
+
+      fireEvent.click(filterButton(/^Governance/));
+      expect(renderedRows()).toHaveLength(NOTIFICATIONS_PAGE_SIZE);
+      renderedRows().forEach((row) => expect(row).toHaveTextContent('governance event'));
+    });
+  });
 });
