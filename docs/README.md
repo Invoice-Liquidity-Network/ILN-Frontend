@@ -63,6 +63,7 @@ These runbooks define the step-by-step sequence for safely re-enabling each feat
 - **[cross-repo-incident-coordination.md](cross-repo-incident-coordination.md)** - Protocol for coordinating incidents across frontend, smart contracts, indexer, and notifications.
 - **[status-page-runbook.md](status-page-runbook.md)** - Status page setup and Communications Lead runbook.
 - **[alert-routing-integration.md](alert-routing-integration.md)** - Wires frontend status-page component health into the shared alert-routing path.
+- **[governance-mock-regression-retrospective.md](governance-mock-regression-retrospective.md)** - Post-mortem on governance write paths being closed as live while still mock-backed, and the controls added in response.
 - **[game-day-exercise-report.md](game-day-exercise-report.md)** - Report from the frontend-focused incident game-day exercise (SEV-1/SEV-2 scenarios).
 - **[compromised-dependency-playbook.md](compromised-dependency-playbook.md)** - Incident response steps for a compromised npm dependency scenario.
 - **[indexer-downtime.md](indexer-downtime.md)** - How the frontend behaves, and which features fall back, when the indexer is down or degraded.
