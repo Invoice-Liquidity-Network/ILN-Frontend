@@ -1,95 +1,142 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
-import { useNotification, type NotificationItem } from "@/context/NotificationContext";
-import NotificationDrawer from "./NotificationDrawer";
+import { useEffect, useState, useRef } from 'react';
+import { useWallet } from '@/context/WalletContext';
+import { useNotification, type NotificationItem } from '@/context/NotificationContext';
+import { MAX_NOTIFICATIONS } from '@/utils/notificationHelpers';
+import NotificationDrawer from './NotificationDrawer';
 
 interface ExternalNotification {
   id: string;
+  category?: NotificationItem['category'];
   type: string;
   title: string;
   message: string;
+  href?: string;
   createdAt: string;
   read: boolean;
 }
 
 function mergeNotifications(
-  existing: ExternalNotification[],
+  existing: NotificationItem[],
   incoming: ExternalNotification[],
-): ExternalNotification[] {
+  isRead: (id: string) => boolean
+): NotificationItem[] {
   const map = new Map(existing.map((notification) => [notification.id, notification]));
 
   incoming.forEach((notification) => {
-    const existingNotification = map.get(notification.id);
+    const category =
+      notification.category ?? (notification.type === 'proposal' ? 'governance' : 'invoice');
+    const href = notification.href ?? '/dashboard';
     map.set(notification.id, {
-      ...notification,
-      read: existingNotification?.read ?? notification.read,
+      id: notification.id,
+      category,
+      type: notification.type as NotificationItem['type'],
+      title: notification.title,
+      message: notification.message,
+      href,
+      createdAt: notification.createdAt,
+      read: isRead(notification.id) || notification.read,
     });
   });
 
   return Array.from(map.values())
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, 20);
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, MAX_NOTIFICATIONS);
 }
 
 export default function NotificationBell() {
-  const { address } = useWallet();
-  const {
-    notifications,
-    setNotifications,
-    unreadCount,
-    markAllAsRead,
-  } = useNotification();
+  const { address, isConnected } = useWallet();
+  const { setNotifications, unreadCount, isRead, markAllAsRead } = useNotification();
   const [open, setOpen] = useState(false);
+  // Track previous unread count to detect new notifications for pulse
+  const prevUnreadRef = useRef(unreadCount);
+  const [isPulsing, setIsPulsing] = useState(false);
+
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setIsPulsing(true);
+
+      // Announce new notifications to screen readers
+      const newCount = unreadCount - prevUnreadRef.current;
+      setAnnouncement(`${newCount} new notification${newCount > 1 ? 's' : ''}`);
+
+      // Clear visual pulse after 2 seconds
+      const pulseTimer = setTimeout(() => setIsPulsing(false), 2000);
+
+      // Clear announcement after screen readers have time to read it
+      const announceTimer = setTimeout(() => setAnnouncement(''), 3000);
+
+      prevUnreadRef.current = unreadCount;
+      return () => {
+        clearTimeout(pulseTimer);
+        clearTimeout(announceTimer);
+      };
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
+
+  useEffect(() => {
+    if (!address) return;
+
     let active = true;
 
     const fetchNotifications = async () => {
-      if (!address) return;
-
       const res = await fetch(`/api/notifications/${address}`);
       if (!active || !res.ok) return;
 
       const data = (await res.json()) as ExternalNotification[];
-      const merged = mergeNotifications(notifications as unknown as ExternalNotification[], data);
-      setNotifications(merged as unknown as NotificationItem[]);
+      setNotifications((current) => mergeNotifications(current, data, isRead));
     };
 
     fetchNotifications();
+    const interval = window.setInterval(fetchNotifications, 60_000);
 
-    const interval = window.setInterval(fetchNotifications, 60000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [address, setNotifications]);
+  }, [address, isRead, setNotifications]);
+
+  const handleOpen = () => {
+    setOpen(true);
+    // Clear unread count when drawer opens
+    if (unreadCount > 0) markAllAsRead();
+  };
+
+  if (!isConnected) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" data-tour="notifications-bell">
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open notifications"
-        className="relative rounded-full p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+        onClick={handleOpen}
+        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-expanded={open}
+        className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
-        🔔
+        <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
+
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
-            {unreadCount}
+          <span
+            aria-hidden
+            className={`absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error ${
+              isPulsing ? 'animate-pulse' : ''
+            }`}
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {open && (
-        <NotificationDrawer
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {/* Screen reader announcement for new notifications */}
+      <div role="status" aria-live="polite" className="sr-only" aria-label="Notification updates">
+        {announcement}
+      </div>
+
+      {open && <NotificationDrawer onClose={() => setOpen(false)} />}
     </div>
   );
 }

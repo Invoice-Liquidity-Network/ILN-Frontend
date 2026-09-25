@@ -1,20 +1,11 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from "recharts";
-import { formatTokenAmount, formatUSD } from "@/utils/format";
-import {
-  calculateTokenAllocations,
-  TokenYieldMetrics,
-} from "@/utils/per-token-yield";
+import React, { useMemo } from 'react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { formatTokenAmount, formatUSD } from '@/utils/format';
+import { calculateTokenAllocations, TokenYieldMetrics } from '@/utils/per-token-yield';
 
-const CHART_COLORS = ["#0ea5e9", "#f97316", "#14b8a6", "#8b5cf6", "#f59e0b"];
+const CHART_COLORS = ['#0ea5e9', '#f97316', '#14b8a6', '#8b5cf6', '#f59e0b'];
 
 interface LPPortfolioAllocationChartProps {
   metrics: TokenYieldMetrics[];
@@ -42,9 +33,7 @@ export default function LPPortfolioAllocationChart({ metrics }: LPPortfolioAlloc
           <p className="text-xs uppercase tracking-[0.2em] text-on-surface-variant">
             Total deployed
           </p>
-          <p className="mt-1 text-2xl font-bold text-on-surface">
-            {formatUSD(totalUsd, 7)}
-          </p>
+          <p className="mt-1 text-2xl font-bold text-on-surface">{formatUSD(totalUsd, 7)}</p>
         </div>
       </div>
 
@@ -72,11 +61,11 @@ export default function LPPortfolioAllocationChart({ metrics }: LPPortfolioAlloc
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) => [`$${value.toFixed(2)}`, "Allocation"]}
+                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Allocation']}
                 contentStyle={{
-                  borderRadius: "16px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                  borderRadius: '16px',
+                  border: 'none',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                 }}
               />
             </PieChart>

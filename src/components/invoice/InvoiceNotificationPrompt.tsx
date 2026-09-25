@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Bell, X } from "lucide-react";
-import { useNotifications } from "@/hooks/useNotifications";
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, X } from 'lucide-react';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
 
 interface InvoiceNotificationPromptProps {
   invoiceId: string;
@@ -10,25 +10,22 @@ interface InvoiceNotificationPromptProps {
   isPartyToInvoice: boolean;
 }
 
-const STORAGE_KEY = "iln_invoice_reminders";
+const STORAGE_KEY = 'iln_invoice_reminders';
 
 export const InvoiceNotificationPrompt: React.FC<InvoiceNotificationPromptProps> = ({
   invoiceId,
   dueDate,
   isPartyToInvoice,
 }) => {
-  const { permission, requestPermission, showNotification } = useNotifications();
+  const { permission, requestPermission, showNotification } = useBrowserNotifications();
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isOptedIn, setIsOptedIn] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      if (stored[invoiceId]) {
-        setIsOptedIn(true);
-      }
+  const [isOptedIn, setIsOptedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      return !!stored[invoiceId];
     }
-  }, [invoiceId]);
+    return false;
+  });
 
   const scheduleReminder = useCallback(() => {
     const now = Math.floor(Date.now() / 1000);
@@ -37,10 +34,10 @@ export const InvoiceNotificationPrompt: React.FC<InvoiceNotificationPromptProps>
 
     if (delay > 0) {
       const timer = setTimeout(() => {
-        if (document.visibilityState === "visible") {
+        if (document.visibilityState === 'visible') {
           showNotification(`Invoice #${invoiceId} is due tomorrow`, {
             body: "Don't forget to settle your payment on time to maintain your reputation score.",
-            icon: "/logo.png",
+            icon: '/logo.png',
           });
         }
       }, delay);
@@ -50,22 +47,22 @@ export const InvoiceNotificationPrompt: React.FC<InvoiceNotificationPromptProps>
   }, [dueDate, invoiceId, showNotification]);
 
   useEffect(() => {
-    if (isOptedIn && permission === "granted") {
+    if (isOptedIn && permission === 'granted') {
       return scheduleReminder();
     }
   }, [isOptedIn, permission, scheduleReminder]);
 
   const handleOptIn = async () => {
     const result = await requestPermission();
-    if (result === "granted") {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    if (result === 'granted') {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       stored[invoiceId] = true;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
       setIsOptedIn(true);
     }
   };
 
-  if (!isPartyToInvoice || isOptedIn || isDismissed || permission === "denied") {
+  if (!isPartyToInvoice || isOptedIn || isDismissed || permission === 'denied') {
     return null;
   }
 
@@ -76,11 +73,9 @@ export const InvoiceNotificationPrompt: React.FC<InvoiceNotificationPromptProps>
           <Bell className="w-5 h-5" />
         </div>
         <div>
-          <p className="font-medium text-sm">
-            Get notified 24 hours before this invoice expires?
-          </p>
+          <p className="font-medium text-sm">Get notified 24 hours before this invoice expires?</p>
           <p className="text-xs text-indigo-100">
-            We'll send you a browser notification to help you stay on track.
+            {"We'll"} send you a browser notification to help you stay on track.
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo, useEffect } from "react";
-import { Info, TrendingUp, AlertTriangle } from "lucide-react";
+import React, { useState, useMemo, useEffect } from 'react';
+import { TrendingUp, AlertTriangle } from 'lucide-react';
 
 interface ScoreSimulatorProps {
   currentPaid: number;
@@ -12,7 +12,7 @@ interface ScoreSimulatorProps {
 export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
   currentPaid,
   currentSubmitted,
-  currentDefaulted,
+  currentDefaulted: _currentDefaulted,
 }) => {
   const [additionalPaid, setAdditionalPaid] = useState<number>(0);
   const [additionalDefaulted, setAdditionalDefaulted] = useState<number>(0);
@@ -27,7 +27,7 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
     const totalPaid = currentPaid + additionalPaid;
     const totalSubmitted = currentSubmitted + additionalPaid + additionalDefaulted;
 
-    if (totalSubmitted === 0) return "No impact calculable";
+    if (totalSubmitted === 0) return 'No impact calculable';
 
     const score = (totalPaid / totalSubmitted) * 100;
     return Math.min(100, Math.max(0, score));
@@ -35,17 +35,21 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
 
   useEffect(() => {
     // Simple animation logic for the score transition
-    if (typeof projectedScore === "number") {
-      let start = typeof displayScore === "number" ? displayScore : 0;
+    if (typeof projectedScore === 'number') {
+      const start = typeof displayScore === 'number' ? displayScore : 0;
       const end = projectedScore;
       const duration = 500;
-      const startTime = performance.now();
+      // Anchor on the first frame's timestamp: performance.now() is not
+      // guaranteed to share a time origin with requestAnimationFrame, and a
+      // negative elapsed time drove the displayed score far below the real one.
+      let startTime: number | null = null;
 
       const animate = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime;
         const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+        const progress = Math.min(Math.max(elapsed / duration, 0), 1);
         const current = start + (end - start) * progress;
-        
+
         setDisplayScore(Math.round(current));
 
         if (progress < 1) {
@@ -81,7 +85,10 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div>
-            <label htmlFor="additionalPaid" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="additionalPaid"
+              className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+            >
               Future Invoices Paid
             </label>
             <input
@@ -92,11 +99,16 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
               onChange={(e) => handleInputChange(e, setAdditionalPaid)}
               className="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
-            <p className="mt-1 text-xs text-gray-500">Number of invoices you expect to pay on time.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Number of invoices you expect to pay on time.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="additionalDefaulted" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="additionalDefaulted"
+              className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+            >
               Future Invoices Defaulted
             </label>
             <input
@@ -107,7 +119,9 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
               onChange={(e) => handleInputChange(e, setAdditionalDefaulted)}
               className="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
-            <p className="mt-1 text-xs text-gray-500">Number of invoices that might go into default.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Number of invoices that might go into default.
+            </p>
           </div>
         </div>
 
@@ -119,12 +133,21 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
             {displayScore}
           </div>
           <div className="mt-4 flex items-center space-x-2 text-sm text-indigo-800 dark:text-indigo-300">
-            {typeof projectedScore === "number" && (
+            {typeof projectedScore === 'number' && (
               <>
                 <span>Current: {Math.round(currentScore)}</span>
                 <span className="text-indigo-300">|</span>
-                <span className={projectedScore > currentScore ? "text-green-600" : projectedScore < currentScore ? "text-red-600" : ""}>
-                  {projectedScore > currentScore ? "+" : ""}{Math.round(projectedScore - currentScore)} impact
+                <span
+                  className={
+                    projectedScore > currentScore
+                      ? 'text-green-600'
+                      : projectedScore < currentScore
+                        ? 'text-red-600'
+                        : ''
+                  }
+                >
+                  {projectedScore > currentScore ? '+' : ''}
+                  {Math.round(projectedScore - currentScore)} impact
                 </span>
               </>
             )}
@@ -135,9 +158,9 @@ export const ScoreSimulator: React.FC<ScoreSimulatorProps> = ({
       <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex items-start space-x-3 text-gray-500 dark:text-gray-400">
         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <p className="text-xs leading-relaxed">
-          <strong>Disclaimer:</strong> This is a simulation only based on the basic reputation formula. 
-          Actual score is calculated on-chain and may consider additional factors like time-weighting, 
-          volume, and protocol-specific weightings.
+          <strong>Disclaimer:</strong> This is a simulation only based on the basic reputation
+          formula. Actual score is calculated on-chain and may consider additional factors like
+          time-weighting, volume, and protocol-specific weightings.
         </p>
       </div>
     </div>

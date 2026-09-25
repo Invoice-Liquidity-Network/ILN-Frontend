@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
 interface SpotlightProps {
   targetId?: string;
@@ -43,13 +43,13 @@ export default function Spotlight({
     updateRect();
 
     // Re-check periodically in case of dynamic rendering or resize
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect);
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect);
     const interval = setInterval(updateRect, 500);
 
     return () => {
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect);
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect);
       clearInterval(interval);
     };
   }, [targetId]);
@@ -82,18 +82,21 @@ export default function Spotlight({
           left: targetRect.left - 8,
           width: targetRect.width + 16,
           height: targetRect.height + 16,
-          boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.75)",
-          borderRadius: "16px",
+          boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75)',
+          borderRadius: '16px',
         }}
       />
-      
+
       {/* Position popover near the target */}
       <div
         className="absolute pointer-events-auto transition-all duration-300 ease-in-out"
         style={{
           top: Math.max(16, targetRect.bottom + 16),
           // Try to center horizontally relative to target, but keep within viewport
-          left: Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + (targetRect.width / 2) - 160)),
+          left: Math.max(
+            16,
+            Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160)
+          ),
         }}
       >
         <PopoverContent
@@ -134,23 +137,21 @@ function PopoverContent({
           {currentStep + 1} of {totalSteps}
         </span>
       </div>
-      
-      <p className="text-sm text-on-surface-variant mb-5 leading-relaxed">
-        {content}
-      </p>
-      
+
+      <p className="text-sm text-on-surface-variant mb-5 leading-relaxed">{content}</p>
+
       <div className="flex justify-between items-center gap-3">
         <button
           onClick={onSkip}
           className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors uppercase tracking-wider"
         >
-          {isLast ? "Close" : "Skip"}
+          {isLast ? 'Close' : 'Skip'}
         </button>
         <button
           onClick={onNext}
           className="bg-primary text-surface-container-lowest px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-colors active:scale-95"
         >
-          {isLast ? "Done" : "Next"}
+          {isLast ? 'Done' : 'Next'}
         </button>
       </div>
     </div>

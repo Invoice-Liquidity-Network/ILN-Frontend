@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * HelpMenu — Issue #169
@@ -7,9 +7,9 @@
  * Opens a dropdown with "Take a tour of this page" and documentation links.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { PageTour } from "./PageTour";
-import type { TourId } from "./tourDefinitions";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { PageTour } from './PageTour';
+import type { TourId } from './tourDefinitions';
 
 interface DocLink {
   label: string;
@@ -22,8 +22,8 @@ interface HelpMenuProps {
 }
 
 const DEFAULT_DOC_LINKS: DocLink[] = [
-  { label: "Protocol documentation", href: "https://docs.iln.finance" },
-  { label: "FAQ", href: "https://docs.iln.finance/faq" },
+  { label: 'Protocol documentation', href: 'https://docs.iln.finance' },
+  { label: 'FAQ', href: 'https://docs.iln.finance/faq' },
 ];
 
 export function HelpMenu({ tourId, docLinks = DEFAULT_DOC_LINKS }: HelpMenuProps) {
@@ -39,8 +39,8 @@ export function HelpMenu({ tourId, docLinks = DEFAULT_DOC_LINKS }: HelpMenuProps
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   const startTour = useCallback(() => {
@@ -55,9 +55,7 @@ export function HelpMenu({ tourId, docLinks = DEFAULT_DOC_LINKS }: HelpMenuProps
   return (
     <>
       {/* Joyride is mounted only when running */}
-      {tourRunning && (
-        <PageTour tourId={tourId} run={tourRunning} onFinish={finishTour} />
-      )}
+      {tourRunning && <PageTour tourId={tourId} run={tourRunning} onFinish={finishTour} />}
 
       <div ref={menuRef} className="relative inline-block" data-testid="help-menu">
         <button

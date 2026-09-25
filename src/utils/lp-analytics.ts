@@ -1,4 +1,4 @@
-import { Invoice } from "./soroban";
+import { Invoice } from './soroban';
 
 export interface LPMetrics {
   totalCapitalDeployed: bigint;
@@ -38,7 +38,7 @@ export function calculateLPMetrics(invoices: Invoice[], address: string): LPMetr
   let totalDiscountRate = 0;
   let defaultedCount = 0;
   let largestYield = 0n;
-  
+
   const now = Math.floor(Date.now() / 1000);
   const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
 
@@ -46,8 +46,8 @@ export function calculateLPMetrics(invoices: Invoice[], address: string): LPMetr
     totalCapital += i.amount;
     // yield = amount * discount_rate (bps) / 10000
     const yieldAmount = (i.amount * BigInt(i.discount_rate)) / 10000n;
-    
-    if (i.status === "Paid") {
+
+    if (i.status === 'Paid') {
       totalYield += yieldAmount;
       if (i.funded_at && Number(i.funded_at) >= thirtyDaysAgo) {
         yield30d += yieldAmount;
@@ -58,7 +58,7 @@ export function calculateLPMetrics(invoices: Invoice[], address: string): LPMetr
     }
 
     totalDiscountRate += i.discount_rate;
-    if (i.status === "Defaulted") {
+    if (i.status === 'Defaulted') {
       defaultedCount++;
     }
   });
@@ -67,7 +67,7 @@ export function calculateLPMetrics(invoices: Invoice[], address: string): LPMetr
     totalCapitalDeployed: totalCapital,
     totalYieldEarned: totalYield,
     yieldLast30Days: yield30d,
-    avgYieldRate: (totalDiscountRate / lpInvoices.length) / 100, // to %
+    avgYieldRate: totalDiscountRate / lpInvoices.length / 100, // to %
     defaultRate: (defaultedCount / lpInvoices.length) * 100,
     avgSettlementTime: null, // Data missing in model
     largestSingleYield: largestYield,
@@ -75,12 +75,14 @@ export function calculateLPMetrics(invoices: Invoice[], address: string): LPMetr
 }
 
 export function getMonthlyYieldData(invoices: Invoice[], address: string) {
-  const lpInvoices = invoices.filter((i) => i.funder === address && i.status === "Paid" && i.funded_at);
+  const lpInvoices = invoices.filter(
+    (i) => i.funder === address && i.status === 'Paid' && i.funded_at
+  );
   const months: Record<string, bigint> = {};
-  
+
   lpInvoices.forEach((i) => {
     const date = new Date(Number(i.funded_at!) * 1000);
-    const monthKey = date.toLocaleString("default", { month: "short", year: "2-digit" });
+    const monthKey = date.toLocaleString('default', { month: 'short', year: '2-digit' });
     const yieldAmount = (i.amount * BigInt(i.discount_rate)) / 10000n;
     months[monthKey] = (months[monthKey] || 0n) + yieldAmount;
   });
@@ -94,13 +96,13 @@ export function getMonthlyYieldData(invoices: Invoice[], address: string) {
 export function getCapitalVsYieldData(invoices: Invoice[], address: string) {
   const lpInvoices = invoices.filter((i) => i.funder === address && i.funded_at);
   const sorted = [...lpInvoices].sort((a, b) => Number(a.funded_at!) - Number(b.funded_at!));
-  
+
   let cumulativeCapital = 0n;
   let cumulativeYield = 0n;
 
   return sorted.map((i) => {
     cumulativeCapital += i.amount;
-    if (i.status === "Paid") {
+    if (i.status === 'Paid') {
       cumulativeYield += (i.amount * BigInt(i.discount_rate)) / 10000n;
     }
     return {
@@ -114,23 +116,26 @@ export function getCapitalVsYieldData(invoices: Invoice[], address: string) {
 export function getOutcomeBreakdown(invoices: Invoice[], address: string) {
   const lpInvoices = invoices.filter((i) => i.funder === address);
   const counts = { Paid: 0, Defaulted: 0, Active: 0 };
-  
+
   lpInvoices.forEach((i) => {
-    if (i.status === "Paid") counts.Paid++;
-    else if (i.status === "Defaulted") counts.Defaulted++;
-    else if (i.status === "Funded") counts.Active++;
+    if (i.status === 'Paid') counts.Paid++;
+    else if (i.status === 'Defaulted') counts.Defaulted++;
+    else if (i.status === 'Funded') counts.Active++;
   });
 
   return [
-    { name: "Paid", value: counts.Paid },
-    { name: "Defaulted", value: counts.Defaulted },
-    { name: "Active", value: counts.Active },
+    { name: 'Paid', value: counts.Paid },
+    { name: 'Defaulted', value: counts.Defaulted },
+    { name: 'Active', value: counts.Active },
   ];
 }
 
 export function getPayerPerformance(invoices: Invoice[], address: string): PayerPerformance[] {
   const lpInvoices = invoices.filter((i) => i.funder === address);
-  const payers: Record<string, { totalInvoices: number; totalYield: bigint; defaulted: number; fundedAmount: bigint }> = {};
+  const payers: Record<
+    string,
+    { totalInvoices: number; totalYield: bigint; defaulted: number; fundedAmount: bigint }
+  > = {};
 
   lpInvoices.forEach((i) => {
     if (!payers[i.payer]) {
@@ -138,10 +143,10 @@ export function getPayerPerformance(invoices: Invoice[], address: string): Payer
     }
     payers[i.payer].totalInvoices++;
     payers[i.payer].fundedAmount += i.amount;
-    
-    if (i.status === "Paid") {
+
+    if (i.status === 'Paid') {
       payers[i.payer].totalYield += (i.amount * BigInt(i.discount_rate)) / 10000n;
-    } else if (i.status === "Defaulted") {
+    } else if (i.status === 'Defaulted') {
       payers[i.payer].defaulted++;
     }
   });

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import CompareInvoicesScreen from "@/screens/CompareInvoices";
+import { Suspense } from 'react';
+import CompareInvoicesScreen from '@/screens/CompareInvoices';
 
 export default function ComparePage() {
   return (
