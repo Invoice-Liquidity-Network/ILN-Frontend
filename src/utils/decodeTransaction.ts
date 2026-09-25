@@ -55,8 +55,8 @@ function formatScVal(val: xdr.ScVal): { value: string; type: string } {
       }
       case 'scvBytes':
         return { value: `bytes(${val.bytes().length} bytes)`, type: 'bytes' };
-      case 'scvBytesN': {
-        // bytesN() was renamed to bytes() in newer stellar-base; fall back gracefully
+      case 'scvBytesN' as string: {
+        // bytesN was removed in stellar-base v15; handled as opaque bytes
         const raw: Buffer = (val as unknown as { bytes: () => Buffer }).bytes();
         return { value: `bytesN(${raw.length} bytes)`, type: 'bytesN' };
       }
@@ -144,7 +144,12 @@ function decodeOperation(op: xdr.Operation): DecodedOperation {
     };
   }
 
-  if (switchCase === 'invokeContract') {
+  // 'invokeContract' is not a valid OperationBody arm in stellar-base v15+;
+  // the correct path is via invokeHostFunction handled above.
+  // This branch is kept for forward-compatibility with hypothetical future SDK
+  // changes but can never be reached with the current stellar-base types.
+  /* istanbul ignore next */
+  if ((switchCase as string) === 'invokeContract') {
     const invokeArgs = body.invokeHostFunctionOp().hostFunction().invokeContract();
     const contractAddress = invokeArgs.contractAddress();
     const contract = Address.fromScAddress(contractAddress).toString();
@@ -183,7 +188,7 @@ export function decodeTransactionXdr(xdrBase64: string): DecodedTransaction | nu
     // object; wrap it in an ScAddress-compatible call via the SDK helper.
     const sourceAccount = txV1.tx().sourceAccount().value().toString();
     const fee = tx.fee.toString();
-    const operations = tx.operations.map(decodeOperation);
+    const operations = tx.operations.map((op) => decodeOperation(op as unknown as xdr.Operation));
 
     let networkPassphrase: string | null = null;
     try {
