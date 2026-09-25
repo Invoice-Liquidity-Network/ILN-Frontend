@@ -13,7 +13,7 @@ import { useWallet } from '@/context/WalletContext';
 import { useToast } from '@/context/ToastContext';
 import { formatAddress, formatDate, formatUSDC, tokenAmountToNumber } from '@/utils/format';
 import { type Invoice } from '@/utils/soroban';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useInvoices } from '@/hooks/queries';
 import InvoiceStatusBadge from '@/components/InvoiceStatusBadge';
 import LastUpdated from '@/components/LastUpdated';
 import BulkActionBar from '../components/BulkActionBar';
