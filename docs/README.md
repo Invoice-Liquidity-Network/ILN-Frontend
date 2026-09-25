@@ -5,12 +5,14 @@ This directory contains the main contributor and operations documentation for th
 ## Core Guides
 
 - **[architecture.md](architecture.md)** - Frontend architecture overview covering design decisions, folder structure, and major data-flow patterns.
+- **[data-fetching-architecture.md](data-fetching-architecture.md)** - Consolidated TanStack Query data-fetching architecture, key factories, caching defaults, and mutation patterns.
 - **[developer-quickstart.md](developer-quickstart.md)** - End-to-end setup guide from a fresh clone through local development and initial verification.
 - **[testing.md](testing.md)** - Testing strategy and conventions for Vitest, Playwright, and other quality checks.
 - **[ci-cd.md](ci-cd.md)** - GitHub Actions, deployment flow, and CI/CD runner guidance.
 
 ## Quality and Performance
 
+- **[as-any-cast-inventory.md](as-any-cast-inventory.md)** - Complete audit and categorization of all 66 `as any` type casts outside test suites and the prioritized elimination roadmap.
 - **[slos.md](slos.md)** - Frontend Service Level Objectives (SLOs), SLIs, and concrete monitoring signals for performance, availability, and financial journeys.
 - **[LIGHTHOUSE_CI.md](LIGHTHOUSE_CI.md)** - Lighthouse CI performance budgets, thresholds, and report review guidance.
 - **[VISUAL_REGRESSION_WORKFLOW.md](VISUAL_REGRESSION_WORKFLOW.md)** - Chromatic visual regression workflow and approval process.

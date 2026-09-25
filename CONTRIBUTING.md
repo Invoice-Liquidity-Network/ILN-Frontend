@@ -177,6 +177,8 @@ Read [docs/architecture.md](docs/architecture.md) first. Some questions have alr
 
 ### Data Fetching and React Query Architecture
 
+For full architectural specifications, key factories, caching defaults, and mutation patterns, consult the canonical **[Data-Fetching Architecture Guide](docs/data-fetching-architecture.md)** and **[Architecture Overview](docs/architecture.md)**.
+
 To ensure consistent caching, loading states, and bundle efficiency across the application:
 
 1. **Centralized Query Hooks**:
@@ -871,6 +873,7 @@ To maintain effective Wave throughput and ensure issues don't get claimed and ab
 The stale assignment bot runs daily and monitors assigned issues:
 
 1. **Warning Stage (7 days of inactivity)**
+
    - If an issue has been assigned for 7+ days with no linked PR activity, a warning comment is added
    - The issue is labeled with `stale-assignment-warning`
    - The assignee is notified with instructions to either:
@@ -886,6 +889,7 @@ The stale assignment bot runs daily and monitors assigned issues:
 ### Configuration
 
 The timeout periods are configurable in `.github/workflows/stale-assignments.yml`:
+
 - `WARNING_DAYS`: Days before warning comment (default: 7)
 - `RECLAIM_DAYS`: Days before unassignment (default: 14)
 
