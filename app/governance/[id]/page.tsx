@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import VoteSection from '@/components/VoteSection';
+import GovernanceMockStatusBanner from '@/components/governance/GovernanceMockStatusBanner';
 import { GOVERNANCE_ADMIN_ADDRESS } from '@/constants';
 import { useToast } from '@/context/ToastContext';
 import { useWallet } from '@/context/WalletContext';
@@ -508,6 +509,7 @@ export default function ProposalDetailPage() {
                         The execution delay has passed. Anyone can now execute this proposal
                         on-chain.
                       </p>
+                      <GovernanceMockStatusBanner action="executeProposal" />
                       <button
                         onClick={handleExecute}
                         disabled={isExecuting}
@@ -557,6 +559,7 @@ export default function ProposalDetailPage() {
                   <p className="text-xs text-on-surface-variant">
                     The timelock delay has elapsed. Anyone can now trigger on-chain execution.
                   </p>
+                  <GovernanceMockStatusBanner action="executeProposal" />
                   {isConnected ? (
                     <button
                       onClick={handleExecute}
@@ -635,6 +638,7 @@ export default function ProposalDetailPage() {
                   <p className="text-xs text-on-surface-variant">
                     Only the configured governance admin address can veto proposals.
                   </p>
+                  <GovernanceMockStatusBanner action="vetoProposal" />
                   <button
                     onClick={() => setVetoModalOpen(true)}
                     className="w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white transition-all hover:bg-red-700"

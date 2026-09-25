@@ -5,6 +5,7 @@ import { isValidStellarAddress } from '@/utils/governance';
 import { resolveFederatedAddress } from '@/utils/federation';
 import { useWallet } from '@/context/WalletContext';
 import { useTransaction } from '@/hooks/useTransaction';
+import GovernanceMockStatusBanner from '@/components/governance/GovernanceMockStatusBanner';
 import {
   Users,
   UserPlus,
@@ -102,6 +103,8 @@ export const DelegationPanel: React.FC = () => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+      <GovernanceMockStatusBanner action="delegateVotingPower" />
+
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-2">
           <ShieldCheck className="w-6 h-6 text-indigo-600" />
