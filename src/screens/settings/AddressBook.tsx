@@ -8,12 +8,15 @@ import useAddressBook from '@/hooks/useAddressBook';
 export default function AddressBookPage() {
   const { t } = useTranslation();
   const { addToast, updateToast } = useToast();
-  const { addressBook, addAddress, deleteAddress, searchAddresses } = useAddressBook();
+  const { addressBook, addAddress, updateAddress, deleteAddress, searchAddresses } =
+    useAddressBook();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState('');
   const [newNickname, setNewNickname] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editNickname, setEditNickname] = useState('');
 
   const filteredAddresses = searchAddresses(searchQuery);
 
@@ -28,16 +31,32 @@ export default function AddressBookPage() {
     addToast({ type: 'success', title: t('addressBook.success.added') });
   };
 
-  const handleUpdateAddress = (_id: string) => {
-    // Find the current values from the form (in a real implementation, we'd have form state)
-    // For simplicity, we'll just show a toast indicating it would be updated
-    updateToast(addToast({ type: 'pending', title: t('addressBook.updating') }), {
+  const handleStartEdit = (entry: { id: string; address: string; nickname: string }) => {
+    setEditingId(entry.id);
+    setEditAddress(entry.address);
+    setEditNickname(entry.nickname);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditAddress('');
+    setEditNickname('');
+  };
+
+  const handleUpdateAddress = (id: string) => {
+    const address = editAddress.trim();
+    const nickname = editNickname.trim();
+    if (!address || !nickname) {
+      addToast({ type: 'error', title: t('addressBook.errors.missingFields') });
+      return;
+    }
+    const toastId = addToast({ type: 'pending', title: t('addressBook.updating') });
+    updateAddress(id, { address, nickname });
+    updateToast(toastId, {
       type: 'success',
       title: t('addressBook.success.updated'),
     });
-    // In a real implementation, we would update the address with current form values
-    // updateAddress(id, { address: currentAddress, nickname: currentNickname });
-    setEditingId(null);
+    handleCancelEdit();
   };
 
   const handleDeleteAddress = (id: string) => {
@@ -125,17 +144,15 @@ export default function AddressBookPage() {
                 {editingId === entry.id ? (
                   <div className="flex flex-col gap-2 w-[300px]">
                     <input
-                      defaultValue={entry.address}
-                      onChange={(_e) => {
-                        // TODO: In a real implementation, we'd update form state
-                      }}
+                      value={editAddress}
+                      onChange={(e) => setEditAddress(e.target.value)}
+                      aria-label={t('addressBook.stellarAddressPlaceholder')}
                       className="w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                     <input
-                      defaultValue={entry.nickname}
-                      onChange={(_e) => {
-                        // TODO: In a real implementation, we'd update form state
-                      }}
+                      value={editNickname}
+                      onChange={(e) => setEditNickname(e.target.value)}
+                      aria-label={t('addressBook.nicknamePlaceholder')}
                       className="w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                     <div className="flex gap-2">
@@ -146,7 +163,7 @@ export default function AddressBookPage() {
                         {t('addressBook.save')}
                       </button>
                       <button
-                        onClick={() => setEditingId(null)}
+                        onClick={handleCancelEdit}
                         className="flex-1 rounded-xl bg-surface-container-low px-4 py-3 text-sm font-bold text-on-surface-variant border border-outline-variant/15 hover:bg-surface-variant/50 transition-colors"
                       >
                         {t('addressBook.cancel')}
@@ -170,7 +187,7 @@ export default function AddressBookPage() {
                     </div>
                     <div className="flex items-end gap-2">
                       <button
-                        onClick={() => setEditingId(entry.id)}
+                        onClick={() => handleStartEdit(entry)}
                         className="p-1 rounded-full hover:bg-surface-variant/50 transition-colors"
                         title={t('addressBook.edit')}
                       >
