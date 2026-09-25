@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_NOTIFICATIONS,
+  NOTIFICATIONS_PAGE_SIZE,
   notificationsStorageKey,
   readStateStorageKey,
   formatTimeAgo,
   getNotificationIcon,
   getNotificationAccentClass,
+  sortNotificationsNewestFirst,
 } from '../notificationHelpers';
+import type { NotificationItem } from '@/context/NotificationContext';
 
 describe('storage key helpers', () => {
   it('namespaces the notifications key by wallet address', () => {
@@ -19,6 +22,35 @@ describe('storage key helpers', () => {
 
   it('exposes a MAX_NOTIFICATIONS cap', () => {
     expect(MAX_NOTIFICATIONS).toBe(50);
+  });
+
+  it('renders notifications in pages smaller than the retention cap', () => {
+    expect(NOTIFICATIONS_PAGE_SIZE).toBe(20);
+    expect(NOTIFICATIONS_PAGE_SIZE).toBeLessThan(MAX_NOTIFICATIONS);
+  });
+});
+
+describe('sortNotificationsNewestFirst', () => {
+  const item = (id: string, createdAt: string): NotificationItem => ({
+    id,
+    category: 'invoice',
+    type: 'info',
+    title: id,
+    message: id,
+    href: '/',
+    createdAt,
+    read: false,
+  });
+
+  it('orders newest first without mutating the input', () => {
+    const input = [
+      item('old', '2026-01-01T00:00:00Z'),
+      item('new', '2026-03-01T00:00:00Z'),
+      item('mid', '2026-02-01T00:00:00Z'),
+    ];
+    const sorted = sortNotificationsNewestFirst(input);
+    expect(sorted.map((n) => n.id)).toEqual(['new', 'mid', 'old']);
+    expect(input.map((n) => n.id)).toEqual(['old', 'new', 'mid']);
   });
 });
 
