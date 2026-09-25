@@ -50,10 +50,10 @@ describe('AddressBookPage inline edit persistence', () => {
     const { unmount } = render(<AddressBookPage />);
 
     fireEvent.click(screen.getAllByTitle('addressBook.edit')[0]);
-    fireEvent.change(screen.getByLabelText('addressBook.stellarAddressPlaceholder'), {
-      target: { value: 'GALICENEWADDRESS9876543' },
+    fireEvent.change(screen.getByLabelText('addressBook.editAddressLabel'), {
+      target: { value: 'GALICENEWADDRESSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6543' },
     });
-    fireEvent.change(screen.getByLabelText('addressBook.nicknamePlaceholder'), {
+    fireEvent.change(screen.getByLabelText('addressBook.editNicknameLabel'), {
       target: { value: 'Alice Treasury' },
     });
     fireEvent.click(screen.getByText('addressBook.save'));
@@ -64,7 +64,7 @@ describe('AddressBookPage inline edit persistence', () => {
 
     // Storage holds the new values; id and untouched entries are preserved.
     expect(storedEntries()).toEqual([
-      { id: 'a', address: 'GALICENEWADDRESS9876543', nickname: 'Alice Treasury' },
+      { id: 'a', address: 'GALICENEWADDRESSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6543', nickname: 'Alice Treasury' },
       seedEntries[1],
     ]);
 
@@ -80,7 +80,7 @@ describe('AddressBookPage inline edit persistence', () => {
     render(<AddressBookPage />);
 
     fireEvent.click(screen.getAllByTitle('addressBook.edit')[1]);
-    fireEvent.change(screen.getByLabelText('addressBook.nicknamePlaceholder'), {
+    fireEvent.change(screen.getByLabelText('addressBook.editNicknameLabel'), {
       target: { value: 'Not Bob' },
     });
     fireEvent.click(screen.getByText('addressBook.cancel'));

@@ -341,4 +341,30 @@ test.describe('Cross-feature isolation — no accidental exposure', () => {
     });
     expect(response?.status(), '/admin/flags must return HTTP < 500').toBeLessThan(500);
   });
+
+  test('admin flags page exposes no interactive controls (read-only scope)', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/flags`, { waitUntil: 'domcontentloaded' });
+
+    // Whether the admin wallet is connected or not, the page must never render
+    // toggle buttons, text inputs, checkboxes, or forms that could mutate state.
+    // Flag toggling happens exclusively via Vercel env vars + redeployment.
+    const buttons = await page.locator('main button').count();
+    expect(buttons, 'No action buttons should be present on the flags panel').toBe(0);
+
+    const inputs = await page.locator('main input').count();
+    expect(inputs, 'No input fields should be present on the flags panel').toBe(0);
+
+    const forms = await page.locator('main form').count();
+    expect(forms, 'No forms should be present on the flags panel').toBe(0);
+  });
+
+  test('admin flags page contains no /docs/*.md anchor links', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/flags`, { waitUntil: 'domcontentloaded' });
+
+    // Internal /docs/*.md files are not publicly served routes. Previously the
+    // footer contained links to these paths which would 404 and could expose
+    // internal process documentation if those files were ever accidentally served.
+    const docsLinks = await page.locator('a[href*="/docs/"]').count();
+    expect(docsLinks, 'No /docs/*.md links should be rendered in the flags page').toBe(0);
+  });
 });
