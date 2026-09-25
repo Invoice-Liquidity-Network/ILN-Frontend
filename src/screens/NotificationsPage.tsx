@@ -1,12 +1,16 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useNotification } from '@/context/NotificationContext';
 import { useWallet } from '@/context/WalletContext';
+import { useVisibleWindow } from '@/hooks/useVisibleWindow';
 import {
+  NOTIFICATIONS_PAGE_SIZE,
   formatTimeAgo,
   getNotificationAccentClass,
   getNotificationIcon,
+  sortNotificationsNewestFirst,
 } from '@/utils/notificationHelpers';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -15,8 +19,17 @@ export default function NotificationsPage() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotification();
   const { isConnected } = useWallet();
 
-  const orderedNotifications = [...notifications].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const orderedNotifications = useMemo(
+    () => sortNotificationsNewestFirst(notifications),
+    [notifications]
+  );
+  // Only a bounded window of rows is mounted so a high-volume account (e.g. an
+  // active LP with many invoice/governance events) never renders unbounded.
+  const { hasMore, remaining, loadMore, visibleSlice } = useVisibleWindow(
+    orderedNotifications,
+    NOTIFICATIONS_PAGE_SIZE,
+    [],
+    'notifications-page'
   );
 
   if (!isConnected) {
@@ -45,9 +58,7 @@ export default function NotificationsPage() {
       <main className="min-h-screen bg-surface-container pt-24 pb-12">
         <div className="mx-auto max-w-3xl px-4">
           <div className="mb-8 flex flex-col gap-1">
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">
-              Activity
-            </p>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Activity</p>
             <div className="flex items-center justify-between">
               <h1 className="font-headline text-3xl sm:text-4xl">Notifications</h1>
               {unreadCount > 0 && (
@@ -72,47 +83,58 @@ export default function NotificationsPage() {
               </p>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {orderedNotifications.map((notification) => (
-                <li key={notification.id}>
-                  <Link
-                    href={notification.href}
-                    onClick={() => markAsRead(notification.id)}
-                    className={`flex gap-4 rounded-2xl border p-5 transition ${
-                      notification.read
-                        ? 'border-outline-variant/15 bg-surface-variant/20 opacity-75'
-                        : 'border-outline-variant/20 bg-surface-container-lowest hover:border-primary/30'
-                    }`}
-                  >
-                    <span
-                      className={`material-symbols-outlined mt-0.5 shrink-0 ${getNotificationAccentClass(notification.type)}`}
-                      aria-hidden
+            <>
+              <ul className="space-y-3">
+                {visibleSlice(orderedNotifications).map((notification) => (
+                  <li key={notification.id}>
+                    <Link
+                      href={notification.href}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`flex gap-4 rounded-2xl border p-5 transition ${
+                        notification.read
+                          ? 'border-outline-variant/15 bg-surface-variant/20 opacity-75'
+                          : 'border-outline-variant/20 bg-surface-container-lowest hover:border-primary/30'
+                      }`}
                     >
-                      {getNotificationIcon(notification.category, notification.type)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`text-sm font-semibold ${getNotificationAccentClass(notification.type)}`}
-                      >
-                        {notification.title}
-                      </p>
-                      <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="mt-2 text-xs text-on-surface-variant/80">
-                        {formatTimeAgo(notification.createdAt)}
-                      </p>
-                    </div>
-                    {!notification.read && (
                       <span
-                        className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary"
-                        aria-label="Unread"
-                      />
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                        className={`material-symbols-outlined mt-0.5 shrink-0 ${getNotificationAccentClass(notification.type)}`}
+                        aria-hidden
+                      >
+                        {getNotificationIcon(notification.category, notification.type)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`text-sm font-semibold ${getNotificationAccentClass(notification.type)}`}
+                        >
+                          {notification.title}
+                        </p>
+                        <p className="mt-1 text-sm text-on-surface-variant line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="mt-2 text-xs text-on-surface-variant/80">
+                          {formatTimeAgo(notification.createdAt)}
+                        </p>
+                      </div>
+                      {!notification.read && (
+                        <span
+                          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary"
+                          aria-label="Unread"
+                        />
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  className="mt-6 w-full rounded-xl border border-outline-variant/30 px-4 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                >
+                  Load more ({remaining} remaining)
+                </button>
+              )}
+            </>
           )}
         </div>
       </main>

@@ -102,7 +102,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored) as NotificationItem[];
-        setNotificationsState(applyReadState(parsed, storedReads));
+        // Writes are capped, but a stored list from an older build or another
+        // writer may not be; cap on load too so the in-memory list stays bounded.
+        const bounded = Array.isArray(parsed) ? parsed.slice(0, MAX_NOTIFICATIONS) : [];
+        setNotificationsState(applyReadState(bounded, storedReads));
       } else {
         setNotificationsState([]);
       }
