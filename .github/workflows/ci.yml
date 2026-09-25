@@ -74,6 +74,9 @@ jobs:
       - name: Check locale key parity
         run: pnpm run i18n:check
 
+      - name: Check for fake transaction hashes and mock mutations
+        run: pnpm run check:mock-transactions
+
       - name: Check formatting with Prettier
         run: pnpm run format:check
 
