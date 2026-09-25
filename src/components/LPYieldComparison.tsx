@@ -93,7 +93,9 @@ function exportToCSV(
   const header = 'Date,USDC Yield,EURC Yield,XLM Yield,Total\n';
   const rows = data.map((row) => {
     const total = (row.USDC + row.EURC + row.XLM).toFixed(6);
-    return `${row.isoDate},${row.USDC.toFixed(6)},${row.EURC.toFixed(6)},${row.XLM.toFixed(6)},${total}`;
+    return `${row.isoDate},${row.USDC.toFixed(6)},${row.EURC.toFixed(6)},${row.XLM.toFixed(
+      6
+    )},${total}`;
   });
   const csv = header + rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

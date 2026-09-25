@@ -146,7 +146,9 @@ export default function CompareInvoicesScreen() {
     const bestApy = sortedByApy[0];
     const bestRisk = sortedByRisk[0];
 
-    let summary = `${bestApy.token} Invoice #${bestApy.id} offers the highest APY at ${bestApy.apy.toFixed(2)}%.`;
+    let summary = `${bestApy.token} Invoice #${
+      bestApy.id
+    } offers the highest APY at ${bestApy.apy.toFixed(2)}%.`;
 
     if (bestApy.id !== bestRisk.id) {
       summary += ` However, Invoice #${bestRisk.id} has a lower-risk profile with a payer score of ${bestRisk.score}.`;
@@ -285,10 +287,14 @@ export default function CompareInvoicesScreen() {
                       {stats.map((s, idx) => (
                         <td
                           key={s.id}
-                          className={`p-6 text-center transition-all ${idx === bestIndex ? 'bg-green-50/50' : ''}`}
+                          className={`p-6 text-center transition-all ${
+                            idx === bestIndex ? 'bg-green-50/50' : ''
+                          }`}
                         >
                           <div
-                            className={`inline-block ${idx === bestIndex ? 'text-green-700 font-bold' : ''}`}
+                            className={`inline-block ${
+                              idx === bestIndex ? 'text-green-700 font-bold' : ''
+                            }`}
                           >
                             {row.format ? row.format(s) : (s as any)[row.field]}
                             {idx === bestIndex && !row.noHighlight && (

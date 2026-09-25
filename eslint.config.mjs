@@ -83,6 +83,48 @@ const eslintConfig = defineConfig([
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  // Restrict direct fetch and QueryClient calls in UI components outside hooks/queries
+  {
+    files: [
+      'src/components/**/*.{js,jsx,ts,tsx}',
+      'src/screens/**/*.{js,jsx,ts,tsx}',
+      'src/app/**/*.{js,jsx,ts,tsx}',
+      'app/**/*.{js,jsx,ts,tsx}',
+    ],
+    ignores: ['**/__tests__/**', '**/*.test.*', '**/*.spec.*', 'app/api/**', 'app/Providers.tsx'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Direct fetch calls inside UI component files are disallowed. Extract data-fetching logic into custom hooks under src/hooks/queries (or src/hooks). See CONTRIBUTING.md for exception procedures.',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@tanstack/react-query',
+              importNames: ['useQueryClient', 'QueryClient'],
+              message:
+                'Direct query-client usage inside UI component files is disallowed. Extract cache invalidation or query management into custom hooks under src/hooks/queries (or src/hooks). See CONTRIBUTING.md for exception procedures.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.name='fetch'], CallExpression[callee.property.name='fetch']",
+          message:
+            'Direct fetch calls inside UI component files are disallowed. Extract data-fetching logic into custom hooks under src/hooks/queries (or src/hooks). See CONTRIBUTING.md for exception procedures.',
+        },
+      ],
+    },
+  },
   ...storybook.configs['flat/recommended'],
 ]);
 

@@ -1,6 +1,23 @@
-import type { NotificationCategory, NotificationType } from '@/context/NotificationContext';
+import type {
+  NotificationCategory,
+  NotificationItem,
+  NotificationType,
+} from '@/context/NotificationContext';
 
 export const MAX_NOTIFICATIONS = 50;
+
+/**
+ * How many notification rows the page and drawer mount at once. The rest are
+ * revealed via "Load more" so a high-volume account never renders an unbounded
+ * list. See docs/load-testing.md.
+ */
+export const NOTIFICATIONS_PAGE_SIZE = 20;
+
+export function sortNotificationsNewestFirst(items: NotificationItem[]): NotificationItem[] {
+  return [...items].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
 
 export function notificationsStorageKey(walletAddress: string) {
   return `iln-notifications:${walletAddress}`;

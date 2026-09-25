@@ -8,6 +8,7 @@ import { submitSignedTransaction } from '@/utils/soroban';
 import { useToast } from '@/context/ToastContext';
 import { useWallet } from '@/context/WalletContext';
 import { notifyTxSuccess } from '@/utils/txEvents';
+import { recordSigningAttempt } from '@/lib/signing-alert';
 import {
   parseContractError,
   CONTRACT_ERROR_MAP,
@@ -15,12 +16,15 @@ import {
 } from '@/lib/contract/errors';
 import { formatContractError } from '@/utils/contractErrorFormatter';
 import { TransactionErrorToast } from '@/components/transaction/TransactionErrorToast';
+import { useTransactionPreview } from './useTransactionPreview';
+import type { ExpectedTransactionAction } from '@/utils/transactionPattern';
 
-type SignTxFn = (txXdr: string) => Promise<string>;
+type SignTxFn = (txXdr: string, expectedAction?: ExpectedTransactionAction) => Promise<string>;
 
 type TransactionOperation<T> = (signTx: SignTxFn) => Promise<T>;
 
 interface ExecuteOptions {
+  expectedAction?: ExpectedTransactionAction;
   title?: string;
   pendingMessage?: string;
   successTitle?: string;
@@ -52,6 +56,7 @@ export function useTransaction(): UseTransactionResult {
   const { signTx, isConnected, address } = useWallet();
   const { addToast, updateToast } = useToast();
   const queryClient = useQueryClient();
+  const { previewModal, requestPreview } = useTransactionPreview();
 
   const [loading, setLoading] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
@@ -59,7 +64,17 @@ export function useTransaction(): UseTransactionResult {
   const [success, setSuccess] = useState(false);
 
   const signTxWithUi: SignTxFn = useCallback(
-    async (txXdr: string) => {
+    async (txXdr: string, expectedAction?: ExpectedTransactionAction) => {
+      try {
+        await requestPreview(txXdr, expectedAction);
+      } catch (err: any) {
+        const message = err?.message || String(err || 'Transaction cancelled');
+        if (isWalletRejection(message)) {
+          throw new Error('Transaction cancelled');
+        }
+        throw err;
+      }
+
       setIsSigning(true);
       try {
         return await signTx(txXdr);
@@ -73,7 +88,7 @@ export function useTransaction(): UseTransactionResult {
         setIsSigning(false);
       }
     },
-    [signTx]
+    [signTx, requestPreview]
   );
 
   const execute = useCallback(
@@ -116,8 +131,14 @@ export function useTransaction(): UseTransactionResult {
       };
 
       try {
-        const result = await operation(signTxWithUi);
+        const signTxForOperation: SignTxFn = (txXdr) =>
+          signTxWithUi(txXdr, resolvedOptions.expectedAction);
+        const result = await operation(signTxForOperation);
         setSuccess(true);
+        recordSigningAttempt({
+          flow: resolvedOptions.expectedAction ?? 'transaction',
+          success: true,
+        });
         updateToast(toastId, {
           type: 'success',
           title: successTitle,
@@ -132,6 +153,13 @@ export function useTransaction(): UseTransactionResult {
         const message = formattedErr.message;
         const isRejected = formattedErr.code === 'USER_REJECTED' || isWalletRejection(message);
         setError(formattedErr.userFriendlyMessage);
+
+        recordSigningAttempt({
+          flow: resolvedOptions.expectedAction ?? 'transaction',
+          success: false,
+          errorCode: isRejected ? 'USER_REJECTED' : formattedErr.code,
+          errorMessage: message,
+        });
 
         let title = 'Transaction failed';
         let toastMessage: React.ReactNode = `${message}. Please try again or contact support if the issue persists.`;
@@ -207,6 +235,11 @@ export function useTransaction(): UseTransactionResult {
     error,
     success,
     isSigning,
-    signingModal,
+    signingModal: (
+      <>
+        {previewModal}
+        {signingModal}
+      </>
+    ),
   };
 }

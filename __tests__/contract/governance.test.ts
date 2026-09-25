@@ -71,15 +71,6 @@ describe('governance – castVote', () => {
     const after = MOCK_PROPOSALS.find((p) => p.id === proposalId)?.votesAgainst ?? 0;
     expect(after).toBeGreaterThan(before);
   });
-
-  it('increments votesAbstain when voting Abstain', async () => {
-    const proposalId = 2;
-    const before = MOCK_PROPOSALS.find((p) => p.id === proposalId)?.votesAbstain ?? 0;
-    vi.runAllTimersAsync();
-    await castVote(proposalId, 'Abstain', SIGNER, mockSignTx);
-    const after = MOCK_PROPOSALS.find((p) => p.id === proposalId)?.votesAbstain ?? 0;
-    expect(after).toBeGreaterThan(before);
-  });
 });
 
 describe('governance – fetchProposals & SDK boundary', () => {
@@ -105,7 +96,6 @@ describe('governance – fetchProposals & SDK boundary', () => {
               voting_ends_at: 1700864000,
               votes_for: 1000,
               votes_against: 2500,
-              votes_abstain: 50,
               quorum_required: 500,
             },
           ]),
@@ -188,7 +178,6 @@ describe('governance – parseProposalStatus & contract parsers', () => {
       voting_ends_at: 200,
       votes_for: 300,
       votes_against: 150,
-      votes_abstain: 20,
       quorum_required: 100,
     };
     const parsed = parseProposalFromNative(nativeStruct);
@@ -260,14 +249,74 @@ describe('governance – createProposal', () => {
     const created = MOCK_PROPOSALS.find((p) => p.id === result.proposalId);
     expect(created?.parameterChanges).toBeDefined();
   });
+
+  it('persists the proposal payload and vote state for the created record', async () => {
+    vi.useFakeTimers();
+    const payload: CreateProposalPayload = {
+      formType: 'RemoveToken',
+      title: 'Remove EURC',
+      description: 'Remove EURC from active token set',
+      removeTokenAddress: 'CDTKPWPLOURQA2SGTKTUQOWRCBZEORB4BWBOMJ3D3ZTQQSGE5F6JBQLV',
+    };
+
+    const resultPromise = createProposal(payload, SIGNER, mockSignTx);
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
+    const created = MOCK_PROPOSALS.find((p) => p.id === result.proposalId);
+
+    expect(created).toMatchObject({
+      proposer: SIGNER,
+      title: payload.title,
+      description: payload.description,
+      type: 'ProtocolUpgrade',
+      status: 'Active',
+      quorumRequired: 100_000,
+    });
+    expect(created?.parameterChanges?.[0]).toMatchObject({
+      parameter: 'accepted_tokens',
+      newValue: expect.stringContaining('removes EURC'),
+    });
+    vi.useRealTimers();
+  });
+});
+
+describe('governance – stateful write paths', () => {
+  it('updates the right vote bucket and persists userVote for the proposal', async () => {
+    vi.useFakeTimers();
+    const proposalPromise = createProposal(
+      {
+        formType: 'FeeRate',
+        title: 'Isolated vote assertion',
+        description: 'Uses a fresh proposal to avoid prior test state drift.',
+        newValueBps: 75,
+      },
+      SIGNER,
+      mockSignTx
+    );
+    await vi.runAllTimersAsync();
+    const proposed = await proposalPromise;
+
+    const resultPromise = castVote(proposed.proposalId, 'For', SIGNER, mockSignTx);
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
+    const created = MOCK_PROPOSALS.find((p) => p.id === proposed.proposalId)!;
+
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+    expect(getUserVote(proposed.proposalId)).toBe('For');
+    expect(created.votesFor).toBe(1250);
+    expect(created.votesAgainst).toBe(0);
+    expect(created.votesAbstain).toBe(0);
+    vi.useRealTimers();
+  });
 });
 
 describe('governance – vote helper functions', () => {
   const proposal = MOCK_PROPOSALS[0];
 
-  it('totalVotes sums all vote types correctly', () => {
+  it('totalVotes sums votes correctly', () => {
     const total = totalVotes(proposal);
-    expect(total).toBe(proposal.votesFor + proposal.votesAgainst + proposal.votesAbstain);
+    expect(total).toBe(proposal.votesFor + proposal.votesAgainst);
   });
 
   it('votePercent returns 0 for zero total', () => {
@@ -283,7 +332,6 @@ describe('governance – vote helper functions', () => {
       ...proposal,
       votesFor: 200_000,
       votesAgainst: 0,
-      votesAbstain: 0,
       quorumRequired: 100_000,
     };
     expect(quorumReached(mockProposal)).toBe(true);
@@ -294,7 +342,6 @@ describe('governance – vote helper functions', () => {
       ...proposal,
       votesFor: 10_000,
       votesAgainst: 5_000,
-      votesAbstain: 1_000,
       quorumRequired: 100_000,
     };
     expect(quorumReached(mockProposal)).toBe(false);
@@ -351,13 +398,33 @@ describe('governance – parameterLabel', () => {
 
 describe('governance – getVotingPower', () => {
   it('returns a positive number', async () => {
-    vi.useFakeTimers();
-    const p = getVotingPower(SIGNER);
-    vi.runAllTimers();
-    const power = await p;
-    vi.useRealTimers();
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockResolvedValueOnce({
+        error: undefined,
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+        result: {
+          retval: nativeToScVal(1234),
+        },
+      } as any);
+
+    const power = await getVotingPower(SIGNER);
+    expect(mockSimulate).toHaveBeenCalled();
+    mockSimulate.mockRestore();
     expect(typeof power).toBe('number');
     expect(power).toBeGreaterThan(0);
+  });
+
+  it('returns 0 when the contract simulation is unsuccessful', async () => {
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockResolvedValueOnce({ error: 'simulation failed' } as any);
+
+    const power = await getVotingPower(SIGNER);
+    mockSimulate.mockRestore();
+    expect(power).toBe(0);
   });
 });
 

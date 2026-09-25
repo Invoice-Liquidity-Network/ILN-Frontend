@@ -45,6 +45,9 @@ export function useContractEvents(enabled = true) {
   const connectPolling = useCallback(
     function connectPollingAttempt(attempt: number) {
       setConnectionType('polling');
+      // Set once this stream has failed and been handed to the retry below;
+      // anything it reports afterwards is stale.
+      let retired = false;
       const handle = connectHorizonTransactionStream({
         onEvent: (event) => {
           patchInvoiceQueries(queryClient, event);
@@ -52,21 +55,33 @@ export function useContractEvents(enabled = true) {
           setRetryCount(0);
         },
         onStatusChange: (status) => {
+          if (retired) return;
           setContractEventStreamingActive(status === 'connected');
           if (status === 'connected') {
             setError(null);
             setRetryCount(0);
           } else if (status === 'error' || status === 'disconnected') {
+            // Close the failed stream so its own reconnect loop cannot run
+            // alongside this retry. Left open, every disconnect it reports
+            // spawns another stream, and a multi-service outage fans out into
+            // a reconnect storm.
+            retired = true;
+            horizonHandleRef.current?.close();
+            horizonHandleRef.current = null;
             if (attempt < MAX_RETRIES) {
               const delay = BASE_DELAY_MS * Math.pow(2, attempt);
               if (process.env.NODE_ENV === 'development') {
                 console.error(
-                  `[ContractEventSync] Connection failed. Retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`
+                  `[ContractEventSync] Connection failed. Retry ${
+                    attempt + 1
+                  }/${MAX_RETRIES} in ${delay}ms`
                 );
               }
               setError(`Connection lost. Retrying... (${attempt + 1}/${MAX_RETRIES})`);
               setRetryCount(attempt + 1);
-              retryTimeout.current = setTimeout(() => connectPollingAttempt(attempt + 1), delay);
+              retryTimeout.current = setTimeout(() => {
+                horizonHandleRef.current = connectPollingAttempt(attempt + 1);
+              }, delay);
             } else {
               setError('Failed to connect after 3 attempts. Please refresh manually.');
               if (process.env.NODE_ENV === 'development') {
@@ -83,6 +98,9 @@ export function useContractEvents(enabled = true) {
 
   const connectWebSocket = useCallback(() => {
     setConnectionType('websocket');
+    // A failing socket can report both `disconnected` and `error`; fall back to
+    // Horizon only once so a single outage never opens duplicate streams.
+    let fellBack = false;
 
     const handle = connectIndexerWebSocket({
       onEvent: (event) => {
@@ -91,8 +109,10 @@ export function useContractEvents(enabled = true) {
         setRetryCount(0);
       },
       onStatusChange: (status) => {
+        if (fellBack) return;
         setContractEventStreamingActive(status === 'connected');
         if (status === 'error' || status === 'disconnected') {
+          fellBack = true;
           if (process.env.NODE_ENV === 'development') {
             console.error(`[ContractEventSync] WebSocket failed, falling back to polling`);
           }

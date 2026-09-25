@@ -288,7 +288,9 @@ async function scanTransactionsForToken(
 ): Promise<Omit<InvoiceNftState, 'metadata'>> {
   const hints = parseEventHints(NFT_EVENT_HINTS);
   const base = getHorizonBaseUrl();
-  let url = `${base}/transactions?accounts=${encodeURIComponent(NFT_CONTRACT_ID)}&order=desc&limit=200`;
+  let url = `${base}/transactions?accounts=${encodeURIComponent(
+    NFT_CONTRACT_ID
+  )}&order=desc&limit=200`;
 
   const transfers: InvoiceNftTransfer[] = [];
   let mintTxHash: string | undefined;
@@ -391,7 +393,9 @@ export async function fetchInvoiceNftState(invoiceId: bigint): Promise<InvoiceNf
       // Fetch a tiny sample page and scan for a URI-like string.
       try {
         const base = getHorizonBaseUrl();
-        const url = `${base}/transactions?accounts=${encodeURIComponent(NFT_CONTRACT_ID)}&order=desc&limit=50`;
+        const url = `${base}/transactions?accounts=${encodeURIComponent(
+          NFT_CONTRACT_ID
+        )}&order=desc&limit=50`;
         const pageResp = await fetchContractTransactionsPage(url);
         const records = pageResp._embedded?.records ?? [];
         for (const tx of records) {

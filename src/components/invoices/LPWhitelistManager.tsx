@@ -38,9 +38,12 @@ export default function LPWhitelistManager({
   const [lpToRemove, setLpToRemove] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Determine if contract instruction is available
+  // Determine if contract instruction is available: the deployed contract
+  // does not expose update_lp_whitelist (see #783), so whitelist
+  // modification is deferred behind the feature flag exported from soroban.
   const isContractSupported =
-    'updateLPWhitelist' in soroban && typeof (soroban as any).updateLPWhitelist === 'function';
+    soroban.UPDATE_LP_WHITELIST_SUPPORTED === true &&
+    typeof (soroban as any).updateLPWhitelist === 'function';
 
   useEffect(() => {
     let isMounted = true;

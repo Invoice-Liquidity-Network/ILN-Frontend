@@ -54,6 +54,18 @@ export default function NotificationBell() {
   const [isPulsing, setIsPulsing] = useState(false);
 
   const [announcement, setAnnouncement] = useState('');
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
+
+  // The poll reads the latest read-state callbacks through refs. Depending on
+  // them directly restarted polling, firing an extra request at the
+  // notifications service, every time a notification was marked read, and let
+  // an in-flight poll apply a stale `isRead` that flipped it back to unread.
+  const isReadRef = useRef(isRead);
+  const setNotificationsRef = useRef(setNotifications);
+  useEffect(() => {
+    isReadRef.current = isRead;
+    setNotificationsRef.current = setNotifications;
+  }, [isRead, setNotifications]);
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current) {
@@ -84,11 +96,17 @@ export default function NotificationBell() {
     let active = true;
 
     const fetchNotifications = async () => {
+      // eslint-disable-next-line no-restricted-globals, no-restricted-syntax -- Legacy inline exception pending query hook migration
       const res = await fetch(`/api/notifications/${address}`);
       if (!active || !res.ok) return;
 
       const data = (await res.json()) as ExternalNotification[];
-      setNotifications((current) => mergeNotifications(current, data, isRead));
+      // A poll that resolves after the wallet changed belongs to the previous
+      // wallet; merging it would mix its notifications into the new inbox.
+      if (!active) return;
+      setNotificationsRef.current((current) =>
+        mergeNotifications(current, data, isReadRef.current)
+      );
     };
 
     fetchNotifications();
@@ -98,7 +116,7 @@ export default function NotificationBell() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [address, isRead, setNotifications]);
+  }, [address]);
 
   const handleOpen = () => {
     setOpen(true);
@@ -113,11 +131,26 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}${
+          serviceUnavailable ? '. Notifications service temporarily unavailable.' : ''
+        }`}
         aria-expanded={open}
+        title={
+          serviceUnavailable
+            ? 'Notifications service temporarily unavailable. Showing cached notifications.'
+            : undefined
+        }
         className="relative rounded-full p-2 hover:bg-surface-variant transition-colors"
       >
         <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
+
+        {serviceUnavailable && (
+          <span
+            data-testid="notification-service-unavailable"
+            aria-hidden
+            className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-surface"
+          />
+        )}
 
         {unreadCount > 0 && (
           <span
