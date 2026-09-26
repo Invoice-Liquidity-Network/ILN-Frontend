@@ -7,10 +7,12 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import { requireAsAnyJustification } from './eslint-rules/require-as-any-justification.mjs';
+import { noUncontrolledDefaultValue } from './eslint-rules/no-uncontrolled-defaultvalue.mjs';
 
-const localAsAnyJustificationPlugin = {
+const localPlugin = {
   rules: {
     'require-as-any-justification': requireAsAnyJustification,
+    'no-uncontrolled-defaultvalue': noUncontrolledDefaultValue,
   },
 };
 
@@ -41,7 +43,7 @@ const eslintConfig = defineConfig([
     files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
     plugins: {
       prettier,
-      local: localAsAnyJustificationPlugin,
+      local: localPlugin,
     },
     rules: {
       'prettier/prettier': 'error',
@@ -49,6 +51,8 @@ const eslintConfig = defineConfig([
       // comment on the immediately preceding line (see #911 and
       // CONTRIBUTING.md). Prefer a precise type or type guard instead.
       'local/require-as-any-justification': 'error',
+      // Audit and flag uncontrolled input defaultValue with missing or no-op onChange (#861)
+      'local/no-uncontrolled-defaultvalue': 'error',
       // React hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
