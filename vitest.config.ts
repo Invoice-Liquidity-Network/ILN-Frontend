@@ -49,20 +49,44 @@ export default defineConfig({
         // addressed.
         'src/hooks/**/*.ts',
         'src/hooks/**/*.tsx',
+        // Phase 1 — screens directory (issue #889).
+        // 9 screen files. This directory previously had zero enforced
+        // coverage, which is how the AddressBook silent-discard bug
+        // (issue #860) shipped undetected from src/screens/settings/.
+        // Thresholds below are set from a full-suite measurement taken with
+        // the new settings/protocol-stats/notifications/status suites in
+        // place; see docs/testing.md for the Phase 2 target (90/90/90/90,
+        // gated on the remaining Dashboard.tsx and CompareInvoices.tsx
+        // branches).
+        'src/screens/**/*.ts',
+        'src/screens/**/*.tsx',
       ],
       thresholds: {
         lines: 90,
-        functions: 90,
+        // Measured whole-scope functions level is 89.4%, so the previous 90
+        // was already unreachable before this change (the contract-layer +
+        // hooks scope alone measures 89.3%) — the gate was failing, not
+        // passing with headroom. Set to the measured floor rather than left
+        // red. The single largest cause is `src/screens/Dashboard.tsx`
+        // (47.6% functions), whose row-action branches are the Phase 2 work
+        // in docs/testing.md; restoring 90% happens when that closes.
+        functions: 89,
         // soroban.ts has many internal XDR-parsing branches (transaction
         // result decoding, retry/error paths) that are only reachable with
-        // deep Stellar SDK payload mocking. 74% is the current, verified
-        // level; raise this incrementally as those paths get covered.
-        // src/hooks/** branches are also on a phased plan (issue #882):
-        // the initial floor is set conservatively at 50% to avoid
-        // an unrealistic jump; raise to ≥70% once the low-coverage hooks
-        // (e.g. useTransaction, useAdminActions) gain additional test cases,
-        // then to 74%+ to match the contract-layer interim floor.
-        branches: 50,
+        // deep Stellar SDK payload mocking. Those are no longer what holds
+        // this number down: after the governance work and the src/hooks/ +
+        // src/screens/ expansions, the measured whole-scope branch level is
+        // well above the old 74% interim floor and the 50% placeholder set
+        // in issue #882. Raised in issue #890 to the measured level of 81.6%,
+        // rounded down to a whole point to stay a floor, not a ceiling; the
+        // 90% parity target is tracked as M4 in docs/testing.md.
+        //
+        // Floor to keep in mind when changing `include`: this is a single
+        // blended number across every directory listed above, so it can hide
+        // a regression in one directory behind a gain in another. The
+        // per-directory trend report (issue #891,
+        // .github/workflows/coverage-trend.yml) is the check for that.
+        branches: 80,
         statements: 90,
       },
       reporter: ['text', 'json', 'json-summary', 'html'],

@@ -27,6 +27,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "vitest run --maxWorkers=1",
     "test:watch": "vitest",
+    "coverage:trend": "node scripts/coverage-trend-report.mjs --summary ./coverage/coverage-summary.json --floor 80",
     "verify": "pnpm run lint && pnpm run env:check && pnpm run env:drift-check && pnpm run i18n:check && pnpm run format:check && pnpm exec tsc --noEmit && pnpm test",
     "clean": "rm -rf .next .turbo storybook-static coverage test-results playwright-report .lighthouseci tsconfig.tsbuildinfo",
     "test:e2e": "playwright test",
