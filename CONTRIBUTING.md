@@ -177,6 +177,8 @@ Read [docs/architecture.md](docs/architecture.md) first. Some questions have alr
 
 ### Data Fetching and React Query Architecture
 
+For full architectural specifications, key factories, caching defaults, and mutation patterns, consult the canonical **[Data-Fetching Architecture Guide](docs/data-fetching-architecture.md)** and **[Architecture Overview](docs/architecture.md)**.
+
 To ensure consistent caching, loading states, and bundle efficiency across the application:
 
 1. **Centralized Query Hooks**:
@@ -390,6 +392,18 @@ This convention aligns with our commit message format and helps with changelog g
    - Update relevant documentation (README, DESIGN.md, architecture docs)
    - Add comments for complex logic
    - Update TypeScript types if needed
+
+### Closing issues that claim a mock was replaced
+
+A merged PR's `Closes #…` keyword closes the issue whether or not the diff does what the issue says. Governance write paths were once closed as "live" while still returning `Math.random()` hashes. See the [governance mock-closure retrospective](docs/governance-mock-regression-retrospective.md) for what happened and what changed.
+
+When a PR closes an issue whose title says **replace**, **implement real**, **wire live** or similar:
+
+- **Authors:** only use `Closes` for issues the diff fully resolves. Use `Refs #…` for partial work, and say in the description which claims are still open.
+- **Authors and reviewers:** check that the specific mock pattern is gone from the diff: no `Math.random()`-derived hash, no `MOCK_*` array mutation, no unused `_signTx`/`_signerAddress` parameter, no leftover `TODO: Replace with actual…` comment.
+- **Reviewers:** check which checks actually ran on the PR. A PR with no test workflow in its checks list has no CI signal.
+- For contract-integration functions, record the function as `'real'` using the mock-backing detection helper ([docs/testing.md → Mock-backing detection](docs/testing.md#mock-backing-detection)).
+- If the PR changes a status doc (e.g. `docs/contract-integration-status.md`), the doc and the `Closes` lines must agree. If the doc still says **Stubbed**, the issue stays open.
 
 ### PR Description Template
 
@@ -859,6 +873,7 @@ To maintain effective Wave throughput and ensure issues don't get claimed and ab
 The stale assignment bot runs daily and monitors assigned issues:
 
 1. **Warning Stage (7 days of inactivity)**
+
    - If an issue has been assigned for 7+ days with no linked PR activity, a warning comment is added
    - The issue is labeled with `stale-assignment-warning`
    - The assignee is notified with instructions to either:
@@ -874,6 +889,7 @@ The stale assignment bot runs daily and monitors assigned issues:
 ### Configuration
 
 The timeout periods are configurable in `.github/workflows/stale-assignments.yml`:
+
 - `WARNING_DAYS`: Days before warning comment (default: 7)
 - `RECLAIM_DAYS`: Days before unassignment (default: 14)
 

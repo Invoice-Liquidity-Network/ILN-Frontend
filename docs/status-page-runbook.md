@@ -27,7 +27,7 @@ The following components are tracked on the status page:
 | **Web App** | `app.iln.finance` — Vercel edge deployment |
 | **API / Indexer** | Backend invoice indexer and Supabase REST/Realtime |
 | **Stellar RPC** | `soroban-rpc.stellar.org` connectivity |
-| **Smart Contracts** | Invoice escrow contract availability (manual update only) |
+| **Smart Contracts** | Invoice escrow contract availability (automated via on-chain polling, with `SMART_CONTRACT_MANUAL_OVERRIDE` bypass) |
 
 ---
 

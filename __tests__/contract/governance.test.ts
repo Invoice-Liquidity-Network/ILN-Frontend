@@ -27,6 +27,11 @@ import {
   MOCK_PROPOSALS,
   type CreateProposalPayload,
 } from '@/utils/governance';
+import {
+  combineRecorders,
+  detectMockBacking,
+  expectMockBackingStatus,
+} from '@/test-utils/mock-detection';
 
 const SIGNER = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const mockSignTx = vi.fn(async (_xdr: string) => 'signedXDR');
@@ -539,5 +544,69 @@ describe('governance – simulateProposalEffect', () => {
         expect(result.warnings.length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+// ─── Mock-backing detection (#857) ────────────────────────────────────────────
+//
+// Each function records its current expected status. While the real
+// implementation is still pending the status is 'mock' and the test stays
+// green; once the linked issue lands, detection flips and this test fails
+// until the status is changed to 'real', from which point a regression back
+// to a Math.random()/no-network mock fails here, next to the function.
+// Flipping to 'real' may also require stubbing the RPC calls the new
+// implementation makes (see docs/testing.md → "Mock-backing detection").
+
+describe('governance – mock-backing detection', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  async function settle<T>(promise: Promise<T>): Promise<T> {
+    await vi.runAllTimersAsync();
+    return promise;
+  }
+
+  it('castVote (#839): tx hash provenance and signTx usage', async () => {
+    const signTx = vi.fn(async (_xdr: string) => 'signedXDR');
+    const report = await detectMockBacking({
+      run: () => settle(castVote(1, 'For', SIGNER, signTx)),
+      boundaries: { signTx },
+    });
+    expectMockBackingStatus('castVote', report, 'mock');
+  });
+
+  it('createProposal (#841): tx hash provenance and signTx usage', async () => {
+    const signTx = vi.fn(async (_xdr: string) => 'signedXDR');
+    const payload: CreateProposalPayload = {
+      formType: 'FeeRate',
+      title: 'Mock detection probe',
+      description: 'Probe proposal used by the mock-backing detection test.',
+      newValueBps: 40,
+    };
+    const report = await detectMockBacking({
+      run: () => settle(createProposal(payload, SIGNER, signTx)),
+      identify: (result) => result.txHash,
+      boundaries: { signTx },
+    });
+    expectMockBackingStatus('createProposal', report, 'mock');
+  });
+
+  it('fetchProtocolParameters (#844): reaches Soroban RPC or the network', async () => {
+    const simulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockRejectedValue(new Error('offline'));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    const report = await detectMockBacking({
+      run: () => settle(fetchProtocolParameters().catch(() => undefined)),
+      identify: () => undefined,
+      boundaries: { network: combineRecorders(simulate, fetchSpy) },
+    });
+    expectMockBackingStatus('fetchProtocolParameters', report, 'mock');
   });
 });
