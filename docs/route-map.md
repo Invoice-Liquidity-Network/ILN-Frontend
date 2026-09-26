@@ -39,6 +39,8 @@ The old `/analytics/freelancer` and `/analytics/leaderboard` paths are preserved
 | `/tokens`                  | Approved token list and decimal metadata                              | Public           | Unauthenticated          |
 | `/invoices/batch`          | Batch invoice submission workflow                                     | Freelancer       | Authenticated Wallet     |
 | `/admin`                   | Protocol health and administrative controls                           | Admin            | Authenticated Wallet     |
+| `/admin/actions`          | Admin actions management (live)                                       | Admin            | Authenticated Wallet     |
+| `/admin/flags`            | Admin feature flag controls (live)                                    | Admin            | Authenticated Wallet     |
 | `/governance/[id]`         | Governance proposal detail and voting                                 | Voter            | Authenticated Wallet     |
 | `/governance/new`          | New governance proposal form                                          | Voter            | Authenticated Wallet     |
 | `/governance/how-it-works` | Governance explainer                                                  | Public           | Unauthenticated          |
@@ -52,6 +54,8 @@ The old `/analytics/freelancer` and `/analytics/leaderboard` paths are preserved
 - **Latency.** A new notification can take up to 60 seconds, plus backend latency, to appear. Browsers throttle timers in background tabs, so it can take longer there. Users should not expect instant delivery.
 - **Degraded service.** On `429`/`503` the page keeps showing cached notifications and the bell shows its degraded marker. See [notifications-service.md](./notifications-service.md) for the failure modes.
 - **Persistence.** The list is cached per wallet in `localStorage` (`iln-notifications:<address>`, up to 50 items) and read state in `iln-notification-read:<address>`. Read state survives reloads and stays in sync across tabs of the same browser through `storage` events. It does not sync across devices: a `read` flag from the backend is honored, but the frontend never writes read state back.
+- **Filtering.** A filter bar narrows the feed by category (All, Invoices, Liquidity, Governance, Reputation, Admin) with per-category total and unread counts. Filtering applies to the cached list (latest 50) and restarts the "Load more" window. See [notifications-service.md](./notifications-service.md#categories-and-filtering).
+- **Readiness.** The category's findings and accepted risks are consolidated in the [notifications surface readiness report](./notifications-surface-readiness-report.md).
 - **Not a source.** The app's real-time channels, the indexer WebSocket (`src/lib/indexer-websocket.ts`) and the Horizon SSE stream (`src/lib/horizon-stream.ts`) behind `ContractEventSync`, only patch invoice query caches and do not feed this inbox. `NotificationEventPoller`, which derives notifications from invoice, governance, and reputation polling, is not mounted anywhere in the app tree.
 
 ## Active Redirects

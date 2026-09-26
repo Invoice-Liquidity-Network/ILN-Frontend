@@ -68,6 +68,10 @@ export const QUERY_TIMINGS = {
   parameterUpdates: { staleTime: 5 * 60_000, gcTime: 30 * 60_000 },
   /** Reputation score — steady, updated periodically. */
   reputation: { staleTime: 30_000, gcTime: 5 * 60_000 },
+  /** Protocol status — critical for maintenance banner, poll frequently. */
+  protocolStatus: { staleTime: 15_000, gcTime: 5 * 60_000 },
+  /** Admin action history — moderate frequency. */
+  adminActions: { staleTime: 30_000, gcTime: 5 * 60_000 },
   /** Single payer score. */
   payerScore: { staleTime: 30_000, gcTime: 5 * 60_000 },
   /** Batch payer scores. */

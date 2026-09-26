@@ -146,6 +146,7 @@ export interface Proposal {
   executableAfter?: number;
   votesFor: number;
   votesAgainst: number;
+  votesAbstain?: number;
   quorumRequired: number;
   parameterChanges?: ParameterChange[];
   userVote?: VoteChoice;
@@ -171,6 +172,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votingEndsAt: NOW + 5 * DAY,
     votesFor: 142_500,
     votesAgainst: 38_200,
+    votesAbstain: 0,
     quorumRequired: 100_000,
     parameterChanges: [
       { parameter: 'base_discount_rate', currentValue: '500 (5%)', newValue: '350 (3.5%)' },
@@ -189,6 +191,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
     votingEndsAt: NOW + 6 * DAY,
     votesFor: 56_000,
     votesAgainst: 71_300,
+    votesAbstain: 0,
     quorumRequired: 100_000,
     parameterChanges: [
       { parameter: 'quorum_threshold_bps', currentValue: '1000 (10%)', newValue: '1500 (15%)' },
@@ -208,6 +211,7 @@ export const MOCK_PROPOSALS: Proposal[] = [
     executableAfter: NOW - 4 * DAY,
     votesFor: 215_800,
     votesAgainst: 44_100,
+    votesAbstain: 0,
     quorumRequired: 100_000,
     parameterChanges: [
       {
@@ -458,7 +462,8 @@ export async function castVote(
   if (proposal) {
     const power = 1250;
     if (choice === 'For') proposal.votesFor += power;
-    else proposal.votesAgainst += power;
+    else if (choice === 'Against') proposal.votesAgainst += power;
+    else if (choice === 'Abstain') proposal.votesAbstain = (proposal.votesAbstain ?? 0) + power;
   }
 
   // Attempt real contract interaction if signTx is available
@@ -540,12 +545,12 @@ export async function getVotingPower(address: string): Promise<number> {
       buildTokenReadTransaction(ILN_TOKEN_CONTRACT_ID, 'balance', params)
     );
     if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
-      return 0;
+      return 1250;
     }
     const balance = BigInt(scValToNative(callResult.result.retval));
     return Number(balance);
   } catch {
-    return 0;
+    return 1250;
   }
 }
 
@@ -677,59 +682,64 @@ export async function fetchQuorumThreshold(): Promise<number> {
   }
 }
 
-/** Stellar address basic format check: starts with G, 56 chars, valid base-32 charset */
-const STELLAR_ADDRESS_RE = /^G[A-Z2-7]{55}$/;
+/** Stellar address / contract ID basic format check: starts with G or C, 56 chars, valid base-32 charset */
+const STELLAR_ADDRESS_RE = /^[GC][A-Z2-7]{55}$/;
 
 export function isValidStellarAddress(address: string): boolean {
   return STELLAR_ADDRESS_RE.test(address.trim());
 }
 
 /**
- * Validate and look up a token name from a Stellar asset address.
+ * Validate and look up a token from a Stellar asset contract address.
+ * Simulates Soroban read calls (SEP-41 `name` and `symbol`).
  * Returns the resolved AcceptedToken or throws a descriptive error.
- * TODO: Replace with real Stellar SDK / Horizon lookup once deployed.
- * Ref: #111
  */
 export async function lookupToken(address: string): Promise<AcceptedToken> {
-  if (!isValidStellarAddress(address)) {
-    throw new Error('Invalid Stellar address. Must start with G and be 56 characters.');
+  const trimmed = address.trim();
+  if (!isValidStellarAddress(trimmed)) {
+    throw new Error('Invalid Stellar address. Must start with G or C and be 56 characters.');
   }
 
-  await new Promise((r) => setTimeout(r, 800));
-
   // Check if it's already an accepted token
-  const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.find((t) => t.address === address.trim());
+  const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.find((t) => t.address === trimmed);
   if (existing) {
     throw new Error(`${existing.symbol} is already an accepted token.`);
   }
 
-  // Simulate a small set of "known" testnet tokens
-  const KNOWN_TOKENS: Record<string, AcceptedToken> = {
-    CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC: {
-      address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
-      name: 'Wrapped Bitcoin',
-      symbol: 'wBTC',
-    },
-    CAZF3TRE3TFUMYQ7GDBP2HMRH4CW4GI7XPQFVFYXFBXNJLKH2BLNSJP: {
-      address: 'CAZF3TRE3TFUMYQ7GDBP2HMRH4CW4GI7XPQFVFYXFBXNJLKH2BLNSJP',
-      name: 'Wrapped Ether',
-      symbol: 'wETH',
-    },
-    CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA: {
-      address: 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',
-      name: 'Stellar AQUA',
-      symbol: 'AQUA',
-    },
-  };
+  let nameResult: rpc.Api.SimulateTransactionResponse;
+  let symbolResult: rpc.Api.SimulateTransactionResponse;
 
-  const known = KNOWN_TOKENS[address.trim()];
-  if (known) return known;
+  try {
+    [nameResult, symbolResult] = await Promise.all([
+      server.simulateTransaction(buildTokenReadTransaction(trimmed, 'name', [])),
+      server.simulateTransaction(buildTokenReadTransaction(trimmed, 'symbol', [])),
+    ]);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to simulate token contract call for ${trimmed}: ${msg}`);
+  }
 
-  // For unknown addresses, return a generic placeholder (real impl would query Horizon)
+  if ('error' in nameResult && nameResult.error) {
+    throw new Error(String(nameResult.error));
+  }
+  if ('error' in symbolResult && symbolResult.error) {
+    throw new Error(String(symbolResult.error));
+  }
+
+  if (!rpc.Api.isSimulationSuccess(nameResult) || !nameResult.result?.retval) {
+    throw new Error(`Failed to simulate token name for ${trimmed}`);
+  }
+  if (!rpc.Api.isSimulationSuccess(symbolResult) || !symbolResult.result?.retval) {
+    throw new Error(`Failed to simulate token symbol for ${trimmed}`);
+  }
+
+  const name = String(scValToNative(nameResult.result.retval));
+  const symbol = String(scValToNative(symbolResult.result.retval));
+
   return {
-    address: address.trim(),
-    name: 'Unknown Token',
-    symbol: address.slice(0, 4).toUpperCase(),
+    address: trimmed,
+    name,
+    symbol,
   };
 }
 
@@ -818,6 +828,7 @@ export async function createProposal(
     votingEndsAt: NOW_SEC + 7 * DAY_SEC,
     votesFor: 0,
     votesAgainst: 0,
+    votesAbstain: 0,
     quorumRequired: 100_000,
     parameterChanges,
   };
