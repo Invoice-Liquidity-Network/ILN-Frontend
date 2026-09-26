@@ -92,13 +92,13 @@ pnpm run test:mutation
 
 ### Score targets (baseline)
 
-The mutation score is the percentage of mutants that were *killed* (caused a failing test). We hold two bars:
+The mutation score is the percentage of mutants that were _killed_ (caused a failing test). We hold two bars:
 
-| Scope                                  | Target mutation score | Rationale                                                                 |
-| -------------------------------------- | --------------------- | ------------------------------------------------------------------------- |
-| App-wide                               | **≥ 80%**             | Baseline confidence across the general suite.                             |
-| Contract / financial-critical layer    | **≥ 90%**             | `fundInvoice`, `markPaid`, and `castVote` move real money and must be defended harder (see below). |
-| Governance module (`src/utils/governance.ts`) | **≥ 90%**  | Elevated bar per issue #741 for vote-casting and proposal-creation code.  |
+| Scope                                         | Target mutation score | Rationale                                                                                          |
+| --------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| App-wide                                      | **≥ 80%**             | Baseline confidence across the general suite.                                                      |
+| Contract / financial-critical layer           | **≥ 90%**             | `fundInvoice`, `markPaid`, and `castVote` move real money and must be defended harder (see below). |
+| Governance module (`src/utils/governance.ts`) | **≥ 90%**             | Elevated bar per issue #741 for vote-casting and proposal-creation code.                           |
 
 > **Baseline capture:** the authoritative app-wide and per-module baseline numbers must be filled in here after a full `pnpm run test:mutation` run completes on `dev`. Copy the summary line from the Stryker report, e.g. `Mutation score: 84.2% (342/407 killed)`. Until that run happens, treat the targets above as the acceptance gates rather than the current measured score.
 
@@ -108,13 +108,14 @@ When triaging survivors, work top-down by financial consequence:
 
 1. **`fundInvoice`** (`src/utils/soroban.ts`) — LP provides liquidity to an invoice.
 2. **`markPaid`** (`src/utils/soroban.ts`) — payer settles an invoice (full/partial).
-3. **`castVote`** (`src/utils/governance.ts`) — governance vote casting; already covered by `src/utils/__tests__/governance.mutation.test.ts` which exercises every `VoteChoice` branch and the user-vote recording.
+3. **`castVote`** (`src/utils/governance.ts`) — governance vote casting; covered by `src/utils/__tests__/governance.mutation.test.ts` which exercises every `VoteChoice` branch and user-vote recording.
+   > ⚠️ **Reality Gap Caveat:** As documented in [Smart Contract Integration Status](contract-integration-status.md), `castVote`'s current underlying write-path implementation remains **Stubbed** (mutating in-memory proposals and generating synthetic random hashes). High unit and mutation test scores against this stubbed behavior do not prove real on-chain transaction execution. Integration tests asserting actual invocation of the `signTx` callback with valid transaction XDR are required (#10).
 
-**Note:** `castVote` is protected by mutation testing with a ≥90% score as required for financial‑critical paths.
+**Note:** Once real on-chain voting lands, `castVote` will maintain its ≥90% mutation testing requirement for financial- and vote-critical paths.
 
 4. **`createProposal`** (`src/utils/governance.ts`) — proposal creation across all four form types (FeeRate / MaxDiscountRate / AddToken / RemoveToken).
 
-Focus remediation on *genuinely dangerous* survivors (e.g. a mutated comparison or removed balance check in a money-moving path), not trivially-equivalent mutants. Each remediation should add a targeted test that kills the specific mutant rather than widening an existing assertion.
+Focus remediation on _genuinely dangerous_ survivors (e.g. a mutated comparison or removed balance check in a money-moving path), not trivially-equivalent mutants. Each remediation should add a targeted test that kills the specific mutant rather than widening an existing assertion.
 
 ## Mock-backing detection
 
