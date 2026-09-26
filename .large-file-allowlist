@@ -1,2 +1,6 @@
 # One repository-relative glob per line for files that cannot be optimized.
 # Keep entries narrowly scoped and justify each exception in the pull request.
+
+# pnpm-lock.yaml is a machine-generated lockfile that cannot be optimised;
+# its size is determined by the full dependency tree.
+pnpm-lock.yaml
