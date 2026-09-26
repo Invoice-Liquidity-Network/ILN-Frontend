@@ -1,22 +1,21 @@
 # GraphQL Query Guidelines
 
-> Roadmap decision (2026-09-24): **deferred until after mainnet; no frontend adoption is approved for the near term.**
+> Roadmap decision (2026-09-26): **Active adoption scoped strictly to designated target (Marketplace Analytics & Multi-Entity Activity Feed); general frontend adoption outside this scoped target remains restricted.**
 
-This document is retained as a decision record and future re-entry checklist. It does not authorize adding a GraphQL client, endpoint, query, or feature flag to the frontend before the roadmap is revisited.
+This document details the authoritative rules, limits, and architectural scope for GraphQL query adoption across the frontend. General adoption remains restricted; GraphQL usage is approved solely for the concrete scoped integration target defined in this document (see [Scoped Initial Integration Target](#scoped-initial-integration-target-issue-931)).
 
 ## Current Status
 
-As of this writing, the frontend uses REST API endpoints exclusively:
+The frontend currently uses REST API endpoints, Soroban RPC, Horizon, Supabase, and indexer REST/WebSocket endpoints for core protocol flows:
 
 - `/api/stats` - Protocol statistics
 - `/api/leaderboard` - Rankings and leaderboard data
 - `/api/invoices` - Invoice listings for marketplace
 - `/api/notifications` - User notification data
-- Indexer REST endpoints for invoice events and protocol feed
+- Indexer REST/WebSocket endpoints for invoice events and protocol feed
 
-GraphQL is not currently used by the frontend. The near-term product flows—invoice submission, invoice funding, governance, payments, notifications, and analytics—are served by REST, Soroban RPC, Horizon, Supabase, and indexer REST/WebSocket endpoints. No current mainnet milestone requires GraphQL's aggregation or schema capabilities. Adding it now would create a second data-access path, duplicate caching/error handling, and increase operational surface without a committed consumer.
+Per the finalized roadmap decision, GraphQL adoption is active but strictly scoped to the single concrete integration target (**Marketplace Activity & Aggregate Analytics Feed**). Any additional GraphQL queries or endpoints outside of this scoped target require explicit architecture review, a versioned indexer schema, and staging performance validation.
 
-The decision is therefore to defer GraphQL until after mainnet. Reconsideration requires a named product use case, an owning team, a versioned indexer schema, staging performance evidence, and a migration/rollback plan. Until those inputs exist, new work should use the existing REST/Soroban-RPC/Supabase patterns.
 
 ## Indexer Query Complexity Limits
 
