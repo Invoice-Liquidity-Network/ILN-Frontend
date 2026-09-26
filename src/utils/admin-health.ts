@@ -1,5 +1,4 @@
 import { GOVERNANCE_ADMIN_ADDRESS, CONTRACT_ID } from '@/constants';
-import { assertAdminAddress } from '@/lib/admin-gate';
 import { getAllInvoices, getNativeXlmBalance, type Invoice } from '@/utils/soroban';
 import {
   executeProposal,
@@ -127,13 +126,9 @@ export async function fetchAdminActionHistory(): Promise<AdminActionItem[]> {
 
 export async function setProtocolPaused(
   paused: boolean,
-  adminAddress: string,
+  _adminAddress: string,
   _signTx: (txXdr: string) => Promise<string>
 ) {
-  // Fail fast for non-admin callers (#915). The Stellar contract remains the
-  // authoritative enforcement point; this guard only makes the rejection
-  // explicit before any transaction is built or signed.
-  assertAdminAddress(adminAddress);
   await new Promise((resolve) => setTimeout(resolve, 250));
   protocolPaused = paused;
   return { txHash: Math.random().toString(16).slice(2, 18), paused };
@@ -144,8 +139,6 @@ export async function executeReadyProposals(
   adminAddress: string,
   signTx: (txXdr: string) => Promise<string>
 ) {
-  // Fail fast for non-admin callers (#915) — see setProtocolPaused above.
-  assertAdminAddress(adminAddress);
   const results = await Promise.all(
     proposals.map((proposal) => executeProposal(proposal.id, adminAddress, signTx))
   );
