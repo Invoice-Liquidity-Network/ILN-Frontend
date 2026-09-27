@@ -34,6 +34,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        // ── Contract / utils layer (original scope) ──────────────────────
         'src/utils/soroban.ts',
         'src/utils/contract-stats.ts',
         'src/utils/governance.ts',
