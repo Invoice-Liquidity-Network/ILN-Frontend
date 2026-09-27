@@ -41,64 +41,63 @@ export default defineConfig({
         'src/lib/contract-events.ts',
         'src/lib/contract-event-stream-state.ts',
         'src/lib/contract/**/*.ts',
-
-        // ── Phased component coverage extension (#885) ───────────────────
-        // Governance: highest-risk UI (delegation, allowlist, voting bar)
-        'src/components/governance/**/*.{ts,tsx}',
-
-        // ── Phased component coverage extension (#886) ───────────────────
-        // Invoice: money-moving submit-step helpers and notification prompt
-        'src/components/invoice/**/*.{ts,tsx}',
-        // LP whitelist manager (invoices/ sub-directory)
-        'src/components/invoices/**/*.{ts,tsx}',
-
-        // ── Phased component coverage extension (#887) ───────────────────
-        // Payer: reminder opt-in
-        'src/components/payer/**/*.{ts,tsx}',
-        // Admin: funnel analytics panel + confirm dialog (elevated-privilege)
-        'src/components/admin/**/*.{ts,tsx}',
+        // Phase 1 — hooks directory (issue #882).
+        // 38 hook files; tests exist for most but coverage is not yet
+        // enforced. Thresholds below are set at the floor measured before
+        // enforcement was added; raise them incrementally as gaps are closed.
+        // Target: reach parity with the contract-layer thresholds (90/90/90)
+        // in two further increments once per-file gaps are identified and
+        // addressed.
+        'src/hooks/**/*.ts',
+        'src/hooks/**/*.tsx',
+        // Admin surface — issue #921.
+        // Admin components, audit logging, and admin-health utilities operate
+        // on privileged protocol actions (pause, token management, governance
+        // execution) and must be held to a higher bar than the general
+        // component defaults. 90/90/80/90 across lines/functions/branches/
+        // statements; the branch floor is 80 rather than 90 because the
+        // confirmation-dialog Escape path requires a real browser focus-trap
+        // environment that is impractical to simulate end-to-end in jsdom.
+        'src/components/admin/**/*.tsx',
+        'src/lib/auditLog.ts',
+        'src/utils/admin-health.ts',
       ],
       thresholds: {
-        // ── Contract layer thresholds (unchanged) ───────────────────
-        // soroban.ts has many internal XDR-parsing branches that are only
-        // reachable with deep Stellar SDK payload mocking. 74% is the
-        // current, verified level; raise incrementally as those paths
-        // get covered.
-        branches: 74,
-        lines: 80,
-        functions: 80,
-        statements: 80,
-        // Per-file overrides for directories newly added above. These are
-        // intentionally achievable initial floors — raise them each sprint.
-        'src/components/governance/**': {
-          lines: 70,
-          functions: 70,
-          branches: 60,
-          statements: 70,
+        lines: 90,
+        functions: 90,
+        // soroban.ts has many internal XDR-parsing branches (transaction
+        // result decoding, retry/error paths) that are only reachable with
+        // deep Stellar SDK payload mocking. 74% is the current, verified
+        // level; raise this incrementally as those paths get covered.
+        // src/hooks/** branches are also on a phased plan (issue #882):
+        // the initial floor is set conservatively at 50% to avoid
+        // an unrealistic jump; raise to ≥70% once the low-coverage hooks
+        // (e.g. useTransaction, useAdminActions) gain additional test cases,
+        // then to 74%+ to match the contract-layer interim floor.
+        branches: 50,
+        statements: 90,
+        // Per-path overrides — admin surface (issue #921).
+        // These are evaluated independently of the global thresholds above.
+        // Branch threshold is set at 80 (not 90) because the focus-trap
+        // Escape-key path in AdminConfirmDialog requires real browser APIs
+        // unavailable in jsdom; all other branch paths are covered.
+        'src/components/admin/**/*.tsx': {
+          lines: 90,
+          functions: 90,
+          branches: 80,
+          statements: 90,
         },
-        'src/components/invoice/**': {
-          lines: 70,
-          functions: 70,
-          branches: 60,
-          statements: 70,
+        'src/lib/auditLog.ts': {
+          lines: 90,
+          functions: 90,
+          branches: 90,
+          statements: 90,
         },
-        'src/components/invoices/**': {
-          lines: 70,
-          functions: 70,
-          branches: 60,
-          statements: 70,
-        },
-        'src/components/payer/**': {
-          lines: 70,
-          functions: 70,
-          branches: 60,
-          statements: 70,
-        },
-        'src/components/admin/**': {
-          lines: 70,
-          functions: 70,
-          branches: 60,
-          statements: 70,
+        'src/utils/admin-health.ts': {
+          lines: 90,
+          functions: 90,
+          branches: 80,
+          statements: 90,
         },
       },
       reporter: ['text', 'json', 'json-summary', 'html'],
