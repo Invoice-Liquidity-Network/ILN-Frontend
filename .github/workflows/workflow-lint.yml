@@ -14,10 +14,10 @@ jobs:
     name: Validate GitHub Actions workflow files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run actionlint
-        uses: rhysd/actionlint@v1.7.7
+        uses: rhysd/actionlint@v1.7.12
         with:
           # Fail on syntax errors, undefined secret refs, and shellcheck issues in run: blocks
           flags: '-color'

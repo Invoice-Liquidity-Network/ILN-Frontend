@@ -22,11 +22,11 @@ jobs:
   bump:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: '9.0.0'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -47,7 +47,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run full verification suite
         run: pnpm verify
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         with:
           branch: automation/stellar-sdk-${{ steps.sdk.outputs.version }}
           delete-branch: true
