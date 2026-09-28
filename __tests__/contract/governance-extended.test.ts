@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { rpc } from '@stellar/stellar-sdk';
+import { rpc, nativeToScVal } from '@stellar/stellar-sdk';
 import { server } from '@/mocks/server';
 
 import {
@@ -169,22 +169,24 @@ describe('governance – lookupToken', () => {
       .spyOn(rpc.Server.prototype, 'simulateTransaction')
       .mockResolvedValueOnce({
         error: undefined,
-        transactionData: {} as any,
+        transactionData:
+          {} as unknown as rpc.Api.SimulateTransactionSuccessResponse['transactionData'],
         minResourceFee: '100',
         events: [],
         result: {
           retval: nativeToScVal('Wrapped Bitcoin'),
         },
-      } as any)
+      } as unknown as rpc.Api.SimulateTransactionResponse)
       .mockResolvedValueOnce({
         error: undefined,
-        transactionData: {} as any,
+        transactionData:
+          {} as unknown as rpc.Api.SimulateTransactionSuccessResponse['transactionData'],
         minResourceFee: '100',
         events: [],
         result: {
           retval: nativeToScVal('wBTC'),
         },
-      } as any);
+      } as unknown as rpc.Api.SimulateTransactionResponse);
 
     const token = await lookupToken('CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC');
     expect(token.name).toBe('Wrapped Bitcoin');
@@ -198,16 +200,18 @@ describe('governance – lookupToken', () => {
       .spyOn(rpc.Server.prototype, 'simulateTransaction')
       .mockResolvedValueOnce({
         error: 'Contract error: FeeOnTransferToken',
-        transactionData: {} as any,
+        transactionData:
+          {} as unknown as rpc.Api.SimulateTransactionSuccessResponse['transactionData'],
         minResourceFee: '100',
         events: [],
-      } as any)
+      } as unknown as rpc.Api.SimulateTransactionResponse)
       .mockResolvedValueOnce({
         error: undefined,
-        transactionData: {} as any,
+        transactionData:
+          {} as unknown as rpc.Api.SimulateTransactionSuccessResponse['transactionData'],
         minResourceFee: '100',
         events: [],
-      } as any);
+      } as unknown as rpc.Api.SimulateTransactionResponse);
 
     await expect(
       lookupToken('CD3TE3IAHM737P236XZL2OYU275ZKD6MN7YH7PYYAXYIGEH55OPEWYJC')

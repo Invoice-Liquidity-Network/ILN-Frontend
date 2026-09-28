@@ -3,6 +3,8 @@
 This document tracks the integration status of Soroban smart contracts within the ILN Frontend codebase. It serves as a visibility guide for contributors and maintainers to know which features are fully backed by live on-chain contracts versus those that are currently stubbed, derived, or deferred.
 
 > Interface source of truth: `Invoice-Liquidity-Network/ILN-Smart-Contract` (branch `dev`), `contracts/invoice_liquidity/src/lib.rs`.
+>
+> 🤖 **Automated Living Inventory:** For an auto-generated, machine-verifiable report of all real, derived, deferred, and mock-backed code paths and pattern signatures across the frontend repository, see **[docs/mock-inventory.md](mock-inventory.md)** (generated via `pnpm run docs:mock-inventory`).
 
 ## Integration Status Summary
 

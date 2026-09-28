@@ -227,6 +227,7 @@ Bare `as any` casts silently defeat TypeScript and were the source of a 60+ inst
    ```
 
    The comment must state the specific type-system limitation and, where one exists, link the upstream issue/type-definition gap. The lint rule errors when this comment is missing.
+
 3. **Scope:** the rule is `error` in production code and `warn` in tests/stories/`__tests__` (test doubles and DOM stubs legitimately need loose casts). Keep test casts minimal and typed where cheap to do so.
 
 ### Code Style and Formatting
@@ -419,15 +420,31 @@ This convention aligns with our commit message format and helps with changelog g
 
 ### Closing issues that claim a mock was replaced
 
-A merged PR's `Closes #…` keyword closes the issue whether or not the diff does what the issue says. Governance write paths were once closed as "live" while still returning `Math.random()` hashes. See the [governance mock-closure retrospective](docs/governance-mock-regression-retrospective.md) for what happened and what changed.
+A merged PR's `Closes #…` keyword automatically closes the issue whether or not the diff does what the issue says. Governance write paths were once closed as "live" while still returning `Math.random()` fake hashes and in-memory mock mutations because PR #670 was merged with `Closes #651 / #652 / #653` without manual or automated verification of the write paths. See the [governance mock-closure retrospective](docs/governance-mock-regression-retrospective.md) and [frontend mock closure audit](docs/frontend-mock-closure-audit.md) for full context on this motivating incident.
 
-When a PR closes an issue whose title says **replace**, **implement real**, **wire live** or similar:
+To prevent recurrence, the following process controls are mandatory:
 
-- **Authors:** only use `Closes` for issues the diff fully resolves. Use `Refs #…` for partial work, and say in the description which claims are still open.
-- **Authors and reviewers:** check that the specific mock pattern is gone from the diff: no `Math.random()`-derived hash, no `MOCK_*` array mutation, no unused `_signTx`/`_signerAddress` parameter, no leftover `TODO: Replace with actual…` comment.
+- **PR Template Checklist Item (Process Control)**: Every PR template requires explicit confirmation of two items before merge:
+  1. _Mock-Replacement Verification_: If the PR claims to close an issue saying "replace mock", "implement real", or "wire live", both author and reviewer must confirm that the specific mock pattern (e.g. `Math.random()` fake hash, in-memory mock state mutation, unused signer parameter, `MOCK_*` array stub) is completely removed in the diff.
+  2. _Linked-Issue Behavior Verification_: Reviewers must verify that the actual behavior change described in the linked issue is present in the PR diff, not just that CI is green.
+- **Authors:** only use `Closes` for issues the diff fully resolves. Use `Refs #…` for partial work, and state explicitly in the description which sub-claims remain open.
 - **Reviewers:** check which checks actually ran on the PR. A PR with no test workflow in its checks list has no CI signal.
 - For contract-integration functions, record the function as `'real'` using the mock-backing detection helper ([docs/testing.md → Mock-backing detection](docs/testing.md#mock-backing-detection)).
-- If the PR changes a status doc (e.g. `docs/contract-integration-status.md`), the doc and the `Closes` lines must agree. If the doc still says **Stubbed**, the issue stays open.
+- If the PR changes a status doc (e.g. `docs/contract-integration-status.md` or `docs/mock-inventory.md`), the doc and the `Closes` lines must agree. If the doc still says **Stubbed** or **Mock**, the issue stays open.
+
+### Issue and PR Title Conventions (Implementation vs. Planning/Documentation)
+
+Issue titles like "Replace X mock with live integration" read as done-when-closed, which caused severe confusion when closed by planning or documentation PRs. All contributors and maintainers must adhere to the following title conventions (Issue #855):
+
+| Category            | Allowed Title Prefixes / Verbs                                                               | Usage Guidelines & Merge Requirements                                                                                                                                            | Examples                                                                                                                    |
+| :------------------ | :------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| **Implementation**  | `feat:`, `fix:`, `Implement real <X>`, `Replace <X> mock with on-chain <Y>`, `Wire live <X>` | **Only** for PRs and issues delivering actual runtime code changes. May only be closed when the mock is completely removed from the production codebase and verified with tests. | `feat(governance): implement real castVote transaction signing`, `fix: replace lookupToken mock with live Soroban RPC read` |
+| **Planning & Spec** | `plan:`, `spec:`, `rfc:`, `Design <X>`, `Architecture for <X>`                               | For architectural designs, ADRs, sequence diagrams, and interface planning. **Never** use "Replace..." or "Wire..." in a planning issue title.                                   | `plan: design Soroban batch transaction signing architecture`, `spec: multi-token liquidity pool error handling`            |
+| **Documentation**   | `docs:`, `Document <X>`, `Update <X> guide`                                                  | For updating guides, API references, or status trackers.                                                                                                                         | `docs: document governance contract integration status`, `docs: update deployment runbook for testnet`                      |
+| **Audit & Triage**  | `audit:`, `triage:`, `Audit <X> for <Y>`                                                     | For surveys, static analysis, gap analysis, and incident retrospectives. The deliverable is a report doc or inventory, not the fix itself.                                       | `audit: review closed mock-replacement issues for regressions`, `audit: check as-any cast occurrences in components`        |
+| **Tracking / Epic** | `tracking:`, `epic:`, `[Epic] <X>`                                                           | Umbrella issues grouping multiple sub-tasks. Must **not** be closed via keyword by a PR resolving only a subset of child issues.                                                 | `tracking: governance live contract integration suite`, `epic: mainnet launch security controls`                            |
+
+These conventions apply to all new issues and PRs going forward and are referenced by this hardening batch (#853–#856).
 
 ### PR Description Template
 
@@ -462,6 +479,8 @@ Add screenshots for UI changes
 - [ ] Documentation updated
 - [ ] No new warnings generated
 - [ ] All tests passing
+- [ ] Mock-replacement verification completed (if applicable)
+- [ ] Linked-issue behavior verified in diff
 ```
 
 ## Internationalization (i18n)
