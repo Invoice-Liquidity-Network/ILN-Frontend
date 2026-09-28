@@ -155,7 +155,7 @@ Before pushing a branch or opening a PR, run:
 pnpm run verify
 ```
 
-This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
+This runs the same checks as CI, in the same order, in a single command: `lint` → `env:check` → `i18n:check` → `format:check` → `tsc --noEmit` → `test`. A passing `pnpm run verify` locally means the CI `lint` and `tests` jobs will pass too, so use it instead of running each check separately to avoid round-trips on avoidable CI failures.
 
 ### Issue and PR Assignment Policy
 
@@ -168,6 +168,66 @@ The thresholds and message text are configurable through the workflow inputs and
 Issues that are assigned to a contributor are expected to move forward promptly. If an issue remains assigned without a linked PR update for 7 days, the repository automation will post a reminder comment. If the issue still shows no linked PR activity after 14 days, the assignee is automatically removed so the issue can be claimed by someone else.
 
 The thresholds and message text are configurable through the workflow inputs and repository variables used by [.github/workflows/stale-assignments.yml](.github/workflows/stale-assignments.yml). Contributors should keep assignments current, open or update a linked PR early, and unassign themselves if they can no longer work on the issue.
+
+### Before Proposing Architecture Changes
+
+Read [docs/architecture.md](docs/architecture.md) first. Some questions have already been decided, and reopening one without that context wastes review time:
+
+- **GraphQL**: the frontend reads data over REST, Soroban RPC, Horizon, and the indexer's REST/WebSocket endpoints. The decision to adopt, defer, or drop GraphQL is made in [#929](https://github.com/Invoice-Liquidity-Network/ILN-Frontend/issues/929) and recorded in the status section of [docs/graphql-query-guidelines.md](docs/graphql-query-guidelines.md). Read both before proposing a GraphQL client or layer.
+
+### Data Fetching and React Query Architecture
+
+For full architectural specifications, key factories, caching defaults, and mutation patterns, consult the canonical **[Data-Fetching Architecture Guide](docs/data-fetching-architecture.md)** and **[Architecture Overview](docs/architecture.md)**.
+
+To ensure consistent caching, loading states, and bundle efficiency across the application:
+
+1. **Centralized Query Hooks**:
+   All contract data and network fetching logic must be encapsulated inside custom React Query hooks under `src/hooks/queries/` (or `src/hooks/`).
+
+   - Direct `fetch()` calls and direct `useQueryClient` / `QueryClient` usage are **disallowed** inside UI component files (`src/components`, `src/screens`, `src/app`).
+   - An ESLint rule in `eslint.config.mjs` flags direct `fetch` and `useQueryClient` imports/usages in component files outside `src/hooks`.
+
+2. **Shared Default Query Configuration**:
+   All query hooks build on `DEFAULT_QUERY_CONFIG` / `createQueryConfig` exported from `src/hooks/queries/defaultConfig`:
+
+   - `staleTime`: Default 30,000ms (30 seconds)
+   - `gcTime`: Default 5 minutes (300,000ms)
+   - `refetchOnWindowFocus`: Default `false`
+   - `retry`: Default `2`
+
+   Documented per-hook overrides (such as custom `staleTime` or `refetchInterval`) are permitted via `createQueryConfig({ ... })` when genuinely justified by data volatility.
+
+3. **Exception Process**:
+   In rare cases where direct `fetch` or `useQueryClient` is genuinely required inside a component (e.g. an isolated user feedback form submission or app-level reconnect banner):
+   - Add an inline ESLint disable comment above the line:
+     ```typescript
+     // eslint-disable-next-line no-restricted-syntax, no-restricted-imports -- Legacy inline exception or client-only action
+     ```
+   - Provide a concise comment documenting why a custom hook in `src/hooks/queries` was not used.
+
+### Type Safety: `as any` Casts
+
+Bare `as any` casts silently defeat TypeScript and were the source of a 60+ instance backlog (see #908, #909, #910, #911). New unjustified casts are blocked by the custom `local/require-as-any-justification` ESLint rule in `eslint.config.mjs` (backed by `eslint-rules/require-as-any-justification.mjs`).
+
+1. **Prefer a real type first.** Before reaching for `as any`:
+   - Extend the domain interface (e.g. add an optional field such as `Invoice.whitelist` or `last_activity_ledger` instead of casting around its absence).
+   - Narrow `unknown` payloads (Soroban `scValToNative` results, Horizon event topics) with `typeof` / `in` checks and `Record<string, unknown>`.
+   - Model optional third-party surface explicitly (e.g. `FreighterWindow`, `TokenAvailability`) and use `as unknown as T` for stubs rather than `as any`.
+2. **If the cast is genuinely unavoidable** (a real third-party type gap such as an untyped `@stellar/freighter-api` experimental method or a `recharts` tooltip formatter signature), document it with a justification comment on the **immediately preceding line**:
+
+   ```typescript
+   // as-any justification: @stellar/freighter-api does not type the
+   // experimental `addTrustline` wallet method, so we cast the module
+   // namespace to reach it. Remove once upstream types include it.
+   // See https://github.com/stellar/freighter/issues/...
+   await (freighter as any).addTrustline?.({
+     assetCode: token.symbol,
+     assetIssuer: token.contractId,
+   });
+   ```
+
+   The comment must state the specific type-system limitation and, where one exists, link the upstream issue/type-definition gap. The lint rule errors when this comment is missing.
+3. **Scope:** the rule is `error` in production code and `warn` in tests/stories/`__tests__` (test doubles and DOM stubs legitimately need loose casts). Keep test casts minimal and typed where cheap to do so.
 
 ### Code Style and Formatting
 
@@ -334,7 +394,7 @@ This convention aligns with our commit message format and helps with changelog g
 
 1. **Code Quality**:
 
-   - Run `pnpm run verify` (lint, env:check, format:check, tsc --noEmit, test) and ensure it passes — this mirrors CI exactly
+   - Run `pnpm run verify` (lint, env:check, i18n:check, format:check, tsc --noEmit, test) and ensure it passes — this mirrors CI exactly
    - Run `npm run lint:fix` to fix all linting errors
    - Run `npm run format` to ensure consistent formatting
    - Ensure zero ESLint warnings
@@ -356,6 +416,18 @@ This convention aligns with our commit message format and helps with changelog g
    - Update relevant documentation (README, DESIGN.md, architecture docs)
    - Add comments for complex logic
    - Update TypeScript types if needed
+
+### Closing issues that claim a mock was replaced
+
+A merged PR's `Closes #…` keyword closes the issue whether or not the diff does what the issue says. Governance write paths were once closed as "live" while still returning `Math.random()` hashes. See the [governance mock-closure retrospective](docs/governance-mock-regression-retrospective.md) for what happened and what changed.
+
+When a PR closes an issue whose title says **replace**, **implement real**, **wire live** or similar:
+
+- **Authors:** only use `Closes` for issues the diff fully resolves. Use `Refs #…` for partial work, and say in the description which claims are still open.
+- **Authors and reviewers:** check that the specific mock pattern is gone from the diff: no `Math.random()`-derived hash, no `MOCK_*` array mutation, no unused `_signTx`/`_signerAddress` parameter, no leftover `TODO: Replace with actual…` comment.
+- **Reviewers:** check which checks actually ran on the PR. A PR with no test workflow in its checks list has no CI signal.
+- For contract-integration functions, record the function as `'real'` using the mock-backing detection helper ([docs/testing.md → Mock-backing detection](docs/testing.md#mock-backing-detection)).
+- If the PR changes a status doc (e.g. `docs/contract-integration-status.md`), the doc and the `Closes` lines must agree. If the doc still says **Stubbed**, the issue stays open.
 
 ### PR Description Template
 
@@ -468,6 +540,10 @@ ILN supports multiple languages using i18next. All user-facing strings must be e
 
    supportedLngs: ["en", "es", "[locale]"],
    ```
+
+Then run `pnpm run i18n:check` to confirm the new locale has exactly the same keys as English. CI runs the same check and fails on any missing or extra key.
+
+See the [locale expansion plan](docs/i18n.md#locale-expansion-plan) for how the next locale is chosen and who owns its translations.
 
 ### i18n Configuration
 
@@ -821,6 +897,7 @@ To maintain effective Wave throughput and ensure issues don't get claimed and ab
 The stale assignment bot runs daily and monitors assigned issues:
 
 1. **Warning Stage (7 days of inactivity)**
+
    - If an issue has been assigned for 7+ days with no linked PR activity, a warning comment is added
    - The issue is labeled with `stale-assignment-warning`
    - The assignee is notified with instructions to either:
@@ -836,6 +913,7 @@ The stale assignment bot runs daily and monitors assigned issues:
 ### Configuration
 
 The timeout periods are configurable in `.github/workflows/stale-assignments.yml`:
+
 - `WARNING_DAYS`: Days before warning comment (default: 7)
 - `RECLAIM_DAYS`: Days before unassignment (default: 14)
 

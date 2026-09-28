@@ -16,7 +16,13 @@ const smokeRoutes = [
 test.describe('Live testnet smoke checks', () => {
   for (const route of smokeRoutes) {
     test(`renders ${route.name} without crashing`, async ({ page }) => {
-      await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      // A 404 here means the route is missing from the live deployment (for example a stale
+      // build that predates the route), not that the page failed to render.
+      expect(
+        response?.status(),
+        `${route.path} returned HTTP ${response?.status()}; redeploy the testnet build if the route exists in the code`
+      ).toBeLessThan(400);
       await expect(page.getByRole('main').first()).toBeVisible({ timeout: 20000 });
 
       const heading = page.locator('h1, h2').filter({ hasText: route.headingPattern }).first();

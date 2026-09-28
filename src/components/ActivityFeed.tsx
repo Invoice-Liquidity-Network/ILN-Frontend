@@ -283,6 +283,7 @@ export default function ActivityFeed({ invoiceId }: ActivityFeedProps) {
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
+      // eslint-disable-next-line no-restricted-globals, no-restricted-syntax -- Legacy inline exception pending query hook migration
       const res = await fetch(`${INDEXER_API_BASE}/invoice/${invoiceId}/events`, {
         cache: 'no-store',
       });

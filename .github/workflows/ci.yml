@@ -65,8 +65,14 @@ jobs:
       - name: Check env example sync
         run: pnpm run env:check
 
+      - name: Check for unfilled placeholders in docs
+        run: pnpm run docs:check-placeholders
+
       - name: Check configuration drift
         run: pnpm run env:drift-check
+
+      - name: Check locale key parity
+        run: pnpm run i18n:check
 
       - name: Check formatting with Prettier
         run: pnpm run format:check

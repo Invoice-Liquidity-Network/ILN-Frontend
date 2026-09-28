@@ -1,18 +1,21 @@
 # GraphQL Query Guidelines
 
-This document provides guidelines for implementing GraphQL queries in the frontend if/when the indexer's GraphQL endpoint is adopted.
+> Roadmap decision (2026-09-26): **Active adoption scoped strictly to designated target (Marketplace Analytics & Multi-Entity Activity Feed); general frontend adoption outside this scoped target remains restricted.**
+
+This document details the authoritative rules, limits, and architectural scope for GraphQL query adoption across the frontend. General adoption remains restricted; GraphQL usage is approved solely for the concrete scoped integration target defined in this document (see [Scoped Initial Integration Target](#scoped-initial-integration-target-issue-931)).
 
 ## Current Status
 
-As of this writing, the frontend uses REST API endpoints exclusively:
+The frontend currently uses REST API endpoints, Soroban RPC, Horizon, Supabase, and indexer REST/WebSocket endpoints for core protocol flows:
 
 - `/api/stats` - Protocol statistics
 - `/api/leaderboard` - Rankings and leaderboard data
 - `/api/invoices` - Invoice listings for marketplace
 - `/api/notifications` - User notification data
-- Indexer REST endpoints for invoice events and protocol feed
+- Indexer REST/WebSocket endpoints for invoice events and protocol feed
 
-GraphQL is mentioned in the roadmap as a planned feature for third-party integrations but is not currently used by the frontend.
+Per the finalized roadmap decision, GraphQL adoption is active but strictly scoped to the single concrete integration target (**Marketplace Activity & Aggregate Analytics Feed**). Any additional GraphQL queries or endpoints outside of this scoped target require explicit architecture review, a versioned indexer schema, and staging performance validation.
+
 
 ## Indexer Query Complexity Limits
 
@@ -256,6 +259,56 @@ If migrating existing REST endpoints to GraphQL:
 6. Remove REST fallback only after GraphQL proven stable
 7. Update documentation to reflect new data fetching pattern
 
+## Scoped Initial Integration Target (Issue #931)
+
+If active adoption of GraphQL is decided for the protocol, the initial integration must be strictly scoped to a single concrete use case to avoid unused infrastructure.
+
+### 1. Concrete Data-Fetching Use Case
+
+**Marketplace Activity & Aggregate Analytics Feed (`MarketplaceActivityFeed`)**
+
+- **Problem with Existing Patterns**: Rendering the composite marketplace activity feed currently requires multiple REST and RPC calls (`/api/invoices`, `/api/payer-score`, and indexer event logs), leading to sequential network roundtrips, N+1 client-side joins, and over-fetching of unused metadata.
+- **GraphQL Value Proposition**: GraphQL enables retrieving the composite entity graph (Invoice + Payer Reputation + Recent Event Logs) in a single optimized request with field-level selection, eliminating over-fetching and multi-request latency.
+
+### 2. Scoped Integration Boundaries
+
+- **Client Library Choice**: `@urql/core` or `graphql-request` lightweight fetcher integrated directly into TanStack Query (`src/hooks/queries/`). This preserves canonical React Query patterns (key factories in `src/hooks/queries/keys.ts` and `QUERY_TIMINGS`) while avoiding heavyweight Apollo Client dependencies.
+- **Schema Shape**:
+  ```graphql
+  query GetMarketplaceActivityFeed($first: Int!, $after: String) {
+    marketplaceActivity(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          amount
+          token
+          status
+          payer {
+            address
+            reputationScore
+            riskTier
+          }
+          events(first: 5) {
+            eventType
+            timestamp
+            transactionHash
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+  ```
+- **Proof-of-Concept Target Component**: `src/components/marketplace/MarketplaceActivityFeed.tsx`.
+
+### 3. Seed Implementation Issue
+
+Actual implementation is explicitly out of scope for Issue #931. Implementation will be tracked under seed issue **#935** (*"Implement GraphQL Marketplace Activity Feed proof-of-concept"*).
+
 ## Cross-Reference
 
 - **Architecture**: docs/architecture.md Backend Service Dependency Map
@@ -263,3 +316,4 @@ If migrating existing REST endpoints to GraphQL:
 - **Testing**: **tests**/graphql-query-complexity-compatibility.test.ts
 - **E2E Tests**: e2e/graphql-query-complexity-verification.spec.ts
 - **Indexer Limits**: Indexer repository Issue 84 for authoritative limit values
+

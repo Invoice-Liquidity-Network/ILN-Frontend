@@ -16,6 +16,7 @@ Complete every item below before the first mainnet cutover deploy.
 - [ ] A dry run has been performed against a Vercel preview deployment configured with mainnet-shaped (but not
       live) parameters - see [Section 4](#4-dry-run-procedure).
 - [ ] Feature flag defaults for launch have been reviewed and signed off - see [Section 5](#5-feature-flag-cutover-defaults).
+- [ ] Ensure no bracketed placeholder fields remain in public-facing documentation.
 - [ ] DNS security hardening has been verified and documented - see [Section 8](#8-dns-security-hardening-verification).
 
 ## 2. Environment variable cutover checklist

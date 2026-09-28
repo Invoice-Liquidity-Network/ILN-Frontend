@@ -144,6 +144,16 @@ ANALYZE=true pnpm run build
 
 Bundle size baselines are saved as workflow artifacts named `bundle-size-<sha>` on every push to `main` or `develop`. Maintainers can compare artifacts across commits to visualize trends.
 
+### Payer & Reputation Query Consolidation Metrics
+
+- **Before Consolidation Baseline**: ~5.57 MB total JS/CSS bundle size.
+- **After Consolidation Result**:
+  - JS Chunks (`.next/static/chunks/**/*.js`): 5,709,134 bytes (5,575 KB / 5.44 MB)
+  - CSS (`.next/static/css/**/*.css`): 131,275 bytes (128 KB)
+  - **Total (JS + CSS)**: **5,840,409 bytes (5,703 KB / 5.57 MB)**
+- **Budget Tracking**: 5,703 KB vs **6,656 KB (6.5 MB)** budget.
+- **Status**: ✅ **Within Budget** (85.7% of budget, >950 KB remaining capacity). No size regression found; component duplication reduced and loading state consistency improved.
+
 A future enhancement would integrate a dedicated service (e.g., [bundlewatch.io](https://bundlewatch.io) or [relative-ci.com](https://relative-ci.com)) for automated delta tracking across branches. For now, the manual comparison via artifacts is sufficient.
 
 ## Cumulative Batch Check — Final SCF/MAINNET Frontend Readiness Sign-off (#120)
