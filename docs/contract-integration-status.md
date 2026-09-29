@@ -30,7 +30,8 @@ This document tracks the integration status of Soroban smart contracts within th
 | **Other**      | `getReputation` / `getPayerScore`                                                                                          | **Real**     | `src/utils/soroban.ts`           | Fully integrated.                                                                                                                                                                     |
 | **Reputation** | `getReputationEvents`, `getTopFreelancers`, `getTopLPs`                                                                    | **Derived**  | `src/utils/soroban.ts`           | No direct on-chain entry points; tolerant alias chains with defaults. Consumers treat empty results gracefully.                                                                       |
 | **Governance** | `getProposals`                                                                                                             | **Real**     | `src/utils/governance.ts`        | Fully integrated with deployed `iln_governance` contract `list_proposals()`.                                                                                                          |
-| **Governance** | `castVote` / `delegateVotingPower` / `createProposal` / `getGovTokenBalance` / `getQuorumThreshold` / `getProposalHistory` | **Stubbed**  | `src/utils/governance.ts`        | Mock implementations; need governance contract deployment.                                                                                                                            |
+| **Governance** | `delegateVotingPower`                                                                                                      | **Deferred** | `src/components/governance/DelegationPanel.tsx` | No `iln_governance` specification or delegate instruction is present in the backend repository; current UI delegation actions are local transaction mocks.                             |
+| **Governance** | `castVote` / `createProposal` / `getGovTokenBalance` / `getQuorumThreshold` / `getProposalHistory`                         | **Stubbed**  | `src/utils/governance.ts`        | Mock implementations; need governance contract deployment.                                                                                                                            |
 
 ## Details of Deferred / Derived Code & TODO Markers
 
@@ -63,9 +64,15 @@ There is no `list_invoices_by_payer` entry point in the current ABI. The direct 
 Stubs in `src/utils/governance.ts` marked with `TODO` comments:
 
 - `castVote` (line 264)
-- `delegateVotingPower` (line 286)
 - `getGovTokenBalance` (line 326)
 - `getQuorumThreshold` (line 427)
 - `getProposalHistory` (line 444)
 - `createProposal` (line 491)
 - `ParameterUpdated` event logs subscription (line 625)
+
+### 5. Vote Delegation — Backend-Blocked
+
+The backend repository contains no `iln_governance` contract specification or ADR, and no delegate instruction (`delegate_voting_power` or equivalent) is present in its contract sources or API artifacts. The frontend therefore has no verified on-chain interface to build a delegation transaction against. `DelegationPanel` currently passes fabricated transaction hashes to its execution handler, while `getDelegationInfo` returns hardcoded example addresses and randomized incoming delegation values.
+
+- **Status:** Deferred, following the `updateLPWhitelist` precedent above. Delegation is not a live contract integration.
+- **Action Needed:** Once the backend publishes the `iln_governance` interface and deployment details, implement and test the matching transaction and replace the mock delegation reads and UI actions.
