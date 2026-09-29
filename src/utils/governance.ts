@@ -545,12 +545,12 @@ export async function getVotingPower(address: string): Promise<number> {
       buildTokenReadTransaction(ILN_TOKEN_CONTRACT_ID, 'balance', params)
     );
     if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) {
-      return 1250;
+      return 0;
     }
     const balance = BigInt(scValToNative(callResult.result.retval));
     return Number(balance);
   } catch {
-    return 1250;
+    return 0;
   }
 }
 
@@ -651,13 +651,69 @@ const MOCK_PROTOCOL_PARAMS: ProtocolParameters = {
   quorumThresholdBps: 1000, // 10%
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseProtocolParametersFromNative(native: any): ProtocolParameters {
+  if (!native || typeof native !== 'object') {
+    return { ...MOCK_PROTOCOL_PARAMS };
+  }
+
+  const rawTokens = native.accepted_tokens ?? native.acceptedTokens ?? [];
+  const acceptedTokens: AcceptedToken[] = Array.isArray(rawTokens)
+    ? rawTokens.map((t: any) => {
+        if (typeof t === 'string') {
+          return { address: t, name: t, symbol: t };
+        }
+        return {
+          address: String(t.address ?? t[0] ?? ''),
+          name: String(t.name ?? t[1] ?? t.address ?? ''),
+          symbol: String(t.symbol ?? t[2] ?? t.name ?? ''),
+        };
+      })
+    : MOCK_PROTOCOL_PARAMS.acceptedTokens;
+
+  return {
+    feeRateBps: Number(native.fee_rate_bps ?? native.feeRateBps ?? MOCK_PROTOCOL_PARAMS.feeRateBps),
+    maxDiscountRateBps: Number(
+      native.max_discount_rate_bps ??
+        native.maxDiscountRateBps ??
+        MOCK_PROTOCOL_PARAMS.maxDiscountRateBps
+    ),
+    acceptedTokens:
+      acceptedTokens.length > 0 ? acceptedTokens : MOCK_PROTOCOL_PARAMS.acceptedTokens,
+    minProposalILN: Number(
+      native.min_proposal_iln ??
+        native.min_proposal_balance ??
+        native.minProposalILN ??
+        MOCK_PROTOCOL_PARAMS.minProposalILN
+    ),
+    quorumThresholdBps: Number(
+      native.quorum_threshold_bps ??
+        native.quorumThresholdBps ??
+        MOCK_PROTOCOL_PARAMS.quorumThresholdBps
+    ),
+  };
+}
+
 /**
- * Fetch current on-chain protocol parameters.
- * TODO: Replace with actual Soroban read-only calls once governance contract is deployed.
- * Ref: #111
+ * Fetch current on-chain protocol parameters from the governance contract.
+ * Simulates a read-only invocation of `get_protocol_parameters`.
+ * Falls back to MOCK_PROTOCOL_PARAMS with a warning if the contract call fails.
  */
 export async function fetchProtocolParameters(): Promise<ProtocolParameters> {
-  await new Promise((r) => setTimeout(r, 400));
+  try {
+    const tx = buildGovernanceReadTransaction('get_protocol_parameters');
+    const callResult = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(callResult) && callResult.result?.retval) {
+      const native = scValToNative(callResult.result.retval);
+      return parseProtocolParametersFromNative(native);
+    }
+  } catch (err) {
+    console.warn(
+      'iln_governance get_protocol_parameters contract call failed, falling back to mock protocol parameters:',
+      err
+    );
+  }
+
   return { ...MOCK_PROTOCOL_PARAMS };
 }
 

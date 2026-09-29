@@ -61,16 +61,16 @@ Status as of this document's publication. Update the table as items land. An ite
 
 ### Replace the mocks
 
-| Function / surface               | Issue | Status                                                     |
-| :------------------------------- | :---- | :--------------------------------------------------------- |
-| `castVote`                       | #839  | Open — still mock-backed                                   |
-| `executeProposal`                | #840  | Open — still mock-backed                                   |
-| `createProposal`                 | #841  | Open — still mock-backed                                   |
-| `DelegationPanel` fake data      | #843  | Open                                                       |
-| `fetchProtocolParameters`        | #844  | Open — still returns constants                             |
-| `lookupToken`                    | #845  | Open — still returns a hard-coded table                    |
-| "Not yet live" UI indicator      | #850  | Open — interim user-facing mitigation until #839–#841 land |
-| Other unused `_`-prefixed params | #851  | Open                                                       |
+| Function / surface               | Issue | Status                                                                  |
+| :------------------------------- | :---- | :---------------------------------------------------------------------- |
+| `castVote`                       | #839  | Open — still mock-backed                                                |
+| `executeProposal`                | #840  | Open — still mock-backed                                                |
+| `createProposal`                 | #841  | Open — still mock-backed                                                |
+| `DelegationPanel` fake data      | #843  | Open                                                                    |
+| `fetchProtocolParameters`        | #844  | Done — replaced with real Soroban read call (`get_protocol_parameters`) |
+| `lookupToken`                    | #845  | Open — still returns a hard-coded table                                 |
+| "Not yet live" UI indicator      | #850  | Open — interim user-facing mitigation until #839–#841 land              |
+| Other unused `_`-prefixed params | #851  | Open                                                                    |
 
 ### Detection (make the regression fail automatically)
 
