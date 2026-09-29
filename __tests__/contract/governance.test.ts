@@ -12,6 +12,7 @@ import {
   getProposals,
   fetchProposal,
   fetchProtocolParameters,
+  parseProtocolParametersFromNative,
   getVotingPower,
   getUserVote,
   totalVotes,
@@ -434,12 +435,50 @@ describe('governance – getVotingPower', () => {
 });
 
 describe('governance – fetchProtocolParameters', () => {
-  it('returns protocol parameters with expected shape', async () => {
-    vi.useFakeTimers();
-    const p = fetchProtocolParameters();
-    vi.runAllTimers();
-    const params = await p;
-    vi.useRealTimers();
+  it('returns protocol parameters from Soroban simulation on success', async () => {
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockResolvedValueOnce({
+        error: undefined,
+        transactionData: {} as any,
+        minResourceFee: '100',
+        events: [],
+        result: {
+          retval: nativeToScVal({
+            fee_rate_bps: 75,
+            max_discount_rate_bps: 600,
+            accepted_tokens: [
+              {
+                address: 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75',
+                name: 'USD Coin',
+                symbol: 'USDC',
+              },
+            ],
+            min_proposal_iln: 1000,
+            quorum_threshold_bps: 1200,
+          }),
+        },
+      } as any);
+
+    const params = await fetchProtocolParameters();
+    mockSimulate.mockRestore();
+
+    expect(params.feeRateBps).toBe(75);
+    expect(params.maxDiscountRateBps).toBe(600);
+    expect(params.acceptedTokens.length).toBe(1);
+    expect(params.acceptedTokens[0].symbol).toBe('USDC');
+    expect(params.minProposalILN).toBe(1000);
+    expect(params.quorumThresholdBps).toBe(1200);
+  });
+
+  it('falls back to mock protocol parameters when simulation fails', async () => {
+    const mockSimulate = vi
+      .spyOn(rpc.Server.prototype, 'simulateTransaction')
+      .mockRejectedValueOnce(new Error('RPC down'));
+
+    const params = await fetchProtocolParameters();
+    mockSimulate.mockRestore();
+
     expect(params).toHaveProperty('feeRateBps');
     expect(params).toHaveProperty('maxDiscountRateBps');
     expect(params).toHaveProperty('acceptedTokens');
@@ -607,6 +646,6 @@ describe('governance – mock-backing detection', () => {
       identify: () => undefined,
       boundaries: { network: combineRecorders(simulate, fetchSpy) },
     });
-    expectMockBackingStatus('fetchProtocolParameters', report, 'mock');
+    expectMockBackingStatus('fetchProtocolParameters', report, 'real');
   });
 });
