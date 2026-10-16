@@ -13,23 +13,15 @@ import {
   type TooltipProps,
 } from 'recharts';
 import {
-  fetchDefaultRateData,
-  type MonthlyDefaultBucket,
-} from '@/lib/indexerClient';
-import {
   calculateMovingAverage,
+  MonthlyDefaultBucket,
   MonthlyDefaultWithMA,
 } from '@/utils/defaultRate';
+import { fetchDefaultRate } from '@/lib/indexer';
 import IndexerUnavailableNotice, {
   shouldUseDevMockFallback,
-  type IndexerNoticeStatus,
 } from '@/components/IndexerUnavailableNotice';
 import DataSourceCaption from '@/components/DataSourceCaption';
-import {
-  fetchDefaultAnalytics,
-  classifyIndexerClientError,
-  isAbortError,
-} from '@/lib/indexer-client';
 
 const CHART_TICK_STYLE = {
   fill: 'var(--color-on-surface-variant, #94a3b8)',
@@ -108,26 +100,20 @@ export default function DefaultRateChart() {
   const [chartData, setChartData] = useState<MonthlyDefaultWithMA[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
-  const [errorStatus, setErrorStatus] = useState<IndexerNoticeStatus>('unavailable');
   const [requestId, setRequestId] = useState(0);
 
-  const fetchData = useCallback(async (signal?: AbortSignal) => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setUnavailable(false);
     try {
-      // Use centralized indexer client - single authoritative boundary
-      // with explicit schema validation and typed response
-      const monthlyData = await fetchDefaultRateData();
-      const withMA = calculateMovingAverage(monthlyData, 1);
-      setChartData(withMA);
-    } catch (error) {
-      console.error('[DefaultRateChart] Failed to fetch data:', error);
-      const withMA = await fetchDefaultAnalytics('12m', { signal });
-      setChartData(withMA);
-    } catch (err) {
-      if (isAbortError(err)) {
-        return;
+      const result = await fetchDefaultRate('12m');
+      if (result.unavailable || result.error || !result.data) {
+        throw new Error('Failed to fetch default rate');
       }
+      const json = result.data;
+      const withMA = calculateMovingAverage(json.monthly || json, 1);
+      setChartData(withMA);
+    } catch {
       // Only substitute demo data in development; otherwise show an honest
       // "temporarily unavailable" state instead of fabricating metrics.
       if (shouldUseDevMockFallback()) {
@@ -135,12 +121,6 @@ export default function DefaultRateChart() {
         const withMA = calculateMovingAverage(mockData, 1);
         setChartData(withMA);
       } else {
-        const boundary = classifyIndexerClientError(err);
-        setErrorStatus(
-          boundary === 'rate-limited' || boundary === 'unauthorized' || boundary === 'malformed'
-            ? boundary
-            : 'unavailable'
-        );
         setChartData([]);
         setUnavailable(true);
       }
@@ -150,12 +130,8 @@ export default function DefaultRateChart() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initial chart load on mount/retry.
-    void fetchData(controller.signal);
-    return () => {
-      controller.abort();
-    };
+    void fetchData();
   }, [requestId, fetchData]);
 
   const currentRate = useMemo(() => {
@@ -230,7 +206,6 @@ export default function DefaultRateChart() {
           <div className="flex h-full items-center">
             <IndexerUnavailableNotice
               dataSource="Default-rate history"
-              status={errorStatus}
               onRetry={() => setRequestId((id) => id + 1)}
             />
           </div>
