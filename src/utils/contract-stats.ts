@@ -3,6 +3,8 @@ import { fetchProtocolParameters } from '@/utils/governance';
 import { TESTNET_USDC_TOKEN_ID, TESTNET_EURC_TOKEN_ID, TESTNET_XLM_TOKEN_ID } from '@/constants';
 import { fetchProtocolContractEvents } from '@/lib/fetch-protocol-contract-events';
 import { computeDisputeRateMetrics, type DisputeRateMetrics } from '@/utils/dispute-rate';
+import type { MetricProvenance } from '@/utils/financial-metrics';
+import { toWholeUnits } from '@/utils/financial-metrics';
 
 const FUNDED_STATUSES = new Set(['Funded', 'PartiallyFunded', 'Paid', 'Defaulted']);
 
@@ -39,6 +41,7 @@ export interface ContractStats {
   volume_by_token: TokenVolume[];
   daily_volume: DailyVolumeBucket[];
   dispute_rate: DisputeRateMetrics;
+  provenance?: MetricProvenance;
 }
 
 interface TokenInfo {
@@ -64,7 +67,7 @@ function getTokenInfo(tokenId: string | undefined): TokenInfo {
 }
 
 function toUsd(amount: bigint, decimals: number, usdRate: number): number {
-  return (Number(amount) / 10 ** decimals) * usdRate;
+  return toWholeUnits(amount, decimals) * usdRate;
 }
 
 export function buildHistoricalVolume(invoices: Invoice[], days: number): DailyVolumeBucket[] {
@@ -90,7 +93,7 @@ export function buildHistoricalVolume(invoices: Invoice[], days: number): DailyV
 
     const { symbol, decimals, usdRate } = getTokenInfo(invoice.token);
     const usd = toUsd(invoice.amount, decimals, usdRate);
-    const whole = Number(invoice.amount) / 10 ** decimals;
+    const whole = toWholeUnits(invoice.amount, decimals);
     bucket.volume_usd += usd;
     if (symbol === 'USDC') bucket.usdc += whole;
     else if (symbol === 'EURC') bucket.eurc += whole;
@@ -121,7 +124,7 @@ export async function get_contract_stats(): Promise<ContractStats> {
       total_funded++;
       const { symbol, decimals, usdRate } = getTokenInfo(invoice.token);
       const usd = toUsd(invoice.amount, decimals, usdRate);
-      const whole = Number(invoice.amount) / 10 ** decimals;
+      const whole = toWholeUnits(invoice.amount, decimals);
       total_volume_usd += usd;
       if (!rawVolumes[symbol]) rawVolumes[symbol] = { amount_raw: 0, amount_usd: 0 };
       rawVolumes[symbol].amount_raw += whole;
@@ -157,5 +160,11 @@ export async function get_contract_stats(): Promise<ContractStats> {
     volume_by_token,
     daily_volume: buildHistoricalVolume(invoices, 90),
     dispute_rate: computeDisputeRateMetrics(contractEvents),
+    provenance: {
+      source: 'derived',
+      asOf: new Date().toISOString(),
+      unit: 'USD-equivalent; token amounts normalized before aggregation',
+      staleAfterMs: 5 * 60 * 1000,
+    },
   };
 }
