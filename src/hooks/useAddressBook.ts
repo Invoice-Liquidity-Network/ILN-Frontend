@@ -1,6 +1,13 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { isValidStellarAddress } from '@/utils/governance';
+import { getConfiguredStellarNetwork } from '@/utils/network';
+import {
+  getWalletStorageKey,
+  readWalletRecord,
+  writeWalletRecord,
+  type WalletStorageError,
+} from '@/utils/walletStorage';
 
 export interface AddressBookEntry {
   id: string;
@@ -18,7 +25,7 @@ export type AddressBookError =
 /** Discriminated result from operations that can fail. */
 export type AddressBookResult = { ok: true } | { ok: false; error: AddressBookError };
 
-const STORAGE_KEY_PREFIX = 'iln-address-book-';
+const STORAGE_RECORD_TYPE = 'address-book';
 
 // Date.now() alone collides for entries created within the same millisecond,
 // which made deleteAddress() remove every entry added in the same tick.
@@ -26,56 +33,66 @@ function createEntryId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/**
- * Attempt to persist the address book to localStorage.
- * Returns true on success, false if the write throws (e.g. storage full,
- * private-browsing quota, or a test-injected failure).
- */
-function tryPersist(key: string, entries: AddressBookEntry[]): boolean {
-  try {
-    localStorage.setItem(key, JSON.stringify(entries));
-    return true;
-  } catch (e) {
-    console.error('Failed to persist address book to localStorage', e);
-    return false;
-  }
+/** Reject well-formed envelopes whose payload is not a minimal address book. */
+function isAddressBook(value: unknown): value is AddressBookEntry[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 50 &&
+    value.every(
+      (entry) =>
+        entry !== null &&
+        typeof entry === 'object' &&
+        typeof (entry as AddressBookEntry).id === 'string' &&
+        typeof (entry as AddressBookEntry).address === 'string' &&
+        typeof (entry as AddressBookEntry).nickname === 'string'
+    )
+  );
 }
 
 export default function useAddressBook() {
   const { address: walletAddress } = useWallet();
   const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
-  // Skips the save that runs immediately after a (re)load, so the freshly
-  // mounted empty state never overwrites what is already in localStorage.
-  const skipNextSaveRef = useRef(true);
+  const [storageStatus, setStorageStatus] = useState<'loading' | 'ready' | 'recovered'>('loading');
+  const [storageError, setStorageError] = useState<WalletStorageError | null>(null);
+  const network = getConfiguredStellarNetwork();
 
   useEffect(() => {
-    skipNextSaveRef.current = true;
-
+    setStorageStatus('loading');
+    setStorageError(null);
     if (!walletAddress) {
       setAddressBook([]);
+      setStorageStatus('ready');
       return;
     }
-    const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${walletAddress}`);
-    if (stored) {
-      try {
-        setAddressBook(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to parse address book from localStorage', e);
-        setAddressBook([]);
-      }
+    const stored = readWalletRecord<AddressBookEntry[]>(STORAGE_RECORD_TYPE, walletAddress, {
+      network,
+    });
+    if (stored.status === 'found' && isAddressBook(stored.value)) {
+      setAddressBook(stored.value);
+      setStorageStatus('ready');
+      return;
+    }
+    if (stored.status === 'found') {
+      localStorage.removeItem(getWalletStorageKey(STORAGE_RECORD_TYPE, walletAddress, { network }));
+      setStorageError('CORRUPT_DATA');
+      setStorageStatus('recovered');
+    } else if (stored.status === 'recovered') {
+      setStorageError(stored.error);
+      setStorageStatus('recovered');
     } else {
-      setAddressBook([]);
+      setStorageStatus('ready');
     }
-  }, [walletAddress]);
+    setAddressBook([]);
+  }, [network, walletAddress]);
 
-  useEffect(() => {
-    if (skipNextSaveRef.current) {
-      skipNextSaveRef.current = false;
-      return;
-    }
-    // Persistence is handled explicitly by addAddress / updateAddress / deleteAddress
-    // so that callers receive a failure signal when the write fails.
-  }, [addressBook, walletAddress]);
+  const tryPersist = useCallback(
+    (entries: AddressBookEntry[]): boolean =>
+      Boolean(
+        walletAddress &&
+          writeWalletRecord(STORAGE_RECORD_TYPE, walletAddress, entries, { network }).ok
+      ),
+    [network, walletAddress]
+  );
 
   /**
    * Add a new entry.
@@ -99,15 +116,14 @@ export default function useAddressBook() {
       const next =
         addressBook.length >= 50 ? [...addressBook.slice(1), newEntry] : [...addressBook, newEntry];
 
-      const storageKey = `${STORAGE_KEY_PREFIX}${walletAddress}`;
-      if (walletAddress && !tryPersist(storageKey, next)) {
+      if (walletAddress && !tryPersist(next)) {
         return { ok: false, error: 'PERSIST_FAILED' };
       }
 
       setAddressBook(next);
       return { ok: true };
     },
-    [addressBook, walletAddress]
+    [addressBook, walletAddress, tryPersist]
   );
 
   /**
@@ -129,8 +145,7 @@ export default function useAddressBook() {
 
       const next = addressBook.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry));
 
-      const storageKey = `${STORAGE_KEY_PREFIX}${walletAddress}`;
-      if (walletAddress && !tryPersist(storageKey, next)) {
+      if (walletAddress && !tryPersist(next)) {
         // Do NOT update React state — UI stays consistent with what is on disk.
         return { ok: false, error: 'PERSIST_FAILED' };
       }
@@ -138,20 +153,19 @@ export default function useAddressBook() {
       setAddressBook(next);
       return { ok: true };
     },
-    [addressBook, walletAddress]
+    [addressBook, walletAddress, tryPersist]
   );
 
   const deleteAddress = useCallback(
-    (id: string) => {
-      setAddressBook((prev) => {
-        const next = prev.filter((entry) => entry.id !== id);
-        if (walletAddress) {
-          tryPersist(`${STORAGE_KEY_PREFIX}${walletAddress}`, next);
-        }
-        return next;
-      });
+    (id: string): AddressBookResult => {
+      const next = addressBook.filter((entry) => entry.id !== id);
+      if (walletAddress && !tryPersist(next)) {
+        return { ok: false, error: 'PERSIST_FAILED' };
+      }
+      setAddressBook(next);
+      return { ok: true };
     },
-    [walletAddress]
+    [addressBook, walletAddress, tryPersist]
   );
 
   const searchAddresses = useCallback(
@@ -173,5 +187,7 @@ export default function useAddressBook() {
     updateAddress,
     deleteAddress,
     searchAddresses,
+    storageStatus,
+    storageError,
   };
 }

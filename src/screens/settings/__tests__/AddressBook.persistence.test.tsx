@@ -9,12 +9,16 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddressBookPage from '../AddressBook';
+import { getConfiguredStellarNetwork } from '@/utils/network';
+import { getWalletStorageKey, writeWalletRecord } from '@/utils/walletStorage';
 
 // vi.mock is hoisted above module-level consts, so the address is hoisted too.
 const { TEST_WALLET } = vi.hoisted(() => ({
   TEST_WALLET: 'GDCXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXABCD',
 }));
-const STORAGE_KEY = `iln-address-book-${TEST_WALLET}`;
+const STORAGE_KEY = getWalletStorageKey('address-book', TEST_WALLET, {
+  network: getConfiguredStellarNetwork(),
+});
 
 vi.mock('@/context/WalletContext', () => ({
   useWallet: () => ({ address: TEST_WALLET }),
@@ -37,13 +41,15 @@ const seedEntries = [
 ];
 
 function storedEntries() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{"payload":[]}').payload;
 }
 
 describe('AddressBookPage inline edit persistence', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedEntries));
+    writeWalletRecord('address-book', TEST_WALLET, seedEntries, {
+      network: getConfiguredStellarNetwork(),
+    });
   });
 
   it('persists an edited entry to localStorage and shows it after a remount', () => {
@@ -64,7 +70,11 @@ describe('AddressBookPage inline edit persistence', () => {
 
     // Storage holds the new values; id and untouched entries are preserved.
     expect(storedEntries()).toEqual([
-      { id: 'a', address: 'GALICENEWADDRESSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6543', nickname: 'Alice Treasury' },
+      {
+        id: 'a',
+        address: 'GALICENEWADDRESSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6543',
+        nickname: 'Alice Treasury',
+      },
       seedEntries[1],
     ]);
 

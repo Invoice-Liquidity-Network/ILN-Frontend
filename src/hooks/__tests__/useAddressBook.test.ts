@@ -10,6 +10,8 @@
 import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useAddressBook from '../useAddressBook';
+import { getConfiguredStellarNetwork } from '../../utils/network';
+import { getWalletStorageKey, writeWalletRecord } from '../../utils/walletStorage';
 
 // vi.mock is hoisted above module-level consts, so the address is hoisted too.
 const { TEST_WALLET } = vi.hoisted(() => ({
@@ -27,6 +29,8 @@ vi.mock('../../context/WalletContext', () => ({
 const ADDR_A = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABC';
 const ADDR_B = 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBD';
 const ADDR_C = 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCBE';
+const storageKey = () =>
+  getWalletStorageKey('address-book', TEST_WALLET, { network: getConfiguredStellarNetwork() });
 
 /**
  * Build a valid 56-char Stellar address from an index 0–999.
@@ -56,12 +60,33 @@ describe('useAddressBook', () => {
       { id: '1', address: ADDR_A, nickname: 'Test 1' },
       { id: '2', address: ADDR_B, nickname: 'Test 2' },
     ];
-    localStorage.setItem(`iln-address-book-${TEST_WALLET}`, JSON.stringify(testEntries));
+    writeWalletRecord('address-book', TEST_WALLET, testEntries, {
+      network: getConfiguredStellarNetwork(),
+    });
 
     const { result } = renderHook(() => useAddressBook());
 
     expect(result.current.addressBook).toHaveLength(2);
     expect(result.current.addressBook[0].nickname).toBe('Test 1');
+  });
+
+  it('reports tamper recovery and never exposes modified entries', () => {
+    writeWalletRecord(
+      'address-book',
+      TEST_WALLET,
+      [{ id: '1', address: ADDR_A, nickname: 'Trusted' }],
+      { network: getConfiguredStellarNetwork() }
+    );
+    const envelope = JSON.parse(localStorage.getItem(storageKey())!);
+    envelope.payload[0].nickname = 'Modified';
+    localStorage.setItem(storageKey(), JSON.stringify(envelope));
+
+    const { result } = renderHook(() => useAddressBook());
+
+    expect(result.current.addressBook).toEqual([]);
+    expect(result.current.storageStatus).toBe('recovered');
+    expect(result.current.storageError).toBe('INTEGRITY_FAILED');
+    expect(localStorage.getItem(storageKey())).toBeNull();
   });
 
   // ── addAddress — success ──────────────────────────────────────────────────
@@ -82,9 +107,9 @@ describe('useAddressBook', () => {
     });
 
     // Verify persisted to localStorage
-    const stored = localStorage.getItem(`iln-address-book-${TEST_WALLET}`);
+    const stored = localStorage.getItem(storageKey());
     expect(stored).not.toBeNull();
-    expect(JSON.parse(stored!)).toHaveLength(1);
+    expect(JSON.parse(stored!).payload).toHaveLength(1);
   });
 
   // ── addAddress — validation (#863) ───────────────────────────────────────
@@ -241,8 +266,8 @@ describe('useAddressBook', () => {
     expect(result.current.addressBook[0].nickname).toBe('Updated');
 
     // Verify localStorage reflects the new value
-    const stored = JSON.parse(localStorage.getItem(`iln-address-book-${TEST_WALLET}`)!);
-    expect(stored[0].nickname).toBe('Updated');
+    const stored = JSON.parse(localStorage.getItem(storageKey())!);
+    expect(stored.payload[0].nickname).toBe('Updated');
   });
 
   // ── updateAddress — validation (#863) ────────────────────────────────────
