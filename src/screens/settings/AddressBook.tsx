@@ -76,7 +76,11 @@ export default function AddressBookPage() {
   // ── Delete ───────────────────────────────────────────────────────────────────
 
   const handleDeleteAddress = (id: string) => {
-    deleteAddress(id);
+    const result = deleteAddress(id);
+    if (result && !result.ok) {
+      addToast({ type: 'error', title: t('addressBook.errors.saveFailed') });
+      return;
+    }
     addToast({ type: 'success', title: t('addressBook.success.deleted') });
   };
 
