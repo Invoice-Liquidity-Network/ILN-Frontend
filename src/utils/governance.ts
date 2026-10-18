@@ -126,6 +126,96 @@ export interface ParameterChange {
   newValue: string;
 }
 
+export interface RawGovernanceEvent {
+  type?: string;
+  topics?: string[];
+  value?: string;
+}
+
+export type DecodedGovernanceEvent =
+  | {
+      kind: 'proposal';
+      proposalId: number;
+      proposer: string;
+      title: string;
+    }
+  | {
+      kind: 'vote';
+      proposalId: number;
+      voter: string;
+      support: boolean;
+      weight: number | null;
+    }
+  | {
+      kind: 'veto';
+      proposalId: number;
+      admin: string;
+      reasonHash: string;
+    }
+  | {
+      kind: 'parameter';
+      proposalId: number;
+      parameter: string;
+      newValue: string;
+    };
+
+function parseEventId(raw: string | undefined): number | null {
+  const value = Number(decodeHexOrUtf8Topic(raw));
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+function parseEventBoolean(raw: string | undefined): boolean | null {
+  const value = decodeHexOrUtf8Topic(raw);
+  if (value === 'true' || value === '1') return true;
+  if (value === 'false' || value === '0') return false;
+  return null;
+}
+
+/**
+ * Decode a governance contract event from its Horizon topics. Returns null
+ * for unknown topics or malformed payloads so callers never surface fabricated
+ * proposal, vote, veto or parameter data.
+ */
+export function decodeGovernanceEvent(evt: RawGovernanceEvent): DecodedGovernanceEvent | null {
+  const topic = decodeHexOrUtf8Topic(evt.topics?.[0] ?? evt.type);
+  if (!topic) return null;
+
+  if (topic === 'ParameterUpdated') {
+    const parameter = decodeHexOrUtf8Topic(evt.topics?.[1]);
+    const newValue = decodeHexOrUtf8Topic(evt.topics?.[2]);
+    const proposalId = parseEventId(evt.topics?.[3]);
+    if (!parameter || proposalId === null) return null;
+    return { kind: 'parameter', proposalId, parameter, newValue: newValue ?? '' };
+  }
+
+  const proposalId = parseEventId(evt.topics?.[1]);
+  if (proposalId === null) return null;
+
+  if (topic === 'ProposalCreated') {
+    const proposer = decodeHexOrUtf8Topic(evt.topics?.[2]);
+    const title = decodeHexOrUtf8Topic(evt.topics?.[3]);
+    if (!proposer || !title) return null;
+    return { kind: 'proposal', proposalId, proposer, title };
+  }
+
+  if (topic === 'VoteCast') {
+    const voter = decodeHexOrUtf8Topic(evt.topics?.[2]);
+    const support = parseEventBoolean(evt.topics?.[3]);
+    if (!voter || support === null) return null;
+    const weight = parseEventId(evt.topics?.[4]);
+    return { kind: 'vote', proposalId, voter, support, weight };
+  }
+
+  if (topic === 'ProposalVetoed' || topic === 'VetoCast') {
+    const admin = decodeHexOrUtf8Topic(evt.topics?.[2]);
+    const reasonHash = decodeHexOrUtf8Topic(evt.topics?.[3]);
+    if (!admin || !reasonHash) return null;
+    return { kind: 'veto', proposalId, admin, reasonHash };
+  }
+
+  return null;
+}
+
 export interface VoteCastEvent {
   proposalId: number;
   proposalTitle: string;
@@ -398,10 +488,31 @@ const proposalCreationCache: Map<
   string,
   { txHash: string; proposalId: number; timestamp: number }
 > = new Map();
+const inflightGovernanceWrites: Map<string, Promise<unknown>> = new Map();
 
 export function clearGovernanceIdempotencyCache(): void {
   proposalTxHashes.clear();
   proposalCreationCache.clear();
+  inflightGovernanceWrites.clear();
+}
+
+/**
+ * Collapse concurrent writes with the same key into a single in-flight
+ * operation. Rapid repeated clicks share one signature request and one result.
+ */
+function withGovernanceWriteLock<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const existing = inflightGovernanceWrites.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const pending = task();
+  inflightGovernanceWrites.set(key, pending);
+  const release = () => {
+    if (inflightGovernanceWrites.get(key) === pending) {
+      inflightGovernanceWrites.delete(key);
+    }
+  };
+  void pending.then(release, release);
+  return pending;
 }
 
 export function getUserVote(proposalId: number): VoteChoice | undefined {
@@ -589,53 +700,55 @@ export async function castVote(
   signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
   requireSep10Session(signerAddress);
-  // TODO: Replace with actual Soroban transaction once governance contract is deployed
-  // Ref: #111
-  await new Promise((r) => setTimeout(r, 2000));
-
-  const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
   const cacheKey = `${signerAddress || 'anon'}:vote:${proposalId}`;
-  const previousVote = userVotes.get(proposalId);
+  return withGovernanceWriteLock(cacheKey, async () => {
+    // TODO: Replace with actual Soroban transaction once governance contract is deployed
+    // Ref: #111
+    await new Promise((r) => setTimeout(r, 2000));
 
-  // Idempotency: if user already voted with this exact choice, return confirmed hash without duplicate counting (#1146)
-  if (previousVote === choice) {
-    const existingHash = proposalTxHashes.get(cacheKey);
-    if (existingHash) return existingHash;
-  }
+    const proposal = MOCK_PROPOSALS.find((p) => p.id === proposalId);
+    const previousVote = userVotes.get(proposalId);
 
-  // Signature gate before any mutation: a declined wallet changes nothing (#1144).
-  const signed = await requireGovernanceSignature(
-    `vote:${proposalId}:${choice}:${signerAddress}`,
-    signerAddress,
-    signTx
-  );
-
-  // If user changed their vote, adjust previous choice count
-  if (proposal && previousVote && previousVote !== choice) {
-    const power = 1250;
-    if (previousVote === 'For') {
-      proposal.votesFor = Math.max(0, proposal.votesFor - power);
-    } else if (previousVote === 'Against') {
-      proposal.votesAgainst = Math.max(0, proposal.votesAgainst - power);
-    } else if (previousVote === 'Abstain') {
-      proposal.votesAbstain = Math.max(0, (proposal.votesAbstain ?? 0) - power);
+    // Idempotency: if user already voted with this exact choice, return confirmed hash without duplicate counting (#1146)
+    if (previousVote === choice) {
+      const existingHash = proposalTxHashes.get(cacheKey);
+      if (existingHash) return existingHash;
     }
-  }
 
-  userVotes.set(proposalId, choice);
+    // Signature gate before any mutation: a declined wallet changes nothing (#1144).
+    const signed = await requireGovernanceSignature(
+      `vote:${proposalId}:${choice}:${signerAddress}`,
+      signerAddress,
+      signTx
+    );
 
-  if (proposal && previousVote !== choice) {
-    const power = 1250;
-    if (choice === 'For') proposal.votesFor += power;
-    else if (choice === 'Against') proposal.votesAgainst += power;
-    else if (choice === 'Abstain') proposal.votesAbstain = (proposal.votesAbstain ?? 0) + power;
-  }
+    // If user changed their vote, adjust previous choice count
+    if (proposal && previousVote && previousVote !== choice) {
+      const power = 1250;
+      if (previousVote === 'For') {
+        proposal.votesFor = Math.max(0, proposal.votesFor - power);
+      } else if (previousVote === 'Against') {
+        proposal.votesAgainst = Math.max(0, proposal.votesAgainst - power);
+      } else if (previousVote === 'Abstain') {
+        proposal.votesAbstain = Math.max(0, (proposal.votesAbstain ?? 0) - power);
+      }
+    }
 
-  // Deterministic hash rooted in the collected signature; cached so an
-  // idempotent replay returns the identical confirmation (#1141, #1146).
-  const txHash = deriveGovernanceTxHash(signed, `vote:${proposalId}:${choice}:${signerAddress}`);
-  proposalTxHashes.set(cacheKey, txHash);
-  return txHash;
+    userVotes.set(proposalId, choice);
+
+    if (proposal && previousVote !== choice) {
+      const power = 1250;
+      if (choice === 'For') proposal.votesFor += power;
+      else if (choice === 'Against') proposal.votesAgainst += power;
+      else if (choice === 'Abstain') proposal.votesAbstain = (proposal.votesAbstain ?? 0) + power;
+    }
+
+    // Deterministic hash rooted in the collected signature; cached so an
+    // idempotent replay returns the identical confirmation (#1141, #1146).
+    const txHash = deriveGovernanceTxHash(signed, `vote:${proposalId}:${choice}:${signerAddress}`);
+    proposalTxHashes.set(cacheKey, txHash);
+    return txHash;
+  });
 }
 
 export async function executeProposal(
@@ -917,122 +1030,128 @@ export async function createProposal(
   signTx: (xdr: string) => Promise<string>
 ): Promise<{ txHash: string; proposalId: number }> {
   requireSep10Session(signerAddress);
-  await new Promise((r) => setTimeout(r, 2500));
 
-  // Idempotency check: deduplicate rapid duplicate submissions without
-  // mutating or re-signing (#1146).
+  // Idempotency key is resolved before the lock so concurrent submissions of
+  // the same proposal share one signature request and one result (#1068).
   const idempotencyKey = `${signerAddress}:${payload.title}:${payload.formType}:${
     payload.newValueBps ?? payload.tokenAddress ?? payload.removeTokenAddress ?? ''
   }`;
-  const cached = proposalCreationCache.get(idempotencyKey);
-  if (cached && Date.now() - cached.timestamp < 30_000) {
-    return {
-      txHash: cached.txHash,
-      proposalId: cached.proposalId,
-    };
-  }
 
-  // Signature gate: a declined wallet must not append a proposal (#1144).
-  const signed = await requireGovernanceSignature(
-    `create:${payload.formType}:${payload.title}:${signerAddress}`,
-    signerAddress,
-    signTx
-  );
+  return withGovernanceWriteLock(idempotencyKey, async () => {
+    await new Promise((r) => setTimeout(r, 2500));
 
-  const newId = MOCK_PROPOSALS.length + 1;
-  const NOW_SEC = Math.floor(Date.now() / 1000);
-  const DAY_SEC = 86400;
+    // Idempotency check: deduplicate rapid duplicate submissions without
+    // mutating or re-signing (#1146).
+    const cached = proposalCreationCache.get(idempotencyKey);
+    if (cached && Date.now() - cached.timestamp < 30_000) {
+      return {
+        txHash: cached.txHash,
+        proposalId: cached.proposalId,
+      };
+    }
 
-  // Map form type → internal ProposalType
-  const typeMap: Record<CreateProposalFormType, ProposalType> = {
-    FeeRate: 'ParameterUpdate',
-    MaxDiscountRate: 'ParameterUpdate',
-    AddToken: 'ProtocolUpgrade',
-    RemoveToken: 'ProtocolUpgrade',
-  };
-
-  // Map form type → parameter change
-  let parameterChanges: ParameterChange[] | undefined;
-  if (payload.formType === 'FeeRate' && payload.newValueBps !== undefined) {
-    parameterChanges = [
-      {
-        parameter: 'fee_rate_bps',
-        currentValue: `${MOCK_PROTOCOL_PARAMS.feeRateBps} (${
-          MOCK_PROTOCOL_PARAMS.feeRateBps / 100
-        }%)`,
-        newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
-      },
-    ];
-  } else if (payload.formType === 'MaxDiscountRate' && payload.newValueBps !== undefined) {
-    parameterChanges = [
-      {
-        parameter: 'max_discount_rate_bps',
-        currentValue: `${MOCK_PROTOCOL_PARAMS.maxDiscountRateBps} (${
-          MOCK_PROTOCOL_PARAMS.maxDiscountRateBps / 100
-        }%)`,
-        newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
-      },
-    ];
-  } else if (payload.formType === 'AddToken' && payload.tokenAddress) {
-    const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol);
-    parameterChanges = [
-      {
-        parameter: 'accepted_tokens',
-        currentValue: `[${existing.join(', ')}]`,
-        newValue: `[${existing.join(', ')}, ${
-          payload.tokenName ?? payload.tokenAddress.slice(0, 6)
-        }]`,
-      },
-    ];
-  } else if (payload.formType === 'RemoveToken' && payload.removeTokenAddress) {
-    const token = MOCK_PROTOCOL_PARAMS.acceptedTokens.find(
-      (t) => t.address === payload.removeTokenAddress
+    // Signature gate: a declined wallet must not append a proposal (#1144).
+    const signed = await requireGovernanceSignature(
+      `create:${payload.formType}:${payload.title}:${signerAddress}`,
+      signerAddress,
+      signTx
     );
-    const remaining = MOCK_PROTOCOL_PARAMS.acceptedTokens
-      .filter((t) => t.address !== payload.removeTokenAddress)
-      .map((t) => t.symbol);
-    parameterChanges = [
-      {
-        parameter: 'accepted_tokens',
-        currentValue: `[${MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol).join(', ')}]`,
-        newValue: `[${remaining.join(', ')}]${token ? ` (removes ${token.symbol})` : ''}`,
-      },
-    ];
-  }
 
-  const newProposal: Proposal = {
-    id: newId,
-    title: payload.title,
-    description: payload.description,
-    type: typeMap[payload.formType],
-    status: 'Active',
-    proposer: signerAddress,
-    createdAt: NOW_SEC,
-    votingStartsAt: NOW_SEC,
-    votingEndsAt: NOW_SEC + 7 * DAY_SEC,
-    votesFor: 0,
-    votesAgainst: 0,
-    votesAbstain: 0,
-    quorumRequired: 100_000,
-    parameterChanges,
-  };
+    const newId = MOCK_PROPOSALS.length + 1;
+    const NOW_SEC = Math.floor(Date.now() / 1000);
+    const DAY_SEC = 86400;
 
-  MOCK_PROPOSALS.push(newProposal);
+    // Map form type → internal ProposalType
+    const typeMap: Record<CreateProposalFormType, ProposalType> = {
+      FeeRate: 'ParameterUpdate',
+      MaxDiscountRate: 'ParameterUpdate',
+      AddToken: 'ProtocolUpgrade',
+      RemoveToken: 'ProtocolUpgrade',
+    };
 
-  const createdTxHash = deriveGovernanceTxHash(
-    signed,
-    `create:${newId}:${payload.formType}:${signerAddress}`
-  );
-  proposalCreationCache.set(idempotencyKey, {
-    txHash: createdTxHash,
-    proposalId: newId,
-    timestamp: Date.now(),
+    // Map form type → parameter change
+    let parameterChanges: ParameterChange[] | undefined;
+    if (payload.formType === 'FeeRate' && payload.newValueBps !== undefined) {
+      parameterChanges = [
+        {
+          parameter: 'fee_rate_bps',
+          currentValue: `${MOCK_PROTOCOL_PARAMS.feeRateBps} (${
+            MOCK_PROTOCOL_PARAMS.feeRateBps / 100
+          }%)`,
+          newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
+        },
+      ];
+    } else if (payload.formType === 'MaxDiscountRate' && payload.newValueBps !== undefined) {
+      parameterChanges = [
+        {
+          parameter: 'max_discount_rate_bps',
+          currentValue: `${MOCK_PROTOCOL_PARAMS.maxDiscountRateBps} (${
+            MOCK_PROTOCOL_PARAMS.maxDiscountRateBps / 100
+          }%)`,
+          newValue: `${payload.newValueBps} (${payload.newValueBps / 100}%)`,
+        },
+      ];
+    } else if (payload.formType === 'AddToken' && payload.tokenAddress) {
+      const existing = MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol);
+      parameterChanges = [
+        {
+          parameter: 'accepted_tokens',
+          currentValue: `[${existing.join(', ')}]`,
+          newValue: `[${existing.join(', ')}, ${
+            payload.tokenName ?? payload.tokenAddress.slice(0, 6)
+          }]`,
+        },
+      ];
+    } else if (payload.formType === 'RemoveToken' && payload.removeTokenAddress) {
+      const token = MOCK_PROTOCOL_PARAMS.acceptedTokens.find(
+        (t) => t.address === payload.removeTokenAddress
+      );
+      const remaining = MOCK_PROTOCOL_PARAMS.acceptedTokens
+        .filter((t) => t.address !== payload.removeTokenAddress)
+        .map((t) => t.symbol);
+      parameterChanges = [
+        {
+          parameter: 'accepted_tokens',
+          currentValue: `[${MOCK_PROTOCOL_PARAMS.acceptedTokens.map((t) => t.symbol).join(', ')}]`,
+          newValue: `[${remaining.join(', ')}]${token ? ` (removes ${token.symbol})` : ''}`,
+        },
+      ];
+    }
+
+    const newProposal: Proposal = {
+      id: newId,
+      title: payload.title,
+      description: payload.description,
+      type: typeMap[payload.formType],
+      status: 'Active',
+      proposer: signerAddress,
+      createdAt: NOW_SEC,
+      votingStartsAt: NOW_SEC,
+      votingEndsAt: NOW_SEC + 7 * DAY_SEC,
+      votesFor: 0,
+      votesAgainst: 0,
+      votesAbstain: 0,
+      quorumRequired: 100_000,
+      parameterChanges,
+    };
+
+    MOCK_PROPOSALS.push(newProposal);
+
+    const createdTxHash = deriveGovernanceTxHash(
+      signed,
+      `create:${newId}:${payload.formType}:${signerAddress}`
+    );
+    proposalCreationCache.set(idempotencyKey, {
+      txHash: createdTxHash,
+      proposalId: newId,
+      timestamp: Date.now(),
+    });
+
+    return {
+      txHash: createdTxHash,
+      proposalId: newId,
+    };
   });
-
-  return {
-    txHash: createdTxHash,
-    proposalId: newId,
-  };
 }
 
 // ─── Parameter change announcements (#153) ────────────────────────────────────
