@@ -489,6 +489,15 @@ export function getUserVote(proposalId: number): VoteChoice | undefined {
   return userVotes.get(proposalId);
 }
 
+
+export class MissingSignerError extends Error {
+  readonly code = 'MISSING_SIGNER';
+  constructor(message = 'A connected signer address is required to execute governance actions.') {
+    super(`MISSING_SIGNER: ${message}`);
+    this.name = 'MissingSignerError';
+  }
+}
+
 export class VotingPowerError extends Error {
   readonly code = 'VOTING_POWER_UNAVAILABLE';
   constructor(
@@ -691,7 +700,9 @@ async function requireGovernanceSignature(
   signerAddress: string,
   signTx: (xdr: string) => Promise<string>
 ): Promise<string> {
-  if (!signerAddress) return `unsigned:${intent}`;
+  if (!signerAddress || typeof signerAddress !== 'string' || !signerAddress.trim()) {
+    throw new MissingSignerError('A connected signer address is required to sign governance transactions.');
+  }
   try {
     return await signTx(intent);
   } catch (err) {
