@@ -86,6 +86,13 @@ export interface InsurancePoolInfo {
   premium_rate: number; // in bps
 }
 
+export interface InsurancePoolHealth {
+  balance: bigint;
+  enrolled_lp_count: number;
+  estimated_monthly_claim_rate: bigint;
+  months_of_coverage: number | null;
+}
+
 export type WalletRole = 'freelancer' | 'payer' | 'lp';
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -1535,6 +1542,26 @@ export async function getInsurancePoolInfo(): Promise<InsurancePoolInfo> {
       enrolled_count: 12,
       premium_rate: 50,
     };
+  }
+}
+
+export async function getInsurancePoolHealth(): Promise<InsurancePoolHealth | null> {
+  try {
+    const callResult = await server.simulateTransaction(
+      buildReadTransaction(CONTRACT_ID, 'get_pool_health', [])
+    );
+    if (!rpc.Api.isSimulationSuccess(callResult) || !callResult.result?.retval) return null;
+
+    const native = scValToNative(callResult.result.retval);
+    return {
+      balance: BigInt(native.balance ?? 0),
+      enrolled_lp_count: Number(native.enrolled_lp_count ?? 0),
+      estimated_monthly_claim_rate: BigInt(native.estimated_monthly_claim_rate ?? 0),
+      months_of_coverage:
+        native.months_of_coverage == null ? null : Number(native.months_of_coverage),
+    };
+  } catch {
+    return null;
   }
 }
 
