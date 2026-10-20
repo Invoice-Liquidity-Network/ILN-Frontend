@@ -9,7 +9,7 @@ import { formatTokenAmount } from '@/utils/format';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
 
 export default function InsurancePoolPanel() {
-  const { poolInfo, isEnrolled, isLoading, refresh } = useInsurance();
+  const { poolInfo, poolHealth, isEnrolled, isLoading, refresh } = useInsurance();
   const { execute } = useTransaction();
   const { address } = useWallet();
   const { defaultToken } = useApprovedTokens();
@@ -56,7 +56,30 @@ export default function InsurancePoolPanel() {
     );
   }
 
-  const coverageMonths = 12; // Example health indicator logic
+  const coverageMonths = poolHealth?.months_of_coverage ?? null;
+  const healthStatus =
+    coverageMonths === null
+      ? {
+          label: 'Not yet estimable',
+          color: 'text-on-surface-variant',
+          fill: 'bg-surface-variant',
+          width: '0%',
+        }
+      : coverageMonths >= 12
+        ? { label: 'Healthy', color: 'text-green-600', fill: 'bg-green-500', width: '100%' }
+        : coverageMonths >= 6
+          ? {
+              label: 'Moderate',
+              color: 'text-amber-600',
+              fill: 'bg-amber-500',
+              width: `${(coverageMonths / 12) * 100}%`,
+            }
+          : {
+              label: 'Low',
+              color: 'text-red-600',
+              fill: 'bg-red-500',
+              width: `${Math.max((coverageMonths / 12) * 100, 4)}%`,
+            };
 
   return (
     <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/10">
@@ -113,14 +136,19 @@ export default function InsurancePoolPanel() {
           <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
             Pool Health
           </span>
-          <span className="text-xs font-medium text-green-600">Stable</span>
+          <span className={`text-xs font-medium ${healthStatus.color}`}>{healthStatus.label}</span>
         </div>
         <div className="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
-          <div className="h-full bg-green-500 rounded-full" style={{ width: '85%' }} />
+                    <div
+            className={`h-full rounded-full ${healthStatus.fill}`}
+            style={{ width: healthStatus.width }}
+          />
         </div>
         <p className="text-[11px] text-on-surface-variant mt-2 flex items-center gap-1">
           <span className="material-symbols-outlined text-[14px]">info</span>
-          Pool covers {coverageMonths} months of average defaults at current volume.
+          {coverageMonths === null
+            ? 'Coverage runway is not yet estimable because the pool has no claim history.'
+            : `Pool covers ${coverageMonths} ${coverageMonths === 1 ? 'month' : 'months'} of estimated claims at the current rate.`}
         </p>
       </div>
 
