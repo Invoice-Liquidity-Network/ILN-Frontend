@@ -111,7 +111,7 @@ export default function InsurancePoolPanel() {
             Pool Balance
           </p>
           <p className="text-xl font-headline">
-            {poolInfo ? formatTokenAmount(poolInfo.balance, defaultToken ?? undefined) : '0'}
+            {poolHealth ? formatTokenAmount(poolHealth.balance, defaultToken ?? undefined) : '0'}
             <span className="text-xs ml-1 text-on-surface-variant font-sans">
               {defaultToken?.symbol}
             </span>
@@ -121,7 +121,9 @@ export default function InsurancePoolPanel() {
           <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">
             Enrolled LPs
           </p>
-          <p className="text-xl font-headline">{poolInfo?.enrolled_count ?? 0}</p>
+                    <p className="text-xl font-headline">
+            {poolHealth?.enrolled_lp_count ?? poolInfo?.enrolled_count ?? 0}
+          </p>
         </div>
         <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/5">
           <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">
