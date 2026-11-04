@@ -30,6 +30,12 @@ describe('InsurancePoolPanel', () => {
         enrolled_count: 12,
         premium_rate: 50,
       },
+      poolHealth: {
+        balance: 500000000000n,
+        enrolled_lp_count: 12,
+        estimated_monthly_claim_rate: 100n,
+        months_of_coverage: 18,
+      },
       isEnrolled: false,
       isLoading: false,
       refresh: mockRefresh,
@@ -52,6 +58,37 @@ describe('InsurancePoolPanel', () => {
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('0.5%')).toBeInTheDocument();
     expect(screen.getByText('Not Enrolled')).toBeInTheDocument();
+    expect(screen.getByText('Healthy')).toBeInTheDocument();
+    expect(screen.getByText(/18 months of estimated claims/)).toBeInTheDocument();
+  });
+
+  it.each([
+    { months: 12, label: 'Healthy' },
+    { months: 6, label: 'Moderate' },
+    { months: 5, label: 'Low' },
+    { months: null, label: 'Not yet estimable' },
+  ])('shows $label health for $months months of coverage', ({ months, label }) => {
+    (useInsurance as any).mockReturnValue({
+      poolInfo: { balance: 500000000000n, enrolled_count: 12, premium_rate: 50 },
+      poolHealth: {
+        balance: 500000000000n,
+        enrolled_lp_count: 12,
+        estimated_monthly_claim_rate: 100n,
+        months_of_coverage: months,
+      },
+      isEnrolled: false,
+      isLoading: false,
+      refresh: mockRefresh,
+    });
+
+    render(<InsurancePoolPanel />);
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+    if (months === null) {
+      expect(
+        screen.getByText(/not yet estimable because the pool has no claim history/)
+      ).toBeInTheDocument();
+    }
   });
 
   it('shows enrolled status when LP is enrolled', () => {
@@ -84,6 +121,7 @@ describe('InsurancePoolPanel', () => {
   it('shows loading skeleton when isLoading is true', () => {
     (useInsurance as any).mockReturnValue({
       poolInfo: null,
+      poolHealth: null,
       isEnrolled: false,
       isLoading: true,
       refresh: mockRefresh,
