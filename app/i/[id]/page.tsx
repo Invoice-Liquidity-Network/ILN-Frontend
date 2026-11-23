@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import ActivityFeed from '@/components/ActivityFeed';
@@ -33,18 +33,37 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [showTransfer, setShowTransfer] = useState(false);
   const [showFund, setShowFund] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
-  const invoiceId = BigInt(id);
+
+  const parsedId = useMemo(() => {
+    try {
+      if (!id || !/^\d+$/.test(id.trim())) return null;
+      return BigInt(id.trim());
+    } catch {
+      return null;
+    }
+  }, [id]);
 
   const fetchInvoice = useCallback(async () => {
+    if (parsedId === null) {
+      setError('Invalid invoice ID.');
+      setLoadState('error');
+      return;
+    }
     try {
       setLoadState('loading');
-      setInvoice(await getInvoice(invoiceId));
+      const data = await getInvoice(parsedId);
+      if (!data) {
+        setError('The requested invoice does not exist.');
+        setLoadState('error');
+        return;
+      }
+      setInvoice(data);
       setLoadState('success');
     } catch {
       setError('Failed to load invoice details.');
       setLoadState('error');
     }
-  }, [invoiceId]);
+  }, [parsedId]);
 
   useEffect(() => {
     void fetchInvoice();
