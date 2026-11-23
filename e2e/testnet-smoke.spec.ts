@@ -1,33 +1,11 @@
 import { expect, test, type Page, type Response } from '@playwright/test';
 import {
   classifyRouteStatus,
+  gotoWithRetry,
   routeExistsInSource,
   smokeRoutes,
   staleDeploymentMessage,
 } from './support/testnet-smoke';
-
-/**
- * The target is a live, independently deployed build. A transient 5xx from the
- * edge or an upstream RPC/indexer blip must not fail the whole nightly run, so
- * retry only the transport-level failures. A 404 is *not* retried: it means the
- * deployment is stale (the route exists in the code but not in that build),
- * which is exactly the regression this smoke test exists to surface.
- */
-async function gotoWithRetry(page: Page, path: string): Promise<Response | null> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
-      if (!response || response.status() < 500 || attempt === 3) return response;
-      lastError = new Error(`${path} returned HTTP ${response.status()}`);
-    } catch (error) {
-      lastError = error;
-      if (attempt === 3) throw error;
-    }
-    await page.waitForTimeout(1000 * attempt);
-  }
-  throw lastError;
-}
 
 test.describe('Live testnet smoke checks', () => {
   for (const route of smokeRoutes) {

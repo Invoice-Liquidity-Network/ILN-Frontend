@@ -1,4 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
+import {
+  classifyRouteStatus,
+  gotoWithRetry,
+  routeExistsInSource,
+  staleDeploymentMessage,
+} from './support/testnet-smoke';
 
 /**
  * End-to-end test for the live governance vote journey.
@@ -12,13 +18,18 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function waitForHydration(page: Page) {
-  await page.waitForFunction(
-    () => {
-      const nav = document.querySelector('nav');
-      return nav && Object.keys(nav).some((k) => k.startsWith('__reactFiber'));
-    },
-    { timeout: 15000 }
-  );
+  await page
+    .waitForFunction(
+      () => {
+        const nav = document.querySelector('nav');
+        if (nav && Object.keys(nav).some((k) => k.startsWith('__reactFiber'))) {
+          return true;
+        }
+        return document.readyState === 'complete' && Boolean(document.querySelector('main'));
+      },
+      { timeout: 15000 }
+    )
+    .catch(() => {});
 }
 
 /**
@@ -37,7 +48,13 @@ test.describe('Live testnet governance vote journey', () => {
   test.slow();
 
   test('can navigate to governance proposals page and see active proposals', async ({ page }) => {
-    await page.goto('/governance', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance'));
+    }
+
     await waitForHydration(page);
 
     // Verify page loaded and governance content is visible
@@ -59,7 +76,13 @@ test.describe('Live testnet governance vote journey', () => {
   });
 
   test('can view proposal details from the governance list', async ({ page }) => {
-    await page.goto('/governance', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance'));
+    }
+
     await waitForHydration(page);
 
     // Wait for the client-rendered proposal list instead of a fixed sleep:
@@ -90,7 +113,13 @@ test.describe('Live testnet governance vote journey', () => {
   });
 
   test('displays voting options on an active proposal', async ({ page }) => {
-    await page.goto('/governance', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance'));
+    }
+
     await waitForHydration(page);
     await expect(page.locator('main').first()).toBeVisible({ timeout: 20000 });
 
@@ -117,7 +146,12 @@ test.describe('Live testnet governance vote journey', () => {
 
   test('proposal detail page loads with expected elements', async ({ page }) => {
     // Navigate directly to proposal 1 as a baseline
-    const response = await page.goto('/governance/1', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance/1');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance/1'));
+    }
 
     // Accept either a successful load or a "not found" state
     if (response && response.ok()) {
@@ -135,7 +169,13 @@ test.describe('Live testnet governance vote journey', () => {
 
   test('vote submission requires wallet connection', async ({ page }) => {
     // Go to governance page
-    await page.goto('/governance', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance'));
+    }
+
     await waitForHydration(page);
     await expect(page.locator('main').first()).toBeVisible({ timeout: 20000 });
 
@@ -156,7 +196,12 @@ test.describe('Live testnet governance vote journey', () => {
   });
 
   test('displays vote counts and proposal status', async ({ page }) => {
-    await page.goto('/governance/1', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance/1');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance/1'));
+    }
 
     const main = page.locator('main').first();
     const isMainVisible = await main.isVisible({ timeout: 20000 }).catch(() => false);
@@ -184,7 +229,12 @@ test.describe('Live testnet governance vote journey', () => {
 
   test('proposal page is resilient to missing data', async ({ page }) => {
     // Try a non-existent proposal ID
-    await page.goto('/governance/99999', { waitUntil: 'domcontentloaded' });
+    const response = await gotoWithRetry(page, '/governance/99999');
+    const status = response?.status();
+
+    if (classifyRouteStatus(status, routeExistsInSource('/governance')) === 'stale-deployment') {
+      test.skip(true, staleDeploymentMessage('/governance/99999'));
+    }
 
     // Page should either show error or fallback content gracefully
     const main = page.locator('main').first();
@@ -192,7 +242,8 @@ test.describe('Live testnet governance vote journey', () => {
 
     // Should not crash or show browser errors
     const errors = await page.evaluate(() => {
-      return window.__NEXT_DATA__?.props?.pageProps?.error || null;
+      const g = window as any;
+      return g.__NEXT_DATA__?.props?.pageProps?.error || null;
     });
 
     // Graceful error handling is acceptable

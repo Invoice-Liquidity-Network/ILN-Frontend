@@ -68,3 +68,44 @@ export function staleDeploymentMessage(routePath: string): string {
     `in Vercel (see docs/troubleshooting.md).`
   );
 }
+
+export interface NavigablePage {
+  goto(
+    url: string,
+    options?: { waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit' }
+  ): Promise<any>;
+  waitForTimeout(timeout: number): Promise<void>;
+}
+
+/**
+ * The target is a live, independently deployed build. A transient 5xx from the
+ * edge or an upstream RPC/indexer blip must not fail the whole nightly run, so
+ * retry only the transport-level failures. A 404 is *not* retried: it means the
+ * deployment is stale (the route exists in the code but not in that build),
+ * which is surfaced via classifyRouteStatus.
+ */
+export async function gotoWithRetry<T = any>(
+  page: NavigablePage,
+  path: string,
+  maxAttempts: number = 3
+): Promise<T | null> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
+      if (
+        !response ||
+        (typeof response.status === 'function' && response.status() < 500) ||
+        attempt === maxAttempts
+      ) {
+        return response as T;
+      }
+      lastError = new Error(`${path} returned HTTP ${response.status()}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts) throw error;
+    }
+    await page.waitForTimeout(1000 * attempt);
+  }
+  throw lastError;
+}
