@@ -187,74 +187,6 @@ function buildGovernanceReadTransaction(method: string, params: xdr.ScVal[] = []
     .build();
 }
 
-function buildGovernanceWriteTransaction(
-  account: Account,
-  method: string,
-  params: xdr.ScVal[]
-) {
-  const contractId = assertGovernanceConfiguration();
-  return new TransactionBuilder(account, {
-    fee: BASE_FEE,
-    networkPassphrase: NETWORK_PASSPHRASE,
-  })
-    .addOperation(
-      Operation.invokeContractFunction({
-        contract: contractId,
-        function: method,
-        args: params,
-      })
-    )
-    .setTimeout(30)
-    .build();
-}
-
-async function submitGovernanceTransaction(
-  account: Account,
-  method: string,
-  params: xdr.ScVal[],
-  signTx: (xdr: string) => Promise<string>
-): Promise<{ txHash: string; returnValue?: xdr.ScVal }> {
-  assertGovernanceConfiguration();
-  const sourceAccount = await server.getAccount(account.accountId());
-  const tx = buildGovernanceWriteTransaction(sourceAccount, method, params);
-  const prepared = await server.prepareTransaction(tx);
-  let signedXdr: string;
-  try {
-    signedXdr = await signTx(prepared.toXDR());
-  } catch (error) {
-    if (isCancellationError(error)) {
-      throw new Error(
-        'USER_REJECTED: Transaction signature was declined in wallet. No changes were applied.'
-      );
-    }
-    throw error;
-  }
-  const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
-  const sent = await server.sendTransaction(signedTx);
-
-  if (!sent.hash || !['PENDING', 'DUPLICATE'].includes(sent.status)) {
-    throw new Error(
-      `Governance transaction submission failed with status ${String(sent.status || 'unknown')}.`
-    );
-  }
-
-  recordPendingTransaction({ hash: sent.hash, label: `governance:${method}`, address: account.accountId() });
-  const finalResult = await server.pollTransaction(sent.hash, { attempts: 20 });
-  if (finalResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
-    if (finalResult.status === rpc.Api.GetTransactionStatus.FAILED) {
-      removePendingTransaction(sent.hash);
-    }
-    throw new Error(`Governance transaction failed with status ${String(finalResult.status)}.`);
-  }
-  removePendingTransaction(sent.hash);
-
-  const result = finalResult as typeof finalResult & {
-    returnValue?: xdr.ScVal;
-    result?: { retval?: xdr.ScVal };
-  };
-  return { txHash: sent.hash, returnValue: result.returnValue ?? result.result?.retval };
-}
-
 function buildTokenReadTransaction(contractId: string, method: string, params: xdr.ScVal[] = []) {
   return new TransactionBuilder(new Account(READ_ACCOUNT, '0'), {
     fee: BASE_FEE,
@@ -369,6 +301,8 @@ export interface Proposal {
   parameterChanges?: ParameterChange[];
   userVote?: VoteChoice;
   vetoHistory?: VetoRecord[];
+  executedTxHash?: string;
+  createdTxHash?: string;
 }
 
 // Keep this aligned with docs/contract-integration-status.md so the UI
@@ -1522,19 +1456,27 @@ function deriveGovernanceTxHash(...seeds: string[]): string {
   return `${mix('iln:governance:a')}${mix('iln:governance:b')}`;
 }
 
+/**
+ * Delegation write path support flag (#842).
+ * Formally deferred matching the updateLPWhitelist precedent (#783):
+ * the deployed iln_governance contract ABI exposes no delegate /
+ * delegate_voting_power write instruction yet.
+ */
+export const DELEGATE_VOTING_POWER_SUPPORTED = false;
+
 export async function delegateVotingPower(
   delegateAddress: string | null,
   signerAddress: string,
   signTx: (xdr: string) => Promise<string>,
   options: GovernanceMutationOptions = {}
 ): Promise<string> {
-  // This path signs an intent and derives a local hash; it submits nothing.
-  // Production must not prompt the wallet or report that as a success (#1320).
-  if (!governanceMocksAllowed()) {
+  // This path signs an intent and derives a local hash; it submits nothing on-chain.
+  // Production rejects the write with MOCK_ACTION_BLOCKED (#842, #1320).
+  if (!DELEGATE_VOTING_POWER_SUPPORTED && !governanceMocksAllowed()) {
     throw new GovernanceUnavailableError({
       code: 'MOCK_ACTION_BLOCKED',
-      message: 'MOCK_ACTION_BLOCKED: vote delegation is not available on-chain in this build.',
-      remediation: 'Vote delegation is disabled until its on-chain transaction path ships.',
+      message: 'MOCK_ACTION_BLOCKED: vote delegation is not supported by the deployed contract.',
+      remediation: 'Vote delegation is disabled until its on-chain transaction path ships on iln_governance.',
     });
   }
 

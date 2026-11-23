@@ -18,6 +18,11 @@ vi.mock('@/utils/federation', () => ({
   resolveFederatedAddress: vi.fn(),
 }));
 
+const USER_ADDRESS = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+const RESOLVED_DELEGATE = 'GBQD2MXHXD2SRHRQZRZ5JZ4UNLMTMLZNNDJHCQXIJXE2ANBV5IDWB2XK';
+const CYCLIC_DELEGATE = 'GBBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEFZSP';
+const VALID_DELEGATE = 'GCI7N3HBCWNDW4XN22T7AILNGBOG2T3L6TFFC6EELZTYA3V2MOHK4GZ4';
+
 let mockDelegationState: {
   delegatedTo: string | null;
   delegatedAmount: number;
@@ -29,13 +34,12 @@ let mockDelegationState: {
 };
 
 vi.mock('@/utils/governance', () => ({
-  // Relaxed so the panel's demo "known delegators" (short placeholder ids like
-  // `GABC123...`) still resolve and can trigger the cycle check.
-  isValidStellarAddress: vi.fn((addr: string) => addr.startsWith('G') && addr.length >= 8),
+  DELEGATE_VOTING_POWER_SUPPORTED: false,
+  isValidStellarAddress: vi.fn((addr: string) => addr.startsWith('G') && addr.length === 56),
   getVotingPower: vi.fn().mockResolvedValue(1700),
   getDelegationInfo: vi.fn(async (addr: string) => {
-    if (addr === 'GABC123...') {
-      return { delegatedTo: 'GUSER123', delegatedAmount: 100, incomingDelegations: 0 };
+    if (addr === CYCLIC_DELEGATE) {
+      return { delegatedTo: USER_ADDRESS, delegatedAmount: 100, incomingDelegations: 0 };
     }
     return mockDelegationState;
   }),
@@ -60,7 +64,7 @@ describe('DelegationPanel', () => {
       incomingDelegations: 450,
     };
     (useWallet as any).mockReturnValue({
-      address: 'GUSER123',
+      address: USER_ADDRESS,
       isConnected: true,
       signTx: vi.fn(),
     });
@@ -75,7 +79,7 @@ describe('DelegationPanel', () => {
       loading: false,
       error: null,
     });
-    (resolveFederatedAddress as any).mockResolvedValue('GRESOLVED456');
+    (resolveFederatedAddress as any).mockResolvedValue(RESOLVED_DELEGATE);
   });
 
   it('renders on-chain weight and balance after loading (no mock seed)', async () => {
@@ -100,7 +104,11 @@ describe('DelegationPanel', () => {
 
     await waitFor(() => {
       expect(resolveFederatedAddress).toHaveBeenCalledWith('alice*stellar.org');
-      expect(screen.getByText(/Ready to delegate to GRESOLVED456/)).toBeDefined();
+      expect(
+        screen.getByText(
+          new RegExp(`Ready to delegate to ${RESOLVED_DELEGATE.slice(0, 12)}`)
+        )
+      ).toBeDefined();
     });
   });
 
@@ -109,7 +117,7 @@ describe('DelegationPanel', () => {
     const input = screen.getByPlaceholderText(/Stellar address/);
 
     // Address that is mocked as a delegator to the user
-    fireEvent.change(input, { target: { value: 'GABC123...' } });
+    fireEvent.change(input, { target: { value: CYCLIC_DELEGATE } });
 
     await waitFor(() => {
       expect(
@@ -125,7 +133,7 @@ describe('DelegationPanel', () => {
 
     const input = screen.getByPlaceholderText(/Stellar address/);
     fireEvent.change(input, {
-      target: { value: 'GVALID78901234567890123456789012345678901234567890123456' },
+      target: { value: VALID_DELEGATE },
     });
 
     const button = screen.getByRole('button', { name: /Delegate/ });
@@ -133,7 +141,7 @@ describe('DelegationPanel', () => {
 
     await waitFor(() => {
       expect(mockExecute).toHaveBeenCalled();
-      expect(screen.getByText(/Delegating to GVALID/)).toBeDefined();
+      expect(screen.getByText(new RegExp(`Delegating to ${VALID_DELEGATE.slice(0, 6)}`))).toBeDefined();
       expect(screen.getByText(/Undelegate/)).toBeDefined();
     });
   });
@@ -145,7 +153,7 @@ describe('DelegationPanel', () => {
     // First delegate
     const input = screen.getByPlaceholderText(/Stellar address/);
     fireEvent.change(input, {
-      target: { value: 'GVALID78901234567890123456789012345678901234567890123456' },
+      target: { value: VALID_DELEGATE },
     });
     fireEvent.click(screen.getByRole('button', { name: /Delegate/ }));
 

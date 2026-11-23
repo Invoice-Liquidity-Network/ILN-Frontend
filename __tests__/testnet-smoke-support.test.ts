@@ -1,9 +1,10 @@
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   classifyRouteStatus,
+  gotoWithRetry,
   routeExistsInSource,
   smokeRoutes,
   staleDeploymentMessage,
@@ -60,5 +61,43 @@ describe('staleDeploymentMessage', () => {
     expect(message).toContain('/marketplace');
     expect(message).toContain('redeploy');
     expect(message).toContain('docs/troubleshooting.md');
+  });
+});
+
+describe('gotoWithRetry', () => {
+  it('returns immediately on a successful 200 response without retry', async () => {
+    const mockGoto = vi.fn().mockResolvedValue({ status: () => 200 });
+    const mockWaitForTimeout = vi.fn().mockResolvedValue(undefined);
+    const page = { goto: mockGoto, waitForTimeout: mockWaitForTimeout };
+
+    const response = await gotoWithRetry(page, '/governance');
+    expect(response?.status()).toBe(200);
+    expect(mockGoto).toHaveBeenCalledTimes(1);
+    expect(mockWaitForTimeout).not.toHaveBeenCalled();
+  });
+
+  it('retries on 5xx server errors and resolves if a subsequent attempt succeeds', async () => {
+    const mockGoto = vi
+      .fn()
+      .mockResolvedValueOnce({ status: () => 502 })
+      .mockResolvedValueOnce({ status: () => 200 });
+    const mockWaitForTimeout = vi.fn().mockResolvedValue(undefined);
+    const page = { goto: mockGoto, waitForTimeout: mockWaitForTimeout };
+
+    const response = await gotoWithRetry(page, '/governance');
+    expect(response?.status()).toBe(200);
+    expect(mockGoto).toHaveBeenCalledTimes(2);
+    expect(mockWaitForTimeout).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry 404 responses so stale deployments surface directly', async () => {
+    const mockGoto = vi.fn().mockResolvedValue({ status: () => 404 });
+    const mockWaitForTimeout = vi.fn().mockResolvedValue(undefined);
+    const page = { goto: mockGoto, waitForTimeout: mockWaitForTimeout };
+
+    const response = await gotoWithRetry(page, '/governance');
+    expect(response?.status()).toBe(404);
+    expect(mockGoto).toHaveBeenCalledTimes(1);
+    expect(mockWaitForTimeout).not.toHaveBeenCalled();
   });
 });
