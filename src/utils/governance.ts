@@ -1522,19 +1522,27 @@ function deriveGovernanceTxHash(...seeds: string[]): string {
   return `${mix('iln:governance:a')}${mix('iln:governance:b')}`;
 }
 
+/**
+ * Delegation write path support flag (#842).
+ * Formally deferred matching the updateLPWhitelist precedent (#783):
+ * the deployed iln_governance contract ABI exposes no delegate /
+ * delegate_voting_power write instruction yet.
+ */
+export const DELEGATE_VOTING_POWER_SUPPORTED = false;
+
 export async function delegateVotingPower(
   delegateAddress: string | null,
   signerAddress: string,
   signTx: (xdr: string) => Promise<string>,
   options: GovernanceMutationOptions = {}
 ): Promise<string> {
-  // This path signs an intent and derives a local hash; it submits nothing.
-  // Production must not prompt the wallet or report that as a success (#1320).
-  if (!governanceMocksAllowed()) {
+  // This path signs an intent and derives a local hash; it submits nothing on-chain.
+  // Production rejects the write with MOCK_ACTION_BLOCKED (#842, #1320).
+  if (!DELEGATE_VOTING_POWER_SUPPORTED && !governanceMocksAllowed()) {
     throw new GovernanceUnavailableError({
       code: 'MOCK_ACTION_BLOCKED',
-      message: 'MOCK_ACTION_BLOCKED: vote delegation is not available on-chain in this build.',
-      remediation: 'Vote delegation is disabled until its on-chain transaction path ships.',
+      message: 'MOCK_ACTION_BLOCKED: vote delegation is not supported by the deployed contract.',
+      remediation: 'Vote delegation is disabled until its on-chain transaction path ships on iln_governance.',
     });
   }
 
