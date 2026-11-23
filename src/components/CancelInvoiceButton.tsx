@@ -20,7 +20,7 @@ export default function CancelInvoiceButton({
 }: CancelInvoiceButtonProps) {
   const [open, setOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const { execute } = useTransaction();
+  const { execute, signingModal } = useTransaction();
   const { addToast, updateToast } = useToast();
   const canCancel =
     Boolean(walletAddress) &&
@@ -119,6 +119,7 @@ export default function CancelInvoiceButton({
           </div>
         </div>
       ) : null}
+      {signingModal}
     </>
   );
 }

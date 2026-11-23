@@ -10,7 +10,7 @@ import { useApprovedTokens } from '@/hooks/useApprovedTokens';
 
 export default function InsurancePoolPanel() {
   const { poolInfo, isEnrolled, isLoading, refresh } = useInsurance();
-  const { execute } = useTransaction();
+  const { execute, signingModal } = useTransaction();
   const { address } = useWallet();
   const { defaultToken } = useApprovedTokens();
   const [premiumAmount, setPremiumAmount] = useState('100');
@@ -144,6 +144,7 @@ export default function InsurancePoolPanel() {
           {isEnrolled ? 'Deposit More Premium' : 'Enroll in Protection'}
         </button>
       </div>
+      {signingModal}
     </div>
   );
 }

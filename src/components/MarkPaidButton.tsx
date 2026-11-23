@@ -28,7 +28,7 @@ export default function MarkPaidButton({
 }: MarkPaidButtonProps) {
   const [open, setOpen] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
-  const { execute } = useTransaction();
+  const { execute, signingModal } = useTransaction();
   const { addToast, updateToast } = useToast();
 
   const canMarkPaid =
@@ -127,6 +127,7 @@ export default function MarkPaidButton({
           </div>
         </div>
       ) : null}
+      {signingModal}
     </>
   );
 }

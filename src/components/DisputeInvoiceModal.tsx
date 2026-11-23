@@ -21,7 +21,7 @@ export default function DisputeInvoiceModal({
 }: DisputeInvoiceModalProps) {
   const { address } = useWallet();
   const { addToast } = useToast();
-  const { execute, loading, error } = useTransaction();
+  const { execute, loading, error, signingModal } = useTransaction();
   const [evidence, setEvidence] = useState('');
   const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
@@ -143,6 +143,7 @@ export default function DisputeInvoiceModal({
           </button>
         </div>
       </div>
+      {signingModal}
     </div>
   );
 }

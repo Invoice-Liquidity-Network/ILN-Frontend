@@ -23,7 +23,7 @@ import {
 
 export const DelegationPanel: React.FC = () => {
   const { address, isConnected, signTx } = useWallet();
-  const { execute, loading: txLoading, error: txError } = useTransaction();
+  const { execute, loading: txLoading, error: txError, signingModal } = useTransaction();
 
   const [delegateAddress, setDelegateAddress] = useState('');
   const [resolvedDelegate, setResolvedDelegate] = useState('');
@@ -416,6 +416,7 @@ export const DelegationPanel: React.FC = () => {
           {txError}
         </div>
       )}
+      {signingModal}
     </div>
   );
 };
