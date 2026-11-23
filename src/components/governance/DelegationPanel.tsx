@@ -6,6 +6,7 @@ import {
   getDelegationInfo,
   getVotingPower,
   delegateVotingPower,
+  DELEGATE_VOTING_POWER_SUPPORTED,
 } from '@/utils/governance';
 import { resolveFederatedAddress } from '@/utils/federation';
 import { useWallet } from '@/context/WalletContext';
@@ -165,8 +166,8 @@ export const DelegationPanel: React.FC = () => {
     return false;
   }, [resolvedDelegate, address, contractCycleDetected]);
 
-  // Delegation has no on-chain submission path yet, so production is read-only (#1320).
-  const delegationWritable = governanceMocksAllowed();
+  // Delegation has no on-chain submission path yet, so production is read-only (#842, #843, #1320).
+  const delegationWritable = DELEGATE_VOTING_POWER_SUPPORTED || governanceMocksAllowed();
 
   const handleDelegate = async () => {
     if (!delegationWritable || !resolvedDelegate || isCycleDetected || !address) return;
