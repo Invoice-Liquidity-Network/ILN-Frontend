@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import InvoiceStatusBadge from '../InvoiceStatusBadge';
+import InvoiceStatusBadge, { reconcileInvoiceStatus } from '../InvoiceStatusBadge';
 
 describe('InvoiceStatusBadge', () => {
   it('renders the initial status', () => {
@@ -19,5 +19,21 @@ describe('InvoiceStatusBadge', () => {
     rerender(<InvoiceStatusBadge status="Cancelled" />);
     expect(screen.getByText('Cancelled')).toHaveClass('bg-yellow-100');
     expect(screen.getByText('Cancelled')).toHaveClass('text-yellow-800');
+  });
+
+  it('reconciles status from heterogeneous indexer/RPC representations', () => {
+    expect(reconcileInvoiceStatus('pending')).toBe('Pending');
+    expect(reconcileInvoiceStatus('open')).toBe('Pending');
+    expect(reconcileInvoiceStatus('funded')).toBe('Funded');
+    expect(reconcileInvoiceStatus('active')).toBe('Funded');
+    expect(reconcileInvoiceStatus('partially_funded')).toBe('PartiallyFunded');
+    expect(reconcileInvoiceStatus('settled')).toBe('Paid');
+    expect(reconcileInvoiceStatus('overdue')).toBe('Defaulted');
+    expect(reconcileInvoiceStatus('in_dispute')).toBe('Disputed');
+  });
+
+  it('renders reconciled status for variant casing from indexer', () => {
+    render(<InvoiceStatusBadge status="partially_funded" />);
+    expect(screen.getByText('PartiallyFunded')).toBeInTheDocument();
   });
 });

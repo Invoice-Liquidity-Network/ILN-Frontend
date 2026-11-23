@@ -335,4 +335,18 @@ describe('FundConfirmModal (via LPDashboard)', () => {
     expect(buildApproveTokenTransaction).not.toHaveBeenCalled();
     expect(submitSignedTransaction).not.toHaveBeenCalled();
   });
+
+  it('validates funding confirmation parameters and allowance consistency', async () => {
+    getTokenAllowance.mockResolvedValue(10000000000n);
+
+    render(<LPDashboard />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Fund' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Fund Invoice' })).toBeEnabled();
+    });
+
+    // Derives correct discount yield on invoice #7 (discount_rate 500 = 5%)
+    expect(screen.getByText(/5\.00%/i)).toBeInTheDocument();
+  });
 });
