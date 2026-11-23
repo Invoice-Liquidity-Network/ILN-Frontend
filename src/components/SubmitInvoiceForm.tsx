@@ -71,6 +71,38 @@ interface SubmitInvoiceFormProps {
   prefillId?: string;
 }
 
+const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const DISCOUNT_RATE_PATTERN = /^\d+(\.\d{1,2})?$/;
+
+function isValidCalendarDate(date: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day, 0, 0, 0, 0);
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+}
+
+/**
+ * Multi-step invoice submission wizard (#1298).
+ *
+ * Validation & unit invariants:
+ * - Amount: sanitized and parsed as integer base units (`bigint`) using `getTokenInputDecimals(symbol)`
+ *   (USDC: 6, EURC/XLM: 7) to match `validateInvoiceForm`, avoiding floating-point rounding in the payload.
+ * - Payer: must be a valid Ed25519 Stellar public key and distinct from the connected freelancer wallet.
+ * - Due date: must be a valid calendar date (`YYYY-MM-DD` without rollover) strictly in the future and <= 365 days,
+ *   re-checked at submit time.
+ * - Discount rate: restricted to at most 2 decimal places (`1%` to `50%`, integer `100..5000` bps) so
+ *   sub-basis-point precision or trailing non-numeric characters cannot be silently truncated.
+ * - Token: explicit `form.tokenId` must resolve to an approved token (`isAllowed`) without falling back
+ *   to `defaultToken`.
+ * - Referral code: optional; when non-empty, must match `[A-Za-z0-9_-]{1,64}`.
+ */
 export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitInvoiceFormProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -120,7 +152,9 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   );
 
   const effectiveTokenId = form.tokenId || defaultToken?.contractId || '';
-  const selectedToken = tokenMap.get(effectiveTokenId) ?? defaultToken ?? null;
+  const selectedToken = form.tokenId
+    ? (tokenMap.get(form.tokenId) ?? null)
+    : (defaultToken ?? null);
   const amountInputDecimals = getTokenInputDecimals(selectedToken?.symbol ?? 'USDC');
   const preview = getYieldPreview(form.amount, form.discountRate, amountInputDecimals);
   const amountEntryPreview = selectedToken
@@ -145,6 +179,12 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
   const [addressBookQuery, setAddressBookQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const trimmedReferralCode = referralCode.trim();
+  const referralError =
+    trimmedReferralCode && !REFERRAL_CODE_PATTERN.test(trimmedReferralCode)
+      ? 'Referral code may only contain letters, numbers, hyphens, and underscores (max 64 characters).'
+      : undefined;
+
   const validationErrors = useMemo(() => {
     const errs = validateInvoiceForm(
       { ...form, tokenId: effectiveTokenId },
@@ -154,8 +194,21 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
       Math.floor(Date.now() / 1000),
       caps?.maxInvoiceAmount
     );
+    if (!errs.payer && address && form.payer.trim() === address) {
+      errs.payer = 'Payer address cannot be the same as your connected wallet.';
+    }
+    if (!errs.dueDate && form.dueDate && !isValidCalendarDate(form.dueDate)) {
+      errs.dueDate = 'Select a valid due date.';
+    }
+    if (!errs.discountRate && form.discountRate && !DISCOUNT_RATE_PATTERN.test(form.discountRate.trim())) {
+      errs.discountRate = 'Discount rate must have at most 2 decimal places (1% to 50%).';
+    }
     if (!selectedToken && !tokensLoading) {
-      errs.tokenId = t('submitForm.noTokensAvailable');
+      errs.tokenId = form.tokenId
+        ? 'Selected token is not approved or unavailable.'
+        : t('submitForm.noTokensAvailable');
+    } else if (selectedToken && selectedToken.isAllowed === false) {
+      errs.tokenId = 'Selected token is not currently approved.';
     }
     if (networkMismatch) {
       errs.wallet = t('submitForm.walletError', { network: NETWORK_NAME });
@@ -165,6 +218,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     form,
     effectiveTokenId,
     isConnected,
+    address,
     selectedToken,
     tokensLoading,
     networkMismatch,
@@ -190,7 +244,8 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     !validationErrors.payer &&
     !validationErrors.amount &&
     !validationErrors.dueDate &&
-    !validationErrors.wallet;
+    !validationErrors.wallet &&
+    !referralError;
   const isStep2Valid = !validationErrors.tokenId && !validationErrors.discountRate;
   const isFormValid = isStep1Valid && isStep2Valid;
 
@@ -268,7 +323,9 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     } else if (e.key === 'Enter' && highlightedIndex >= 0) {
       e.preventDefault();
       const selectedAddress = filtered[highlightedIndex];
-      handleSelectAddress(selectedAddress.address);
+      if (selectedAddress) {
+        handleSelectAddress(selectedAddress.address);
+      }
     }
   };
 
@@ -288,15 +345,25 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
     }
 
     const amount = parseAmountToUnits(form.amount, amountInputDecimals);
-    const dueDate = toUnixTimestamp(form.dueDate);
-    const discountRate = parseDiscountRateToBps(form.discountRate);
+    const dueDate = isValidCalendarDate(form.dueDate) ? toUnixTimestamp(form.dueDate) : null;
+    const discountRate = DISCOUNT_RATE_PATTERN.test(form.discountRate.trim())
+      ? parseDiscountRateToBps(form.discountRate)
+      : null;
+    const nowInSeconds = Math.floor(Date.now() / 1000);
 
     if (
       !address ||
       !selectedToken ||
+      selectedToken.isAllowed === false ||
+      form.payer.trim() === address ||
+      referralError ||
       amount === null ||
+      amount <= 0n ||
       dueDate === null ||
-      discountRate === null
+      dueDate <= nowInSeconds ||
+      discountRate === null ||
+      discountRate < 100 ||
+      discountRate > 5000
     ) {
       setErrors({ submit: t('submitForm.reviewFormValues') });
       return;
@@ -315,9 +382,10 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
           discountRate,
           signTx,
           token: selectedToken.contractId,
-          referralCode: referralCode.trim(),
+          referralCode: trimmedReferralCode,
         }),
       {
+        expectedAction: 'submit_invoice',
         title: 'Submitting invoice to Stellar testnet...',
         pendingMessage: 'Waiting for wallet signature...',
         successTitle: 'Invoice submitted',
@@ -627,6 +695,7 @@ export default function SubmitInvoiceForm({ initialValues, prefillId }: SubmitIn
                   label="Referral code (optional)"
                   tooltip="If someone referred you to the network, enter their referral code here. Optional."
                   hint="Leave blank if you don't have one."
+                  error={referralError}
                 >
                   <input
                     value={referralCode}
