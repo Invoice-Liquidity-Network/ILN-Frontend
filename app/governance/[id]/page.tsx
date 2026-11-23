@@ -199,6 +199,8 @@ export default function ProposalDetailPage() {
   const [votingPowerError, setVotingPowerError] = useState<string | null>(null);
   const [loadingVotingPower, setLoadingVotingPower] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [executedTxHash, setExecutedTxHash] = useState<string | null>(null);
+  const [executionError, setExecutionError] = useState<string | null>(null);
   const [vetoModalOpen, setVetoModalOpen] = useState(false);
   const [vetoReason, setVetoReason] = useState('');
   const [vetoReasonHash, setVetoReasonHash] = useState('');
@@ -284,32 +286,41 @@ export default function ProposalDetailPage() {
     if (!proposal || !address) return;
 
     setIsExecuting(true);
-    const result = await execute(
-      async (signTx) =>
-        executeProposal(proposal.id, address, signTx, {
-          walletNetwork: walletNetwork ?? undefined,
-          // Re-read chain state so a stale page cannot prompt for a doomed execution.
-          readProposal: (id) => fetchProposal(id),
-          onConfirmed: async () => {
-            await invalidateGovernanceQueries({
-              proposalId: proposal.id,
-              voterAddress: address,
-            });
-          },
-        }),
-      {
-        expectedAction: 'execute_proposal',
-        title: 'Executing proposal…',
-        pendingMessage: 'Waiting for wallet signature...',
-        successTitle: 'Proposal executed',
-        successMessage: 'The proposal has been successfully executed.',
-      }
-    );
+    setExecutionError(null);
+    try {
+      const result = await execute(
+        async (signTx) =>
+          executeProposal(proposal.id, address, signTx, {
+            walletNetwork: walletNetwork ?? undefined,
+            // Re-read chain state so a stale page cannot prompt for a doomed execution.
+            readProposal: (id) => fetchProposal(id),
+            onConfirmed: async () => {
+              await invalidateGovernanceQueries({
+                proposalId: proposal.id,
+                voterAddress: address,
+              });
+            },
+          }),
+        {
+          expectedAction: 'execute_proposal',
+          title: 'Executing proposal…',
+          pendingMessage: 'Waiting for wallet signature...',
+          successTitle: 'Proposal executed',
+          successMessage: 'The proposal has been successfully executed.',
+        }
+      );
 
-    if (result) {
-      await load();
+      if (result) {
+        setExecutedTxHash(result);
+        await load();
+      }
+    } catch (err) {
+      setExecutionError(
+        err instanceof Error ? err.message : 'Execution failed. Please try again.'
+      );
+    } finally {
+      setIsExecuting(false);
     }
-    setIsExecuting(false);
   };
 
   const handleVetoReasonChange = async (reason: string) => {
@@ -599,6 +610,15 @@ export default function ProposalDetailPage() {
                         on-chain.
                       </p>
                       <GovernanceMockStatusBanner action="executeProposal" />
+                      {executionError && (
+                        <div
+                          role="alert"
+                          className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
+                        >
+                          <p className="font-semibold">Execution Failed</p>
+                          <p className="mt-0.5">{executionError}</p>
+                        </div>
+                      )}
                       <button
                         onClick={handleExecute}
                         disabled={isExecuting}
@@ -661,6 +681,15 @@ export default function ProposalDetailPage() {
                     The timelock delay has elapsed. Anyone can now trigger on-chain execution.
                   </p>
                   <GovernanceMockStatusBanner action="executeProposal" />
+                  {executionError && (
+                    <div
+                      role="alert"
+                      className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
+                    >
+                      <p className="font-semibold">Execution Failed</p>
+                      <p className="mt-0.5">{executionError}</p>
+                    </div>
+                  )}
                   {isConnected ? (
                     <button
                       onClick={handleExecute}
@@ -704,6 +733,20 @@ export default function ProposalDetailPage() {
                   <p className="text-xs text-on-surface-variant">
                     Changes are live on the protocol.
                   </p>
+                  {(executedTxHash || proposal.executedTxHash) && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-3 text-xs"
+                    >
+                      <p className="font-semibold text-purple-900 dark:text-purple-200">
+                        Execution Transaction Hash
+                      </p>
+                      <p className="font-mono text-purple-800 dark:text-purple-300 break-all select-all mt-0.5">
+                        {executedTxHash || proposal.executedTxHash}
+                      </p>
+                    </div>
+                  )}
                   {executionSummary && (
                     <div className="rounded-2xl border border-purple-500/10 bg-purple-500/10 p-3 text-sm text-purple-700">
                       {executionSummary}

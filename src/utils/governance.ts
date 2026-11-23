@@ -187,74 +187,6 @@ function buildGovernanceReadTransaction(method: string, params: xdr.ScVal[] = []
     .build();
 }
 
-function buildGovernanceWriteTransaction(
-  account: Account,
-  method: string,
-  params: xdr.ScVal[]
-) {
-  const contractId = assertGovernanceConfiguration();
-  return new TransactionBuilder(account, {
-    fee: BASE_FEE,
-    networkPassphrase: NETWORK_PASSPHRASE,
-  })
-    .addOperation(
-      Operation.invokeContractFunction({
-        contract: contractId,
-        function: method,
-        args: params,
-      })
-    )
-    .setTimeout(30)
-    .build();
-}
-
-async function submitGovernanceTransaction(
-  account: Account,
-  method: string,
-  params: xdr.ScVal[],
-  signTx: (xdr: string) => Promise<string>
-): Promise<{ txHash: string; returnValue?: xdr.ScVal }> {
-  assertGovernanceConfiguration();
-  const sourceAccount = await server.getAccount(account.accountId());
-  const tx = buildGovernanceWriteTransaction(sourceAccount, method, params);
-  const prepared = await server.prepareTransaction(tx);
-  let signedXdr: string;
-  try {
-    signedXdr = await signTx(prepared.toXDR());
-  } catch (error) {
-    if (isCancellationError(error)) {
-      throw new Error(
-        'USER_REJECTED: Transaction signature was declined in wallet. No changes were applied.'
-      );
-    }
-    throw error;
-  }
-  const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
-  const sent = await server.sendTransaction(signedTx);
-
-  if (!sent.hash || !['PENDING', 'DUPLICATE'].includes(sent.status)) {
-    throw new Error(
-      `Governance transaction submission failed with status ${String(sent.status || 'unknown')}.`
-    );
-  }
-
-  recordPendingTransaction({ hash: sent.hash, label: `governance:${method}`, address: account.accountId() });
-  const finalResult = await server.pollTransaction(sent.hash, { attempts: 20 });
-  if (finalResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
-    if (finalResult.status === rpc.Api.GetTransactionStatus.FAILED) {
-      removePendingTransaction(sent.hash);
-    }
-    throw new Error(`Governance transaction failed with status ${String(finalResult.status)}.`);
-  }
-  removePendingTransaction(sent.hash);
-
-  const result = finalResult as typeof finalResult & {
-    returnValue?: xdr.ScVal;
-    result?: { retval?: xdr.ScVal };
-  };
-  return { txHash: sent.hash, returnValue: result.returnValue ?? result.result?.retval };
-}
-
 function buildTokenReadTransaction(contractId: string, method: string, params: xdr.ScVal[] = []) {
   return new TransactionBuilder(new Account(READ_ACCOUNT, '0'), {
     fee: BASE_FEE,
@@ -369,6 +301,8 @@ export interface Proposal {
   parameterChanges?: ParameterChange[];
   userVote?: VoteChoice;
   vetoHistory?: VetoRecord[];
+  executedTxHash?: string;
+  createdTxHash?: string;
 }
 
 // Keep this aligned with docs/contract-integration-status.md so the UI
