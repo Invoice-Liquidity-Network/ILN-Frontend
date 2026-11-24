@@ -1,16 +1,31 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRecentProtocolFeed } from '@/hooks/useRecentProtocolFeed';
 import DataSourceCaption from '@/components/DataSourceCaption';
 import type { ProtocolFeedItem } from '@/utils/protocol-feed';
+
+/**
+ * Enforce confirmed-only invariant for the protocol activity feed (#1283).
+ *
+ * Separates wallet-submitted (local pending store), indexer-known (lagging
+ * off-chain cache), and RPC-confirmed (Horizon/Stellar RPC settled) entries:
+ * only `rpc_confirmed` (or untagged RPC-sourced) items may render here.
+ */
+export function filterConfirmedFeedItems(items: ProtocolFeedItem[]): ProtocolFeedItem[] {
+  return items.filter(
+    (item) =>
+      item.confirmationStatus === undefined || item.confirmationStatus === 'rpc_confirmed'
+  );
+}
 
 function FeedRow({ item, isNew }: { item: ProtocolFeedItem; isNew: boolean }) {
   return (
     <li
       data-feed-id={item.id}
       data-testid="recent-transaction-item"
+      data-confirmation-status="rpc-confirmed"
       data-animate-new={isNew ? 'true' : 'false'}
       className={`flex items-center gap-4 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 ${
         isNew ? 'animate-in slide-in-from-top-4 duration-300' : ''
@@ -29,7 +44,12 @@ function FeedRow({ item, isNew }: { item: ProtocolFeedItem; isNew: boolean }) {
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-on-surface">{item.label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-bold text-on-surface">{item.label}</p>
+          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            RPC confirmed
+          </span>
+        </div>
         <p className="text-xs text-on-surface-variant">
           <span className="font-semibold text-on-surface">{item.amount}</span> {item.token}
           <span className="mx-1.5 text-outline-variant">·</span>
@@ -51,8 +71,20 @@ function FeedRow({ item, isNew }: { item: ProtocolFeedItem; isNew: boolean }) {
   );
 }
 
+/**
+ * Confirmed-only recent protocol transactions panel (#1283).
+ *
+ * Data source & status separation:
+ * - Displays only RPC-confirmed protocol contract events (`useRecentProtocolFeed`).
+ * - Intentionally excludes wallet-submitted pending transactions and
+ *   indexer-known events so unconfirmed local submissions never masquerade as
+ *   settled network activity.
+ * - On RPC failure, renders an honest unavailable message with
+ *   `provenance="unavailable"`.
+ */
 export default function RecentTransactionsPanel() {
-  const { data: items = [], isLoading, isError } = useRecentProtocolFeed();
+  const { data: rawItems = [], isLoading, isError } = useRecentProtocolFeed();
+  const items = useMemo(() => filterConfirmedFeedItems(rawItems), [rawItems]);
   const [newIds, setNewIds] = useState<Set<string>>(() => new Set());
   const seenIdsRef = useRef<Set<string>>(new Set());
 

@@ -19,6 +19,17 @@ interface InvoiceStateDonutProps {
   filteredStates?: string[];
 }
 
+/**
+ * Invoice state distribution donut chart (#1280).
+ *
+ * Data source & reconciliation:
+ * - Reads exclusively from live RPC (`useInvoiceStateCounts` -> `getAllInvoices`)
+ *   and never mixes stale indexer snapshots into the counts or total.
+ * - Counts are deduplicated by `invoice.id` and `total` reconciles to the
+ *   exact sum of state counts.
+ * - On RPC error or missing counts, renders `data-status="unavailable"` with
+ *   `provenance="unavailable"` rather than fabricated zeros.
+ */
 export default function InvoiceStateDonut({
   onStateFilter,
   filteredStates = [],
