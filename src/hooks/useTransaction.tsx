@@ -13,6 +13,7 @@ import {
   canRetryLifecycleStatus,
   classifyTransactionError,
   isInFlightLifecycleStatus,
+  isTerminalLifecycleStatus,
   type TransactionLifecycleStatus,
 } from '@/lib/transaction-lifecycle';
 import {
@@ -108,7 +109,18 @@ export function useTransaction(): UseTransactionResult {
   const inFlightRef = useRef(false);
   const lifecycleRef = useRef<TransactionLifecycleStatus>('unsigned');
 
-  /** Advance only forward along unsigned → signed → submitted → confirming. */
+  /**
+   * Advance lifecycle monotonically within an execution (#1142, #1288).
+   *
+   * Invariants:
+   * - Forward progression only: `unsigned → signed → submitted → confirming → confirmed`.
+   * - Terminal states (`confirmed`, `failed`, `cancelled`) are sticky for the
+   *   current execution: late or out-of-order `onStatus` callbacks cannot
+   *   regress a terminal state back to in-flight (`signed`/`submitted`/`confirming`)
+   *   or overwrite another terminal state (`confirmed ↔ failed ↔ cancelled`).
+   * - Unknown outcome (`TX_TIMEOUT`) resolves to `confirming` (non-terminal
+   *   in-flight), which blocks duplicate `execute()` calls and omits Retry.
+   */
   const advanceLifecycle = useCallback((next: TransactionLifecycleStatus) => {
     const rank: Record<TransactionLifecycleStatus, number> = {
       unsigned: 0,
@@ -120,6 +132,9 @@ export function useTransaction(): UseTransactionResult {
       cancelled: -1,
     };
     const current = lifecycleRef.current;
+    if (isTerminalLifecycleStatus(current)) {
+      return;
+    }
     if (next === 'failed' || next === 'cancelled' || next === 'confirmed') {
       lifecycleRef.current = next;
       setLifecycleStatus(next);
