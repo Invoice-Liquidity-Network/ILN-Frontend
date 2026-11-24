@@ -3,7 +3,29 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { useTransaction } from '@/hooks/useTransaction';
-import { cancelInvoice, type Invoice } from '@/utils/soroban';
+import { cancelInvoice, getInvoice, type Invoice } from '@/utils/soroban';
+
+/**
+ * Returns true only when an invoice is in the `Pending` state and has no
+ * funding or payment metadata attached.
+ *
+ * Assumptions & failure behavior:
+ * - Authorization requires the connected `walletAddress` to match
+ *   `invoice.freelancer` (case-insensitive).
+ * - Before building or signing the cancellation transaction, `confirmCancel`
+ *   re-fetches on-chain state via `getInvoice` so a stale UI cannot submit a
+ *   cancellation for an invoice that was funded in the meantime.
+ * - If `getInvoice` fails or reports a non-pending/funded state, signing is
+ *   aborted and no transaction is constructed.
+ */
+export function isInvoiceCancellable(invoice: Invoice): boolean {
+  return (
+    invoice.status === 'Pending' &&
+    !invoice.funder &&
+    !invoice.funded_at &&
+    (invoice.amount_paid ?? 0n) === 0n
+  );
+}
 
 interface CancelInvoiceButtonProps {
   invoice: Invoice;
@@ -24,13 +46,13 @@ export default function CancelInvoiceButton({
   const { addToast, updateToast } = useToast();
   const canCancel =
     Boolean(walletAddress) &&
-    invoice.status === 'Pending' &&
+    isInvoiceCancellable(invoice) &&
     invoice.freelancer.toLowerCase() === walletAddress?.toLowerCase();
 
   if (!canCancel) return null;
 
   const confirmCancel = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress || isCancelling) return;
 
     setIsCancelling(true);
     const toastId = addToast({
@@ -40,6 +62,17 @@ export default function CancelInvoiceButton({
     });
 
     try {
+      const latestInvoice = await getInvoice(invoice.id);
+      if (
+        !isInvoiceCancellable(latestInvoice) ||
+        latestInvoice.freelancer.toLowerCase() !== walletAddress.toLowerCase()
+      ) {
+        setOpen(false);
+        throw new Error(
+          `Invoice #${invoice.id.toString()} can no longer be cancelled (current status: ${latestInvoice.status}).`
+        );
+      }
+
       const { tx } = await cancelInvoice(walletAddress, invoice.id);
       const txHash = await execute(tx, {
         expectedAction: 'cancel_invoice',

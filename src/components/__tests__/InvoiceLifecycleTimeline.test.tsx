@@ -34,16 +34,49 @@ describe('InvoiceLifecycleTimeline (#12)', () => {
     expect(paidContainer?.getAttribute('aria-current')).toBe('step');
   });
 
-  it('replaces the final step with a terminal state for Cancelled invoices', () => {
+  it('replaces the final step with a terminal state for Cancelled invoices without marking Funded done', () => {
     render(<InvoiceLifecycleTimeline status="Cancelled" />);
     expect(screen.getByText('Cancelled')).toBeInTheDocument();
     expect(screen.queryByText('Paid')).not.toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice pending')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming step: Invoice funded')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Invoice cancelled')).toBeInTheDocument();
   });
 
-  it('surfaces Defaulted as a terminal state', () => {
+  it('surfaces Defaulted as a terminal state after Funded', () => {
     render(<InvoiceLifecycleTimeline status="Defaulted" />);
     expect(screen.getByText('Defaulted')).toBeInTheDocument();
     expect(screen.queryByText('Paid')).not.toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice pending')).toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice funded')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Invoice defaulted')).toBeInTheDocument();
+  });
+
+  it('surfaces Disputed as a terminal off-happy-path state after Funded', () => {
+    render(<InvoiceLifecycleTimeline status="Disputed" />);
+    expect(screen.getByText('Disputed')).toBeInTheDocument();
+    expect(screen.queryByText('Paid')).not.toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice pending')).toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice funded')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Invoice disputed')).toBeInTheDocument();
+  });
+
+  it('renders PartiallyFunded as an active nonterminal step', () => {
+    render(<InvoiceLifecycleTimeline status="PartiallyFunded" />);
+    expect(screen.getByText('Partially Funded')).toBeInTheDocument();
+    expect(screen.getByText('Completed step: Invoice pending')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Invoice partially funded')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming step: Invoice paid')).toBeInTheDocument();
+  });
+
+  it('fails visibly with an alert for unknown or empty contract states', () => {
+    const { rerender } = render(<InvoiceLifecycleTimeline status="Archived" />);
+    const alert = screen.getByRole('alert', { name: 'Invoice lifecycle status' });
+    expect(alert).toHaveTextContent('Unknown invoice status: Archived');
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+
+    rerender(<InvoiceLifecycleTimeline status="" />);
+    expect(screen.getByRole('alert')).toHaveTextContent('Unknown invoice status: None');
   });
 
   it('has semantic ARIA list roles', () => {

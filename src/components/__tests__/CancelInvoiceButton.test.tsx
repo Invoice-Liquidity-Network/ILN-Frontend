@@ -23,6 +23,7 @@ const addToastMock = vi.fn(() => 'toast-id');
 const updateToastMock = vi.fn();
 const executeMock = vi.fn(async () => 'tx-hash-123');
 const cancelInvoiceMock = vi.fn(async () => ({ tx: 'unsigned-xdr' }));
+const getInvoiceMock = vi.fn(async () => invoice());
 
 vi.mock('@/context/ToastContext', () => ({
   useToast: () => ({ addToast: addToastMock, updateToast: updateToastMock }),
@@ -34,6 +35,7 @@ vi.mock('@/hooks/useTransaction', () => ({
 
 vi.mock('@/utils/soroban', () => ({
   cancelInvoice: (...args: unknown[]) => cancelInvoiceMock(...args),
+  getInvoice: (...args: unknown[]) => getInvoiceMock(...args),
 }));
 
 describe('CancelInvoiceButton', () => {
@@ -44,6 +46,8 @@ describe('CancelInvoiceButton', () => {
     executeMock.mockResolvedValue('tx-hash-123');
     cancelInvoiceMock.mockReset();
     cancelInvoiceMock.mockResolvedValue({ tx: 'unsigned-xdr' });
+    getInvoiceMock.mockReset();
+    getInvoiceMock.mockResolvedValue(invoice());
   });
 
   it('renders nothing when there is no connected wallet', () => {
@@ -51,11 +55,24 @@ describe('CancelInvoiceButton', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders nothing when the invoice is not Pending', () => {
-    const { container } = render(
-      <CancelInvoiceButton invoice={invoice({ status: 'Funded' })} walletAddress={WALLET} />
-    );
-    expect(container).toBeEmptyDOMElement();
+  it('renders nothing when the invoice is not Pending or already has funding metadata', () => {
+    const nonCancellableVariants = [
+      { status: 'Funded' },
+      { status: 'PartiallyFunded' },
+      { status: 'Paid' },
+      { status: 'Defaulted' },
+      { status: 'Cancelled' },
+      { status: 'Pending', funder: 'GFUNDER123' },
+      { status: 'Pending', funded_at: 1_800_000_000n },
+      { status: 'Pending', amount_paid: 100n },
+    ];
+
+    for (const overrides of nonCancellableVariants) {
+      const { container } = render(
+        <CancelInvoiceButton invoice={invoice(overrides)} walletAddress={WALLET} />
+      );
+      expect(container).toBeEmptyDOMElement();
+    }
   });
 
   it('renders nothing when the connected wallet is not the freelancer', () => {
@@ -93,8 +110,12 @@ describe('CancelInvoiceButton', () => {
     await waitFor(() => {
       expect(onCancelled).toHaveBeenCalledWith(expect.objectContaining({ status: 'Cancelled' }));
     });
+    expect(getInvoiceMock).toHaveBeenCalledWith(7n);
     expect(cancelInvoiceMock).toHaveBeenCalledWith(WALLET, 7n);
-    expect(executeMock).toHaveBeenCalledWith('unsigned-xdr', 'Cancel invoice');
+    expect(executeMock).toHaveBeenCalledWith('unsigned-xdr', {
+      expectedAction: 'cancel_invoice',
+      title: 'Cancel invoice',
+    });
     expect(updateToastMock).toHaveBeenCalledWith(
       'toast-id',
       expect.objectContaining({
@@ -168,5 +189,55 @@ describe('CancelInvoiceButton', () => {
   it('uses the compact button styling when compact is set', () => {
     render(<CancelInvoiceButton invoice={invoice()} walletAddress={WALLET} compact />);
     expect(screen.getByText('Cancel Invoice').closest('button')).toHaveClass('w-full');
+  });
+
+  it('rechecks on-chain state before signing and aborts if the invoice was funded while stale', async () => {
+    getInvoiceMock.mockResolvedValue(
+      invoice({ status: 'Funded', funder: 'GFUNDER999', funded_at: 1_850_000_000n })
+    );
+    const onCancelled = vi.fn();
+    render(
+      <CancelInvoiceButton invoice={invoice()} walletAddress={WALLET} onCancelled={onCancelled} />
+    );
+
+    fireEvent.click(screen.getByText('Cancel Invoice'));
+    fireEvent.click(screen.getByText('Confirm Cancel'));
+
+    await waitFor(() => {
+      expect(updateToastMock).toHaveBeenCalledWith(
+        'toast-id',
+        expect.objectContaining({
+          type: 'error',
+          title: 'Cancellation failed',
+          message: 'Invoice #7 can no longer be cancelled (current status: Funded).',
+        })
+      );
+    });
+    expect(getInvoiceMock).toHaveBeenCalledWith(7n);
+    expect(cancelInvoiceMock).not.toHaveBeenCalled();
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(onCancelled).not.toHaveBeenCalled();
+    expect(screen.queryByText('Are you sure? This cannot be undone.')).not.toBeInTheDocument();
+  });
+
+  it('aborts before signing if the pre-sign state recheck fails', async () => {
+    getInvoiceMock.mockRejectedValue(new Error('RPC timeout'));
+    render(<CancelInvoiceButton invoice={invoice()} walletAddress={WALLET} />);
+
+    fireEvent.click(screen.getByText('Cancel Invoice'));
+    fireEvent.click(screen.getByText('Confirm Cancel'));
+
+    await waitFor(() => {
+      expect(updateToastMock).toHaveBeenCalledWith(
+        'toast-id',
+        expect.objectContaining({
+          type: 'error',
+          title: 'Cancellation failed',
+          message: 'RPC timeout',
+        })
+      );
+    });
+    expect(cancelInvoiceMock).not.toHaveBeenCalled();
+    expect(executeMock).not.toHaveBeenCalled();
   });
 });
