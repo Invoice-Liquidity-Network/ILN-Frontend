@@ -321,4 +321,150 @@ describe('useTransaction lifecycle', () => {
       expect(followUpOp).not.toHaveBeenCalled();
     });
   });
+
+  describe('RPC confirmation reconciliation (#1289)', () => {
+    it('submission response: rejected sendTransaction status fails without query invalidation or success signal', async () => {
+      vi.mocked(submitSignedTransaction).mockImplementation(
+        ({ onStatus }: { onStatus?: (stage: 'signed' | 'submitted' | 'confirming') => void }) => {
+          onStatus?.('signed');
+          return Promise.reject(new Error('Transaction submission failed with status ERROR.'));
+        }
+      );
+
+      const { result } = renderHook(() => useTransaction());
+      let outcome: unknown = 'pending';
+      await act(async () => {
+        outcome = await result.current.execute(mockTx, { expectedAction: 'fund_invoice' });
+      });
+
+      expect(outcome).toBeNull();
+      expect(result.current.lifecycleStatus).toBe('failed');
+      expect(result.current.success).toBe(false);
+      expect(result.current.txHash).toBeNull();
+      expect(result.current.error).toContain('Transaction submission failed with status ERROR');
+      expect(invalidateQueriesMock).not.toHaveBeenCalled();
+      expect(notifyTxSuccessMock).not.toHaveBeenCalled();
+      expect(recordSigningAttemptMock).toHaveBeenCalledWith(
+        expect.objectContaining({ flow: 'fund_invoice', success: false })
+      );
+    });
+
+    it('RPC timeout: generic polling timeout resolves to failed without confirming or invalidating caches', async () => {
+      vi.mocked(submitSignedTransaction).mockImplementation(
+        ({ onStatus }: { onStatus?: (stage: 'signed' | 'submitted' | 'confirming') => void }) => {
+          onStatus?.('signed');
+          onStatus?.('submitted');
+          onStatus?.('confirming');
+          return Promise.reject(new Error('RPC request timed out while polling confirmation'));
+        }
+      );
+
+      const { result } = renderHook(() => useTransaction());
+      let outcome: unknown = 'pending';
+      await act(async () => {
+        outcome = await result.current.execute(mockTx, { expectedAction: 'mark_paid' });
+      });
+
+      expect(outcome).toBeNull();
+      expect(result.current.lifecycleStatus).toBe('failed');
+      expect(result.current.success).toBe(false);
+      expect(result.current.error).toMatch(/timed out/i);
+      expect(invalidateQueriesMock).not.toHaveBeenCalled();
+      expect(notifyTxSuccessMock).not.toHaveBeenCalled();
+    });
+
+    it('ledger success: reconciles submitted -> confirming -> confirmed and invalidates queries once', async () => {
+      const stages: string[] = [];
+      vi.mocked(submitSignedTransaction).mockImplementation(
+        ({ onStatus }: { onStatus?: (stage: 'signed' | 'submitted' | 'confirming') => void }) => {
+          onStatus?.('signed');
+          stages.push('signed');
+          onStatus?.('submitted');
+          stages.push('submitted');
+          onStatus?.('confirming');
+          stages.push('confirming');
+          return Promise.resolve({ txHash: 'rpc-confirmed-hash' });
+        }
+      );
+
+      const { result } = renderHook(() => useTransaction());
+      let outcome: unknown = null;
+      await act(async () => {
+        outcome = await result.current.execute(mockTx, { expectedAction: 'fund_invoice' });
+      });
+
+      expect(stages).toEqual(['signed', 'submitted', 'confirming']);
+      expect(outcome).toBe('rpc-confirmed-hash');
+      expect(result.current.lifecycleStatus).toBe('confirmed');
+      expect(result.current.success).toBe(true);
+      expect(result.current.error).toBeNull();
+      expect(result.current.txHash).toBe('rpc-confirmed-hash');
+      expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
+      expect(notifyTxSuccessMock).toHaveBeenCalledTimes(1);
+      expect(recordSigningAttemptMock).toHaveBeenCalledWith({
+        flow: 'fund_invoice',
+        success: true,
+      });
+      expect(updateToastMock).toHaveBeenCalledWith(
+        'toast-id',
+        expect.objectContaining({
+          type: 'success',
+          txHash: 'rpc-confirmed-hash',
+        })
+      );
+    });
+
+    it('ledger failure: FAILED status after confirming resolves to failed with retry and no cache invalidation', async () => {
+      vi.mocked(submitSignedTransaction).mockImplementation(
+        ({ onStatus }: { onStatus?: (stage: 'signed' | 'submitted' | 'confirming') => void }) => {
+          onStatus?.('signed');
+          onStatus?.('submitted');
+          onStatus?.('confirming');
+          return Promise.reject(new Error('Transaction failed with status FAILED.'));
+        }
+      );
+
+      const { result } = renderHook(() => useTransaction());
+      await act(async () => {
+        await result.current.execute(mockTx, { expectedAction: 'cancel_invoice' });
+      });
+
+      expect(result.current.lifecycleStatus).toBe('failed');
+      expect(result.current.success).toBe(false);
+      expect(result.current.txHash).toBeNull();
+      expect(result.current.error).toContain('Transaction failed with status FAILED');
+      expect(invalidateQueriesMock).not.toHaveBeenCalled();
+      expect(notifyTxSuccessMock).not.toHaveBeenCalled();
+      expect(recordSigningAttemptMock).toHaveBeenCalledWith(
+        expect.objectContaining({ flow: 'cancel_invoice', success: false })
+      );
+      const toastArg = updateToastMock.mock.calls[0][1] as {
+        type?: string;
+        action?: { label?: string };
+      };
+      expect(toastArg.type).toBe('error');
+      expect(toastArg.action).toEqual(expect.objectContaining({ label: 'Retry' }));
+    });
+
+    it('unknown result: NOT_FOUND / unexpected RPC result never marks transaction confirmed', async () => {
+      vi.mocked(submitSignedTransaction).mockImplementation(
+        ({ onStatus }: { onStatus?: (stage: 'signed' | 'submitted' | 'confirming') => void }) => {
+          onStatus?.('signed');
+          onStatus?.('submitted');
+          onStatus?.('confirming');
+          return Promise.reject(new Error('Transaction failed with status NOT_FOUND.'));
+        }
+      );
+
+      const { result } = renderHook(() => useTransaction());
+      await act(async () => {
+        await result.current.execute(mockTx, { expectedAction: 'fund_invoice' });
+      });
+
+      expect(result.current.lifecycleStatus).toBe('failed');
+      expect(result.current.success).toBe(false);
+      expect(invalidateQueriesMock).not.toHaveBeenCalled();
+      expect(notifyTxSuccessMock).not.toHaveBeenCalled();
+    });
+  });
 });
