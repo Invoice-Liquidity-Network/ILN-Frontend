@@ -1,18 +1,26 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Production-build rehearsal for indexer outage, staleness, and recovery
- * (Issue #1150). See docs/indexer-downtime.md for the documented fallback
+ * Production-build rehearsal for indexer outage, staleness, delay, and recovery
+ * (Issue #1150, #1284). See docs/indexer-downtime.md for the documented fallback
  * matrix this spec rehearses against a real built app rather than a unit
  * test's mocked module boundary.
  *
- * `ActivityFeed` (`src/components/ActivityFeed.tsx`) is the only
- * indexer-dependent component actually mounted on a route in this
- * checkout: `DefaultRateChart` and `FundingChart` are fully implemented and
- * unit-tested, but — as of this PR — nothing under `app/` renders them, so
- * there is no real route to rehearse a production browser journey against
- * without inventing one. That gap is left for a follow-up issue rather than
- * faked here.
+ * Data sources & assumptions:
+ * - Invoice header, balances, and lifecycle state on `/i/[id]` come from direct
+ *   Stellar contract reads (`getInvoice` in `app/i/[id]/page.tsx`), not the indexer.
+ * - `ActivityFeed` (`src/components/ActivityFeed.tsx`) reads exclusively from
+ *   the same-origin indexer proxy (`/api/indexer/invoices/:id/events`) via
+ *   `fetchInvoiceEvents` (`src/lib/indexer-client.ts`).
+ * - When the indexer lags (`ageMs > staleAfterMs`) or omits timestamps
+ *   (`lastIndexedAt: null`), `IndexerFreshnessBadge` (`data-freshness="stale"`
+ *   or `"unknown"`) warns the user that data may be out of date rather than
+ *   presenting stale indexer data as live/confirmed.
+ * - When the indexer fails (5xx, 504 timeout, network abort, or malformed
+ *   response), `ActivityFeed` renders `IndexerUnavailableNotice` (`role="alert"`)
+ *   with a retry action and never fabricates audit events in production.
+ * - `DefaultRateChart` and `FundingChart` are unit-tested, but nothing under
+ *   `app/` currently mounts them, so this spec focuses on `/i/1` (`ActivityFeed`).
  *
  * `ActivityFeed` is mounted on `/i/[id]` (see `app/i/[id]/page.tsx`).
  * Invoice id 1 exists in the mock contract-read fixtures
@@ -21,7 +29,29 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 const INVOICE_PATH = '/i/1';
-const INDEXER_EVENTS_URL = '**/invoice/*/events';
+const INDEXER_EVENTS_URL = '**/api/indexer/invoices/*/events';
+
+function buildEventsEnvelope(options: {
+  events?: Array<Record<string, unknown>>;
+  lastIndexedLedger?: number | null;
+  lastIndexedAt?: string | null;
+  staleAfterMs?: number;
+}) {
+  return {
+    ok: true,
+    resource: 'invoice.events',
+    data: options.events ?? [],
+    meta: {
+      apiVersion: 'v1',
+      droppedRecords: 0,
+      freshness: {
+        lastIndexedLedger: options.lastIndexedLedger ?? 123456,
+        lastIndexedAt: options.lastIndexedAt ?? new Date().toISOString(),
+        staleAfterMs: options.staleAfterMs ?? 300_000,
+      },
+    },
+  };
+}
 
 async function waitForHydration(page: Page) {
   await page.waitForFunction(
@@ -92,13 +122,17 @@ test.describe('Indexer outage journey rehearsal (production build)', () => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            type: 'invoice_submitted',
-            timestamp: Date.now() - 60_000,
-            actor: 'GRECOVERYTESTACTORAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-          },
-        ]),
+        body: JSON.stringify(
+          buildEventsEnvelope({
+            events: [
+              {
+                type: 'invoice_submitted',
+                timestamp: Date.now() - 60_000,
+                actor: 'GRECOVERYTESTACTORAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+              },
+            ],
+          })
+        ),
       });
     });
 
@@ -113,5 +147,96 @@ test.describe('Indexer outage journey rehearsal (production build)', () => {
 
     await expect(notice).toBeHidden({ timeout: 20000 });
     await expect(page.getByText(/invoice submitted/i)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('stale indexer: lagging freshness metadata shows out-of-date warning and does not present stale data as live', async ({
+    page,
+  }) => {
+    const staleTimestamp = new Date(Date.now() - 20 * 60_000).toISOString();
+    await page.route(INDEXER_EVENTS_URL, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          buildEventsEnvelope({
+            lastIndexedLedger: 123456,
+            lastIndexedAt: staleTimestamp,
+            staleAfterMs: 300_000,
+            events: [
+              {
+                type: 'invoice_funded',
+                ledger: 123450,
+                timestamp: Date.now() - 20 * 60_000,
+                actor: 'GSTALETESTACTORAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+                data: { amount: '100000000' },
+              },
+            ],
+          })
+        ),
+      })
+    );
+
+    await page.goto(INVOICE_PATH, { waitUntil: 'domcontentloaded' });
+    await waitForHydration(page);
+
+    const badge = page.locator('[data-freshness="stale"]');
+    await expect(badge).toBeVisible({ timeout: 20000 });
+    await expect(badge).toContainText(/data may be out of date/i);
+    await expect(badge).toContainText(/ledger #123,456/i);
+
+    // Must never present lagging indexer data as live/fresh.
+    await expect(page.locator('[data-freshness="fresh"]')).toHaveCount(0);
+    await expect(page.getByText(/updated just now/i)).toHaveCount(0);
+    await expect(page.getByTestId('data-source-caption')).toBeVisible();
+  });
+
+  test('unknown freshness: missing lastIndexedAt surfaces unknown freshness rather than live', async ({
+    page,
+  }) => {
+    await page.route(INDEXER_EVENTS_URL, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          buildEventsEnvelope({
+            lastIndexedLedger: 123456,
+            lastIndexedAt: null,
+            events: [],
+          })
+        ),
+      })
+    );
+
+    await page.goto(INVOICE_PATH, { waitUntil: 'domcontentloaded' });
+    await waitForHydration(page);
+
+    const badge = page.locator('[data-freshness="unknown"]');
+    await expect(badge).toBeVisible({ timeout: 20000 });
+    await expect(badge).toContainText(/freshness unknown/i);
+    await expect(page.locator('[data-freshness="fresh"]')).toHaveCount(0);
+  });
+
+  test('delayed indexer: 504 timeout envelope shows unavailable notice without fabricating events', async ({
+    page,
+  }) => {
+    await page.route(INDEXER_EVENTS_URL, (route) =>
+      route.fulfill({
+        status: 504,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: false,
+          error: { code: 'timeout', message: 'Indexer request timed out' },
+        }),
+      })
+    );
+
+    await page.goto(INVOICE_PATH, { waitUntil: 'domcontentloaded' });
+    await waitForHydration(page);
+
+    const notice = page.getByTestId('indexer-notice-unavailable');
+    await expect(notice).toBeVisible({ timeout: 20000 });
+    await expect(notice).toContainText(/temporarily unavailable/i);
+    await expect(page.getByRole('button', { name: /try again/i })).toBeVisible();
+    await expect(page.getByText(/Unknown actor/i)).toHaveCount(0);
   });
 });
