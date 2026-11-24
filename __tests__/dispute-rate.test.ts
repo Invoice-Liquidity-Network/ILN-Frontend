@@ -87,4 +87,55 @@ describe('computeDisputeRateMetrics', () => {
     expect(metrics.funded30d).toBe(0);
     expect(metrics.dailyTrend90d.every((d) => d.fundedCount === 0)).toBe(true);
   });
+
+  it('excludes future ledger timestamps from 30d totals and 90d buckets', () => {
+    const events: ParsedContractEvent[] = [
+      fundedAt('2025-06-15T12:00:00.000Z'), // exact nowMs (included)
+      fundedAt('2025-06-15T12:00:00.001Z'), // 1ms in the future on same UTC day (excluded)
+      disputedAt('2025-06-16T00:00:00.000Z'), // future day (excluded)
+    ];
+
+    const metrics = computeDisputeRateMetrics(events, NOW);
+    expect(metrics.funded30d).toBe(1);
+    expect(metrics.disputed30d).toBe(0);
+    expect(metrics.rate30dPercent).toBe(0);
+
+    const today = metrics.dailyTrend90d.find((d) => d.date === '2025-06-15');
+    expect(today?.fundedCount).toBe(1);
+    expect(today?.disputedCount).toBe(0);
+  });
+
+  it('respects exact 30-day cutoff boundary', () => {
+    const exact30dAgo = new Date(NOW - 30 * 86_400_000).toISOString();
+    const justBefore30d = new Date(NOW - 30 * 86_400_000 - 1).toISOString();
+
+    const events: ParsedContractEvent[] = [
+      { type: 'InvoiceFunded', createdAt: exact30dAgo, invoiceId: 10n },
+      { type: 'InvoiceFunded', createdAt: justBefore30d, invoiceId: 11n },
+      { type: 'InvoiceDisputed', createdAt: exact30dAgo, invoiceId: 10n },
+    ];
+
+    const metrics = computeDisputeRateMetrics(events, NOW);
+    expect(metrics.funded30d).toBe(1);
+    expect(metrics.disputed30d).toBe(1);
+    expect(metrics.rate30dPercent).toBeCloseTo(100, 5);
+  });
+
+  it('deduplicates replayed events for the same (type, invoiceId)', () => {
+    const events: ParsedContractEvent[] = [
+      { type: 'InvoiceFunded', createdAt: '2025-06-10T00:00:00.000Z', invoiceId: 1n, ledger: 100 },
+      { type: 'InvoiceFunded', createdAt: '2025-06-10T00:00:00.000Z', invoiceId: 1n, ledger: 100 },
+      { type: 'InvoiceFunded', createdAt: '2025-06-11T00:00:00.000Z', invoiceId: 1n, ledger: 105 },
+      { type: 'InvoiceDisputed', createdAt: '2025-06-12T00:00:00.000Z', invoiceId: 1n, ledger: 110 },
+      { type: 'InvoiceDisputed', createdAt: '2025-06-12T00:00:00.000Z', invoiceId: 1n, ledger: 110 },
+    ];
+
+    const metrics = computeDisputeRateMetrics(events, NOW);
+    expect(metrics.funded30d).toBe(1);
+    expect(metrics.disputed30d).toBe(1);
+    expect(metrics.rate30dPercent).toBeCloseTo(100, 5);
+    // Higher ledger (105, June 11) should supersede ledger 100 (June 10)
+    expect(metrics.dailyTrend90d.find((d) => d.date === '2025-06-10')?.fundedCount).toBe(0);
+    expect(metrics.dailyTrend90d.find((d) => d.date === '2025-06-11')?.fundedCount).toBe(1);
+  });
 });

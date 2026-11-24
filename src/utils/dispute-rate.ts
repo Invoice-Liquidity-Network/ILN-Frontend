@@ -66,28 +66,89 @@ function formatDayLabel(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
-/** Compute 30-day dispute rate and 90-day daily trend from contract events. */
+/**
+ * Dispute-rate metrics and 90-day daily trend calculation (#1278).
+ *
+ * Data source & assumptions:
+ * - Consumes `ParsedContractEvent[]` sourced from Horizon / Stellar RPC
+ *   contract events (`InvoiceFunded` and `InvoiceDisputed`).
+ * - Read-only public protocol metrics; no wallet/admin authorization required.
+ *
+ * Ordering, deduplication & boundary rules:
+ * - Events with missing, unparseable, or future timestamps (`ts > nowMs`) are
+ *   excluded so future ledger timestamps never inflate current buckets or 30d
+ *   totals.
+ * - Duplicate / replayed events are collapsed before bucketing:
+ *   - Events with `invoiceId !== undefined` are deduplicated by
+ *     `(type, invoiceId)`, keeping the highest valid `ledger` (or latest valid
+ *     `createdAt` on ledger tie).
+ *   - Events without `invoiceId` are deduplicated by
+ *     `(type, ledger, createdAt)`.
+ * - 30-day window: `[nowMs - 30d, nowMs]` (inclusive on both boundaries).
+ * - 90-day daily trend: 90 UTC day buckets ending on `nowMs`'s UTC date,
+ *   including events in `[nowMs - 90d, nowMs]` whose UTC date falls in the
+ *   90-day bucket map.
+ *
+ * Failure behavior:
+ * - Returns zeroed metrics (`rate30dPercent: 0`, `funded30d: 0`, `disputed30d: 0`)
+ *   when `events` is empty or `funded30d === 0` (no division-by-zero).
+ */
 export function computeDisputeRateMetrics(
   events: ParsedContractEvent[],
   nowMs = Date.now()
 ): DisputeRateMetrics {
-  const cutoff90 = nowMs - 90 * MS_PER_DAY;
-  const cutoff30 = nowMs - 30 * MS_PER_DAY;
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const cutoff90 = safeNowMs - 90 * MS_PER_DAY;
+  const cutoff30 = safeNowMs - 30 * MS_PER_DAY;
 
   const buckets = new Map<string, { funded: number; disputed: number }>();
   for (let i = 89; i >= 0; i -= 1) {
-    const d = new Date(nowMs - i * MS_PER_DAY);
+    const d = new Date(safeNowMs - i * MS_PER_DAY);
     const dateStr = d.toISOString().slice(0, 10);
     buckets.set(dateStr, { funded: 0, disputed: 0 });
+  }
+
+  // Filter out invalid/future timestamps and deduplicate replayed events.
+  const deduped = new Map<string, { event: ParsedContractEvent; ts: number }>();
+  for (const event of events) {
+    if (event.type !== 'InvoiceFunded' && event.type !== 'InvoiceDisputed') {
+      continue;
+    }
+    const ts = eventTimestampMs(event);
+    if (ts === null || ts > safeNowMs || ts < cutoff90) {
+      continue;
+    }
+
+    const key =
+      event.invoiceId !== undefined
+        ? `${event.type}:${event.invoiceId.toString()}`
+        : `${event.type}:anon:${event.ledger ?? ''}:${event.createdAt ?? ''}`;
+
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, { event, ts });
+      continue;
+    }
+
+    const existingLedger =
+      typeof existing.event.ledger === 'number' && Number.isFinite(existing.event.ledger)
+        ? existing.event.ledger
+        : -1;
+    const candidateLedger =
+      typeof event.ledger === 'number' && Number.isFinite(event.ledger) ? event.ledger : -1;
+
+    if (
+      candidateLedger > existingLedger ||
+      (candidateLedger === existingLedger && ts > existing.ts)
+    ) {
+      deduped.set(key, { event, ts });
+    }
   }
 
   let funded30 = 0;
   let disputed30 = 0;
 
-  for (const event of events) {
-    const ts = eventTimestampMs(event);
-    if (ts === null || ts < cutoff90) continue;
-
+  for (const { event, ts } of deduped.values()) {
     const dateStr = new Date(ts).toISOString().slice(0, 10);
     const bucket = buckets.get(dateStr);
     if (!bucket) continue;

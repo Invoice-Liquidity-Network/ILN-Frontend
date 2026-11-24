@@ -11,6 +11,11 @@ export const PROTOCOL_FEED_EVENT_TYPES = [
 
 export type ProtocolFeedEventType = (typeof PROTOCOL_FEED_EVENT_TYPES)[number];
 
+export type ProtocolFeedConfirmationStatus =
+  | 'rpc_confirmed'
+  | 'wallet_submitted'
+  | 'indexer_known';
+
 export interface ProtocolFeedItem {
   id: string;
   eventType: ProtocolFeedEventType;
@@ -21,6 +26,8 @@ export interface ProtocolFeedItem {
   token: string;
   dateLabel: string;
   timestampMs: number;
+  /** Distinguishes RPC-confirmed on-chain events from wallet-submitted or indexer-known items (#1283). */
+  confirmationStatus?: ProtocolFeedConfirmationStatus;
 }
 
 const FEED_EVENT_LABELS: Record<ProtocolFeedEventType, { label: string; icon: string }> = {
@@ -215,6 +222,7 @@ export function buildProtocolFeedItems(
       token: tokenMeta.symbol,
       dateLabel: formatFeedDate(timestampMs),
       timestampMs,
+      confirmationStatus: 'rpc_confirmed',
     });
   }
 
