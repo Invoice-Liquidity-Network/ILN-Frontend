@@ -368,16 +368,22 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
 
       const walletAddress = installed ? (await getAddress()).address : null;
       if (!walletAddress) {
-        setAddress(null);
+        sessionGenerationRef.current += 1;
+        updateAddress(null);
         setWalletNetwork(null);
         setNetworkMismatch(false);
         setRpcMismatch(false);
         setMismatchDetails(null);
         setRoles([]);
         setRolesLoading(false);
-        setError('Wallet connection is no longer available. Please reconnect.');
-        setErrorCode('wallet_not_connected');
         clearWalletStorage();
+        const pendingCount = getPendingTransactions().length;
+        setError(
+          pendingCount > 0
+            ? `Wallet disconnected while ${pendingCount} submitted transaction(s) still have an unknown outcome. Reconnect to check status — do not re-submit.`
+            : 'Wallet connection is no longer available. Please reconnect.'
+        );
+        setErrorCode('wallet_not_connected');
         setSelectedProvider(null);
         return;
       }
@@ -557,9 +563,21 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     return () => clearInterval(interval);
   }, [checkActiveWallet]);
 
+  /**
+   * Disconnect the active wallet session (#1292).
+   *
+   * Mid-submission recovery invariants:
+   * - Advances `sessionGenerationRef` and clears auth state via `updateAddress(null)` so any
+   *   in-flight `signTx` or `authenticate` call aborts instead of returning under a stale session.
+   * - Calls `clearWalletStorage()` without `clearPendingTransactions`, preserving unsettled
+   *   `submitted`/`confirming` entries and their idempotency locks in `iln_pending_transactions_v1`.
+   * - When unsettled transactions exist, warns the user to reconnect and check status rather than
+   *   re-submitting, preventing duplicate on-chain actions.
+   */
   const disconnect = useCallback(() => {
+    sessionGenerationRef.current += 1;
     // Clear all in-memory wallet state...
-    setAddress(null);
+    updateAddress(null);
     setNetworkMismatch(false);
     setRpcMismatch(false);
     setMismatchDetails(null);
@@ -577,14 +595,24 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       removeToast(warningToastIdRef.current);
       warningToastIdRef.current = null;
     }
-    // ...and every persisted/cached trace of the session (#4).
+    // ...and every persisted/cached trace of the session (#4), while preserving
+    // unsettled pending transactions for reconnect reconciliation (#1292).
     clearWalletStorage();
     void disconnectWalletConnect();
     trackEvent('wallet_disconnected');
-    addToast({ type: 'success', title: 'Disconnected' });
+    const pendingCount = getPendingTransactions().length;
+    if (pendingCount > 0) {
+      addToast({
+        type: 'warning',
+        title: 'Disconnected with pending transaction',
+        message: `${pendingCount} submitted transaction(s) still have an unknown outcome and were preserved. Reconnect to check status — do not re-submit.`,
+      });
+    } else {
+      addToast({ type: 'success', title: 'Disconnected' });
+    }
     // Leave any wallet-gated view for the public home page.
     router.push('/');
-  }, [addToast, removeToast, router]);
+  }, [addToast, removeToast, router, updateAddress]);
 
   useEffect(() => {
     disconnectRef.current = disconnect;
@@ -844,91 +872,87 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     }
   }, [address, networkMismatch, checkNetwork, addToast, publishSession, selectedProvider]);
 
-  const signTx = async (txXdr: string) => {
-    if (sessionConflict) {
-      const msg = 'Wallet session changed in another tab. Reconnect before signing.';
-      addToast({ type: 'error', title: 'Transaction Failed', message: msg });
-      throw new Error(msg);
-    }
-
-    const generationAtStart = sessionGenerationRef.current;
-    const expectedSession: WalletSessionState = {
-      address,
-      provider: selectedProvider,
-      network: walletNetwork,
-    };
-    const staleMessage = 'Wallet session changed in another tab. Reconnect before signing.';
-
-    const assertNoCrossTabChange = () => {
-      const snapshot = readWalletSession();
-      if (
-        snapshot &&
-        snapshot.tabId !== tabIdRef.current &&
-        isWalletSessionFresh(snapshot) &&
-        hasWalletSessionConflict(expectedSession, snapshot)
-      ) {
-        addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
-        throw new Error(staleMessage);
+  const signTx = useCallback(
+    async (txXdr: string) => {
+      if (sessionConflict) {
+        const msg = 'Wallet session changed in another tab. Reconnect before signing.';
+        addToast({ type: 'error', title: 'Transaction Failed', message: msg });
+        throw new Error(msg);
       }
-    };
-    const assertGenerationUnchanged = () => {
-      if (sessionGenerationRef.current !== generationAtStart) {
-        addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
-        throw new Error(staleMessage);
+
+      const generationAtStart = sessionGenerationRef.current;
+      const expectedSession: WalletSessionState = {
+        address,
+        provider: selectedProvider,
+        network: walletNetwork,
+      };
+      const staleMessage = 'Wallet session changed or disconnected. Reconnect before signing.';
+
+      const assertNoCrossTabChange = () => {
+        const snapshot = readWalletSession();
+        if (
+          snapshot &&
+          snapshot.tabId !== tabIdRef.current &&
+          isWalletSessionFresh(snapshot) &&
+          hasWalletSessionConflict(expectedSession, snapshot)
+        ) {
+          addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
+          throw new Error(staleMessage);
+        }
+      };
+      const assertGenerationUnchanged = () => {
+        if (sessionGenerationRef.current !== generationAtStart) {
+          addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
+          throw new Error(staleMessage);
+        }
+      };
+
+      assertNoCrossTabChange();
+      const isCorrectNetwork = await checkNetwork();
+      if (!isCorrectNetwork) {
+        const msg = `Network mismatch. Please switch to ${NETWORK_NAME}`;
+        addToast({ type: 'error', title: 'Transaction Failed', message: msg });
+        throw new Error(msg);
       }
-    };
+      assertGenerationUnchanged();
 
-    assertNoCrossTabChange();
-    const isCorrectNetwork = await checkNetwork();
-    if (!isCorrectNetwork) {
-      const msg = `Network mismatch. Please switch to ${NETWORK_NAME}`;
-      addToast({ type: 'error', title: 'Transaction Failed', message: msg });
-      throw new Error(msg);
-    }
-    assertGenerationUnchanged();
-
-    if (address) {
-      const currentAddress =
-        selectedProvider === 'walletconnect'
-          ? getWalletConnectAddress()
-          : (await getAddress()).address;
-      if (!currentAddress || currentAddress !== address) {
-        addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
-        throw new Error(staleMessage);
+      if (address) {
+        const currentAddress =
+          selectedProvider === 'walletconnect'
+            ? getWalletConnectAddress()
+            : (await getAddress()).address;
+        if (!currentAddress || currentAddress !== address) {
+          addToast({ type: 'error', title: 'Transaction Failed', message: staleMessage });
+          throw new Error(staleMessage);
+        }
       }
-    }
 
-    assertNoCrossTabChange();
-    assertGenerationUnchanged();
+      assertNoCrossTabChange();
+      assertGenerationUnchanged();
 
-    const signTx = useCallback(
-      async (txXdr: string) => {
-        const isCorrectNetwork = await checkNetwork();
-        if (!isCorrectNetwork) {
-          const msg = `Network mismatch. Please switch to ${NETWORK_NAME}`;
-          addToast({ type: 'error', title: 'Transaction Failed', message: msg });
-          throw new Error(msg);
-        }
-        const signed = await signTransaction(txXdr, {
-          networkPassphrase: NETWORK_PASSPHRASE,
-        });
+      const signed = await signTransaction(txXdr, {
+        networkPassphrase: NETWORK_PASSPHRASE,
+      });
 
-        if (typeof signed === 'string') {
-          return signed;
-        }
+      assertNoCrossTabChange();
+      assertGenerationUnchanged();
 
-        if (signed.error) {
-          throw new Error(String(signed.error));
-        }
+      if (typeof signed === 'string') {
+        return signed;
+      }
 
-        if (signed.signedTxXdr) {
-          return signed.signedTxXdr;
-        }
+      if (signed.error) {
+        throw new Error(String(signed.error));
+      }
 
-        throw new Error('Freighter did not return a signed transaction.');
-      },
-      [checkNetwork, addToast]
-    );
+      if (signed.signedTxXdr) {
+        return signed.signedTxXdr;
+      }
+
+      throw new Error('Freighter did not return a signed transaction.');
+    },
+    [address, selectedProvider, walletNetwork, sessionConflict, checkNetwork, addToast]
+  );
 
     const authenticate = useCallback(async () => {
       if (!address) {
@@ -1159,7 +1183,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         ) : null}
       </WalletContext.Provider>
     );
-  };
 };
 
 export const useWallet = () => {
