@@ -11,9 +11,13 @@ import {
   fetchLeaderboardEntries,
   indexerErrorDetail,
 } from '@/lib/indexer-client';
-import { isIndexerFreshness, type IndexerFreshness } from '@/lib/indexer/freshness';
+import {
+  evaluateIndexerFreshness,
+  isIndexerFreshness,
+  type IndexerFreshness,
+} from '@/lib/indexer/freshness';
 
-type Funder = {
+export type Funder = {
   address: string;
   amountFunded: number;
   yieldEarned: number;
@@ -21,8 +25,15 @@ type Funder = {
   avgDiscountRate: number;
 };
 
+interface CachedTopFundersSnapshot {
+  savedAt: number;
+  rows: Funder[];
+  freshness: IndexerFreshness;
+}
+
 const CACHE_KEY = 'iln_top_funders_30d';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_CACHE_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 const RANK_BADGES = ['🥇', '🥈', '🥉'];
 
@@ -37,20 +48,78 @@ function formatAmount(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-function normalizeFunders(data: unknown): Funder[] {
-  if (!Array.isArray(data)) return [];
-  return data
-    .slice(0, 10)
-    .map((item: Record<string, unknown>) => ({
-      address: String(item.address ?? item.lp ?? ''),
-      amountFunded: Number(item.amountFunded ?? item.totalFunded ?? item.metric3 ?? 0),
-      yieldEarned: Number(item.yieldEarned ?? item.totalYield ?? item.metric4 ?? 0),
-      fundedCount: Number(item.fundedCount ?? item.metric1 ?? 0),
-      avgDiscountRate: Number(item.avgDiscountRate ?? item.metric2 ?? 0),
-    }))
-    .filter((row) => row.address.length > 0);
+function safeFiniteNumber(value: unknown): number {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
 }
 
+/**
+ * Normalizes and deduplicates indexer-derived leaderboard entries.
+ * Preserves the indexer-supplied ranking order, keeps the first occurrence of
+ * each case-insensitive address, drops empty addresses, and caps at 10 rows.
+ */
+export function normalizeFunders(data: unknown): Funder[] {
+  if (!Array.isArray(data)) return [];
+
+  const seen = new Set<string>();
+  const normalized: Funder[] = [];
+
+  for (const raw of data) {
+    if (typeof raw !== 'object' || raw === null) continue;
+    const item = raw as Record<string, unknown>;
+    const address = String(item.address ?? item.lp ?? '').trim();
+    if (address.length === 0) continue;
+
+    const dedupeKey = address.toUpperCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    normalized.push({
+      address,
+      amountFunded: safeFiniteNumber(item.amountFunded ?? item.totalFunded ?? item.metric3 ?? 0),
+      yieldEarned: safeFiniteNumber(item.yieldEarned ?? item.totalYield ?? item.metric4 ?? 0),
+      fundedCount: safeFiniteNumber(item.fundedCount ?? item.metric1 ?? 0),
+      avgDiscountRate: safeFiniteNumber(item.avgDiscountRate ?? item.metric2 ?? 0),
+    });
+
+    if (normalized.length >= 10) break;
+  }
+
+  return normalized;
+}
+
+function isCachedSnapshotUsable(
+  cached: unknown,
+  now: number = Date.now()
+): cached is CachedTopFundersSnapshot {
+  if (typeof cached !== 'object' || cached === null) return false;
+  const candidate = cached as Record<string, unknown>;
+
+  if (!Array.isArray(candidate.rows)) return false;
+  if (typeof candidate.savedAt !== 'number' || !Number.isFinite(candidate.savedAt)) return false;
+  if (candidate.savedAt > now + MAX_CACHE_CLOCK_SKEW_MS) return false;
+  if (now - candidate.savedAt >= CACHE_TTL_MS) return false;
+  if (!isIndexerFreshness(candidate.freshness)) return false;
+  if (evaluateIndexerFreshness(candidate.freshness, now).state === 'stale') return false;
+
+  return true;
+}
+
+/**
+ * Displays the top 10 active liquidity providers over the past 30 days.
+ *
+ * Assumptions & data source:
+ * - Ranking is strictly indexer-derived via `fetchLeaderboardEntries('lp', '30d', 10)`
+ *   through `/api/indexer/leaderboard` (no client-side ranking synthesis).
+ * - Duplicate addresses are removed while preserving indexer rank order.
+ * - Cached snapshots in `localStorage` require valid `IndexerFreshness` metadata,
+ *   a non-future `savedAt` timestamp within `CACHE_TTL_MS`, and non-stale freshness state.
+ * - Fetch/proxy failures always render `IndexerUnavailableNotice` rather than an empty state.
+ *
+ * Residual risk:
+ * - When the upstream indexer omits `X-Indexer-Last-Indexed-At` (`freshness.state === 'unknown'`),
+ *   cache expiry relies on the 24h `CACHE_TTL_MS` client timestamp.
+ */
 export default function TopFundersWidget() {
   const { addToast } = useToast();
   const [rows, setRows] = useState<Funder[]>([]);
@@ -63,22 +132,33 @@ export default function TopFundersWidget() {
   const [freshness, setFreshness] = useState<IndexerFreshness | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const run = async () => {
       try {
         setUnavailable(false);
-        const cachedRaw = localStorage.getItem(CACHE_KEY);
+
+        let cachedRaw: string | null = null;
+        try {
+          cachedRaw = localStorage.getItem(CACHE_KEY);
+        } catch {
+          cachedRaw = null;
+        }
+
         if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw) as {
-            savedAt: number;
-            rows: Funder[];
-            freshness?: unknown;
-          };
-          // Caches without freshness predate #1110 and are refetched rather than shown as live.
-          if (Date.now() - cached.savedAt < CACHE_TTL_MS && isIndexerFreshness(cached.freshness)) {
-            setRows(cached.rows);
-            setFreshness(cached.freshness);
-            setLoading(false);
-            return;
+          try {
+            const cached: unknown = JSON.parse(cachedRaw);
+            // Caches without valid freshness, with future timestamps, or already stale are refetched.
+            if (isCachedSnapshotUsable(cached)) {
+              if (!cancelled) {
+                setRows(normalizeFunders(cached.rows));
+                setFreshness(cached.freshness);
+                setLoading(false);
+              }
+              return;
+            }
+          } catch {
+            // Corrupted cache entry is ignored and replaced by a live fetch.
           }
         }
 
@@ -88,14 +168,27 @@ export default function TopFundersWidget() {
             latestFreshness = meta.freshness;
           },
         });
+        if (cancelled) return;
+
         const normalized = normalizeFunders(data);
         setRows(normalized);
         setFreshness(latestFreshness);
-        localStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({ savedAt: Date.now(), rows: normalized, freshness: latestFreshness })
-        );
+        if (isIndexerFreshness(latestFreshness)) {
+          try {
+            localStorage.setItem(
+              CACHE_KEY,
+              JSON.stringify({
+                savedAt: Date.now(),
+                rows: normalized,
+                freshness: latestFreshness,
+              })
+            );
+          } catch {
+            // Storage quota or privacy mode failure does not invalidate live data.
+          }
+        }
       } catch (err) {
+        if (cancelled) return;
         // Every failure is surfaced; an unreachable indexer is never shown as "no LPs".
         setRows([]);
         setUnavailable(true);
@@ -107,11 +200,16 @@ export default function TopFundersWidget() {
             : 'unavailable'
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     run();
+    return () => {
+      cancelled = true;
+    };
   }, [requestId]);
 
   const retry = () => {
