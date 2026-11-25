@@ -5,8 +5,8 @@ export type ExpectedTransactionAction =
   | 'cancel_invoice'
   | 'cast_vote'
   | 'create_proposal'
-  | 'dispute_invoice'
   | 'execute_proposal'
+  | 'dispute_invoice'
   | 'fund_invoice'
   | 'mark_paid'
   | 'submit_invoice'
@@ -56,9 +56,18 @@ const EXPECTED_TRANSACTION_SHAPES: Record<ExpectedTransactionAction, Transaction
 };
 
 /**
- * Returns human-readable discrepancies between the UI action and the decoded XDR.
- * This is intentionally advisory: users must be able to inspect and decide whether
- * to sign a transaction even when an integration evolves ahead of this allowlist.
+ * Returns human-readable discrepancies between the UI action and the decoded XDR (#1291).
+ *
+ * Behavior & invariants:
+ * - Advisory & non-blocking: returns `string[]` warnings for `TransactionPreviewModal`
+ *   to display; never mutates state or silently blocks legitimate repeated actions.
+ * - Non-bypassable shape lookup: uses `Object.prototype.hasOwnProperty` so prototype
+ *   keys cannot resolve to an undefined shape or throw.
+ * - Contract-invocation enforcement: all `ExpectedTransactionAction` shapes require a
+ *   single Soroban contract call with a decoded target contract address, matching
+ *   function name, and matching argument type tuple.
+ * - Residual risk: when `expectedAction` is omitted (`undefined`), this function returns
+ *   `[]` and relies on `TransactionPreviewModal` displaying the decoded operations/raw XDR.
  */
 export function findTransactionPatternMismatches(
   decoded: DecodedTransaction | null,
@@ -66,6 +75,10 @@ export function findTransactionPatternMismatches(
 ): string[] {
   if (!expectedAction) return [];
   if (!decoded) return ['The transaction could not be decoded.'];
+
+  if (!Object.prototype.hasOwnProperty.call(EXPECTED_TRANSACTION_SHAPES, expectedAction)) {
+    return [`Unrecognized expected transaction action "${String(expectedAction)}".`];
+  }
 
   const expected = EXPECTED_TRANSACTION_SHAPES[expectedAction];
   const mismatches: string[] = [];
@@ -78,6 +91,10 @@ export function findTransactionPatternMismatches(
 
   const operation = decoded.operations[0];
   if (!operation) return mismatches;
+
+  if (!operation.contract) {
+    mismatches.push('Expected a contract invocation, but no target contract address was decoded.');
+  }
 
   if (operation.functionName !== expected.functionName) {
     mismatches.push(

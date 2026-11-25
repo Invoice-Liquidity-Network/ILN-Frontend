@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TopFundersWidget from '../TopFundersWidget';
+import TopFundersWidget, { normalizeFunders } from '../TopFundersWidget';
 import {
   freshnessFixtures,
   proxyErrorEnvelope,
@@ -194,5 +194,84 @@ describe('TopFundersWidget', () => {
       await screen.findByText(/GLEGAC\.\.\./);
       expect(screen.getByText('3 invoices (30d)')).toBeInTheDocument();
     })();
+  });
+
+  it('deduplicates repeated addresses while preserving indexer ranking order', async () => {
+    fetchMock.mockResolvedValue(
+      leaderboard([
+        rawFunder({ address: 'GFIRSTFUNDER123456', amountFunded: 5000, fundedCount: 9 }),
+        rawFunder({ address: ' gfirstfunder123456 ', amountFunded: 1000, fundedCount: 1 }),
+        rawFunder({ address: 'GSECONDFUNDER12345', amountFunded: 2500, fundedCount: 4 }),
+      ])
+    );
+    render(<TopFundersWidget />);
+    await screen.findByText(/GFIRST\.\.\./);
+    expect(screen.getAllByText(/GFIRST\.\.\./)).toHaveLength(1);
+    expect(screen.getByText(/GSECON\.\.\./)).toBeInTheDocument();
+    expect(screen.getByText('9 invoices (30d)')).toBeInTheDocument();
+  });
+
+  it('refetches when cached freshness metadata is stale even if savedAt is recent', async () => {
+    window.localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now(),
+        freshness: {
+          lastIndexedLedger: 1200,
+          lastIndexedAt: new Date(Date.now() - 20 * 60_000).toISOString(),
+          staleAfterMs: 5 * 60_000,
+        },
+        rows: [rawFunder({ address: 'GSTALEFRESHNESS1234' })],
+      })
+    );
+    fetchMock.mockResolvedValue(leaderboard([rawFunder({ address: 'GLIVEFUNDER1234567' })]));
+    render(<TopFundersWidget />);
+    await screen.findByText(/GLIVEF\.\.\./);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/GSTALE\.\.\./)).not.toBeInTheDocument();
+  });
+
+  it('ignores corrupted or future-dated localStorage caches and fetches live data', async () => {
+    window.localStorage.setItem(CACHE_KEY, '{not-valid-json');
+    fetchMock.mockResolvedValue(leaderboard([rawFunder({ address: 'GLIVEAFTERBADJSON1' })]));
+    render(<TopFundersWidget />);
+    await screen.findByText(/GLIVEA\.\.\./);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    window.localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now() + 60 * 60_000,
+        freshness: freshnessFixtures.unknown,
+        rows: [rawFunder({ address: 'GFUTURECACHE123456' })],
+      })
+    );
+    fetchMock.mockResolvedValue(leaderboard([rawFunder({ address: 'GLIVEAFTERFUTURE12' })]));
+    render(<TopFundersWidget />);
+    await screen.findByText(/GLIVEA\.\.\./);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('normalizeFunders', () => {
+  it('sanitizes non-finite numeric fields to zero and caps at 10 unique rows', () => {
+    const rows = normalizeFunders([
+      {
+        address: 'GVALID123456789012',
+        amountFunded: Number.NaN,
+        yieldEarned: Number.POSITIVE_INFINITY,
+        fundedCount: 'bad',
+        avgDiscountRate: undefined,
+      },
+    ]);
+    expect(rows).toEqual([
+      {
+        address: 'GVALID123456789012',
+        amountFunded: 0,
+        yieldEarned: 0,
+        fundedCount: 0,
+        avgDiscountRate: 0,
+      },
+    ]);
   });
 });

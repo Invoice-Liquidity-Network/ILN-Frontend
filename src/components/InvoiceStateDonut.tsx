@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import DataSourceCaption from '@/components/DataSourceCaption';
 import useInvoiceStateCounts from '@/hooks/useInvoiceStateCounts';
 
 const COLORS: Record<string, string> = {
@@ -18,14 +19,41 @@ interface InvoiceStateDonutProps {
   filteredStates?: string[];
 }
 
+/**
+ * Invoice state distribution donut chart (#1280).
+ *
+ * Data source & reconciliation:
+ * - Reads exclusively from live RPC (`useInvoiceStateCounts` -> `getAllInvoices`)
+ *   and never mixes stale indexer snapshots into the counts or total.
+ * - Counts are deduplicated by `invoice.id` and `total` reconciles to the
+ *   exact sum of state counts.
+ * - On RPC error or missing counts, renders `data-status="unavailable"` with
+ *   `provenance="unavailable"` rather than fabricated zeros.
+ */
 export default function InvoiceStateDonut({
   onStateFilter,
   filteredStates = [],
 }: InvoiceStateDonutProps) {
-  const { counts, total, loading } = useInvoiceStateCounts();
+  const { counts, total, loading, error } = useInvoiceStateCounts();
+  const unavailable = Boolean(error) || (!loading && !counts);
+  const provenance = unavailable ? 'unavailable' : 'rpc';
 
-  if (loading) return <div className="rounded-lg bg-surface-container-low p-6">Loading...</div>;
-  if (!counts) return <div className="rounded-lg bg-surface-container-low p-6">No data</div>;
+  if (loading) {
+    return (
+      <div className="rounded-lg bg-surface-container-low p-6">
+        <p>Loading...</p>
+        <DataSourceCaption metric="invoice-state-distribution" provenance={provenance} />
+      </div>
+    );
+  }
+  if (unavailable || !counts) {
+    return (
+      <div className="rounded-lg bg-surface-container-low p-6" data-status="unavailable">
+        <p>Unavailable</p>
+        <DataSourceCaption metric="invoice-state-distribution" provenance="unavailable" />
+      </div>
+    );
+  }
 
   const data = Object.keys(counts).map((k) => ({
     name: k,
@@ -46,6 +74,7 @@ export default function InvoiceStateDonut({
   return (
     <div className="motion-safe:animate-donut-grow rounded-lg bg-surface-container-low p-6">
       <p className="mb-2 text-xs font-bold uppercase tracking-widest">Invoice States</p>
+      <DataSourceCaption metric="invoice-state-distribution" provenance={provenance} />
       <div style={{ width: '100%', height: 220 }}>
         <ResponsiveContainer>
           <PieChart>

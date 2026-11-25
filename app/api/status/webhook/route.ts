@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Resend } from 'resend';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { routeAlert } from '@/lib/alert-routing';
@@ -25,6 +26,19 @@ import { checkRateLimit, getClientKey } from '@/lib/rate-limit';
 
 const WEBHOOK_RATE_LIMIT_MAX = 60;
 const WEBHOOK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const WEBHOOK_TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
+const seenWebhookIds = new Map<string, number>();
+
+function verifyWebhookSignature(rawBody: string, signature: string | null, timestamp: string | null) {
+  const secret = process.env.STATUS_WEBHOOK_SECRET;
+  if (!secret || !signature || !timestamp) return false;
+  const timestampMs = Number(timestamp);
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > WEBHOOK_TIMESTAMP_TOLERANCE_MS) return false;
+  const expected = createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
+  const supplied = signature.replace(/^sha256=/, '');
+  if (supplied.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(supplied, 'utf8'), Buffer.from(expected, 'utf8'));
+}
 
 interface InstatusWebhookPayload {
   page: { id: string; name: string };
@@ -54,14 +68,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
-  const secret = req.headers.get('x-status-webhook-secret');
-  if (!process.env.STATUS_WEBHOOK_SECRET || secret !== process.env.STATUS_WEBHOOK_SECRET) {
+  const rawBody = await req.text();
+  const timestamp = req.headers.get('x-status-webhook-timestamp');
+  const signature = req.headers.get('x-status-webhook-signature');
+  if (!verifyWebhookSignature(rawBody, signature, timestamp)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const deliveryId = req.headers.get('x-status-webhook-id');
+  if (deliveryId && seenWebhookIds.has(deliveryId)) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+  if (deliveryId) {
+    seenWebhookIds.set(deliveryId, Date.now());
+    for (const [id, seenAt] of seenWebhookIds) if (Date.now() - seenAt > WEBHOOK_TIMESTAMP_TOLERANCE_MS) seenWebhookIds.delete(id);
   }
 
   let payload: InstatusWebhookPayload;
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody) as InstatusWebhookPayload;
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }

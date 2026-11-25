@@ -10,7 +10,11 @@ const mockDelegateVotingPower = vi.fn();
 const mockResolveFederatedAddress = vi.fn();
 const mockExecute = vi.fn();
 
+const VALID_DELEGATE = 'GBQD2MXHXD2SRHRQZRZ5JZ4UNLMTMLZNNDJHCQXIJXE2ANBV5IDWB2XK';
+const RESOLVED_DELEGATE = 'GCI7N3HBCWNDW4XN22T7AILNGBOG2T3L6TFFC6EELZTYA3V2MOHK4GZ4';
+
 vi.mock('@/utils/governance', () => ({
+  DELEGATE_VOTING_POWER_SUPPORTED: false,
   GOVERNANCE_INTEGRATION_STATUS: {
     castVote: { status: 'Stubbed', label: 'Vote casting' },
     delegateVotingPower: { status: 'Stubbed', label: 'Vote delegation' },
@@ -71,7 +75,7 @@ describe('DelegationPanel', () => {
     render(<DelegationPanel />);
     const input = screen.getByPlaceholderText(/address|delegate/i) || screen.getByRole('textbox');
     if (input) {
-      fireEvent.change(input, { target: { value: 'GABC123...' } });
+      fireEvent.change(input, { target: { value: VALID_DELEGATE } });
       await waitFor(() => {
         expect(mockIsValidStellarAddress).toHaveBeenCalled();
       });
@@ -79,7 +83,7 @@ describe('DelegationPanel', () => {
   });
 
   it('resolves federated addresses', async () => {
-    mockResolveFederatedAddress.mockResolvedValue('GABC123RESOLVED');
+    mockResolveFederatedAddress.mockResolvedValue(RESOLVED_DELEGATE);
     render(<DelegationPanel />);
     const input = screen.getByPlaceholderText(/address|delegate/i) || screen.getByRole('textbox');
     if (input) {
@@ -104,7 +108,7 @@ describe('DelegationPanel', () => {
     render(<DelegationPanel />);
     const input = screen.getByPlaceholderText(/address|delegate/i) || screen.getByRole('textbox');
     if (input) {
-      fireEvent.change(input, { target: { value: 'GABC123...' } });
+      fireEvent.change(input, { target: { value: VALID_DELEGATE } });
       await waitFor(() => {
         const delegateButton = screen.queryByRole('button', { name: /delegate|confirm/i });
         if (delegateButton && !delegateButton.hasAttribute('disabled')) {
@@ -120,7 +124,7 @@ describe('DelegationPanel', () => {
     render(<DelegationPanel />);
     const input = screen.getByPlaceholderText(/address|delegate/i) || screen.getByRole('textbox');
     if (input) {
-      fireEvent.change(input, { target: { value: 'GABC123...' } });
+      fireEvent.change(input, { target: { value: VALID_DELEGATE } });
       await waitFor(() => {
         const delegateButton = screen.queryByRole('button', { name: /delegate|confirm/i });
         if (delegateButton && !delegateButton.hasAttribute('disabled')) {
@@ -148,7 +152,7 @@ describe('DelegationPanel', () => {
     render(<DelegationPanel />);
     const input = screen.getByPlaceholderText(/address|delegate/i) || screen.getByRole('textbox');
     if (input) {
-      fireEvent.change(input, { target: { value: 'GABC123...' } });
+      fireEvent.change(input, { target: { value: VALID_DELEGATE } });
       await waitFor(() => {
         const delegateButton = screen.queryByRole('button', { name: /delegate|confirm/i });
         if (delegateButton) {

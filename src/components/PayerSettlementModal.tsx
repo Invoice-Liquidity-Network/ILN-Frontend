@@ -15,6 +15,16 @@ interface PayerSettlementModalProps {
   submitting: boolean;
 }
 
+export function parseUnitsExact(value: string, decimals = 7): bigint {
+  if (!value || typeof value !== 'string') return 0n;
+  const trimmed = value.trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return 0n;
+  const [whole, fraction = ''] = trimmed.split('.');
+  const wholeBig = BigInt(whole || '0') * 10n ** BigInt(decimals);
+  const fracDigits = fraction.slice(0, decimals).padEnd(decimals, '0');
+  return wholeBig + BigInt(fracDigits || '0');
+}
+
 export default function PayerSettlementModal({
   invoice,
   token,
@@ -28,10 +38,16 @@ export default function PayerSettlementModal({
   const [allowance, setAllowance] = useState<bigint>(0n);
   const [loadingAllowance, setLoadingAllowance] = useState(false);
 
+  const isPastDue = useMemo(() => {
+    if (!invoice.due_date) return false;
+    const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+    return nowSeconds > invoice.due_date;
+  }, [invoice.due_date]);
+
   const amountToPay = useMemo(() => {
     if (payFull) return invoice.amount;
     try {
-      const units = BigInt(Math.floor(Number(partialAmount) * 10 ** (token?.decimals ?? 7)));
+      const units = parseUnitsExact(partialAmount, token?.decimals ?? 7);
       return units > invoice.amount ? invoice.amount : units;
     } catch {
       return 0n;

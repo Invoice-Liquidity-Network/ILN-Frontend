@@ -4,8 +4,22 @@ import { useRef, useState, KeyboardEvent } from 'react';
 
 /**
  * Single-invoice lifecycle timeline: Pending → Funded → Paid, with the current
- * step highlighted. Terminal off-happy-path states (Cancelled, Defaulted) are
- * surfaced as a distinct final step rather than forced onto the linear track.
+ * step highlighted.
+ *
+ * Supported contract states:
+ * - Nonterminal: `Pending`, `PartiallyFunded` (replaces step 2 label with
+ *   "Partially Funded"), `Funded`.
+ * - Terminal happy-path: `Paid`.
+ * - Terminal / off-happy-path: `Cancelled` (Pending done, Funded skipped/upcoming,
+ *   final step "Cancelled"), `Defaulted` (Pending & Funded done, final step
+ *   "Defaulted"), `Disputed` (Pending & Funded done, final step "Disputed").
+ *
+ * Failure behavior:
+ * - Unknown, empty, or unrecognized `status` values fail visibly with a
+ *   `role="alert"` notice instead of silently rendering an all-upcoming track.
+ * - Residual risk: `Disputed` is modeled as a terminal override on the 3-step
+ *   track even though on-chain disputes can later resolve; if a `Resolved`
+ *   state is added to the contract, it must be mapped here explicitly.
  *
  * Distinct from {@link InvoiceTimeline}, which groups many invoices by date for
  * the dashboard view.
@@ -18,20 +32,49 @@ interface InvoiceLifecycleTimelineProps {
   status: string;
 }
 
-/** Terminal states that replace the trailing step instead of advancing it. */
-const TERMINAL_OVERRIDES: Record<string, { label: string; tone: 'error' | 'muted' }> = {
-  Cancelled: { label: 'Cancelled', tone: 'muted' },
-  Defaulted: { label: 'Defaulted', tone: 'error' },
-  Disputed: { label: 'Disputed', tone: 'error' },
+interface OverrideConfig {
+  label: string;
+  tone: 'error' | 'muted';
+  /** Whether the invoice passed through the Funded step prior to this state. */
+  wasFunded: boolean;
+}
+
+/** Terminal / off-happy-path states that replace the trailing step. */
+const TERMINAL_OVERRIDES: Record<string, OverrideConfig> = {
+  Cancelled: { label: 'Cancelled', tone: 'muted', wasFunded: false },
+  Defaulted: { label: 'Defaulted', tone: 'error', wasFunded: true },
+  Disputed: { label: 'Disputed', tone: 'error', wasFunded: true },
 };
 
 export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTimelineProps) {
-  const override = TERMINAL_OVERRIDES[status];
-  // For happy-path statuses, the active index is the status position. Funded is
-  // a superset of Pending, Paid of Funded — so everything up to the index is done.
-  const happyIndex = HAPPY_PATH.indexOf(status as HappyStep);
-  // Cancelled/Defaulted occur after Pending (and possibly Funded); show the
-  // earlier steps as completed and the terminal state as the final marker.
+  const normalizedStatus = typeof status === 'string' ? status.trim() : '';
+  const override = TERMINAL_OVERRIDES[normalizedStatus];
+  const isPartiallyFunded = normalizedStatus === 'PartiallyFunded';
+  const happyIndex = isPartiallyFunded
+    ? 1
+    : HAPPY_PATH.indexOf(normalizedStatus as HappyStep);
+  const isKnownStatus = Boolean(override) || happyIndex >= 0;
+
+  // Hooks must run unconditionally before any early return.
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  if (!isKnownStatus) {
+    return (
+      <div
+        role="alert"
+        aria-label="Invoice lifecycle status"
+        className="inline-flex items-center gap-2 rounded-lg border border-error/40 bg-error-container/60 px-3 py-2 text-xs font-semibold text-on-error-container"
+      >
+        <span aria-hidden="true">!</span>
+        <span>Unknown invoice status: {normalizedStatus || 'None'}</span>
+      </div>
+    );
+  }
+
+  // For happy-path statuses, everything up to activeIndex is done.
+  // For terminal overrides, step 0 (Pending) is always done, step 1 (Funded) is
+  // done only when `wasFunded` is true, and step 2 is the terminal state.
   const activeIndex = override ? HAPPY_PATH.length - 1 : happyIndex;
 
   const steps: {
@@ -40,12 +83,23 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
     tone: 'primary' | 'error' | 'muted';
   }[] = HAPPY_PATH.map((step, index) => {
     const isLast = index === HAPPY_PATH.length - 1;
-    const label = isLast && override ? override.label : step;
+    const label =
+      isLast && override
+        ? override.label
+        : index === 1 && isPartiallyFunded
+          ? 'Partially Funded'
+          : step;
     const tone: 'primary' | 'error' | 'muted' = isLast && override ? override.tone : 'primary';
 
     let state: 'done' | 'current' | 'upcoming';
-    if (activeIndex < 0) {
-      state = 'upcoming';
+    if (override) {
+      if (index === 0) {
+        state = 'done';
+      } else if (index === 1) {
+        state = override.wasFunded ? 'done' : 'upcoming';
+      } else {
+        state = 'current';
+      }
     } else if (index < activeIndex) {
       state = 'done';
     } else if (index === activeIndex) {
@@ -55,9 +109,6 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
     }
     return { label, state, tone };
   });
-
-  const [focusedIndex, setFocusedIndex] = useState(0);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>, index: number) => {
     let nextIndex = index;
@@ -89,9 +140,11 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
         const dotColour =
           step.tone === 'error'
             ? 'bg-error text-on-error'
-            : reached
-              ? 'bg-primary text-on-primary'
-              : 'bg-surface-container-high text-on-surface-variant';
+            : step.tone === 'muted'
+              ? 'bg-surface-container-highest text-on-surface-variant'
+              : reached
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container-high text-on-surface-variant';
 
         return (
           <li key={step.label} className="flex flex-1 items-center last:flex-none" role="listitem">
@@ -131,7 +184,9 @@ export default function InvoiceLifecycleTimeline({ status }: InvoiceLifecycleTim
             {index < steps.length - 1 ? (
               <span
                 className={`mx-2 h-0.5 flex-1 rounded-full ${
-                  index < activeIndex ? 'bg-primary' : 'bg-outline-variant/30'
+                  step.state === 'done' && steps[index + 1].state !== 'upcoming'
+                    ? 'bg-primary'
+                    : 'bg-outline-variant/30'
                 }`}
               />
             ) : null}

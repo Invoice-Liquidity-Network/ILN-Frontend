@@ -19,7 +19,7 @@ export default function ChangeInvoiceTokenModal({
   onSuccess,
 }: ChangeInvoiceTokenModalProps) {
   const { address } = useWallet();
-  const { execute, loading } = useTransaction();
+  const { execute, loading, signingModal } = useTransaction();
   const { tokens } = useApprovedTokens();
   const [selectedToken, setSelectedToken] = useState(invoice.token ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +98,7 @@ export default function ChangeInvoiceTokenModal({
           </button>
         </div>
       </div>
+      {signingModal}
     </div>
   );
 }

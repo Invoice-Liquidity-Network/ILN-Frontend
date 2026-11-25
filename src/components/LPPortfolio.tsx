@@ -1,15 +1,31 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { formatAddress, formatDate, formatUSDC, calculateYield } from '@/utils/format';
+import {
+  formatAddress,
+  formatDate,
+  formatTokenAmount,
+  formatUSDC,
+  calculateYield,
+} from '@/utils/format';
 import type { Invoice } from '@/utils/soroban';
 import type { ApprovedToken } from '@/hooks/useApprovedTokens';
+import type { TokenBalanceMap } from '@/hooks/useBalances';
+import { calculateCapitalBreakdown } from '@/utils/lp-capital-accounting';
+import { calculatePerTokenMetrics } from '@/utils/per-token-yield';
 import InvoiceTable, { ColumnDefinition } from './InvoiceTable';
+import DataSourceCaption from './DataSourceCaption';
 
 import LPTokenMetricsCards from './LPTokenMetricsCards';
 import LPPortfolioAllocationChart from './LPPortfolioAllocationChart';
 import WeeklyYieldChart from './WeeklyYieldChart';
-import { calculatePerTokenMetrics } from '@/utils/per-token-yield';
+
+interface PayerExposure {
+  payer: string;
+  totalFunded: bigint;
+  invoiceCount: number;
+  portfolioPercentage: number;
+}
 
 interface LPPortfolioProps {
   invoices: Invoice[];
@@ -22,6 +38,10 @@ interface LPPortfolioProps {
   defaultToken?: ApprovedToken | null;
   onTransfer?: (invoice: Invoice) => void;
   isEnrolledInInsurance?: boolean;
+  /** Wallet balances from `useBalances`; omitted means the read is unavailable. */
+  walletBalances?: TokenBalanceMap;
+  /** Explicit wallet-balance read state; defaults to `not-connected`. */
+  walletBalanceStatus?: 'not-connected' | 'loading' | 'unavailable' | 'verified';
 }
 
 export default function LPPortfolio({
@@ -35,6 +55,8 @@ export default function LPPortfolio({
   defaultToken = null,
   onTransfer,
   isEnrolledInInsurance,
+  walletBalances,
+  walletBalanceStatus = 'not-connected',
 }: LPPortfolioProps) {
   const [showUSDEquivalent, setShowUSDEquivalent] = useState(false);
   const now = Date.now();
@@ -44,6 +66,32 @@ export default function LPPortfolio({
     () => calculatePerTokenMetrics(invoices, tokenMap, defaultToken),
     [invoices, tokenMap, defaultToken]
   );
+
+  // Calculate payer concentration metrics
+  const payerExposures = useMemo((): PayerExposure[] => {
+    const payerMap = new Map<string, { totalFunded: bigint; invoiceCount: number }>();
+    let totalFunded = 0n;
+
+    invoices.forEach((invoice) => {
+      if (invoice.status === 'Funded' || invoice.status === 'Paid' || invoice.status === 'Disputed') {
+        totalFunded += invoice.amount;
+        const existing = payerMap.get(invoice.payer) || { totalFunded: 0n, invoiceCount: 0 };
+        payerMap.set(invoice.payer, {
+          totalFunded: existing.totalFunded + invoice.amount,
+          invoiceCount: existing.invoiceCount + 1,
+        });
+      }
+    });
+
+    const exposures: PayerExposure[] = Array.from(payerMap.entries()).map(([payer, data]) => ({
+      payer,
+      totalFunded: data.totalFunded,
+      invoiceCount: data.invoiceCount,
+      portfolioPercentage: totalFunded > 0n ? Number((data.totalFunded * 100n) / totalFunded) : 0,
+    }));
+
+    return exposures.sort((a, b) => Number(b.totalFunded - a.totalFunded));
+  }, [invoices]);
 
   const totalYieldEarned = invoices
     .filter((invoice) => invoice.status === 'Paid')
@@ -170,6 +218,66 @@ export default function LPPortfolio({
         </p>
         <p className="mt-1 text-2xl font-bold text-green-700">{formatUSDC(totalYieldEarned)}</p>
       </div>
+
+      {/* Payer Concentration Metrics */}
+      {payerExposures.length > 0 && (
+        <div className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined">account_balance</span>
+              Payer Concentration
+            </h3>
+            <p className="text-sm text-on-surface-variant mt-1">
+              Exposure by payer across your portfolio
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {payerExposures.slice(0, 5).map((exposure) => (
+              <div key={exposure.payer} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-on-surface">
+                      {formatAddress(exposure.payer)}
+                    </span>
+                    <span className="text-xs font-semibold text-on-surface-variant">
+                      {exposure.portfolioPercentage.toFixed(1)}% ({exposure.invoiceCount}{' '}
+                      {exposure.invoiceCount === 1 ? 'invoice' : 'invoices'})
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        exposure.portfolioPercentage > 40
+                          ? 'bg-red-500'
+                          : exposure.portfolioPercentage > 25
+                            ? 'bg-orange-500'
+                            : 'bg-green-500'
+                      }`}
+                      style={{ width: `${exposure.portfolioPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {payerExposures.some((e) => e.portfolioPercentage > 25) && (
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex gap-2">
+                <span className="material-symbols-outlined text-orange-600 text-5">warning</span>
+                <div>
+                  <p className="text-sm font-medium text-orange-900">Concentration Risk</p>
+                  <p className="text-xs text-orange-800 mt-1">
+                    Your portfolio has significant exposure to individual payers. Consider
+                    diversifying your portfolio to reduce concentration risk.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Per-Token Metrics Cards */}
       {perTokenMetrics.length > 0 && (

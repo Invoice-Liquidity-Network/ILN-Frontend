@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import ActivityFeed from '../ActivityFeed';
+import ActivityFeed, { mergeActivityEvents, parseInvoiceEvent } from '../ActivityFeed';
 import {
   freshnessFixtures,
   proxyErrorEnvelope,
@@ -153,5 +153,77 @@ describe('ActivityFeed', () => {
     expect(alert).toHaveAttribute('data-testid', 'indexer-notice-malformed');
     expect(alert).toHaveTextContent('The indexer API version 2.0.0 is not supported.');
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('orders by canonical ledger descending even when timestamps are skewed', async () => {
+    const mockEvents = [
+      {
+        id: 'evt-1',
+        type: 'submitted',
+        ledger: 100,
+        // Skewed later timestamp on an earlier ledger
+        timestamp: Date.parse('2025-06-15T12:05:00.000Z'),
+        actor: 'GABC12345678901234567890123456789012345678901234567890123456',
+      },
+      {
+        id: 'evt-2',
+        type: 'funded',
+        ledger: 105,
+        timestamp: Date.parse('2025-06-15T12:00:00.000Z'),
+        actor: 'GDEF5678901234567890123456789012345678901234567890123456',
+      },
+    ];
+
+    (global.fetch as any).mockResolvedValue(envelope(mockEvents));
+    render(<ActivityFeed invoiceId={1n} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Invoice funded by/)).toBeInTheDocument();
+    });
+
+    const articles = screen.getAllByRole('article');
+    expect(articles).toHaveLength(2);
+    expect(articles[0]).toHaveTextContent(/Invoice funded by/);
+    expect(articles[1]).toHaveTextContent(/Invoice submitted by/);
+  });
+
+  it('deduplicates overlapping events from reconnects or duplicate delivery', async () => {
+    const mockEvents = [
+      {
+        id: 'evt-dup',
+        type: 'funded',
+        ledger: 105,
+        timestamp: Date.parse('2025-06-15T12:00:00.000Z'),
+        actor: 'GDEF5678901234567890123456789012345678901234567890123456',
+      },
+      {
+        id: 'evt-dup',
+        type: 'funded',
+        ledger: 105,
+        timestamp: Date.parse('2025-06-15T12:00:00.000Z'),
+        actor: 'GDEF5678901234567890123456789012345678901234567890123456',
+      },
+    ];
+
+    (global.fetch as any).mockResolvedValue(envelope(mockEvents));
+    render(<ActivityFeed invoiceId={1n} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('article')).toHaveLength(1);
+    });
+  });
+
+  it('merges reconnect cursor batches without duplicating overlapping events', () => {
+    const existing = [
+      parseInvoiceEvent({ id: 'evt-1', type: 'submitted', ledger: 100, timestamp: 1000 }),
+      parseInvoiceEvent({ id: 'evt-2', type: 'funded', ledger: 105, timestamp: 2000 }),
+    ];
+    const reconnectBatch = [
+      parseInvoiceEvent({ id: 'evt-2', type: 'funded', ledger: 105, timestamp: 2000 }),
+      parseInvoiceEvent({ id: 'evt-3', type: 'paid', ledger: 110, timestamp: 3000 }),
+    ];
+
+    const merged = mergeActivityEvents(existing, reconnectBatch);
+    expect(merged.map((e) => e.type)).toEqual(['paid', 'funded', 'submitted']);
   });
 });

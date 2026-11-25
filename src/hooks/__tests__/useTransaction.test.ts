@@ -4,6 +4,7 @@ import { useTransaction } from '../useTransaction';
 
 const mockAddToast = vi.fn(() => 'toast-id');
 const mockUpdateToast = vi.fn();
+const mockRequestPreview = vi.fn().mockResolvedValue(true);
 
 vi.mock('@/context/WalletContext', () => ({ useWallet: vi.fn() }));
 vi.mock('@/utils/soroban', () => ({ submitSignedTransaction: vi.fn() }));
@@ -13,7 +14,7 @@ vi.mock('@/context/ToastContext', () => ({
 vi.mock('@/hooks/useTransactionPreview', () => ({
   useTransactionPreview: () => ({
     previewModal: null,
-    requestPreview: vi.fn().mockResolvedValue(true),
+    requestPreview: mockRequestPreview,
   }),
 }));
 
@@ -276,5 +277,123 @@ describe('useTransaction', () => {
       resolvePending({ txHash: 'ignored' });
       await Promise.resolve();
     });
+  });
+});
+
+describe('network mismatch protection across money-moving flows (#1286)', () => {
+  const moneyMovingFlows = [
+    {
+      flow: 'funding',
+      useOperationFn: true,
+      options: { expectedAction: 'fund_invoice' as const, title: 'Fund Invoice' },
+    },
+    {
+      flow: 'funding token approval',
+      useOperationFn: true,
+      options: { expectedAction: 'approve' as const, title: 'Approve Token Spend' },
+    },
+    {
+      flow: 'settlement',
+      useOperationFn: false,
+      options: { expectedAction: 'mark_paid' as const, title: 'Mark invoice paid' },
+    },
+    {
+      flow: 'cancellation',
+      useOperationFn: false,
+      options: { expectedAction: 'cancel_invoice' as const, title: 'Cancel invoice' },
+    },
+    {
+      flow: 'default / insurance claim',
+      useOperationFn: true,
+      options: { title: 'Claim Default' },
+    },
+    {
+      flow: 'insurance pool deposit',
+      useOperationFn: true,
+      options: { title: 'Deposit Insurance Premium' },
+    },
+  ];
+
+  it.each(moneyMovingFlows)(
+    'blocks $flow before preview or signing when networkMismatch is true',
+    async ({ useOperationFn, options }) => {
+      const signTx = vi.fn();
+      const operationSpy = vi.fn().mockResolvedValue('should-not-run');
+      vi.mocked(useWallet).mockReturnValue({
+        isConnected: true,
+        address: 'GTEST',
+        networkMismatch: true,
+        walletNetwork: 'MAINNET',
+        signTx,
+      } as any);
+
+      const { result } = renderHook(() => useTransaction());
+      let outcome: unknown = 'pending';
+      await act(async () => {
+        outcome = await result.current.execute(useOperationFn ? operationSpy : mockTx, options);
+      });
+
+      expect(outcome).toBeNull();
+      expect(signTx).not.toHaveBeenCalled();
+      expect(mockRequestPreview).not.toHaveBeenCalled();
+      expect(operationSpy).not.toHaveBeenCalled();
+      expect(submitSignedTransaction).not.toHaveBeenCalled();
+      expect(result.current.lifecycleStatus).toBe('unsigned');
+      expect(result.current.success).toBe(false);
+      expect(result.current.error).toContain('Wrong network detected (MAINNET)');
+      expect(result.current.error).toContain('TESTNET');
+      expect(mockAddToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+          title: 'Wrong Network Blocked',
+        })
+      );
+      const toastArg = mockAddToast.mock.calls[0][0] as { action?: unknown };
+      expect(toastArg.action).toBeUndefined();
+    }
+  );
+
+  it('allows the flow to proceed once the wallet switches to the matching network', async () => {
+    let networkMismatch = true;
+    const signTx = vi.fn().mockResolvedValue('signed-xdr');
+    vi.mocked(useWallet).mockImplementation(
+      () =>
+        ({
+          isConnected: true,
+          address: 'GTEST',
+          networkMismatch,
+          walletNetwork: networkMismatch ? 'MAINNET' : 'TESTNET',
+          signTx,
+        }) as any
+    );
+    vi.mocked(submitSignedTransaction).mockResolvedValue({ txHash: 'settled-after-switch' } as any);
+
+    const { result, rerender } = renderHook(() => useTransaction());
+
+    // First attempt on wrong network is blocked cleanly without leaking in-flight state.
+    let blocked: unknown = 'pending';
+    await act(async () => {
+      blocked = await result.current.execute(mockTx, {
+        expectedAction: 'fund_invoice',
+        title: 'Fund Invoice',
+      });
+    });
+    expect(blocked).toBeNull();
+    expect(submitSignedTransaction).not.toHaveBeenCalled();
+
+    // User switches wallet to TESTNET and retries.
+    networkMismatch = false;
+    rerender();
+
+    let confirmed: unknown = null;
+    await act(async () => {
+      confirmed = await result.current.execute(mockTx, {
+        expectedAction: 'fund_invoice',
+        title: 'Fund Invoice',
+      });
+    });
+    expect(confirmed).toBe('settled-after-switch');
+    expect(result.current.lifecycleStatus).toBe('confirmed');
+    expect(submitSignedTransaction).toHaveBeenCalledTimes(1);
   });
 });

@@ -182,7 +182,18 @@ export default function BatchInvoiceForm({ onSuccess }: BatchInvoiceFormProps) {
     });
 
     try {
-      const results = await submitInvoicesBatch(address!, currentRows, signTx);
+      const rawResults = await submitInvoicesBatch(address!, currentRows, signTx);
+      const batchSummary = Array.isArray(rawResults)
+        ? undefined
+        : (rawResults as unknown as { successful?: number });
+      const results = Array.isArray(rawResults)
+        ? rawResults
+        : currentRows.map((row, index) => ({
+            id: row.id,
+            success: index < (batchSummary?.successful ?? 0),
+            error:
+              index >= (batchSummary?.successful ?? 0) ? 'Invoice was not submitted' : undefined,
+          }));
       setSubmissionResults(results);
 
       const successful = results.filter((r) => r.success).length;
@@ -191,7 +202,10 @@ export default function BatchInvoiceForm({ onSuccess }: BatchInvoiceFormProps) {
       updateToast(toastId, {
         type: successful === results.length ? 'success' : 'warning',
         title: 'Batch Submission Complete',
-        message: `${successful} successful, ${failed} failed`,
+        message:
+          failed > 0
+            ? `${successful} successful, ${failed} failed. Review the failed rows and resubmit them.`
+            : `${successful} successful, ${failed} failed`,
       });
 
       onSuccess({ successful, failed });
@@ -426,6 +440,11 @@ export default function BatchInvoiceForm({ onSuccess }: BatchInvoiceFormProps) {
       {submissionResults.length > 0 && (
         <div className="p-6 border-t border-surface-dim">
           <h3 className="text-lg font-semibold mb-4">Submission Results</h3>
+          {submissionResults.some((result) => !result.success) && (
+            <p className="mb-3 text-sm text-red-700" role="status">
+              Some invoices were not submitted. Correct the failed rows and submit them again.
+            </p>
+          )}
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {submissionResults.map((result, index) => (
               <div

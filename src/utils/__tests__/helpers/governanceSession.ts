@@ -12,7 +12,7 @@
 import { sep10Session } from '@/lib/sep10Session';
 import { nativeToScVal, rpc } from '@stellar/stellar-sdk';
 import { vi } from 'vitest';
-import { MOCK_PROPOSALS } from '../governance';
+import { MOCK_PROPOSALS } from '../../governance';
 
 let sessionCounter = 0;
 let votingPowerSpy: ReturnType<typeof vi.spyOn> | null = null;
@@ -45,7 +45,7 @@ export function stubDefaultVotingPower(power = 1250n): void {
           result: { auth: [], retval: nativeToScVal(power, { type: 'i128' }) },
         } as unknown as rpc.Api.SimulateTransactionResponse;
       }
-      if (op?.function === 'list_proposals') {
+      if (method === 'list_proposals') {
         return {
           transactionData: {},
           minResourceFee: '100',

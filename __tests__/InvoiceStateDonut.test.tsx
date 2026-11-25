@@ -30,4 +30,30 @@ describe('InvoiceStateDonut', () => {
     expect(screen.getAllByText(/1 — 25.0%/)).toHaveLength(2);
     expect(screen.getByText(/2 — 50.0%/)).toBeInTheDocument();
   });
+
+  it('deduplicates invoices with the same id so counts reconcile without cross-source duplication', async () => {
+    (soroban.getAllInvoices as unknown as vi.Mock).mockResolvedValue([
+      { id: 1n, status: 'PENDING' },
+      { id: 1n, status: 'PENDING' },
+      { id: 2n, status: 'PAID' },
+    ]);
+
+    render(<InvoiceStateDonut />);
+
+    await waitFor(() => expect(screen.getByText(/Invoice States/i)).toBeInTheDocument());
+
+    // Only 2 unique invoices (1 PENDING, 1 PAID) => 50.0% each
+    expect(screen.getAllByText(/1 — 50.0%/)).toHaveLength(2);
+  });
+
+  it('renders unavailable state when RPC fetch fails', async () => {
+    (soroban.getAllInvoices as unknown as vi.Mock).mockRejectedValue(new Error('RPC down'));
+
+    const { container } = render(<InvoiceStateDonut />);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-status="unavailable"]')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  });
 });

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import VoteSection from '@/components/VoteSection';
 import GovernanceMockStatusBanner from '@/components/governance/GovernanceMockStatusBanner';
@@ -186,9 +186,7 @@ function VetoProposalModal({
 export default function ProposalDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { address, isConnected, connect } = useWallet();
-  const { address, isConnected, connect, signTx, walletNetwork } = useWallet();
-  const { addToast, updateToast } = useToast();
+  const { address, isConnected, connect, walletNetwork } = useWallet();
   const { execute, loading: isVoting } = useTransaction();
   const invalidateGovernanceQueries = useInvalidateGovernanceQueries();
 
@@ -201,6 +199,8 @@ export default function ProposalDetailPage() {
   const [votingPowerError, setVotingPowerError] = useState<string | null>(null);
   const [loadingVotingPower, setLoadingVotingPower] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [executedTxHash, setExecutedTxHash] = useState<string | null>(null);
+  const [executionError, setExecutionError] = useState<string | null>(null);
   const [vetoModalOpen, setVetoModalOpen] = useState(false);
   const [vetoReason, setVetoReason] = useState('');
   const [vetoReasonHash, setVetoReasonHash] = useState('');
@@ -260,7 +260,7 @@ export default function ProposalDetailPage() {
     const result = await execute(
       async (signTx) =>
         castVote(proposal.id, choice, address, signTx, {
-          walletNetwork,
+          walletNetwork: walletNetwork ?? undefined,
           onConfirmed: async () => {
             await invalidateGovernanceQueries({
               proposalId: proposal.id,
@@ -286,36 +286,41 @@ export default function ProposalDetailPage() {
     if (!proposal || !address) return;
 
     setIsExecuting(true);
-    const result = await execute(async (signTx) => executeProposal(proposal.id, address, signTx), {
-      expectedAction: 'execute_proposal',
-      title: 'Executing proposal…',
-      pendingMessage: 'Waiting for wallet signature...',
-      successTitle: 'Proposal executed',
-      successMessage: 'The proposal has been successfully executed.',
-    });
-    const result = await execute(
-      async (signTx) =>
-        executeProposal(proposal.id, address, signTx, {
-          walletNetwork,
-          onConfirmed: async () => {
-            await invalidateGovernanceQueries({
-              proposalId: proposal.id,
-              voterAddress: address,
-            });
-          },
-        }),
-      {
-        title: 'Executing proposal…',
-        pendingMessage: 'Waiting for wallet signature...',
-        successTitle: 'Proposal executed',
-        successMessage: 'The proposal has been successfully executed.',
-      }
-    );
+    setExecutionError(null);
+    try {
+      const result = await execute(
+        async (signTx) =>
+          executeProposal(proposal.id, address, signTx, {
+            walletNetwork: walletNetwork ?? undefined,
+            // Re-read chain state so a stale page cannot prompt for a doomed execution.
+            readProposal: (id) => fetchProposal(id),
+            onConfirmed: async () => {
+              await invalidateGovernanceQueries({
+                proposalId: proposal.id,
+                voterAddress: address,
+              });
+            },
+          }),
+        {
+          expectedAction: 'execute_proposal',
+          title: 'Executing proposal…',
+          pendingMessage: 'Waiting for wallet signature...',
+          successTitle: 'Proposal executed',
+          successMessage: 'The proposal has been successfully executed.',
+        }
+      );
 
-    if (result) {
-      await load();
+      if (result) {
+        setExecutedTxHash(result);
+        await load();
+      }
+    } catch (err) {
+      setExecutionError(
+        err instanceof Error ? err.message : 'Execution failed. Please try again.'
+      );
+    } finally {
+      setIsExecuting(false);
     }
-    setIsExecuting(false);
   };
 
   const handleVetoReasonChange = async (reason: string) => {
@@ -333,65 +338,40 @@ export default function ProposalDetailPage() {
     // handling as voting and execution: simulation errors surface before the
     // wallet prompt, and a confirmation timeout is reported as an unknown
     // outcome rather than a failure (#1044, #1045).
-    const result = await execute(
-      async (signTx) => vetoProposal(proposal.id, vetoReasonHash, address, signTx),
-      {
-        expectedAction: 'veto_proposal',
-        title: 'Vetoing proposal…',
-        pendingMessage: 'Waiting for wallet signature...',
-        successTitle: 'Proposal vetoed',
-        successMessage: 'The proposal has been vetoed on-chain.',
-      }
-    );
-
-    if (result) {
-    const toastId = addToast({ type: 'pending', title: 'Vetoing proposal...' });
     try {
-      const txHash = await vetoProposal(proposal.id, vetoReasonHash, address, signTx, {
-        walletNetwork,
-        onConfirmed: async () => {
-          await invalidateGovernanceQueries({
-            proposalId: proposal.id,
-            voterAddress: address,
-          });
-        },
-      });
-      updateToast(toastId, {
-        type: 'success',
-        title: 'Proposal vetoed',
-        txHash,
-      });
-      setProposal({
-        ...proposal,
-        status: 'Vetoed',
-        vetoHistory: [
-          {
-            proposalId: proposal.id,
-            admin: address,
-            reasonHash: vetoReasonHash,
-            createdAt: Math.floor(Date.now() / 1000),
-          },
-          ...(proposal.vetoHistory ?? []),
-        ],
-      });
-      setVetoModalOpen(false);
-      setVetoReason('');
-      setVetoReasonHash('');
-      // Status comes from the contract on reload rather than being set
-      // locally, so the UI cannot show "Vetoed" for a transaction that never
-      // settled.
-      await load();
-    } catch (err) {
-      updateToast(toastId, {
-        type: 'error',
-        title: 'Veto failed',
-        message: err instanceof Error ? err.message : 'Transaction rejected',
-      });
+      const result = await execute(
+        async (signTx) =>
+          vetoProposal(proposal.id, vetoReasonHash, address, signTx, {
+            walletNetwork: walletNetwork ?? undefined,
+            onConfirmed: async () => {
+              await invalidateGovernanceQueries({
+                proposalId: proposal.id,
+                voterAddress: address,
+              });
+            },
+          }),
+        {
+          expectedAction: 'veto_proposal',
+          title: 'Vetoing proposal…',
+          pendingMessage: 'Waiting for wallet signature...',
+          successTitle: 'Proposal vetoed',
+          successMessage: 'The proposal has been vetoed on-chain.',
+        }
+      );
+
+      if (result) {
+        setVetoModalOpen(false);
+        setVetoReason('');
+        setVetoReasonHash('');
+        // Status comes from the contract on reload rather than being set
+        // locally, so the UI cannot show "Vetoed" for a transaction that never
+        // settled.
+        await load();
+      }
     } finally {
       isVetoingRef.current = false;
       setIsVetoing(false);
     }
-    setIsVetoing(false);
   };
 
   // ─── Derived state ──────────────────────────────────────────────────────────
@@ -400,8 +380,7 @@ export default function ProposalDetailPage() {
   const isActive = proposal?.status === 'Active';
   const isPassed = proposal?.status === 'Passed';
   const isAdmin = !!address && address === GOVERNANCE_ADMIN_ADDRESS;
-  const canVote =
-    isActive && !alreadyVoted && isConnected && votingPower > 0 && !votingPowerError;
+  const canVote = isActive && !alreadyVoted && isConnected && votingPower > 0 && !votingPowerError;
 
   const remaining = proposal ? timeRemaining(proposal) : '';
   const now = Math.floor(Date.now() / 1000);
@@ -432,8 +411,13 @@ export default function ProposalDetailPage() {
       <main className="min-h-screen">
         <Navbar />
         <div className="pt-28 pb-20 px-8 max-w-7xl mx-auto">
-          <div className="rounded-2xl border border-error/30 bg-error/10 p-8 text-center" role="alert">
-            <span className="material-symbols-outlined text-4xl text-error block mb-2">cloud_off</span>
+          <div
+            className="rounded-2xl border border-error/30 bg-error/10 p-8 text-center"
+            role="alert"
+          >
+            <span className="material-symbols-outlined text-4xl text-error block mb-2">
+              cloud_off
+            </span>
             <h2 className="text-xl font-bold text-error">Proposal Unavailable</h2>
             <p className="mt-2 text-sm text-on-surface-variant">
               The proposal details could not be retrieved from the governance contract.
@@ -626,6 +610,15 @@ export default function ProposalDetailPage() {
                         on-chain.
                       </p>
                       <GovernanceMockStatusBanner action="executeProposal" />
+                      {executionError && (
+                        <div
+                          role="alert"
+                          className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
+                        >
+                          <p className="font-semibold">Execution Failed</p>
+                          <p className="mt-0.5">{executionError}</p>
+                        </div>
+                      )}
                       <button
                         onClick={handleExecute}
                         disabled={isExecuting}
@@ -688,6 +681,15 @@ export default function ProposalDetailPage() {
                     The timelock delay has elapsed. Anyone can now trigger on-chain execution.
                   </p>
                   <GovernanceMockStatusBanner action="executeProposal" />
+                  {executionError && (
+                    <div
+                      role="alert"
+                      className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
+                    >
+                      <p className="font-semibold">Execution Failed</p>
+                      <p className="mt-0.5">{executionError}</p>
+                    </div>
+                  )}
                   {isConnected ? (
                     <button
                       onClick={handleExecute}
@@ -731,6 +733,20 @@ export default function ProposalDetailPage() {
                   <p className="text-xs text-on-surface-variant">
                     Changes are live on the protocol.
                   </p>
+                  {(executedTxHash || proposal.executedTxHash) && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-3 text-xs"
+                    >
+                      <p className="font-semibold text-purple-900 dark:text-purple-200">
+                        Execution Transaction Hash
+                      </p>
+                      <p className="font-mono text-purple-800 dark:text-purple-300 break-all select-all mt-0.5">
+                        {executedTxHash || proposal.executedTxHash}
+                      </p>
+                    </div>
+                  )}
                   {executionSummary && (
                     <div className="rounded-2xl border border-purple-500/10 bg-purple-500/10 p-3 text-sm text-purple-700">
                       {executionSummary}

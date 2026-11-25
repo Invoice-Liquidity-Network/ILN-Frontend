@@ -7,6 +7,7 @@ const MAX_EMAIL_LENGTH = 320;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_REQUEST_BYTES = 12_000;
 
 export async function POST(req: NextRequest) {
   const clientKey = getClientKey(req);
@@ -23,8 +24,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { rating, category, feedback, email } = body;
+    const contentLength = Number(req.headers.get('content-length') ?? 0);
+    if (contentLength > MAX_REQUEST_BYTES) return NextResponse.json({ error: 'request_too_large' }, { status: 413 });
+    const body: unknown = await req.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    const { rating, category, feedback, email } = body as Record<string, unknown>;
 
     if (!rating || !category || !feedback) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -94,16 +98,15 @@ ${feedback}
       }
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('GitHub API error:', errorData);
+        console.error('GitHub API error while creating feedback issue');
         throw new Error('Failed to create GitHub issue');
       }
 
       const issue = await response.json();
-      return NextResponse.json({ success: true, issueUrl: issue.html_url });
+      return NextResponse.json({ success: true });
     } else {
       // For development or if GitHub is not configured
-      console.warn('Feedback received (no GitHub config):', body);
+      console.warn('Feedback received while GitHub integration is unavailable');
     }
 
     return NextResponse.json({ success: true });

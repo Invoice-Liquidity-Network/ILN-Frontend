@@ -17,6 +17,7 @@ import {
   parseDelegationInfoFromNative,
   getDelegationInfo,
   delegateVotingPower,
+  DELEGATE_VOTING_POWER_SUPPORTED,
 } from '../governance';
 import {
   establishGovernanceTestSession,
@@ -205,6 +206,10 @@ describe('governance getDelegationInfo', () => {
 });
 
 describe('governance delegateVotingPower', () => {
+  it('exposes DELEGATE_VOTING_POWER_SUPPORTED as false (deferred on-chain path)', () => {
+    expect(DELEGATE_VOTING_POWER_SUPPORTED).toBe(false);
+  });
+
   beforeEach(() => {
     establishGovernanceTestSession(SIGNER);
   });

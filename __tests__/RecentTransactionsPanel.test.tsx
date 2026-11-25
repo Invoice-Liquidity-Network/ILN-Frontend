@@ -111,4 +111,35 @@ describe('RecentTransactionsPanel', () => {
       expect(newRow.className).toMatch(/slide-in-from-top/);
     });
   });
+
+  it('renders RPC-confirmed status and excludes wallet-submitted or indexer-known items', () => {
+    mockUseRecentProtocolFeed.mockReturnValue({
+      data: [
+        { ...sampleItems[0]!, confirmationStatus: 'rpc_confirmed' },
+        {
+          ...sampleItems[1]!,
+          id: 'wallet-pending-1',
+          label: 'Wallet Pending Funding',
+          confirmationStatus: 'wallet_submitted',
+        },
+        {
+          ...sampleItems[1]!,
+          id: 'indexer-only-1',
+          label: 'Indexer Only Event',
+          confirmationStatus: 'indexer_known',
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+
+    render(<RecentTransactionsPanel />);
+
+    const rows = screen.getAllByTestId('recent-transaction-item');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveAttribute('data-confirmation-status', 'rpc-confirmed');
+    expect(screen.getByText('RPC confirmed')).toBeInTheDocument();
+    expect(screen.queryByText('Wallet Pending Funding')).not.toBeInTheDocument();
+    expect(screen.queryByText('Indexer Only Event')).not.toBeInTheDocument();
+  });
 });

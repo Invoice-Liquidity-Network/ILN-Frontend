@@ -39,6 +39,7 @@ export const env = {
   NEXT_PUBLIC_NETWORK_NAME: optionalEnv('NEXT_PUBLIC_NETWORK_NAME', 'TESTNET'),
   NEXT_PUBLIC_STELLAR_NETWORK: optionalEnv('NEXT_PUBLIC_STELLAR_NETWORK', 'testnet'),
   NEXT_PUBLIC_SEP10_HOME_DOMAIN: process.env.NEXT_PUBLIC_SEP10_HOME_DOMAIN || '',
+  NEXT_PUBLIC_SEP10_WEB_AUTH_ENDPOINT: process.env.NEXT_PUBLIC_SEP10_WEB_AUTH_ENDPOINT || '',
 
   // Tokens
   NEXT_PUBLIC_TESTNET_USDC_TOKEN_ID: optionalEnv(
@@ -67,8 +68,12 @@ export const env = {
     'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
   ),
 
-  // Indexer WebSocket (REST access goes through the /api/indexer proxy)
+  // Indexer WebSocket and REST endpoints
   NEXT_PUBLIC_INDEXER_WS_URL: optionalEnv('NEXT_PUBLIC_INDEXER_WS_URL', 'ws://localhost:8080/ws'),
+  NEXT_PUBLIC_INDEXER_API_URL: optionalEnv(
+    'NEXT_PUBLIC_INDEXER_API_URL',
+    'https://api.iln.example.com'
+  ),
 
   // WalletConnect
   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',

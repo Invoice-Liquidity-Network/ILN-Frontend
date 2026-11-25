@@ -11,7 +11,7 @@ import {
   type VoteCastEvent,
 } from '@/utils/governance';
 import { governanceKeys, QUERY_TIMINGS } from './keys';
-import { createQueryConfig } from './defaultConfig';
+import { createQueryConfig, createFinancialQueryConfig } from './defaultConfig';
 import {
   invalidateGovernanceMutationQueries,
   type GovernanceMutationScope,
@@ -27,7 +27,7 @@ import {
 export function useGovernanceProposals() {
   return useQuery<Proposal[], Error>({
     queryKey: governanceKeys.proposals,
-    queryFn: fetchProposals,
+    queryFn: () => fetchProposals(),
     ...createQueryConfig({
       ...QUERY_TIMINGS.governanceProposals,
     }),
@@ -52,7 +52,7 @@ export function useGovernanceVotingPower(address?: string | null) {
     queryKey: governanceKeys.votingPower(address),
     queryFn: () => getVotingPower(address ?? ''),
     enabled: Boolean(address),
-    ...createQueryConfig({
+    ...createFinancialQueryConfig({
       ...QUERY_TIMINGS.governanceVotingPower,
     }),
   });
@@ -81,4 +81,3 @@ export function useInvalidateGovernanceQueries() {
     [queryClient]
   );
 }
-

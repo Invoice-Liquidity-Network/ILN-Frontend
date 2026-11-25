@@ -1,5 +1,19 @@
 export const APPEAL_WINDOW_LEDGERS = 17280;
 
+/**
+ * Computes a deterministic, privacy-preserving digest of dispute evidence text
+ * so only a fixed-length hash is submitted on-chain (`disputeInvoice`) and no
+ * raw document content or PII leaves the client.
+ *
+ * Assumptions & failure behavior:
+ * - Leading/trailing whitespace is trimmed before hashing; blank inputs return `''`.
+ * - Uses Web Crypto `SHA-256` (64 lowercase hex chars) when `crypto.subtle` is
+ *   available; falls back to a deterministic 32-bit `local-<8 hex>` digest when
+ *   `crypto.subtle` is unavailable (e.g. non-secure contexts).
+ * - Never logs input text or intermediate values.
+ * - Residual risk: the non-crypto fallback is not collision-resistant and
+ *   produces a different format (`local-...`) than SHA-256.
+ */
 export async function hashEvidence(text: string): Promise<string> {
   const normalized = text.trim();
   if (!normalized) return '';

@@ -5,17 +5,19 @@ import { useWallet } from '@/context/WalletContext';
 import { useInvoices } from '@/hooks/queries';
 import { useApprovedTokens } from '@/hooks/useApprovedTokens';
 import { usePayerScores } from '@/hooks/usePayerScores';
-import { Invoice } from '@/utils/soroban';
+import { Invoice, getInvoice } from '@/utils/soroban';
 import { calculateYield, formatTokenAmount, formatAddress, formatDate } from '@/utils/format';
 import { RiskLevel } from '@/utils/risk';
 import Navbar from '@/components/Navbar';
 import InvoiceMarketplaceCard from '@/components/InvoiceMarketplaceCard';
+import GovernanceCapsBanner from '@/components/GovernanceCapsBanner';
 import FundConfirmModal from '@/components/FundConfirmModal';
 import LPSettingsModal from '@/components/LPSettingsModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PageHeader from '@/components/PageHeader';
 import { useLPSettings } from '@/hooks/useLPSettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useProtocolCaps } from '@/hooks/useProtocolCaps';
 
 import { useBookmarks } from '@/hooks/useBookmarks';
 const PAGE_SIZE = 20;
@@ -27,6 +29,11 @@ export default function MarketplacePage() {
   const { isConnected } = useWallet();
   const { data: allInvoices = [], isLoading: loading, refetch } = useInvoices();
   const { tokenMap, defaultToken } = useApprovedTokens();
+  const { data: caps } = useProtocolCaps({
+    tokenId: defaultToken?.contractId,
+    tokenSymbol: defaultToken?.symbol ?? 'USDC',
+    tokenDecimals: defaultToken?.decimals ?? 7,
+  });
 
   const [sortKey, setSortKey] = useState<SortKey>('yield');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -210,6 +217,15 @@ export default function MarketplacePage() {
             }
           />
         </div>
+
+        {caps?.isRolloutCapped ? (
+          <div className="mb-6">
+            <GovernanceCapsBanner
+              maxInvoiceAmountFormatted={caps.formattedMaxInvoiceAmount}
+              tokenVolumeCapFormatted={caps.formattedTokenVolumeCap}
+            />
+          </div>
+        ) : null}
 
         {/* Filters Toggle & Sort */}
         <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-end md:justify-between">
@@ -487,6 +503,7 @@ export default function MarketplacePage() {
                   payerScore={payerScores.get(invoice.payer) ?? null}
                   payerRisk={payerRisks.get(invoice.payer) ?? 'Unknown'}
                   onFund={setSelectedInvoice}
+                  onVerifyFundable={(inv) => getInvoice(inv.id)}
                   isWalletConnected={isConnected}
                   minReputation={settings.minReputation}
                   isBookmarked={isBookmarked(invoice.id.toString())}

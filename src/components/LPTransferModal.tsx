@@ -96,7 +96,7 @@ async function buildTransferLPPositionTx(funder: string, invoiceId: bigint, newO
 
 export default function LPTransferModal({ invoice, onClose, onSuccess }: LPTransferModalProps) {
   const { address } = useWallet();
-  const { execute, loading, error: txError } = useTransaction();
+  const { execute, loading, error: txError, signingModal } = useTransaction();
   const initialTokenId = invoice.token ?? TESTNET_USDC_TOKEN_ID;
   const [recipient, setRecipient] = useState('');
   const [isDestinationConfirmed, setIsDestinationConfirmed] = useState(false);
@@ -287,6 +287,7 @@ export default function LPTransferModal({ invoice, onClose, onSuccess }: LPTrans
           </div>
         </form>
       </div>
+      {signingModal}
     </div>
   );
 }

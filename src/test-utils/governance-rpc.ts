@@ -149,11 +149,15 @@ export function governanceWriteOptions(stub: GovernanceRpcStub): GovernanceWrite
 }
 
 /** Signs by returning the unsigned envelope — valid, parseable XDR. */
-export const passthroughSignTx = (impl?: () => void) =>
-  vi.fn(async (txXdr: string) => {
-    impl?.();
+export const passthroughSignTx = (implOrXdr?: (() => void) | string) => {
+  if (typeof implOrXdr === 'string') {
+    return Promise.resolve(implOrXdr);
+  }
+  return vi.fn(async (txXdr: string) => {
+    implOrXdr?.();
     return txXdr;
   });
+};
 
 /** A wallet that declines the signature. */
 export const decliningSignTx = () =>

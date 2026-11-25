@@ -40,29 +40,6 @@ import {
   castVote,
   createProposal,
   executeProposal,
- *  - castVote: For / Against / Abstain tally increments + userVote recording
- *  - createProposal: signed `create_proposal` for FeeRate / MaxDiscountRate /
- *    AddToken / RemoveToken, with no local proposal mutation (#1055)
- *  - vetoProposal: success + "Proposal not found" guard
- *  - executeProposal / getVotingPower happy paths
- *
- * #1070 additions:
- *  - signTx is asserted called with the correct intent string on every write path
- *  - every returned hash must satisfy isValidTxHash (64-char hex)
- *  - hash is deterministic: same inputs → same hash across two independent calls
- *  - regression guard: no unsigned:/random fallback when a real signer is present
- *
- * The module keeps mutable mock state (MOCK_PROPOSALS, userVotes, vetoHistory)
- * at module scope, and Vitest isolates modules per test file, so assertions
- * are written relative to fetched-before/after snapshots rather than absolute
- * counters.
- */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  castVote,
-  createProposal,
-  executeProposal,
   clearGovernanceIdempotencyCache,
   fetchProposal,
   fetchProposals,
@@ -72,41 +49,6 @@ import {
   GovernanceNetworkMismatchError,
   GovernanceReadError,
   vetoProposal,
-  clearGovernanceIdempotencyCache,
-  MOCK_PROPOSALS,
-  type CreateProposalPayload,
-} from '../governance';
-import {
-  createGovernanceRpcStub,
-  governanceWriteOptions,
-  passthroughSignTx,
-} from '@/test-utils/governance-rpc';
-
-// A real strkey: the pipeline encodes it with `Address.fromString`, which
-// validates the checksum, so a placeholder string will not do.
-const SIGNER = 'GD2HBFZSXTH4UCKZUVME665WBIPLRBPDTOTYWFRBCKZSFTP7PK46JYSK';
-
-/** Snapshot of every field a mock mutation used to touch. */
-function snapshotMockState() {
-  return MOCK_PROPOSALS.map((p) => ({
-    id: p.id,
-    status: p.status,
-    votesFor: p.votesFor,
-    votesAgainst: p.votesAgainst,
-    votesAbstain: p.votesAbstain,
-    vetoHistory: p.vetoHistory?.length ?? 0,
-  }));
-}
-
-beforeEach(async () => {
-  clearGovernanceIdempotencyCache();
-  vi.clearAllMocks();
-  // The proposal *read* path is not under test here; stub it offline so
-  // `fetchProposals` takes its MOCK_PROPOSALS fallback without a real
-  // network round-trip.
-  const { rpc } = await import('@stellar/stellar-sdk');
-  vi.spyOn(rpc.Server.prototype, 'simulateTransaction').mockRejectedValue(new Error('offline'));
-});
   decodeProposalCreatedEvent,
   decodeProposalExecutedEvent,
   decodeVoteCastEvent,
@@ -119,8 +61,14 @@ beforeEach(async () => {
   createProposalVetoedFixture,
   createParameterUpdatedFixture,
   EventDecodingError,
+  MOCK_PROPOSALS,
   type CreateProposalPayload,
 } from '../governance';
+import {
+  createGovernanceRpcStub,
+  governanceWriteOptions,
+  passthroughSignTx,
+} from '@/test-utils/governance-rpc';
 import {
   Address,
   scValToNative,
@@ -142,15 +90,24 @@ import {
   PROPOSER,
   USDC_CONTRACT,
   XLM_SAC_CONTRACT,
-  passthroughSignTx,
   stubProposalRpc,
 } from './helpers/proposalRpc';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 const signTx = vi.fn(async (xdr: string) => `signed-${xdr}`);
+/** Valid test account used for every governance write in this suite. */
 const SIGNER = PROPOSER;
+
+/** Snapshot of every field a mock mutation used to touch. */
+function snapshotMockState() {
+  return MOCK_PROPOSALS.map((p) => ({
+    id: p.id,
+    status: p.status,
+    votesFor: p.votesFor,
+    votesAgainst: p.votesAgainst,
+    votesAbstain: p.votesAbstain,
+    vetoHistory: p.vetoHistory?.length ?? 0,
+  }));
+}
 
 // Regression guard: ensures sign, submit and confirm never return a mock-random
 // fallback. A hash that starts with "unsigned:" means no wallet was involved,
@@ -168,12 +125,20 @@ function assertNoRandomFallback(hash: string, context: string) {
 
 // The governance write paths are gated behind a valid SEP-10 session (#1076),
 // so every test starts with a deterministic session and tears it down after.
-beforeEach(() => {
+beforeEach(async () => {
+  clearGovernanceIdempotencyCache();
+  vi.clearAllMocks();
   establishGovernanceTestSession(SIGNER);
+  // The proposal *read* path is not under test here; stub it offline so
+  // `fetchProposals` takes its MOCK_PROPOSALS fallback without a real
+  // network round-trip.
+  const { rpc } = await import('@stellar/stellar-sdk');
+  vi.spyOn(rpc.Server.prototype, 'simulateTransaction').mockRejectedValue(new Error('offline'));
 });
 
 afterEach(() => {
   clearGovernanceTestSession();
+  vi.restoreAllMocks();
 });
 
 describe('governance.castVote (critical path)', () => {
@@ -209,17 +174,6 @@ describe('governance.castVote (critical path)', () => {
     const before = await fetchProposal(1);
 
     await castVote(1, 'For', SIGNER, passthroughSignTx(), governanceWriteOptions(stub));
-  beforeEach(() => {
-    signTx.mockClear();
-    clearGovernanceIdempotencyCache();
-  });
-
-  it('records a For vote and increments votesFor', async () => {
-    const before = await fetchProposal(1);
-    const result = await castVote(1, 'For', SIGNER, signTx);
-
-    expect(signTx).toHaveBeenCalledWith(expect.stringContaining('vote:1:For'));
-    assertNoRandomFallback(result, 'castVote For');
 
     const after = await fetchProposal(1);
     expect(after?.userVote).toBe('For');
@@ -238,17 +192,6 @@ describe('governance.castVote (critical path)', () => {
       await castVote(2, choice, SIGNER, passthroughSignTx(), governanceWriteOptions(stub));
 
       expect(snapshotMockState()).toEqual(before);
-  it('records an Against vote and increments votesAgainst', async () => {
-    const before = await fetchProposal(2);
-    const result = await castVote(2, 'Against', SIGNER, signTx);
-
-    expect(signTx).toHaveBeenCalledWith(expect.stringContaining('vote:2:Against'));
-    assertNoRandomFallback(result, 'castVote Against');
-
-    const after = await fetchProposal(2);
-    expect(after?.userVote).toBe('Against');
-    if (before && after) {
-      expect(after.votesAgainst).toBe(before.votesAgainst + 1250);
     }
   );
 
@@ -294,56 +237,6 @@ describe('governance.castVote (critical path)', () => {
     ).rejects.toThrow(/TX_TIMEOUT/);
 
     expect((await fetchProposal(7))?.userVote).toBeUndefined();
-  it('records an Abstain vote and increments votesAbstain', async () => {
-    const before = await fetchProposal(3);
-    const result = await castVote(3, 'Abstain', SIGNER, signTx);
-
-    expect(signTx).toHaveBeenCalledWith(expect.stringContaining('vote:3:Abstain'));
-    assertNoRandomFallback(result, 'castVote Abstain');
-
-    const after = await fetchProposal(3);
-    expect(after?.userVote).toBe('Abstain');
-    if (before && after) {
-      expect(after.votesAbstain).toBe(before.votesAbstain + 1250);
-    }
-  });
-
-  it('returns a valid 64-char hex hash even when no signer address is supplied', async () => {
-    const result = await castVote(1, 'For', '', signTx);
-    expect(isValidTxHash(result)).toBe(true);
-  });
-
-  it('hash is deterministic: same vote inputs yield the same hash', async () => {
-    const hash1 = await castVote(4, 'For', SIGNER, signTx);
-    clearGovernanceIdempotencyCache();
-    const hash2 = await castVote(4, 'For', SIGNER, signTx);
-    expect(hash1).toBe(hash2);
-  });
-
-  it('fails closed and blocks mutation when voting-power read fails (#1049)', async () => {
-    const mockSimulate = vi
-      .spyOn(rpc.Server.prototype, 'simulateTransaction')
-      .mockRejectedValueOnce(new Error('Network transport failure'));
-
-    await expect(castVote(1, 'For', SIGNER, signTx)).rejects.toThrow(/VOTING_POWER_UNAVAILABLE/);
-    expect(signTx).not.toHaveBeenCalled();
-    mockSimulate.mockRestore();
-  });
-
-  it('blocks mutation when voter has zero voting power (#1049)', async () => {
-    const mockSimulate = vi
-      .spyOn(rpc.Server.prototype, 'simulateTransaction')
-      .mockResolvedValueOnce({
-        error: undefined,
-        transactionData: {} as any,
-        minResourceFee: '100',
-        events: [],
-        result: { retval: nativeToScVal(0n, { type: 'i128' }) },
-      } as any);
-
-    await expect(castVote(1, 'For', SIGNER, signTx)).rejects.toThrow(/VOTING_POWER_UNAVAILABLE/);
-    expect(signTx).not.toHaveBeenCalled();
-    mockSimulate.mockRestore();
   });
 });
 
@@ -447,183 +340,6 @@ describe('governance.executeProposal / vetoProposal', () => {
       SIGNER,
       passthroughSignTx(),
       governanceWriteOptions(stub)
-  const proposalSignTx = vi.fn(passthroughSignTx);
-  let rpcStub: ReturnType<typeof stubProposalRpc>;
-
-  beforeEach(() => {
-    proposalSignTx.mockClear();
-    clearGovernanceIdempotencyCache();
-    establishGovernanceTestSession(PROPOSER);
-    rpcStub = stubProposalRpc({ proposalId: 77 });
-  });
-
-  afterEach(() => {
-    rpcStub.restore();
-  });
-
-  /** Decode the `create_proposal` invocation the wallet was asked to sign. */
-  function signedInvocation() {
-    expect(proposalSignTx).toHaveBeenCalledTimes(1);
-    const tx = TransactionBuilder.fromXDR(
-      proposalSignTx.mock.calls[0][0],
-      Networks.TESTNET
-    ) as Transaction;
-    const op = tx.operations[0] as unknown as {
-      func: {
-        invokeContract(): { functionName(): Buffer; args(): Parameters<typeof scValToNative>[0][] };
-      };
-    };
-    const invoke = op.func.invokeContract();
-    return {
-      fn: invoke.functionName().toString(),
-      action: scValToNative(invoke.args()[1]),
-      proposedValue: scValToNative(invoke.args()[3]),
-    };
-  }
-
-  async function create(payload: CreateProposalPayload) {
-    const mockBefore = MOCK_PROPOSALS.length;
-    const listBefore = (await fetchProposals()).length;
-    const res = await createProposal(payload, PROPOSER, proposalSignTx, {
-      context: PROPOSAL_CONTEXT,
-    });
-    // No local proposal is fabricated: the record only exists on-chain.
-    expect(MOCK_PROPOSALS.length).toBe(mockBefore);
-    expect((await fetchProposals()).length).toBe(listBefore);
-    return res;
-  }
-
-  it('signs create_proposal(UpdateFeeRate) and returns the id from the chain', async () => {
-    const res = await create({
-      formType: 'FeeRate',
-      title: 'Reduce protocol fee rate',
-      description: 'Lower the fee to stay competitive with other pools',
-      newValueBps: 30,
-    });
-
-    expect(res).toEqual({ txHash: CREATE_TX_HASH, proposalId: 77 });
-    assertNoRandomFallback(res.txHash, 'createProposal FeeRate');
-    expect(signedInvocation()).toEqual({
-      fn: 'create_proposal',
-      action: ['UpdateFeeRate', 30],
-      proposedValue: 30n,
-    });
-    expect(rpcStub.sendTransaction).toHaveBeenCalledTimes(1);
-    expect(rpcStub.pollTransaction).toHaveBeenCalledWith(CREATE_TX_HASH, expect.anything());
-  });
-
-  it('maps MaxDiscountRate to UpdateMaxDiscountRate', async () => {
-    await create({
-      formType: 'MaxDiscountRate',
-      title: 'Raise max discount rate',
-      description: 'Allow deeper early-pay discounts for suppliers',
-      newValueBps: 400,
-    });
-    expect(signedInvocation().action).toEqual(['UpdateMaxDiscountRate', 400]);
-  });
-
-  it('maps AddToken to AddToken(address, decimals)', async () => {
-    await create({
-      formType: 'AddToken',
-      title: 'List XLM',
-      description: 'Add the native asset contract to accepted tokens',
-      tokenAddress: XLM_SAC_CONTRACT,
-      tokenName: 'XLM',
-      tokenDecimals: 7,
-    });
-    expect(signedInvocation()).toMatchObject({
-      action: ['AddToken', XLM_SAC_CONTRACT, 7],
-      proposedValue: 0n,
-    });
-  });
-
-  it('maps RemoveToken to RemoveToken(address)', async () => {
-    await create({
-      formType: 'RemoveToken',
-      title: 'Delist USDC',
-      description: 'Remove a deprecated token from accepted tokens',
-      removeTokenAddress: USDC_CONTRACT,
-    });
-    expect(signedInvocation().action).toEqual(['RemoveToken', USDC_CONTRACT]);
-  });
-
-  it('rejects schema-invalid payloads before signing', async () => {
-    await expect(
-      createProposal(
-        {
-          formType: 'RemoveToken',
-          title: 'Delist unknown',
-          description: 'Remove a token that is not accepted at all',
-          removeTokenAddress: XLM_SAC_CONTRACT,
-        },
-        PROPOSER,
-        proposalSignTx,
-        { context: PROPOSAL_CONTEXT }
-      )
-    ).rejects.toMatchObject({ code: 'PROPOSAL_VALIDATION_FAILED' });
-    expect(proposalSignTx).not.toHaveBeenCalled();
-    expect(rpcStub.sendTransaction).not.toHaveBeenCalled();
-  });
-
-  it('requires a SEP-10 session', async () => {
-    clearGovernanceTestSession();
-    await expect(
-      createProposal(
-        {
-          formType: 'FeeRate',
-          title: 'No session',
-          description: 'Should be blocked before any network call',
-          newValueBps: 10,
-        },
-        PROPOSER,
-        proposalSignTx,
-        { context: PROPOSAL_CONTEXT }
-      )
-    ).rejects.toThrow(/SEP10_SESSION_REQUIRED/);
-    expect(rpcStub.getAccount).not.toHaveBeenCalled();
-  });
-
-  it('createProposal hash is deterministic across two independent calls with same payload', async () => {
-    const payload: CreateProposalPayload = {
-      formType: 'FeeRate',
-      title: 'Determinism check',
-      description: 'Same payload, same signed transaction',
-      newValueBps: 50,
-    };
-    const res1 = await createProposal(payload, PROPOSER, proposalSignTx, {
-      context: PROPOSAL_CONTEXT,
-    });
-    clearGovernanceIdempotencyCache();
-    const res2 = await createProposal(payload, PROPOSER, proposalSignTx, {
-      context: PROPOSAL_CONTEXT,
-    });
-    expect(res1.txHash).toBe(res2.txHash);
-    expect(proposalSignTx.mock.calls[0][0]).toBe(proposalSignTx.mock.calls[1][0]);
-  });
-});
-
-describe('governance.vetoProposal', () => {
-  beforeEach(() => {
-    signTx.mockClear();
-    clearGovernanceIdempotencyCache();
-  });
-
-  it('vetoes an existing proposal and prepends a veto record', async () => {
-    // Proposal creation is on-chain now; veto an existing active proposal.
-    const created = { proposalId: 6 };
-
-    const res = await vetoProposal(created.proposalId, '0xreason', SIGNER, signTx);
-
-    expect(signTx).toHaveBeenCalledWith(expect.stringContaining('veto'));
-    assertNoRandomFallback(res, 'vetoProposal');
-
-    const after = await fetchProposal(created.proposalId);
-    expect(after?.status).toBe('Vetoed');
-  });
-
-  it('throws when the proposal does not exist', async () => {
-    await expect(vetoProposal(999_999, '0xreason', SIGNER, signTx)).rejects.toThrow(
-      /proposal not found/i
     );
 
     expect(hash).toBe(stub.issuedHashes[0]);
@@ -667,12 +383,68 @@ describe('governance.vetoProposal', () => {
   });
 });
 
-describe('governance.getVotingPower', () => {
-  it('reports zero rather than a fabricated constant when the read fails', async () => {
-    const { rpc } = await import('@stellar/stellar-sdk');
-    vi.spyOn(rpc.Server.prototype, 'simulateTransaction').mockRejectedValue(new Error('offline'));
+describe('governance.vetoProposal', () => {
+  beforeEach(() => {
+    signTx.mockClear();
+    clearGovernanceIdempotencyCache();
+  });
 
-    await expect(getVotingPower(SIGNER)).resolves.toBe(0);
+  it('vetoes an existing proposal and prepends a veto record', async () => {
+    // Proposal creation is on-chain now; veto an existing active proposal.
+    const created = { proposalId: 6 };
+
+    const res = await vetoProposal(created.proposalId, '0xreason', SIGNER, signTx);
+
+    expect(signTx).toHaveBeenCalledWith(expect.stringContaining('veto'));
+    assertNoRandomFallback(res, 'vetoProposal');
+
+    const after = await fetchProposal(created.proposalId);
+    expect(after?.status).toBe('Vetoed');
+  });
+
+  it('throws when the proposal does not exist', async () => {
+    await expect(vetoProposal(999_999, '0xreason', SIGNER, signTx)).rejects.toThrow(
+      /proposal not found/i
+    );
+  });
+
+  it('records a veto only after the network confirms it', async () => {
+    const stub = createGovernanceRpcStub();
+
+    const hash = await vetoProposal(
+      4,
+      '0xreason',
+      SIGNER,
+      passthroughSignTx(),
+      governanceWriteOptions(stub)
+    );
+
+    expect(hash).toBe(stub.issuedHashes[0]);
+    expect(getVetoHistory(4)).toHaveLength(1);
+    expect(getVetoHistory(4)[0]).toMatchObject({ proposalId: 4, admin: SIGNER });
+  });
+
+  it('adds no veto record when the veto times out', async () => {
+    const stub = createGovernanceRpcStub({ confirmation: 'never' });
+
+    await expect(
+      vetoProposal(5, '0xreason', SIGNER, passthroughSignTx(), governanceWriteOptions(stub))
+    ).rejects.toThrow(/TX_TIMEOUT/);
+
+    expect(getVetoHistory(5)).toHaveLength(0);
+  });
+
+  it('does not set a proposal status to Vetoed in MOCK_PROPOSALS', async () => {
+    const stub = createGovernanceRpcStub();
+    const statusesBefore = MOCK_PROPOSALS.map((p) => p.status);
+
+    await vetoProposal(6, '0xreason-2', SIGNER, passthroughSignTx(), governanceWriteOptions(stub));
+
+    expect(MOCK_PROPOSALS.map((p) => p.status)).toEqual(statusesBefore);
+  });
+});
+
+describe('governance.getVotingPower', () => {
   it('fails closed with a typed error when voting power read fails (#1049)', async () => {
     const mockSimulate = vi.spyOn(rpc.Server.prototype, 'simulateTransaction').mockResolvedValue({
       error: 'Simulation failed: host error',
@@ -782,13 +554,13 @@ describe('governance network mismatch protection (#1067)', () => {
     const proposalBefore = await fetchProposal(1);
     const votesBefore = proposalBefore?.votesFor ?? 0;
 
-    await expect(
-      castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'mainnet' })
-    ).rejects.toThrow(GovernanceNetworkMismatchError);
+    await expect(castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'mainnet' })).rejects.toThrow(
+      GovernanceNetworkMismatchError
+    );
 
-    await expect(
-      castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'PUBLIC' })
-    ).rejects.toThrow(/NETWORK_MISMATCH/);
+    await expect(castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'PUBLIC' })).rejects.toThrow(
+      /NETWORK_MISMATCH/
+    );
 
     expect(signTx).not.toHaveBeenCalled();
     const proposalAfter = await fetchProposal(1);
@@ -876,9 +648,7 @@ describe('governance network mismatch protection (#1067)', () => {
   });
 
   it('regression guard: no mock/random fallback returns on network mismatch attempts', async () => {
-    await expect(
-      castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'PUBLIC' })
-    ).rejects.toThrow();
+    await expect(castVote(1, 'For', SIGNER, signTx, { walletNetwork: 'PUBLIC' })).rejects.toThrow();
     expect(signTx).not.toHaveBeenCalled();
   });
 });
@@ -1066,9 +836,7 @@ describe('governance contract read fallbacks (#1069)', () => {
         return { error: 'offline' } as any;
       });
 
-    await expect(castVote(1, 'For', SIGNER, signTx)).rejects.toThrow(
-      /VOTING_POWER_UNAVAILABLE/
-    );
+    await expect(castVote(1, 'For', SIGNER, signTx)).rejects.toThrow(/VOTING_POWER_UNAVAILABLE/);
     expect(signTx).not.toHaveBeenCalled();
     mockSimulate.mockRestore();
   });
@@ -1076,7 +844,12 @@ describe('governance contract read fallbacks (#1069)', () => {
 
 describe('governance event decoding fixtures (#1066)', () => {
   it('decodes proposal_created deterministic fixture correctly', () => {
-    const fixture = createProposalCreatedFixture(GOVERNANCE_CONTRACT_ID, 101, SIGNER, 'UpdateFeeRate');
+    const fixture = createProposalCreatedFixture(
+      GOVERNANCE_CONTRACT_ID,
+      101,
+      SIGNER,
+      'UpdateFeeRate'
+    );
     const decoded = decodeProposalCreatedEvent(fixture);
 
     expect(decoded).not.toBeNull();
@@ -1130,7 +903,9 @@ describe('governance event decoding fixtures (#1066)', () => {
     expect(decoded?.kind).toBe('proposal_vetoed');
     expect(decoded?.proposalId).toBe(101);
     expect(decoded?.admin).toBe(SIGNER);
-    expect(decoded?.reasonHash).toBe('0xdeadbeef00000000000000000000000000000000000000000000000000000000');
+    expect(decoded?.reasonHash).toBe(
+      '0xdeadbeef00000000000000000000000000000000000000000000000000000000'
+    );
   });
 
   it('decodes parameter_updated deterministic fixture correctly', () => {
@@ -1172,8 +947,11 @@ describe('governance event decoding fixtures (#1066)', () => {
     } as any;
 
     expect(decodeProposalCreatedEvent(malformed)).toBeNull();
-    expect(() => decodeProposalCreatedEvent(malformed, { strict: true })).toThrow(EventDecodingError);
-    expect(() => decodeProposalCreatedEvent(malformed, { strict: true })).toThrow(/MALFORMED_EVENT_PAYLOAD/);
+    expect(() => decodeProposalCreatedEvent(malformed, { strict: true })).toThrow(
+      EventDecodingError
+    );
+    expect(() => decodeProposalCreatedEvent(malformed, { strict: true })).toThrow(
+      /MALFORMED_EVENT_PAYLOAD/
+    );
   });
 });
-

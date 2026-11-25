@@ -25,6 +25,15 @@ const EXPECTED_METRICS: DataMetricKey[] = [
   'leaderboard',
   'contract-stats',
   'wallet-transaction-status',
+  'homepage-protocol-metrics',
+  'invoice-state-distribution',
+  'recent-protocol-activity',
+  'wallet-referral-stats',
+  'lp-risk-summary',
+  'lp-capital-breakdown',
+  'lp-yield-analytics',
+  'invoice-volume-history',
+  'lp-maturity-exposure',
 ];
 
 describe('data ownership registry', () => {
@@ -36,6 +45,7 @@ describe('data ownership registry', () => {
       expect(entry.fallback.length).toBeGreaterThan(0);
       expect(entry.freshness.length).toBeGreaterThan(0);
       expect(entry.owner.length).toBeGreaterThan(0);
+      expect(entry.provenance).toMatch(/^(rpc|horizon|indexer|estimate|unavailable)$/);
     }
     expect(Object.keys(DATA_OWNERSHIP).sort()).toEqual([...EXPECTED_METRICS].sort());
   });
@@ -60,7 +70,15 @@ describe('data ownership registry', () => {
   it('formats a visible source + freshness caption', () => {
     const caption = formatDataSourceCaption('funding-history');
     expect(caption).toContain('Source:');
+    expect(caption).toContain('Provenance: Indexer');
     expect(caption).toContain('Freshness:');
     expect(caption).toContain('Indexer');
+  });
+
+  it('allows an explicit unavailable provenance for a chart with no current data', () => {
+    const caption = formatDataSourceCaption('homepage-protocol-metrics', {
+      provenance: 'unavailable',
+    });
+    expect(caption).toContain('Provenance: Unavailable');
   });
 });

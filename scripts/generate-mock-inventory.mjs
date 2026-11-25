@@ -251,7 +251,7 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
       name: 'castVote',
       status: 'Real',
       filePath: 'src/utils/governance.ts',
-      line: 640,
+      line: 915,
       description:
         'Signed Soroban cast_vote: simulated before signing, confirmed under a bounded poll; no local tally',
       patternType: 'on-chain-call',
@@ -262,7 +262,7 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
       name: 'executeProposal',
       status: 'Real',
       filePath: 'src/utils/governance.ts',
-      line: 700,
+      line: 969,
       description:
         'Signed Soroban execute_proposal; status is re-read from the contract rather than set locally',
       patternType: 'on-chain-call',
@@ -273,7 +273,7 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
       name: 'vetoProposal',
       status: 'Real',
       filePath: 'src/utils/governance.ts',
-      line: 740,
+      line: 1013,
       description:
         'Signed Soroban veto_proposal; admin authorization enforced by simulation before signing',
       patternType: 'on-chain-call',
@@ -284,9 +284,10 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
       name: 'delegateVotingPower',
       status: 'Mock',
       filePath: 'src/utils/governance.ts',
-      line: 286,
-      description: 'Mutates mockDelegations in-memory map and returns random tx hash',
-      patternType: 'in-memory-state-mock',
+      line: 1288,
+      description:
+        'Signs a wallet intent and derives a deterministic local hash; no on-chain delegation transaction is submitted',
+      patternType: 'derived-hash-mock',
       trackingIssue: '#842',
     },
     {
@@ -324,12 +325,7 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
       name: 'createProposal',
       status: 'Real',
       filePath: 'src/utils/governance.ts',
-      line: 1030,
-      description:
-        'Signed Soroban create_proposal; the proposal id comes from the contract return value',
-      patternType: 'on-chain-call',
-      trackingIssue: '#1044',
-      line: 1028,
+      line: 1644,
       description:
         'Builds, simulates, signs, submits and confirms create_proposal; proposal id read from the return value (#1055)',
       patternType: 'on-chain-call',
@@ -455,6 +451,204 @@ export function scanMockInventory(_rootDir = ROOT_DIR) {
   };
 }
 
+export const FINANCIAL_MODULES = [
+  'Invoices',
+  'Tokens',
+  'Insurance',
+  'Governance',
+  'Referrals',
+  'Reputation',
+];
+
+/**
+ * Pre-approved allowlist of known mock or fallback functions on financial surfaces.
+ * Each entry documents the module, function name, allowed pattern, tracking issue, and rationale.
+ */
+export const FINANCIAL_MOCK_ALLOWLIST = [
+  {
+    module: 'Invoices',
+    name: 'listInvoicesByPayer',
+    patternType: 'table-scan-fallback',
+    trackingIssue: '#784',
+    rationale: 'Derived via get_invoice table scan because no direct ABI entry point exists',
+  },
+  {
+    module: 'Invoices',
+    name: 'updateLPWhitelist',
+    patternType: 'feature-flag-deferred',
+    trackingIssue: '#783',
+    rationale: 'Deferred behind UPDATE_LP_WHITELIST_SUPPORTED flag with UI notice',
+  },
+  {
+    module: 'Reputation',
+    name: 'getReputationEvents / getTopFreelancers',
+    patternType: 'table-scan-fallback',
+    rationale: 'Derived via tolerant alias chains with graceful empty fallbacks',
+  },
+  {
+    module: 'Governance',
+    name: 'delegateVotingPower',
+    patternType: 'in-memory-state-mock',
+    trackingIssue: '#842',
+    rationale: 'In-memory delegations mock awaiting Soroban delegation read support',
+  },
+  {
+    module: 'Governance',
+    name: 'getGovTokenBalance',
+    patternType: 'hardcoded-constant-stub',
+    trackingIssue: '#654',
+    rationale: 'Placeholder constant pending Soroban balance read integration',
+  },
+  {
+    module: 'Governance',
+    name: 'getQuorumThreshold',
+    patternType: 'hardcoded-constant-stub',
+    trackingIssue: '#654',
+    rationale: 'Placeholder quorum constant pending Soroban contract read integration',
+  },
+  {
+    module: 'Governance',
+    name: 'getProposalHistory',
+    patternType: 'synthetic-history-stub',
+    trackingIssue: '#655',
+    rationale: 'Synthetic timeline generator pending Soroban contract event query',
+  },
+  {
+    module: 'Governance',
+    name: 'subscribeToParameterUpdates',
+    patternType: 'hardcoded-constant-stub',
+    trackingIssue: '#656',
+    rationale: 'Dummy subscription placeholder returning no-op unsubscribe callback',
+  },
+];
+
+/**
+ * Recognized labels for permitted mock or fallback values in production financial surfaces.
+ */
+export const APPROVED_FINANCIAL_LABELS = new Set([
+  'dev-only',
+  'labelled-fallback',
+  'reference-rate',
+  'fallback',
+  'honest-unavailable',
+  'intended-deferred',
+]);
+
+export const FINDINGS_ALLOWLIST = [
+  {
+    filePath: 'src/utils/governance.ts',
+    pattern: 'mockDelegations.set(...)',
+    category: 'in-memory-mutation',
+  },
+  {
+    filePath: 'src/utils/governance.ts',
+    pattern: 'return 1000000n // TODO: Replace with actual contract call',
+    category: 'hardcoded-constant',
+  },
+  {
+    filePath: 'src/utils/governance.ts',
+    pattern: 'return 100000n // TODO: Replace with actual contract call',
+    category: 'hardcoded-constant',
+  },
+  {
+    filePath: 'src/utils/governance.ts',
+    pattern: 'Synthetic timeline generator (TODO: Replace with actual contract event query)',
+    category: 'synthetic-history-stub',
+  },
+  {
+    filePath: 'src/utils/soroban.ts',
+    pattern: 'UPDATE_LP_WHITELIST_SUPPORTED = false',
+    category: 'deferred-feature-gate',
+  },
+];
+
+/**
+ * Validates that mock or fallback values do not enter production financial surfaces
+ * without an explicit entry in the allowlist or an approved label.
+ *
+ * Exits with failure during CI check (`--check`) if unapproved mocks/fallbacks are detected.
+ */
+export function verifyFinancialSurfaces(data, options = {}) {
+  const allowlist = options.allowlist || FINANCIAL_MOCK_ALLOWLIST;
+  const approvedLabels = options.approvedLabels || APPROVED_FINANCIAL_LABELS;
+  const findingsAllowlist = options.findingsAllowlist || FINDINGS_ALLOWLIST;
+  const financialModules = new Set(options.financialModules || FINANCIAL_MODULES);
+
+  const violations = [];
+
+  // 1. Check functions
+  for (const fn of data.functions || []) {
+    const isFinancial = financialModules.has(fn.module) || fn.isFinancialSurface === true;
+    if (!isFinancial) continue;
+
+    const isMock = fn.status === 'Mock';
+    const isFallback =
+      fn.status === 'Derived' ||
+      fn.status === 'Deferred' ||
+      (fn.patternType &&
+        (fn.patternType.includes('fallback') ||
+          fn.patternType.includes('mock') ||
+          fn.patternType.includes('stub')));
+
+    if (isMock || isFallback) {
+      // Check allowlist
+      const isAllowlisted = allowlist.some(
+        (allowed) => allowed.module === fn.module && allowed.name === fn.name
+      );
+
+      // Check label
+      const hasApprovedLabel =
+        (fn.label && approvedLabels.has(String(fn.label).toLowerCase())) ||
+        (fn.description &&
+          /labelled|dev-only|reference-rate|honest unavailable/i.test(fn.description));
+
+      if (!isAllowlisted && !hasApprovedLabel) {
+        violations.push({
+          type: 'UNAPPROVED_FINANCIAL_MOCK',
+          module: fn.module,
+          name: fn.name,
+          status: fn.status,
+          patternType: fn.patternType,
+          filePath: fn.filePath,
+          line: fn.line,
+          message: `Function '${fn.name}' in module '${fn.module}' (${fn.filePath}:${fn.line}) is a ${fn.status} on a financial surface without an allowlist entry or approved label.`,
+        });
+      }
+    }
+  }
+
+  // 2. Check findings
+  for (const finding of data.findings || []) {
+    if (finding.status === 'resolved') continue;
+
+    const isAllowlisted = findingsAllowlist.some(
+      (allowed) =>
+        allowed.filePath === finding.filePath &&
+        (allowed.pattern === finding.pattern || allowed.category === finding.category)
+    );
+
+    const hasApprovedLabel =
+      (finding.label && approvedLabels.has(String(finding.label).toLowerCase())) ||
+      (finding.status && approvedLabels.has(String(finding.status).toLowerCase()));
+
+    if (!isAllowlisted && !hasApprovedLabel) {
+      violations.push({
+        type: 'UNAPPROVED_FINANCIAL_FINDING',
+        filePath: finding.filePath,
+        line: finding.line,
+        category: finding.category,
+        pattern: finding.pattern,
+        message: `Code pattern '${finding.pattern}' in ${finding.filePath}:${finding.line} has unresolved status '${finding.status}' on a financial surface without an allowlist entry or label.`,
+      });
+    }
+  }
+
+  return {
+    valid: violations.length === 0,
+    violations,
+  };
+}
+
 /**
  * Formats the scan result into Markdown.
  */
@@ -576,6 +770,24 @@ export function main() {
 
     console.log(
       `✅ docs/mock-inventory.md is up to date (${data.summary.totalFunctions} functions tracked).`
+    );
+
+    const financialCheck = verifyFinancialSurfaces(data);
+    if (!financialCheck.valid) {
+      console.error(
+        `❌ Financial surface verification failed: ${financialCheck.violations.length} unapproved mock/fallback value(s) detected:`
+      );
+      for (const violation of financialCheck.violations) {
+        console.error(`  - [${violation.type}] ${violation.message}`);
+      }
+      console.error(
+        `\nProduction financial surfaces cannot introduce mock or fallback values without an allowlist entry or approved label.`
+      );
+      process.exit(1);
+    }
+
+    console.log(
+      `✅ Financial surface verification passed: all mock/fallback values on financial surfaces are allowlisted or labelled.`
     );
     return;
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
 import {
@@ -31,6 +31,13 @@ import { Select } from '@/components/Select';
 import { Textarea } from '@/components/Textarea';
 import FieldTooltip from '@/components/FieldTooltip';
 import GovernanceMockStatusBanner from '@/components/governance/GovernanceMockStatusBanner';
+import CreatedProposalRecoveryNotice from '@/components/governance/CreatedProposalRecoveryNotice';
+import {
+  currentGovernancePreview,
+  governancePreviewFingerprint,
+  stampGovernancePreview,
+  type StampedGovernancePreview,
+} from '@/lib/governance/simulation';
 import { Loader2 } from 'lucide-react';
 
 interface FormData {
@@ -98,11 +105,6 @@ function describeSubmitError(error: unknown): string {
 
 export default function NewGovernanceProposalPage() {
   const router = useRouter();
-  const { address, isConnected } = useWallet();
-  const { execute, loading: txLoading, signingModal } = useTransaction();
-  const { tokens } = useApprovedTokens();
-  const { balances, isLoading: balancesLoading } = useBalances(tokens);
-  const { address, isConnected, signTx } = useWallet();
   const { address, isConnected, signTx, walletNetwork } = useWallet();
   const invalidateGovernanceQueries = useInvalidateGovernanceQueries();
 
@@ -125,7 +127,9 @@ export default function NewGovernanceProposalPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [resolvedToken, setResolvedToken] = useState<AcceptedToken | null>(null);
   const [tokenLookupError, setTokenLookupError] = useState<string | null>(null);
-  const [simulationResult, setSimulationResult] = useState<ProposalSimulationResult | null>(null);
+  const [previewState, setPreviewState] =
+    useState<StampedGovernancePreview<ProposalSimulationResult> | null>(null);
+  const [previewFailedFor, setPreviewFailedFor] = useState<string | null>(null);
   const [loadingSimulation, setLoadingSimulation] = useState(false);
   const [stage, setStage] = useState<CreateProposalStage | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -239,21 +243,37 @@ export default function NewGovernanceProposalPage() {
     };
   }, [formData, resolvedToken]);
 
+  // A preview is shown only for the exact payload that produced it (#1322).
+  const payloadFingerprint = useMemo(
+    () => (payload ? governancePreviewFingerprint(payload) : null),
+    [payload]
+  );
+  const simulationResult = currentGovernancePreview(previewState, payloadFingerprint);
+  const previewFailed = previewFailedFor !== null && previewFailedFor === payloadFingerprint;
+
   // Simulate proposal effect when form changes
   useEffect(() => {
     let cancelled = false;
     const debounceSimulation = setTimeout(async () => {
-      if (!payload || !formData.title) {
-        setSimulationResult(null);
+      if (!payload || !payloadFingerprint || !formData.title) {
+        setPreviewState(null);
+        setPreviewFailedFor(null);
+        setLoadingSimulation(false);
         return;
       }
       try {
         setLoadingSimulation(true);
         const result = await simulateProposalEffect(payload);
-        if (!cancelled) setSimulationResult(result);
+        if (!cancelled) {
+          setPreviewState(stampGovernancePreview(result, payloadFingerprint));
+          setPreviewFailedFor(null);
+        }
       } catch (err) {
         console.warn('Failed to simulate proposal effect:', err);
-        if (!cancelled) setSimulationResult(null);
+        if (!cancelled) {
+          setPreviewState(null);
+          setPreviewFailedFor(payloadFingerprint);
+        }
       } finally {
         if (!cancelled) setLoadingSimulation(false);
       }
@@ -263,7 +283,7 @@ export default function NewGovernanceProposalPage() {
       cancelled = true;
       clearTimeout(debounceSimulation);
     };
-  }, [payload, formData.title]);
+  }, [payload, payloadFingerprint, formData.title]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -337,46 +357,10 @@ export default function NewGovernanceProposalPage() {
     setSubmitting(true);
     setStage(null);
     try {
-      const payload = {
-        formType: formData.formType as CreateProposalFormType,
-        title: formData.title,
-        description:
-          formData.description +
-          `
-
-IPFS Hash: ${ipfsHash}`,
-        newValueBps: formData.newValueBps ? parseInt(formData.newValueBps) : undefined,
-        tokenAddress: resolvedToken?.address,
-        tokenName: resolvedToken?.name,
-        removeTokenAddress: formData.removeTokenAddress,
-      };
-
-      // Routed through `execute` so the proposal is signed by the connected
-      // wallet and its outcome reported through the shared transaction
-      // handling: simulation errors surface before the signature prompt
-      // (#1044) and a confirmation timeout is reported as an unknown outcome
-      // rather than a failure (#1045). The previous identity `signTx` echoed
-      // the XDR back unsigned, which a real network always rejects.
-      const result = await execute(async (signTx) => createProposal(payload, address, signTx), {
-        expectedAction: 'create_proposal',
-        title: 'Submitting proposal…',
-        pendingMessage: 'Waiting for wallet signature...',
-        successTitle: 'Proposal submitted',
-        successMessage: 'Your proposal is now on-chain.',
-      });
-
-      // `execute` has already surfaced any failure; only navigate on a
-      // confirmed proposal.
-      if (result) {
-        router.push(`/governance/${result.proposalId}`);
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      alert(`Failed to create proposal: ${msg}`);
       const { proposalId } = await createProposal(payload, address, signTx, {
-        walletNetwork,
+        walletNetwork: walletNetwork ?? undefined,
         context: toValidationContext(protocolParams),
-        onStage: setStage,
+        onStage: (stage) => setStage(stage as CreateProposalStage),
         onConfirmed: async () => {
           await invalidateGovernanceQueries({
             voterAddress: address,
@@ -487,6 +471,7 @@ IPFS Hash: ${ipfsHash}`,
   return (
     <main className="container mx-auto p-6 max-w-3xl">
       <GovernanceMockStatusBanner action="createProposal" />
+      <CreatedProposalRecoveryNotice />
 
       <h1 className="text-3xl font-bold mb-6">Create New Governance Proposal</h1>
 
@@ -729,6 +714,12 @@ IPFS Hash: ${ipfsHash}`,
               </>
             )}
 
+            {previewFailed && (
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Preview unavailable. Your proposal will still be simulated before your wallet opens.
+              </p>
+            )}
+
             {proposedParameterValue && (
               <p
                 className={`text-sm mt-3 ${simulationResult?.isContractVerified ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}
@@ -767,7 +758,6 @@ IPFS Hash: ${ipfsHash}`,
           </p>
         )}
       </form>
-      {signingModal}
     </main>
   );
 }

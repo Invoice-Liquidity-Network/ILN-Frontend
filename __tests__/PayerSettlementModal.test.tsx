@@ -196,4 +196,15 @@ describe('PayerSettlementModal', () => {
     expect(feeDisplay).toBeInTheDocument();
     expect(feeDisplay).toHaveTextContent('0% fee');
   });
+
+  it('accurately parses partial amount without floating-point precision loss', async () => {
+    const { parseUnitsExact } = await import('../src/components/PayerSettlementModal');
+    // 7 decimals
+    expect(parseUnitsExact('1.5', 7)).toBe(15000000n);
+    expect(parseUnitsExact('0.0000001', 7)).toBe(1n);
+    expect(parseUnitsExact('100.1234567', 7)).toBe(1001234567n);
+    // handles invalid strings gracefully
+    expect(parseUnitsExact('', 7)).toBe(0n);
+    expect(parseUnitsExact('abc', 7)).toBe(0n);
+  });
 });
